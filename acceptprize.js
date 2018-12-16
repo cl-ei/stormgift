@@ -263,3 +263,25 @@ setInterval(function (){
 setInterval(updateMonitor, 1000*60*5);
 console.log("Started.");
 updateMonitor();
+
+/* send heart beat for live user */
+setInterval(function () {
+    let reqParam = {
+        url: "https://api.live.bilibili.com/relation/v1/Feed/heartBeat",
+        headers: headers,
+        timeout: 5000,
+    };
+    let parseResponse = function(err, res, body) {
+        if (err) {
+            logging.error("Error happend when send heart beat: ", err);
+        } else {
+            let r = JSON.parse(body);
+            if (r.code === 0){
+                logging.info("Live heart beat sent.");
+            }else{
+                logging.error("Error happend when send heart beat: ", JSON.stringify(r));
+            }
+        }
+    };
+    request.get(reqParam, parseResponse);
+}, 1000*60);
