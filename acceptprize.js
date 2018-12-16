@@ -200,12 +200,16 @@ function getStormGift(room_id, gift_id, req_times){
             let r = JSON.parse(body);
             if (r.code !== 0){
                 if(req_times < 100){
-                    getStormGift(room_id, gift_id, req_times + 1);
+                    if (req_times > 30 && (req_times%7) === 0){
+                        setTimeout(function(){getStormGift(room_id, gift_id, req_times + 1);}, 130)
+                    }else{
+                        getStormGift(room_id, gift_id, req_times + 1);
+                    }
                 }else{
                     p_logging.error("Failed! ", room_id);
                 }
             }else{
-                p_logging.info("Succeed! ", room_id, r.data.mobile_content);
+                p_logging.info("Succeed! ", room_id, r.data.mobile_content, ", req_times: ", req_times);
             }
         }
     };
