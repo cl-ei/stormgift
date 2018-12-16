@@ -62,7 +62,7 @@ function roomScaner(index){
       }else{
         setTimeout(function () {
           roomScaner(index + 1);
-        }, 200);
+        }, 10);
       }
     }
   });
