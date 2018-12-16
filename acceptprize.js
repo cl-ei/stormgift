@@ -1,23 +1,24 @@
 let WebSocketClient = require('websocket').client;
 let fs = require("fs");
 let request = require("request");
-let PROC_NUMBER = parseInt(process.argv.splice(2)[0] || 0);
-let PROC_SINGLE_THREAD = 700;
+let DEBUG = !(process.argv.splice(2)[0] === "server");
+
+let PROC_NUMBER = 0;
+let PROC_SINGLE_THREAD = 2000;
 
 let log4js = require('log4js');
 
-//var logger = log4js.getLogger();
 let logerconf = {
   appenders: {
     acceptor_handler: {
       type: 'file',
-      filename: './log/acceptor_handler_' + PROC_NUMBER + '.log',
+      filename: DEBUG ? './log/handler_0.log' : "/home/wwwroot/log/storm/handler_0.log",
       maxLogSize: 1024*1024*50,
       backups: 2,
     },
     prizeloger: {
       type: 'file',
-      filename: './log/prizeloger.log',
+      filename: DEBUG ? './log/prizeloger.log' : "/home/wwwroot/log/storm/prizeloger.log",
       maxLogSize: 1024*1024*50,
       backups: 2,
     },
@@ -97,12 +98,13 @@ function procMessage(msg, room_id){
         let count = msg.data.num;
         logging.info("gift: ", gtype, "*", count, " - ", room_id);
         getStormId(room_id);
-    }else if(msg.cmd === "GUARD_BUY"){
-        let count = msg.data.num;
-        let gid = msg.data.gift_id;
-        let gname = msg.data.gift_name;
-        logging.info("gift: ", gname, ", room_id: ", room_id, ", count: ", count);
     }
+    // else if(msg.cmd === "GUARD_BUY"){
+    //     let count = msg.data.num;
+    //     let gid = msg.data.gift_id;
+    //     let gname = msg.data.gift_name;
+    //     logging.info("gift: ", gname, ", room_id: ", room_id, ", count: ", count);
+    // }
 }
 
 
@@ -175,8 +177,8 @@ function updateMonitor(){
         }
     });
 }
-
-let cookie = fs.readFileSync('./cookie.txt', "utf-8");
+let cookie_filename = DEBUG ? './cookie.txt' : "/home/wwwroot/notebook.madliar/notebook_user/i@caoliang.net/cookie.txt";
+let cookie = fs.readFileSync(cookie_filename, "utf-8");
 let cookie_kv = cookie.split(";");
 let csrf_token = "";
 for (let i = 0; i < cookie_kv.length; i++){
@@ -199,8 +201,8 @@ function getStormGift(room_id, gift_id, req_times){
         } else {
             let r = JSON.parse(body);
             if (r.code !== 0){
-                if(req_times < 100){
-                    if (req_times > 30 && (req_times%7) === 0){
+                if(req_times < 150){
+                    if (req_times > 50 && (req_times%10) === 0){
                         setTimeout(function(){getStormGift(room_id, gift_id, req_times + 1);}, 130)
                     }else{
                         getStormGift(room_id, gift_id, req_times + 1);
