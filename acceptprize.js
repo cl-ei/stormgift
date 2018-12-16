@@ -12,14 +12,14 @@ let logerconf = {
     acceptor_handler: {
       type: 'file',
       filename: './log/acceptor_handler_' + PROC_NUMBER + '.log',
-      maxLogSize: 102400,
-      backups: 10,
+      maxLogSize: 1024*1024*50,
+      backups: 2,
     },
     prizeloger: {
       type: 'file',
       filename: './log/prizeloger.log',
-      maxLogSize: 102400,
-      backups: 10,
+      maxLogSize: 1024*1024*50,
+      backups: 2,
     },
     console: { type: 'console' }
   },
