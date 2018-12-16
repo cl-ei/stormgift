@@ -2,7 +2,7 @@ let WebSocketClient = require('websocket').client;
 let fs = require("fs");
 let request = require("request");
 let PROC_NUMBER = parseInt(process.argv.splice(2)[0] || 0);
-let PROC_SINGLE_THREAD = 900;
+let PROC_SINGLE_THREAD = 700;
 
 let log4js = require('log4js');
 
