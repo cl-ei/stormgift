@@ -77,7 +77,7 @@ function setRoomList(room_list) {
   online_list.sort(sortNumber);
 
   let finnal_list = [];
-  let level = online_list[1200];
+  let level = online_list[1500];
   console.log("Level: ", level);
   for (let room_id in room_list){
     if(room_list[room_id] > level){
