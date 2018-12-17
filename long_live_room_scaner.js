@@ -67,7 +67,7 @@ function roomScaner(index, EMPTY_PAGES_COUNT){
         }
 
         if (index < 500 && EMPTY_PAGES_COUNT < 4) {
-            setTimeout(function () {roomScaner(index + 1);}, 1500);
+            setTimeout(function () {roomScaner(index + 1, EMPTY_PAGES_COUNT);}, 200);
         }else{
             fs.writeFile(ROOM_DICT_FILE_NAME, JSON.stringify(ROOM_DICT), function(err){
                 if(err){
