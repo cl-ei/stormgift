@@ -3,7 +3,6 @@ let fs = require("fs");
 let log4js = require('log4js');
 let DEBUG = !(process.argv.splice(2)[0] === "server");
 console.log("DEBUG env: ", DEBUG);
-let ROOM_COUNT_LIMIT = 700;
 
 let logerconf = {
   appenders: {
@@ -79,18 +78,20 @@ function setRoomList(room_list) {
 
   let finnal_list = [];
   let total_count = online_list.length;
-  let level = online_list[total_count >= ROOM_COUNT_LIMIT ? ROOM_COUNT_LIMIT : total_count];
-  console.log("Level: ", level);
+  // let level = online_list[total_count >= ROOM_COUNT_LIMIT ? ROOM_COUNT_LIMIT : total_count];
+  let level = 0;
+
   for (let room_id in room_list){
     if(room_list[room_id] > level){
       finnal_list.push(room_id);
     }
   }
+
   fs.writeFile('./rooms.txt', Array.from(finnal_list).join("_"), function(err){
       if(err){
         logging.info("获取失败: " + err.toString());
       }else{
-        logging.info("获取成功！level: " + level + ", total: " + total_count);
+        logging.info("获取成功！level: " + level + ", total: " + total_count + ", finnal_list length: " + finnal_list.length);
       }
   });
 }
