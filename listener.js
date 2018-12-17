@@ -112,7 +112,7 @@ function create_monitor(room_id){
         try{client.close();}catch (e) {}
         if(!RESTARTING_CONNECTIONS.has(room_id)) {
             RESTARTING_CONNECTIONS.add(room_id);
-            setTimeout(function () {create_monitor(room_id)}, 1000);
+            setTimeout(function () {create_monitor(room_id)},  parseInt(Math.random()*10000));
         }
     }
 
