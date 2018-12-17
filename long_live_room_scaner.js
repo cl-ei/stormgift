@@ -56,6 +56,9 @@ function roomScaner(index, EMPTY_PAGES_COUNT){
             let online = parseInt(r[i].online);
             if (room_id in ROOM_DICT){
                 ROOM_DICT[room_id].o.push(online);
+                if(ROOM_DICT[room_id].o.length > 4){
+                    ROOM_DICT[room_id].o = ROOM_DICT[room_id].o.sort(function(a, b){return b - a;}).slice(0, 4)
+                }
             }else {
                 ROOM_DICT[room_id] = {o: [online]}
             }
