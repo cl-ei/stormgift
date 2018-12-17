@@ -112,7 +112,7 @@ function create_monitor(room_id){
         try{client.close();}catch (e) {}
         if(!RESTARTING_CONNECTIONS.has(room_id)) {
             RESTARTING_CONNECTIONS.add(room_id);
-            setTimeout(function () {create_monitor(room_id)},  parseInt(Math.random()*10000));
+            create_monitor(room_id);
         }
     }
 
@@ -135,7 +135,7 @@ function create_monitor(room_id){
         }
         RESTARTING_CONNECTIONS.delete(room_id);
     });
-    setTimeout(function(){client.connect(MONITOR_URL)}, parseInt(Math.random()*10000));
+    client.connect(MONITOR_URL);
 }
 
 
@@ -151,7 +151,7 @@ function updateMonitor(){
             ROOM_ID_POOL.add(parseInt(room_id));
         }
     }
-    logging.info("ROOM_ID_POOL size: ", ROOM_ID_POOL.size);
+    logging.info("ROOM_ID_POOL size: " + ROOM_ID_POOL.size + "current: " + CURRENT_CONNECTIONS.size + ", reconnecting: " + RESTARTING_CONNECTIONS);
 
     CURRENT_CONNECTIONS.forEach(function (room_id) {
         if (!ROOM_ID_POOL.has(room_id)){
