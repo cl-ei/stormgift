@@ -24,7 +24,7 @@ function creatLogger(loggerName, path_){
   return log4js.getLogger(loggerName);
 }
 
-let logging = creatLogger('listener', DEBUG ? "./log/" : "/home/wwwroot/log/");
+let logging = creatLogger('listener_' + PROC_NUMBER, DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> proc num: " + PROC_NUMBER);
 
 
