@@ -96,7 +96,7 @@ function procMessage(msg, room_id){
         if (msg.data.giftName !== "节奏风暴") return;
         let gtype = msg.data.giftName;
         let count = msg.data.num;
-        logging.info("gift: ", gtype, "*", count, " - ", room_id);
+        // logging.info("gift: ", gtype, "*", count, " - ", room_id);
         getStormId(room_id);
     }
     // else if(msg.cmd === "GUARD_BUY"){
@@ -172,7 +172,7 @@ function updateMonitor(){
     ROOM_ID_POOL.forEach(function(room_id){
         if(!CURRENT_CONNECTIONS.has(room_id)){
             CURRENT_CONNECTIONS.add(room_id);
-            logging.info("Create: ", room_id);
+            // logging.info("Create: ", room_id);
             create_monitor(room_id);
         }
     });
@@ -239,7 +239,7 @@ function getStormId(room_id){
         } else {
             let r = JSON.parse(body);
             if (r.code === 0 && r.data.hasJoin === 0) {
-                logging.info("getStormGift: ", room_id, ", ", r.data.id)
+                logging.info("getStormGift room_id: ", room_id, ", gift_id: ", r.data.id);
                 getStormGift(room_id, r.data.id);
             }
         }
