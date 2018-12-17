@@ -153,6 +153,7 @@ function updateMonitor(){
             ROOM_ID_POOL.add(parseInt(room_id));
         }
     }
+    logging.info("ROOM_ID_POOL size: ", ROOM_ID_POOL.size);
 
     CURRENT_CONNECTIONS.forEach(function (room_id) {
         if (!ROOM_ID_POOL.has(room_id)){
