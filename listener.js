@@ -86,17 +86,15 @@ function procMessage(msg, room_id){
 
     if(msg.cmd === "SEND_GIFT"){
         if (msg.data.giftName !== "节奏风暴") return;
-        let gtype = msg.data.giftName;
         let count = msg.data.num;
-        logging.info("gift: ", gtype, "*", count, " - ", room_id);
-        getStormId(room_id);
+        logging.info("Storm gift -> count: " + count + ", room_id: " + room_id);
     }
-    // else if(msg.cmd === "GUARD_BUY"){
-    //     let count = msg.data.num;
-    //     let gid = msg.data.gift_id;
-    //     let gname = msg.data.gift_name;
-    //     logging.info("gift: ", gname, ", room_id: ", room_id, ", count: ", count);
-    // }
+    else if(msg.cmd === "GUARD_BUY"){
+        let count = msg.data.num;
+        let gid = msg.data.gift_id;
+        let gname = msg.data.gift_name;
+        logging.info("Guard gift -> " + gname + ", count: " + count + ", room_id: " + room_id + ", gid: " + gid);
+    }
 }
 
 
