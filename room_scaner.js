@@ -2,6 +2,7 @@ let request = require("request");
 let fs = require("fs");
 let log4js = require('log4js');
 let DEBUG = !(process.argv.splice(2)[0] === "server");
+let ROOM_COUNT_LIMIT = 1000;
 console.log("DEBUG env: ", DEBUG);
 
 let logerconf = {
@@ -23,8 +24,8 @@ let logerconf = {
 log4js.configure(logerconf);
 let logging = log4js.getLogger('scaner');
 
-let MONITOR_ROOM_LIST = {};
-let scan_url = "https://api.live.bilibili.com/room/v1/room/get_user_recommend?page=";
+let MONITOR_ROOM_LIST = new Set();
+let scan_url = "https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=online&pageSize=500&page=";
 let headers = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36'
 };
@@ -48,9 +49,7 @@ function roomScaner(index){
     } else {
       let r = JSON.parse(body).data || [];
       for (let i = 0; i < r.length; i++){
-        let room_id = parseInt(r[i].roomid);
-        let online = parseInt(r[i].online);
-        MONITOR_ROOM_LIST[room_id] = online;
+        MONITOR_ROOM_LIST.add(parseInt(r[i].roomid));
       }
       if (r.length > 0){
         EMPTY_PAGES_COUNT = 0;
@@ -58,8 +57,8 @@ function roomScaner(index){
         EMPTY_PAGES_COUNT += 1;
       }
 
-      if (index > 300 || EMPTY_PAGES_COUNT > 5) {
-        console.log("Room length: ", Object.keys(MONITOR_ROOM_LIST).length);
+      if (index > 10 || EMPTY_PAGES_COUNT > 5) {
+        console.log("Room length: ", MONITOR_ROOM_LIST.size);
         setRoomList(MONITOR_ROOM_LIST);
       }else{
         setTimeout(function () {
@@ -72,26 +71,12 @@ function roomScaner(index){
 
 
 function setRoomList(room_list) {
-  function sortNumber(a, b){return b - a}
-  let online_list = Object.values(room_list);
-  online_list.sort(sortNumber);
-
-  let finnal_list = [];
-  let total_count = online_list.length;
-  // let level = online_list[total_count >= ROOM_COUNT_LIMIT ? ROOM_COUNT_LIMIT : total_count];
-  let level = 0;
-
-  for (let room_id in room_list){
-    if(room_list[room_id] > level){
-      finnal_list.push(room_id);
-    }
-  }
-
+  let finnal_list = Array.from(room_list).slice(0, ROOM_COUNT_LIMIT);
   fs.writeFile('./rooms.txt', Array.from(finnal_list).join("_"), function(err){
       if(err){
         logging.info("获取失败: " + err.toString());
       }else{
-        logging.info("获取成功！level: " + level + ", total: " + total_count + ", finnal_list length: " + finnal_list.length);
+        logging.info("获取成功！finnal_list length: " + finnal_list.length);
       }
   });
 }
