@@ -144,9 +144,9 @@ function updateMonitor(){
     logging.info("Rooms length: ", roomList.length);
 
     ROOM_ID_POOL.clear();
-    for (let room_id in roomList){
-        let postfixnum = parseInt(room_id[room_id.length-1]);
-        room_id = parseInt(room_id);
+    for (let i = 0; i < roomList.length; i++){
+        let room_id = roomList[i];
+        let postfixnum = parseInt(room_id[room_id.length - 1]);
         if(postfixnum === PROC_NUMBER || postfixnum === (5 + PROC_NUMBER)){
             ROOM_ID_POOL.add(parseInt(room_id));
         }
