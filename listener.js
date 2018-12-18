@@ -197,8 +197,7 @@ function createClients(room_id){
             logging.info(MESSAGE_COUNT + " messages received.");
             if (MESSAGE_COUNT > 999999999999){MESSAGE_COUNT = 0;}
         }, 1000*60);
-
-        setInterval(function () {
+        let startConnectIntervalMonitor = function () {
             console.log("Check!");
             // 关闭不监控的
             let currentRoomIds = Object.keys(CURRENT_CONNECTIONS);
@@ -225,7 +224,8 @@ function createClients(room_id){
                     createClients(room_id);
                 }
             }
-        }, 10000);
+        };
+        setTimeout(function(){console.log("Interval monitor id: " + setInterval(startConnectIntervalMonitor, 20000))}, 1000*30)
     };
     fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
         if (err) {
