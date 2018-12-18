@@ -170,11 +170,12 @@ function createClients(room_id){
         if (reconnectFlag){
             logging.info("Connection: " + room_id + " RECONNECTED!");
         }
-
+        logging.info("roomid: " + room_id + "CURRENT_CONNECTIONS[room_id]:" + CURRENT_CONNECTIONS[room_id])
     };
     client.onmessage = function(e) {
         parseMessage(e.data, room_id);
     };
+    logging.info("after createClients roomid: " + room_id + "CURRENT_CONNECTIONS[room_id]:" + CURRENT_CONNECTIONS[room_id])
 }
 
 (function (){
