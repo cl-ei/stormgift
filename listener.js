@@ -1,4 +1,4 @@
-let WebSocketClient = require('websocket').client;
+let W3CWebSocket = require('websocket').w3cwebsocket;
 let fs = require("fs");
 let path = require('path');
 let log4js = require('log4js');
@@ -47,11 +47,11 @@ function generatePacket (action, payload) {
     return buff
 }
 
-function sendJoinRoom(ws, rid){
+function sendJoinRoom(client, rid){
     let uid = 1E15 + Math.floor(2E15 * Math.random());
     let packet = JSON.stringify({uid: uid, roomid: rid});
     let joinedRoomPayload = generatePacket(7, packet);
-    ws.send(joinedRoomPayload);
+    client.send(joinedRoomPayload);
 }
 
 function parseMessage(buff, fn, room_id){
@@ -78,8 +78,7 @@ let MONITOR_URL = "ws://broadcastlv.chat.bilibili.com:2244/sub";
 
 let MESSAGE_COUNT = 0;
 let ROOM_ID_POOL = new Set();
-let CURRENT_CONNECTIONS = new Set();
-let RESTARTING_CONNECTIONS = new Set();
+let CURRENT_CONNECTIONS = {};
 
 function procMessage(msg, room_id){
     MESSAGE_COUNT += 1;
@@ -98,80 +97,68 @@ function procMessage(msg, room_id){
 }
 
 
-function create_monitor(room_id){
-    if(!CURRENT_CONNECTIONS.has(room_id)) {return}
-
-    let client = new WebSocketClient();
-    function on_message(message){
-        parseMessage(message.binaryData, procMessage, room_id);
-    }
-    function on_error(e){
-        if (CURRENT_CONNECTIONS.has(room_id)){
-            logging.error('Connect Error: ' + e.toString(), "room_id: ", room_id);
-        }
-        try{client.close();}catch (e) {}
-        if(!RESTARTING_CONNECTIONS.has(room_id)) {
-            RESTARTING_CONNECTIONS.add(room_id);
-            create_monitor(room_id);
+function createClients(room_id){
+    let existedClient = CURRENT_CONNECTIONS[room_id];
+    if(existedClient){
+        if(existedClient.readyState === 1) {
+            return
+        }else{
+            logging.error("Re connect -> " + room_id + ", status: " + existedClient.readyState);
         }
     }
 
-    client.on('connectFailed', on_error);
-    client.on('connect', function(connection) {
-        connection.on('error', on_error);
-        connection.on('close', on_error);
-        connection.on('message', on_message);
-
-        sendJoinRoom(connection, room_id);
+    let client = new W3CWebSocket(MONITOR_URL);
+    client.onerror = function(err) {
+        console.log('Connection Error, room id: ' + room_id +', err: ' + err.toString());
+        if(ROOM_ID_POOL.has(room_id)){createClients(room_id)}
+    };
+    client.onopen = function() {
+        sendJoinRoom(client, room_id);
         function sendHeartBeat() {
-            if(CURRENT_CONNECTIONS.has(room_id) && connection.connected){
-                connection.send(HEART_BEAT);
+            if (ROOM_ID_POOL.has(room_id) && client.readyState === client.OPEN){
+                client.send(HEART_BEAT);
                 setTimeout(sendHeartBeat, 10000);
             }
         }
         sendHeartBeat();
-        if(RESTARTING_CONNECTIONS.has(room_id)){
-            logging.info("Re connected: ", room_id);
-        }
-        RESTARTING_CONNECTIONS.delete(room_id);
-    });
-    client.connect(MONITOR_URL);
+        CURRENT_CONNECTIONS[room_id] = client;
+    };
+    client.onclose = function() {
+        logging.error('Client Closed: '+ room_id);
+        if(ROOM_ID_POOL.has(room_id)){createClients(room_id)}
+    };
+    client.onmessage = function(e) {
+        if(e){return}
+        parseMessage(message.binaryData, procMessage, room_id);
+    };
 }
 
+(function (){
+    let startProc = (roomList) => {
+        logging.info("Rooms length: ", roomList.length);
 
-function updateMonitor(){
-    let roomList = fs.readFileSync('./rooms.txt', "utf-8").split("_");
-    logging.info("Rooms length: ", roomList.length);
-
-    ROOM_ID_POOL.clear();
-    for (let i = 0; i < roomList.length; i++){
-        let room_id = roomList[i];
-        let postfixnum = parseInt(room_id[room_id.length - 1]);
-        if(postfixnum === PROC_NUMBER || postfixnum === (5 + PROC_NUMBER)){
-            ROOM_ID_POOL.add(parseInt(room_id));
+        ROOM_ID_POOL.clear();
+        for (let i = 0; i < roomList.length; i++){
+            let room_id = roomList[i];
+            let postfixnum = parseInt(room_id[room_id.length - 1]);
+            if(postfixnum === PROC_NUMBER || postfixnum === (5 + PROC_NUMBER) || 1){
+                ROOM_ID_POOL.add(parseInt(room_id));
+            }
         }
-    }
-    logging.info("ROOM_ID_POOL size: " + ROOM_ID_POOL.size + ", current: " + CURRENT_CONNECTIONS.size + ", reconnecting: " + RESTARTING_CONNECTIONS.size);
+        logging.info("ROOM_ID_POOL size: " + ROOM_ID_POOL.size);
 
-    CURRENT_CONNECTIONS.forEach(function (room_id) {
-        if (!ROOM_ID_POOL.has(room_id)){
-            logging.info("Delete: ", room_id);
-            CURRENT_CONNECTIONS.delete(room_id);
+        CURRENT_CONNECTIONS = {};
+        ROOM_ID_POOL.forEach(createClients);
+        setInterval(function (){
+            logging.info(MESSAGE_COUNT + " messages received.");
+            if (MESSAGE_COUNT > 999999999999){MESSAGE_COUNT = 0;}
+        }, 1000*60);
+    };
+    fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
+        if (err) {
+            logging.error("Error happend when reading file, err: " + err.toString());
+            return
         }
+        startProc(data.split("_"));
     });
-    ROOM_ID_POOL.forEach(function(room_id){
-        if(!CURRENT_CONNECTIONS.has(room_id)){
-            CURRENT_CONNECTIONS.add(room_id);
-            create_monitor(room_id);
-        }
-    });
-}
-
-
-setInterval(function (){
-    logging.info(MESSAGE_COUNT + " messages received.");
-    if (MESSAGE_COUNT > 999999999999){MESSAGE_COUNT = 0;}
-}, 1000*60);
-
-setInterval(updateMonitor, 1000*60*5);
-updateMonitor();
+})();
