@@ -114,11 +114,12 @@ function createClients(room_id){
     }
 
     let client = new W3CWebSocket(MONITOR_URL);
-    client.onerror = function(err) {
-        logging.error("room id: " + room_id + "err: ", err, "" + err.toString());
+    client.onerror = function() {
         if(ROOM_ID_POOL.has(room_id)){
             let existedClient = CURRENT_CONNECTIONS[room_id];
-            if(existedClient){
+            if(existedClient === undefined){
+                logging.error('Connection Error happened at creating, room id: ' + room_id);
+            }else{
                 if (existedClient === client){
                     logging.error('UNEXPECTED Connection Error happened, room id: ' + room_id);
                     setTimeout(function(){createClients(room_id)}, Math.random()*10000)
@@ -131,7 +132,6 @@ function createClients(room_id){
         }
     };
     client.onopen = function() {
-        logging.info("on open roomid: " + room_id + "CURRENT_CONNECTIONS[room_id]:" + CURRENT_CONNECTIONS[room_id]);
         sendJoinRoom(client, room_id);
 
         function sendHeartBeat(firstBeat) {
@@ -157,7 +157,6 @@ function createClients(room_id){
         if (reconnectFlag){
             logging.info("Connection: " + room_id + " RECONNECTED!");
         }
-        logging.info("roomid: " + room_id + "CURRENT_CONNECTIONS[room_id]:" + CURRENT_CONNECTIONS[room_id])
     };
     client.onclose = function() {
         if(ROOM_ID_POOL.has(room_id)){
@@ -221,21 +220,12 @@ function createClients(room_id){
             // 重启要监控的
             let triggered = [];
             let monitorList = Array.from(ROOM_ID_POOL);
-            logging.info("---ROOM_ID_POOL: " + ROOM_ID_POOL.size + " mo: " + monitorList.length + " C: " + Object.keys(CURRENT_CONNECTIONS).length);
             for (let i = 0; i < monitorList.length; i++){
                 let room_id = parseInt(monitorList[i]);
                 let client = CURRENT_CONNECTIONS[room_id];
                 if(client === undefined || client.readyState !== 1){
-                    logging.debug("Client: " + client + "status: " + (client === undefined ? "-" : client.readyState));
-                    delete CURRENT_CONNECTIONS[room_id];
                     triggered.push(room_id);
-                    setTimeout(
-                        function(){
-                            logging.info("Trigger createClients -> " + room_id);
-                            createClients(room_id);
-                        },
-                        parseInt(1000*Math.random()*30)
-                    );
+                    setTimeout(function(){createClients(room_id)}, parseInt(1000*Math.random()*60));
                 }
             }
             logging.info("Interval Connection Monitor: " + triggered.length + " connections triggered: " + triggered);

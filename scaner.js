@@ -2,7 +2,7 @@ let request = require("request");
 let fs = require("fs");
 let log4js = require('log4js');
 let DEBUG = !(process.argv.splice(2)[0] === "server");
-let ROOM_COUNT_LIMIT = 6000;
+let ROOM_COUNT_LIMIT = 10000;
 
 function creatLogger(loggerName, path_){
   let path = require("path");
@@ -55,7 +55,7 @@ function roomScaner(index){
             EMPTY_PAGES_COUNT += 1;
         }
 
-        if (index > 10 || EMPTY_PAGES_COUNT > 5) {
+        if (index > 20 || EMPTY_PAGES_COUNT > 3) {
             console.log("Room length: ", MONITOR_ROOM_LIST.size);
             setRoomList(MONITOR_ROOM_LIST);
         }else{
