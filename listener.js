@@ -117,7 +117,7 @@ function createClients(room_id){
                 console.log("Ready status: " + existedClient.readyState + " - " + client.readyState);
                 if (existedClient === client){
                     console.log('UNEXPECTED Connection Error happened, room id: ' + room_id);
-                    setTimeout(function(){createClients(room_id)}, 1000);
+                    setTimeout(function(){createClients(room_id)}, Math.random()*10000)
                 }else{
                     console.log('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
                 }
@@ -132,7 +132,7 @@ function createClients(room_id){
             if(existedClient){
                 if(existedClient === client){
                     logging.error('Connection UNEXPECTED closed: '+ room_id);
-                    setTimeout(function(){createClients(room_id)}, 1000)
+                    setTimeout(function(){createClients(room_id)}, Math.random()*10000)
                 }else{
                     logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
                 }
