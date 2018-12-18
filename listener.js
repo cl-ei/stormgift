@@ -141,7 +141,7 @@ function createClients(room_id){
                 }
             }
         }else{
-            logging.error('Client NORMAL Removed: '+ room_id);
+            logging.info('Client NORMAL Removed: '+ room_id);
         }
     };
     client.onopen = function() {
@@ -211,7 +211,7 @@ function createClients(room_id){
                     if (client && client.readyState === client.OPEN){try{client.close()}catch(e){}}
                 }
             }
-            logging.info(killedRooms.length + " Connections removed: " + JSON.stringify(killedRooms));
+            logging.info("Interval Connection Monitor: " + killedRooms.length + " connections removed.");
 
             // 重启要监控的
             let triggered = [];
@@ -224,7 +224,7 @@ function createClients(room_id){
                     createClients(room_id);
                 }
             }
-            logging.info(triggered.length + " Connections triggered: " + JSON.stringify(triggered));
+            logging.info("Interval Connection Monitor " + triggered.length + " connections triggered: " + triggered);
         };
         let updataRoomIdPool = () => {
             fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
