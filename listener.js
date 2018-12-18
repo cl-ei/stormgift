@@ -115,7 +115,7 @@ function createClients(room_id){
 
     let client = new W3CWebSocket(MONITOR_URL);
     client.onerror = function(err) {
-        logging.error("room id: " + room_id + "err: ", err);
+        logging.error("room id: " + room_id + "err: ", err.data);
         if(ROOM_ID_POOL.has(room_id)){
             let existedClient = CURRENT_CONNECTIONS[room_id];
             if(existedClient){
