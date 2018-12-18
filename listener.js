@@ -118,16 +118,15 @@ function createClients(room_id){
         if(ROOM_ID_POOL.has(room_id)){
             let existedClient = CURRENT_CONNECTIONS[room_id];
             if(existedClient){
-                console.log("Ready status: " + existedClient.readyState + " - " + client.readyState);
                 if (existedClient === client){
-                    console.log('UNEXPECTED Connection Error happened, room id: ' + room_id);
+                    logging.error('UNEXPECTED Connection Error happened, room id: ' + room_id);
                     setTimeout(function(){createClients(room_id)}, Math.random()*10000)
                 }else{
-                    console.log('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
+                    logging.error('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
                 }
             }
         }else{
-            console.log('Connection Removed (EXPECTED, but caused by error), room id: ' + room_id +', err: ' + err.toString());
+            logging.error('Connection Removed (EXPECTED, but caused by error), room id: ' + room_id +', err: ' + err.toString());
         }
     };
     client.onclose = function() {
@@ -156,7 +155,7 @@ function createClients(room_id){
                 setTimeout(sendHeartBeat, 10000);
             }else{
                 if(CURRENT_CONNECTIONS[room_id] !== client){
-                    console.log("Duplicated client! do not send heartbeat. room_id: " + room_id);
+                    logging.error("Duplicated client! do not send heartbeat. room_id: " + room_id);
                     try{client.close()}catch(e){}
                 }else{
                     if (ROOM_ID_POOL.has(room_id)){
@@ -199,33 +198,33 @@ function createClients(room_id){
             if (MESSAGE_COUNT > 999999999999){MESSAGE_COUNT = 0;}
         }, 1000*60);
 
-        let startConnectIntervalMonitor = function () {
-            console.log("Check!");
+        let intervalConnectionMonitor = function () {
             // 关闭不监控的
+            let killedRooms = [];
             let currentRoomIds = Object.keys(CURRENT_CONNECTIONS);
             for (let i = 0; i < currentRoomIds.length; i++){
                 let room_id = parseInt(currentRoomIds[i]);
                 if(!ROOM_ID_POOL.has(room_id)){
-                    console.log("Delete: " + room_id);
+                    killedRooms.push(room_id);
                     let client = CURRENT_CONNECTIONS[room_id];
                     delete CURRENT_CONNECTIONS[room_id];
-                    if (client && client.readyState === client.OPEN){try{
-                        console.log("Kill -> " + room_id);
-                        client.close();
-                    }catch(e){}}
+                    if (client && client.readyState === client.OPEN){try{client.close()}catch(e){}}
                 }
             }
+            logging.info(killedRooms.length + " Connections removed: " + JSON.stringify(killedRooms));
 
             // 重启要监控的
+            let triggered = [];
             let monitorList = Array.from(ROOM_ID_POOL);
             for (let i = 0; i < monitorList.length; i++){
                 let room_id = parseInt(monitorList[i]);
                 let client = CURRENT_CONNECTIONS[room_id];
                 if(client === undefined || client.readyState !== 1){
-                    console.log("Trigger: " + room_id);
+                    triggered.push(room_id);
                     createClients(room_id);
                 }
             }
+            logging.info(triggered.length + " Connections triggered: " + JSON.stringify(triggered));
         };
         let updataRoomIdPool = () => {
             fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
@@ -240,7 +239,7 @@ function createClients(room_id){
                 logging.info("ROOM_ID_POOL update -> " + ROOM_ID_POOL.size);
             });
         };
-        setInterval(startConnectIntervalMonitor, 1000*60*2);
+        setInterval(intervalConnectionMonitor, 1000*60*2);
         setInterval(updataRoomIdPool, 1000*60*5);
     };
 
