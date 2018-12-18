@@ -98,19 +98,20 @@ function procMessage(msg, room_id){
 
 
 function createClients(room_id){
-    let existedClient = CURRENT_CONNECTIONS[room_id];
+    let existedClient = CURRENT_CONNECTIONS[room_id],
+        reconnectFlag = false;
     if(existedClient){
         if(existedClient.readyState === 1) {
             return
         }else{
-            logging.error("Re connect -> " + room_id + ", status: " + existedClient.readyState);
+            reconnectFlag = true;
         }
     }
 
     let client = new W3CWebSocket(MONITOR_URL);
     client.onerror = function(err) {
         console.log('Connection Error, room id: ' + room_id +', err: ' + err.toString());
-        if(ROOM_ID_POOL.has(room_id)){createClients(room_id)}
+        if(ROOM_ID_POOL.has(room_id)){setTimeout(function(){createClients(room_id)}, 1000)}
     };
     client.onopen = function() {
         sendJoinRoom(client, room_id);
@@ -122,10 +123,13 @@ function createClients(room_id){
         }
         sendHeartBeat();
         CURRENT_CONNECTIONS[room_id] = client;
+        if (reconnectFlag){
+            logging.info("Connection: " + room_id + " RECONNECTED!");
+        }
     };
     client.onclose = function() {
         logging.error('Client Closed: '+ room_id);
-        if(ROOM_ID_POOL.has(room_id)){createClients(room_id)}
+        if(ROOM_ID_POOL.has(room_id)){setTimeout(function(){createClients(room_id)}, 1000)}
     };
     client.onmessage = function(e) {
         if(e){return}
