@@ -115,6 +115,7 @@ function createClients(room_id){
 
     let client = new W3CWebSocket(MONITOR_URL);
     client.onerror = function(err) {
+        logging.error("room id: " + room_id + "err: ", err);
         if(ROOM_ID_POOL.has(room_id)){
             let existedClient = CURRENT_CONNECTIONS[room_id];
             if(existedClient){
@@ -127,21 +128,6 @@ function createClients(room_id){
             }
         }else{
             logging.error('Connection Removed (EXPECTED, but caused by error), room id: ' + room_id +', err: ' + err.toString());
-        }
-    };
-    client.onclose = function() {
-        if(ROOM_ID_POOL.has(room_id)){
-            let existedClient = CURRENT_CONNECTIONS[room_id];
-            if(existedClient){
-                if(existedClient === client){
-                    logging.error('Connection UNEXPECTED closed: '+ room_id);
-                    setTimeout(function(){createClients(room_id)}, parseInt(Math.random()*10000));
-                }else{
-                    logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
-                }
-            }
-        }else{
-            logging.info('Client NORMAL Removed: '+ room_id);
         }
     };
     client.onopen = function() {
@@ -172,6 +158,21 @@ function createClients(room_id){
             logging.info("Connection: " + room_id + " RECONNECTED!");
         }
         logging.info("roomid: " + room_id + "CURRENT_CONNECTIONS[room_id]:" + CURRENT_CONNECTIONS[room_id])
+    };
+    client.onclose = function() {
+        if(ROOM_ID_POOL.has(room_id)){
+            let existedClient = CURRENT_CONNECTIONS[room_id];
+            if(existedClient){
+                if(existedClient === client){
+                    logging.error('Connection UNEXPECTED closed: '+ room_id);
+                    setTimeout(function(){createClients(room_id)}, parseInt(Math.random()*10000));
+                }else{
+                    logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
+                }
+            }
+        }else{
+            logging.info('Client NORMAL Removed: '+ room_id);
+        }
     };
     client.onmessage = function(e) {
         parseMessage(e.data, room_id);
