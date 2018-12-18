@@ -104,7 +104,7 @@ function procMessage(msg, room_id){
 function createClients(room_id){
     let existedClient = CURRENT_CONNECTIONS[room_id],
         reconnectFlag = false;
-    if(existedClient){
+    if(existedClient !== undefined){
         if(existedClient.readyState === 1) {
             logging.error("CODE ERROR! do not create duplicated client.");
             return
@@ -141,7 +141,7 @@ function createClients(room_id){
                 }
             }
         }else{
-            // logging.info('Client NORMAL Removed: '+ room_id);
+            logging.info('Client NORMAL Removed: '+ room_id);
         }
     };
     client.onopen = function() {
@@ -225,10 +225,10 @@ function createClients(room_id){
                     logging.debug("Client: " + client + "status: " + (client === undefined ? "-" : client.readyState));
                     delete CURRENT_CONNECTIONS[room_id];
                     triggered.push(room_id);
-                    setTimeout(function(){createClients(room_id)}, parseInt(1000*Math.random()*60));
+                    setTimeout(function(){createClients(room_id)}, parseInt(1000*Math.random()*30));
                 }
             }
-            logging.info("Interval Connection Monitor " + triggered.length + " connections triggered: " + triggered);
+            logging.info("Interval Connection Monitor: " + triggered.length + " connections triggered: " + triggered);
         };
         let updataRoomIdPool = () => {
             fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
