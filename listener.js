@@ -113,11 +113,14 @@ function createClients(room_id){
     client.onerror = function(err) {
         if(ROOM_ID_POOL.has(room_id)){
             let existedClient = CURRENT_CONNECTIONS[room_id];
-            if(existedClient && existedClient === client){
-                console.log('UNEXPECTED Connection Error happened, room id: ' + room_id);
-                setTimeout(function(){createClients(room_id)}, 1000);
-            }else{
-                console.log('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
+            if(existedClient){
+                console.log("Ready status: " + existedClient.readyState + " - " + client.readyState);
+                if (existedClient === client){
+                    console.log('UNEXPECTED Connection Error happened, room id: ' + room_id);
+                    setTimeout(function(){createClients(room_id)}, 1000);
+                }else{
+                    console.log('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
+                }
             }
         }else{
             console.log('Connection Removed (EXPECTED, but caused by error), room id: ' + room_id +', err: ' + err.toString());
