@@ -170,6 +170,7 @@ function createClients(room_id){
         if (reconnectFlag){
             logging.info("Connection: " + room_id + " RECONNECTED!");
         }
+
     };
     client.onmessage = function(e) {
         parseMessage(e.data, room_id);
@@ -218,6 +219,7 @@ function createClients(room_id){
             // 重启要监控的
             let triggered = [];
             let monitorList = Array.from(ROOM_ID_POOL);
+            logging.info("---ROOM_ID_POOL: " + ROOM_ID_POOL.size + " mo: " + monitorList.length + " C: " + Object.keys(CURRENT_CONNECTIONS).length);
             for (let i = 0; i < monitorList.length; i++){
                 let room_id = parseInt(monitorList[i]);
                 let client = CURRENT_CONNECTIONS[room_id];
