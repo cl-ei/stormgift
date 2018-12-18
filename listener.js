@@ -102,6 +102,7 @@ function createClients(room_id){
         reconnectFlag = false;
     if(existedClient){
         if(existedClient.readyState === 1) {
+            logging.error("CODE ERROR! do not create duplicated client.");
             return
         }else{
             reconnectFlag = true;
@@ -110,26 +111,52 @@ function createClients(room_id){
 
     let client = new W3CWebSocket(MONITOR_URL);
     client.onerror = function(err) {
-        console.log('Connection Error, room id: ' + room_id +', err: ' + err.toString());
-        if(ROOM_ID_POOL.has(room_id)){setTimeout(function(){createClients(room_id)}, 1000)}
-    };
-    client.onopen = function() {
-        sendJoinRoom(client, room_id);
-        function sendHeartBeat() {
-            if (ROOM_ID_POOL.has(room_id) && client.readyState === client.OPEN){
-                client.send(HEART_BEAT);
-                setTimeout(sendHeartBeat, 10000);
+        if(ROOM_ID_POOL.has(room_id)){
+            let existedClient = CURRENT_CONNECTIONS[room_id];
+            if(existedClient && existedClient === client){
+                console.log('UNEXPECTED Connection Error happened, room id: ' + room_id);
+                setTimeout(function(){createClients(room_id)}, 1000);
+            }else{
+                console.log('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
             }
-        }
-        sendHeartBeat();
-        CURRENT_CONNECTIONS[room_id] = client;
-        if (reconnectFlag){
-            logging.info("Connection: " + room_id + " RECONNECTED!");
+        }else{
+            console.log('Connection Removed (EXPECTED, but caused by error), room id: ' + room_id +', err: ' + err.toString());
         }
     };
     client.onclose = function() {
-        logging.error('Client Closed: '+ room_id);
-        if(ROOM_ID_POOL.has(room_id)){setTimeout(function(){createClients(room_id)}, 1000)}
+        if(ROOM_ID_POOL.has(room_id)){
+            let existedClient = CURRENT_CONNECTIONS[room_id];
+            if(existedClient && existedClient === client){
+                logging.error('Connection UNEXPECTED closed: '+ room_id);
+                setTimeout(function(){createClients(room_id)}, 1000)
+            }else{
+                logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
+            }
+        }else{
+            logging.error('Client NORMAL Removed: '+ room_id);
+        }
+    };
+    client.onopen = function() {
+        client.clid = Math.random();
+        sendJoinRoom(client, room_id);
+        CURRENT_CONNECTIONS[room_id] = client;
+
+        function sendHeartBeat() {
+            if(CURRENT_CONNECTIONS[room_id] !== client){
+                console.log("Duplicated client! do not send heartbeat. room_id: " + room_id);
+                if(client.readyState === 1){try{client.close()}catch(e){}}
+                return;
+            }
+            if (ROOM_ID_POOL.has(room_id) && client.readyState === client.OPEN){
+                client.send(HEART_BEAT);
+                setTimeout(function(){sendHeartBeat()}, 10000);
+            }
+        }
+        sendHeartBeat();
+
+        if (reconnectFlag){
+            logging.info("Connection: " + room_id + " RECONNECTED!");
+        }
     };
     client.onmessage = function(e) {
         if(e){return}
