@@ -226,10 +226,24 @@ function createClients(room_id){
                     createClients(room_id);
                 }
             }
-            setTimeout(startConnectIntervalMonitor, 1000*120);
         };
-        setTimeout(startConnectIntervalMonitor, 1000*120);
+        let updataRoomIdPool = () => {
+            fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
+                if (err) {
+                    return
+                }
+                ROOM_ID_POOL.clear();
+                let newRoomIdList = data.split("_");
+                for (let i = 0; i < newRoomIdList.length; i++){
+                    ROOM_ID_POOL.add(parseInt(newRoomIdList[i]))
+                }
+                logging.info("ROOM_ID_POOL update -> " + ROOM_ID_POOL.size);
+            });
+        };
+        setInterval(startConnectIntervalMonitor, 1000*60*2);
+        setInterval(updataRoomIdPool, 1000*60*5);
     };
+
     fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
         if (err) {
             logging.error("Error happend when reading file, err: " + err.toString());
