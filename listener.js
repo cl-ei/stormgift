@@ -145,6 +145,7 @@ function createClients(room_id){
         }
     };
     client.onopen = function() {
+        logging.info("on open roomid: " + room_id + "CURRENT_CONNECTIONS[room_id]:" + CURRENT_CONNECTIONS[room_id]);
         sendJoinRoom(client, room_id);
 
         function sendHeartBeat(firstBeat) {
@@ -175,7 +176,6 @@ function createClients(room_id){
     client.onmessage = function(e) {
         parseMessage(e.data, room_id);
     };
-    logging.info("after createClients roomid: " + room_id + "CURRENT_CONNECTIONS[room_id]:" + CURRENT_CONNECTIONS[room_id])
 }
 
 (function (){
