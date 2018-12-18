@@ -129,34 +129,39 @@ function createClients(room_id){
     client.onclose = function() {
         if(ROOM_ID_POOL.has(room_id)){
             let existedClient = CURRENT_CONNECTIONS[room_id];
-            if(existedClient && existedClient === client){
-                logging.error('Connection UNEXPECTED closed: '+ room_id);
-                setTimeout(function(){createClients(room_id)}, 1000)
-            }else{
-                logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
+            if(existedClient){
+                if(existedClient === client){
+                    logging.error('Connection UNEXPECTED closed: '+ room_id);
+                    setTimeout(function(){createClients(room_id)}, 1000)
+                }else{
+                    logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
+                }
             }
         }else{
             logging.error('Client NORMAL Removed: '+ room_id);
         }
     };
     client.onopen = function() {
-        client.clid = Math.random();
         sendJoinRoom(client, room_id);
-        CURRENT_CONNECTIONS[room_id] = client;
 
-        function sendHeartBeat() {
-            if(CURRENT_CONNECTIONS[room_id] !== client){
-                console.log("Duplicated client! do not send heartbeat. room_id: " + room_id);
-                if(client.readyState === 1){try{client.close()}catch(e){}}
-                return;
-            }
-            if (ROOM_ID_POOL.has(room_id) && client.readyState === client.OPEN){
+        function sendHeartBeat(firstBeat) {
+            if(firstBeat === true){
                 client.send(HEART_BEAT);
-                setTimeout(function(){sendHeartBeat()}, 10000);
+                setTimeout(sendHeartBeat, 10000);
+            }else{
+                if(CURRENT_CONNECTIONS[room_id] !== client){
+                    console.log("Duplicated client! do not send heartbeat. room_id: " + room_id);
+                    if(client.readyState === 1){try{client.close()}catch(e){}}
+                }else{
+                    if (ROOM_ID_POOL.has(room_id) && client.readyState === client.OPEN){
+                        client.send(HEART_BEAT);
+                        setTimeout(sendHeartBeat, 10000);
+                    }
+                }
             }
         }
-        sendHeartBeat();
-
+        sendHeartBeat(true);
+        CURRENT_CONNECTIONS[room_id] = client;
         if (reconnectFlag){
             logging.info("Connection: " + room_id + " RECONNECTED!");
         }
