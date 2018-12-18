@@ -54,8 +54,12 @@ function sendJoinRoom(client, rid){
     client.send(joinedRoomPayload);
 }
 
-function parseMessage(buff, fn, room_id){
-    if(buff.length < 21) {return}
+function parseMessage(arrayBuffer, room_id){
+    if(arrayBuffer.byteLength < 21) {return}
+
+    let buff = Buffer.from(arrayBuffer);
+    let view = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < buff.length; ++i) {buff[i] = view[i]}
     while (buff.length > 16){
         let length = (buff[0] << 24) + (buff[1] << 16) + (buff[2] << 8) + buff[3];
         let current = buff.slice(0, length);
@@ -63,7 +67,7 @@ function parseMessage(buff, fn, room_id){
         if (current.length > 16 && current[16] !== 0){
             try{
                 let msg = JSON.parse("" + current.slice(16));
-                fn(msg, room_id);
+                procMessage(msg, room_id);
             }catch (e) {
                 logging.error("e: " + current);
             }
@@ -169,8 +173,7 @@ function createClients(room_id){
         }
     };
     client.onmessage = function(e) {
-        if(e){return}
-        parseMessage(message.binaryData, procMessage, room_id);
+        parseMessage(e.data, room_id);
     };
 }
 
