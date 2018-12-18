@@ -217,7 +217,7 @@ function createClients(room_id){
             for (let i = 0; i < monitorList.length; i++){
                 let room_id = parseInt(monitorList[i]);
                 let client = CURRENT_CONNECTIONS[room_id];
-                if(client.readyState !== 1){
+                if(client === undefined || client.readyState !== 1){
                     console.log("Trigger: " + room_id);
                     createClients(room_id);
                 }
