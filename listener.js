@@ -225,7 +225,13 @@ function createClients(room_id){
                     logging.debug("Client: " + client + "status: " + (client === undefined ? "-" : client.readyState));
                     delete CURRENT_CONNECTIONS[room_id];
                     triggered.push(room_id);
-                    setTimeout(function(){createClients(room_id)}, parseInt(1000*Math.random()*30));
+                    setTimeout(
+                        function(){
+                            logging.info("Trigger createClients -> " + room_id);
+                            createClients(room_id);
+                        },
+                        parseInt(1000*Math.random()*30)
+                    );
                 }
             }
             logging.info("Interval Connection Monitor: " + triggered.length + " connections triggered: " + triggered);
