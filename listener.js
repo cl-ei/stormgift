@@ -170,7 +170,7 @@ function createClients(room_id){
                 }
             }
         }else{
-            logging.info('Client NORMAL Removed: '+ room_id);
+            // logging.info('Client NORMAL Removed: '+ room_id);
         }
     };
     client.onmessage = function(e) {
