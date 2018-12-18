@@ -145,15 +145,17 @@ function createClients(room_id){
         sendJoinRoom(client, room_id);
 
         function sendHeartBeat(firstBeat) {
+            if (client.readyState !== client.OPEN){return}
+
             if(firstBeat === true){
                 client.send(HEART_BEAT);
                 setTimeout(sendHeartBeat, 10000);
             }else{
                 if(CURRENT_CONNECTIONS[room_id] !== client){
                     console.log("Duplicated client! do not send heartbeat. room_id: " + room_id);
-                    if(client.readyState === 1){try{client.close()}catch(e){}}
+                    try{client.close()}catch(e){}
                 }else{
-                    if (ROOM_ID_POOL.has(room_id) && client.readyState === client.OPEN){
+                    if (ROOM_ID_POOL.has(room_id)){
                         client.send(HEART_BEAT);
                         setTimeout(sendHeartBeat, 10000);
                     }
@@ -192,6 +194,35 @@ function createClients(room_id){
             logging.info(MESSAGE_COUNT + " messages received.");
             if (MESSAGE_COUNT > 999999999999){MESSAGE_COUNT = 0;}
         }, 1000*60);
+
+        setInterval(function () {
+            console.log("Check!");
+            // 关闭不监控的
+            let currentRoomIds = Object.keys(CURRENT_CONNECTIONS);
+            for (let i = 0; i < currentRoomIds.length; i++){
+                let room_id = parseInt(currentRoomIds[i]);
+                if(!ROOM_ID_POOL.has(room_id)){
+                    console.log("Delete: " + room_id);
+                    let client = CURRENT_CONNECTIONS[room_id];
+                    if (client && client.readyState === client.OPEN){try{
+                        console.log("Kill -> " + room_id);
+                        client.close();
+                    }catch(e){}}
+                    delete CURRENT_CONNECTIONS[room_id]
+                }
+            }
+
+            // 重启要监控的
+            let monitorList = Array.from(ROOM_ID_POOL);
+            for (let i = 0; i < monitorList.length; i++){
+                let room_id = parseInt(monitorList[i]);
+                let client = CURRENT_CONNECTIONS[room_id];
+                if(client.readyState !== 1){
+                    console.log("Trigger: " + room_id);
+                    createClients(room_id);
+                }
+            }
+        }, 10000);
     };
     fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
         if (err) {
