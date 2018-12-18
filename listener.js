@@ -208,11 +208,11 @@ function createClients(room_id){
                 if(!ROOM_ID_POOL.has(room_id)){
                     console.log("Delete: " + room_id);
                     let client = CURRENT_CONNECTIONS[room_id];
+                    delete CURRENT_CONNECTIONS[room_id];
                     if (client && client.readyState === client.OPEN){try{
                         console.log("Kill -> " + room_id);
                         client.close();
                     }catch(e){}}
-                    delete CURRENT_CONNECTIONS[room_id]
                 }
             }
 
