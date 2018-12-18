@@ -135,13 +135,13 @@ function createClients(room_id){
             if(existedClient){
                 if(existedClient === client){
                     logging.error('Connection UNEXPECTED closed: '+ room_id);
-                    setTimeout(function(){createClients(room_id)}, Math.random()*10000)
+                    setTimeout(function(){createClients(room_id)}, parseInt(Math.random()*10000));
                 }else{
                     logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
                 }
             }
         }else{
-            logging.info('Client NORMAL Removed: '+ room_id);
+            // logging.info('Client NORMAL Removed: '+ room_id);
         }
     };
     client.onopen = function() {
@@ -191,7 +191,9 @@ function createClients(room_id){
         logging.info("ROOM_ID_POOL size: " + ROOM_ID_POOL.size);
 
         CURRENT_CONNECTIONS = {};
-        ROOM_ID_POOL.forEach(createClients);
+        ROOM_ID_POOL.forEach(function(room_id){
+            setTimeout(function(){createClients(room_id)}, 1000*Math.random()*60);
+        });
 
         setInterval(function (){
             logging.info(MESSAGE_COUNT + " messages received.");
@@ -221,7 +223,7 @@ function createClients(room_id){
                 let client = CURRENT_CONNECTIONS[room_id];
                 if(client === undefined || client.readyState !== 1){
                     triggered.push(room_id);
-                    createClients(room_id);
+                    setTimeout(function(){createClients(room_id)}, parseInt(1000*Math.random()*60));
                 }
             }
             logging.info("Interval Connection Monitor " + triggered.length + " connections triggered: " + triggered);
