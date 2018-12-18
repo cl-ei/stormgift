@@ -222,6 +222,7 @@ function createClients(room_id){
                 let room_id = parseInt(monitorList[i]);
                 let client = CURRENT_CONNECTIONS[room_id];
                 if(client === undefined || client.readyState !== 1){
+                    logging.debug("Client: " + client + "status: " + client.readyState);
                     delete CURRENT_CONNECTIONS[room_id];
                     triggered.push(room_id);
                     setTimeout(function(){createClients(room_id)}, parseInt(1000*Math.random()*60));
