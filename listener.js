@@ -81,11 +81,13 @@ let MONITOR_URL = "ws://broadcastlv.chat.bilibili.com:2244/sub";
 /* ***************************** */
 
 let MESSAGE_COUNT = 0;
+let MESSAGE_INTERVAL_COUNT = 0;
 let ROOM_ID_POOL = new Set();
 let CURRENT_CONNECTIONS = {};
 
 function procMessage(msg, room_id){
     MESSAGE_COUNT += 1;
+    MESSAGE_INTERVAL_COUNT += 1;
 
     if(msg.cmd === "SEND_GIFT"){
         if (msg.data.giftName !== "节奏风暴") return;
@@ -198,8 +200,14 @@ function createClients(room_id){
         });
 
         setInterval(function (){
-            logging.info(MESSAGE_COUNT + " messages received.");
+            let mspeed = parseInt(MESSAGE_INTERVAL_COUNT/60.0);
+            logging.info("Message counter: " +
+                MESSAGE_INTERVAL_COUNT + " received, " +
+                mspeed + " msg/s, " +
+                MESSAGE_COUNT + " total."
+            );
             if (MESSAGE_COUNT > 999999999999){MESSAGE_COUNT = 0;}
+            MESSAGE_INTERVAL_COUNT = 0;
         }, 1000*60);
 
         let intervalConnectionMonitor = function () {
@@ -215,7 +223,6 @@ function createClients(room_id){
                     if (client && client.readyState === client.OPEN){try{client.close()}catch(e){}}
                 }
             }
-            logging.info("Interval Connection Monitor: " + killedRooms.length + " connections removed.");
 
             // 重启要监控的
             let triggered = [];
@@ -228,7 +235,11 @@ function createClients(room_id){
                     setTimeout(function(){createClients(room_id)}, parseInt(1000*Math.random()*60));
                 }
             }
-            logging.info("Interval Connection Monitor: " + triggered.length + " connections triggered: " + triggered);
+            logging.info(
+                "ICM: current connection " + Object.keys(CURRENT_CONNECTIONS).length + " , " +
+                killedRooms.length + " removed, " +
+                triggered.length + " new triggered: " + triggered
+            );
         };
         let updataRoomIdPool = () => {
             fs.readFile('./data/rooms.txt', "utf-8", (err, data) => {
@@ -240,7 +251,10 @@ function createClients(room_id){
                 for (let i = 0; i < newRoomIdList.length; i++){
                     ROOM_ID_POOL.add(parseInt(newRoomIdList[i]))
                 }
-                logging.info("ROOM_ID_POOL update -> " + ROOM_ID_POOL.size);
+                logging.info(
+                    "Update ROOM_ID_POOL: current connection: " + Object.keys(CURRENT_CONNECTIONS).length +
+                    "ID_POOL size: " + ROOM_ID_POOL.size
+                );
             });
         };
         setInterval(intervalConnectionMonitor, 1000*60*2);
