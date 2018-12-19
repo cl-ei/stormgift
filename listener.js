@@ -252,8 +252,8 @@ function createClients(room_id){
                     ROOM_ID_POOL.add(parseInt(newRoomIdList[i]))
                 }
                 logging.info(
-                    "Update ROOM_ID_POOL: current connection: " + Object.keys(CURRENT_CONNECTIONS).length +
-                    "ID_POOL size: " + ROOM_ID_POOL.size
+                    "Update ROOM_ID_POOL: current connections: " + Object.keys(CURRENT_CONNECTIONS).length +
+                    ", ID_POOL size: " + ROOM_ID_POOL.size
                 );
             });
         };

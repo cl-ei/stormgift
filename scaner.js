@@ -2,7 +2,7 @@ let request = require("request");
 let fs = require("fs");
 let log4js = require('log4js');
 let DEBUG = !(process.argv.splice(2)[0] === "server");
-let ROOM_COUNT_LIMIT = 6000;
+let ROOM_COUNT_LIMIT = 12000;
 
 function creatLogger(loggerName, path_){
   let path = require("path");
@@ -25,7 +25,7 @@ let logging = creatLogger('scaner', DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> DEBUG env: " + DEBUG + ", Room count limit: " + ROOM_COUNT_LIMIT);
 
 let MONITOR_ROOM_LIST = new Set(),
-    scan_url = "https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=online&pageSize=500&page=",
+    scan_url = "https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=online&pageSize=2000&page=",
     UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 let headers = {'User-Agent': UA};
 let EMPTY_PAGES_COUNT = 0;
@@ -55,7 +55,7 @@ function roomScaner(index){
             EMPTY_PAGES_COUNT += 1;
         }
 
-        if (index > 20 || EMPTY_PAGES_COUNT > 3) {
+        if (index > 10 || EMPTY_PAGES_COUNT > 2) {
             console.log("Room length: ", MONITOR_ROOM_LIST.size);
             setRoomList(MONITOR_ROOM_LIST);
         }else{
