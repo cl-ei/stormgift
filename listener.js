@@ -198,6 +198,6 @@ function createClients(room_id){
             logging.error("Error happend when reading file, err: " + err.toString());
             return
         }
-        startProc(data.split("_").slice(0,300));
+        startProc(data.split("_"));
     });
 })();
