@@ -2,83 +2,16 @@ let W3CWebSocket = require('websocket').w3cwebsocket;
 let fs = require("fs");
 let path = require('path');
 let log4js = require('log4js');
+let logger = require("./utils/logger");
+let bilisocket = require("./utils/bilisocket");
+
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
-
 let PROC_NUMBER = parseInt(sysArgs[1]) || 0;
 
 
-function creatLogger(loggerName, path_){
-  let config = {
-    appenders: {console: { type: 'console' }},
-    categories: {default: { appenders: ['console'], level: 'trace' }}
-  };
-  config.appenders[loggerName] = {
-        type: 'file',
-        filename: path.join(path_, loggerName+ ".log"),
-        maxLogSize: 1024*1024*50,
-        backups: 2,
-  };
-  config.categories[loggerName] = {appenders: [loggerName, 'console'], level: 'ALL' };
-  log4js.configure(config);
-  return log4js.getLogger(loggerName);
-}
-
-let logging = creatLogger('listener_' + PROC_NUMBER, DEBUG ? "./log/" : "/home/wwwroot/log/");
+let logging = logger.creatLogger('listener_' + PROC_NUMBER, DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> proc num: " + PROC_NUMBER);
-
-
-/* ***************************** */
-
-function generatePacket (action, payload) {
-    payload = payload || '';
-    let packetLength = Buffer.byteLength(payload) + 16;
-    let buff = new Buffer.alloc(packetLength);
-
-    buff.writeInt32BE(packetLength, 0);
-    // write consts
-    buff.writeInt16BE(16, 4);
-    buff.writeInt16BE(1, 6);
-    buff.writeInt32BE(1, 12);
-    // write action
-    buff.writeInt32BE(action, 8);
-    // write payload
-    buff.write(payload, 16);
-    return buff
-}
-
-function sendJoinRoom(client, rid){
-    let uid = 1E15 + Math.floor(2E15 * Math.random());
-    let packet = JSON.stringify({uid: uid, roomid: rid});
-    let joinedRoomPayload = generatePacket(7, packet);
-    client.send(joinedRoomPayload);
-}
-
-function parseMessage(arrayBuffer, room_id){
-    if(arrayBuffer.byteLength < 21) {return}
-
-    let buff = Buffer.from(arrayBuffer);
-    let view = new Uint8Array(arrayBuffer);
-    for (let i = 0; i < buff.length; ++i) {buff[i] = view[i]}
-    while (buff.length > 16){
-        let length = (buff[0] << 24) + (buff[1] << 16) + (buff[2] << 8) + buff[3];
-        let current = buff.slice(0, length);
-        buff = buff.slice(length);
-        if (current.length > 16 && current[16] !== 0){
-            try{
-                let msg = JSON.parse("" + current.slice(16));
-                procMessage(msg, room_id);
-            }catch (e) {
-                logging.error("e: " + current);
-            }
-        }
-    }
-}
-
-
-let HEART_BEAT = generatePacket(2);
-let MONITOR_URL = "ws://broadcastlv.chat.bilibili.com:2244/sub";
-/* ***************************** */
 
 let MESSAGE_COUNT = 0;
 let MESSAGE_INTERVAL_COUNT = 0;
@@ -106,77 +39,69 @@ function procMessage(msg, room_id){
 function createClients(room_id){
     let existedClient = CURRENT_CONNECTIONS[room_id],
         reconnectFlag = false;
+
     if(existedClient !== undefined){
         if(existedClient.readyState === 1) {
             logging.error("CODE ERROR! do not create duplicated client.");
             return
         }else{
             reconnectFlag = true;
+            logging.info("Try reconnect to " + room_id);
         }
     }
 
-    let client = new W3CWebSocket(MONITOR_URL);
+    let client = new W3CWebSocket(bilisocket.MONITOR_URL);
+    CURRENT_CONNECTIONS[room_id] = client;
+
     client.onerror = function() {
-        if(ROOM_ID_POOL.has(room_id)){
-            let existedClient = CURRENT_CONNECTIONS[room_id];
-            if(existedClient === undefined){
-                logging.error('Connection Error happened at creating, room id: ' + room_id);
-            }else{
-                if (existedClient === client){
-                    logging.error('UNEXPECTED Connection Error happened, room id: ' + room_id);
-                    setTimeout(function(){createClients(room_id)}, Math.random()*10000)
-                }else{
-                    logging.error('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
-                }
-            }
+        client.onclose = undefined;
+        let existedClient = CURRENT_CONNECTIONS[room_id];
+        if (existedClient === undefined) {
+            logging.error('Connection had removed. room id: ' + room_id);
+        }else if (existedClient === client){
+            logging.error('UNEXPECTED Connection Error happened, room id: ' + room_id);
+            setTimeout(function(){createClients(room_id)}, Math.random()*10000)
         }else{
-            logging.error('Connection Removed (EXPECTED, but caused by error), room id: ' + room_id +', err: ' + err.toString());
+            logging.error('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
         }
     };
     client.onopen = function() {
-        sendJoinRoom(client, room_id);
+        bilisocket.sendJoinRoom(client, room_id);
 
-        function sendHeartBeat(firstBeat) {
+        function sendHeartBeat() {
             if (client.readyState !== client.OPEN){return}
-
-            if(firstBeat === true){
-                client.send(HEART_BEAT);
+            if(CURRENT_CONNECTIONS[room_id] === client) {
+                client.send(bilisocket.HEART_BEAT_PACKAGE);
                 setTimeout(sendHeartBeat, 10000);
             }else{
-                if(CURRENT_CONNECTIONS[room_id] !== client){
-                    logging.error("Duplicated client! do not send heartbeat. room_id: " + room_id);
-                    try{client.close()}catch(e){}
-                }else{
-                    if (ROOM_ID_POOL.has(room_id)){
-                        client.send(HEART_BEAT);
-                        setTimeout(sendHeartBeat, 10000);
-                    }
-                }
+                logging.error("Duplicated client! do not send heartbeat and shutdown. room_id: " + room_id);
+                try{
+                    client.onclose = undefined;
+                    client.close()
+                }catch(e){}
             }
         }
-        sendHeartBeat(true);
-        CURRENT_CONNECTIONS[room_id] = client;
+        sendHeartBeat();
         if (reconnectFlag){
-            logging.info("Connection: " + room_id + " RECONNECTED!");
+            logging.info("Reconnected to " + room_id + " !");
         }
     };
     client.onclose = function() {
-        if(ROOM_ID_POOL.has(room_id)){
-            let existedClient = CURRENT_CONNECTIONS[room_id];
-            if(existedClient){
-                if(existedClient === client){
-                    logging.error('Connection UNEXPECTED closed: '+ room_id);
-                    setTimeout(function(){createClients(room_id)}, parseInt(Math.random()*10000));
-                }else{
-                    logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
-                }
-            }
-        }else{
-            // logging.info('Client NORMAL Removed: '+ room_id);
-        }
+        logging.error("----- Connection CLOSED! Should not close... -----");
+        // let existedClient = CURRENT_CONNECTIONS[room_id];
+        // if(existedClient === undefined) {
+        //     logging.info('Client UN-NORMAL Removed: '+ room_id);
+        // }else{
+        //     if(existedClient === client){
+        //         logging.error('Connection UNEXPECTED closed: '+ room_id);
+        //         // setTimeout(function(){createClients(room_id)}, Math.random()*10000)
+        //     }else{
+        //         logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
+        //     }
+        // }
     };
     client.onmessage = function(e) {
-        parseMessage(e.data, room_id);
+        bilisocket.parseMessage(e.data, room_id, procMessage);
     };
 }
 
@@ -217,10 +142,17 @@ function createClients(room_id){
             for (let i = 0; i < currentRoomIds.length; i++){
                 let room_id = parseInt(currentRoomIds[i]);
                 if(!ROOM_ID_POOL.has(room_id)){
-                    killedRooms.push(room_id);
                     let client = CURRENT_CONNECTIONS[room_id];
-                    delete CURRENT_CONNECTIONS[room_id];
-                    if (client && client.readyState === client.OPEN){try{client.close()}catch(e){}}
+                    if (client !== undefined && client.readyState === client.OPEN){
+                        try{
+                            client.onclose = undefined;
+                            client.close()
+                        }catch(e){
+                            logging.error("An error occurred while attempting to close a connection: " + room_id + ", e:" + e.toString());
+                        }
+                        delete CURRENT_CONNECTIONS[room_id];
+                        killedRooms.push(room_id);
+                    }
                 }
             }
 
@@ -230,7 +162,7 @@ function createClients(room_id){
             for (let i = 0; i < monitorList.length; i++){
                 let room_id = parseInt(monitorList[i]);
                 let client = CURRENT_CONNECTIONS[room_id];
-                if(client === undefined || client.readyState !== 1){
+                if(client === undefined){
                     triggered.push(room_id);
                     setTimeout(function(){createClients(room_id)}, parseInt(1000*Math.random()*60));
                 }
@@ -266,6 +198,6 @@ function createClients(room_id){
             logging.error("Error happend when reading file, err: " + err.toString());
             return
         }
-        startProc(data.split("_"));
+        startProc(data.split("_").slice(0,300));
     });
 })();
