@@ -197,7 +197,7 @@ function createClients(room_id){
             }
             logging.info(
                 "ICM: current connection " + Object.keys(CURRENT_CONNECTIONS).length + " , " +
-                "ID POOL size" + ROOM_ID_POOL.size + " , " +
+                "ID POOL size " + ROOM_ID_POOL.size + " , " +
                 killedRooms.length + " removed, " +
                 triggered.length + " new triggered."
             );
