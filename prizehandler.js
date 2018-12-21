@@ -9,11 +9,10 @@ logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 let prizeRec = logger.creatLogger('prizerec', DEBUG ? "./log/" : "/home/wwwroot/log/");
 
 let onMessageReceived = (msg, addr) => {
-    console.log("Message received: %s", msg);
     if (msg.length < 5 || msg[0] !== "_"){return}
     let giftType = msg[1],
         room_id = parseInt(msg.slice(2));
-    console.log("Message received: %s, giftType: %s", room_id, giftType);
+
     if(giftType === "S"){
         prizeRec.info("Gift: %s, room_id: %s", giftType, room_id);
     }else if(giftType === "G"){
@@ -26,7 +25,11 @@ let onMessageReceived = (msg, addr) => {
 (() => {
     let connectionListener = (sock) => {
         logging.info('New client connected: addr: %s, port: %s', sock.remoteAddress, sock.remotePort);
-        sock.on('data', function(data) {onMessageReceived(data, sock.remoteAddress)});
+        sock.on('data', function(data) {
+            try{onMessageReceived(String(data), sock.remoteAddress)}catch(e){
+                logging.error("Proc prize message coursed an error: %s", e.toString())
+            }
+        });
         sock.on('close', function(data) {
             logging.error('Client closed: addr: %s, port: %s, data: %s', sock.remoteAddress, sock.remotePort, data);
         });
