@@ -29,7 +29,7 @@ for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
             });
             loggerConfigList.push({
                 loggerName: csrf_token,
-                loggerFile: path.join(loggerFilePath, csrf_token.slice(csrf_token.length/3) + ".log"),
+                loggerFile: path.join(loggerFilePath, "apz_" + csrf_token.slice(csrf_token.length/2) + ".log"),
             });
             break;
         }
