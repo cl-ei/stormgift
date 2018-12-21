@@ -81,9 +81,10 @@ def main():
         room_id_list += get_room_id_list(index)
         room_id_list = list(set(room_id_list))
         if abs(len(room_id_list) - total) < 500:
+            final_room_list = room_id_list[:ROOM_COUNT_LIMIT]
             with open("./data/rooms.txt", "wb") as f:
-                f.write("_".join(map(str, room_id_list[:ROOM_COUNT_LIMIT])).encode("utf-8"))
-            logging.info("Room id saved. total: %s, final: %s" % (total, len(room_id_list)))
+                f.write("_".join(map(str, final_room_list)).encode("utf-8"))
+            logging.info("Room id saved. total: %s, final: %s" % (total, len(final_room_list)))
             return
     sys.exit(3)
 
