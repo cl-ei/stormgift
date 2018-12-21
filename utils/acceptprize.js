@@ -3,7 +3,7 @@ let DEBUG = !(process.argv.splice(2)[0] === "server");
 let logger = require("../utils/logger");
 
 
-let cookie_filename = DEBUG ? '../data/cookie.js' : "/home/wwwroot/notebook.madliar/notebook_user/i@caoliang.net/cookie.js";
+let cookie_filename = '../data/cookie.js';
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST,
     COOKIE_DICT_LIST = [],
