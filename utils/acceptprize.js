@@ -9,6 +9,7 @@ class Acceptor {
         this.defaultLogger = defaultLogger;
     }
     __guardJoin(room_id, gift_id, index) {
+        console.log(index, this.cookieDictList[index].csrf_token, this.loggerDict);
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
         request.post({
             url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",
