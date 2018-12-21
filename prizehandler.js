@@ -1,12 +1,13 @@
 let net = require('net');
 let logger = require("./utils/logger");
-
+let acceptprize = require("./utils/acceptprize");
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
 let logging = logger.creatLogger('prizehandler', DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 let prizeRec = logger.creatLogger('prizerec', DEBUG ? "./log/" : "/home/wwwroot/log/");
+
 
 let onMessageReceived = (msg, addr) => {
     if (msg.length < 5 || msg[0] !== "_"){return}
@@ -17,10 +18,13 @@ let onMessageReceived = (msg, addr) => {
         prizeRec.info("Gift: %s, room_id: %s", giftType, room_id);
     }else if(giftType === "G"){
         prizeRec.info("Gift: %s, room_id: %s", giftType, room_id);
+        acceptprize.acceptGuard(room_id);
     }else if(giftType === "T"){
         prizeRec.info("Gift: %s, room_id: %s", giftType, room_id);
+        acceptprize.acceptTv(room_id);
     }
 };
+
 
 (() => {
     let connectionListener = (sock) => {
