@@ -8,7 +8,7 @@ class Acceptor {
         this.loggerDict = loggerDict;
         this.defaultLogger = defaultLogger;
     }
-    __guardJoin = (room_id, gift_id, index) => {
+    __guardJoin(room_id, gift_id, index) {
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
         request.post({
             url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",
@@ -34,7 +34,7 @@ class Acceptor {
             }
         });
     };
-    acceptGuardSingle = (room_id, index) => {
+    acceptGuardSingle(room_id, index) {
         let joinFn = this.__guardJoin;
         request({
             url: "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=" + room_id,
@@ -55,12 +55,12 @@ class Acceptor {
             }
         })
     };
-    acceptGuard = (room_id) => {
+    acceptGuard(room_id){
         for (let i = 0; i < this.cookieDictList.length; i++){
             this.acceptGuardSingle(room_id, i);
         }
     };
-    acceptTv = (room_id) => {
+    acceptTv(room_id){
         // todo: ...
     }
 }
