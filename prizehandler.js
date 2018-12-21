@@ -1,13 +1,35 @@
 let net = require('net');
 let logger = require("./utils/logger");
-let acceptprize = require("./utils/acceptprize");
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
 let logging = logger.creatLogger('prizehandler', DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
-let prizeRec = logger.creatLogger('prizerec', DEBUG ? "./log/" : "/home/wwwroot/log/");
 
+let cookie_filename = '../data/cookie.js';
+let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST,
+    COOKIE_DICT_LIST = [],
+    logerDict = {};
+
+for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
+    let cookie = RAW_COOKIES_LIST[i];
+    let cookie_kv = cookie.split(";");
+    let csrf_token = "";
+    for (let i = 0; i < cookie_kv.length; i++){
+        let kvstr = cookie_kv[i];
+        if (kvstr.indexOf("bili_jct") > -1){
+            csrf_token = kvstr.split("=")[1].trim();
+            COOKIE_DICT_LIST.push({
+               cookie: cookie,
+               csrf_token: csrf_token,
+            });
+            break;
+        }
+    }
+}
+
+let Acceptor = require("./utils/acceptprize").Acceptor;
+let ac = new Acceptor(COOKIE_DICT_LIST, logerDict, logging);
 
 let onMessageReceived = (msg, addr) => {
     if (msg.length < 5 || msg[0] !== "_"){return}
@@ -15,13 +37,13 @@ let onMessageReceived = (msg, addr) => {
         room_id = parseInt(msg.slice(2));
 
     if(giftType === "S"){
-        prizeRec.info("Gift: %s, room_id: %s", giftType, room_id);
+        logging.info("Gift: %s, room_id: %s", giftType, room_id);
     }else if(giftType === "G"){
-        prizeRec.info("Gift: %s, room_id: %s", giftType, room_id);
-        acceptprize.acceptGuard(room_id);
+        logging.info("Gift: %s, room_id: %s", giftType, room_id);
+        ac.acceptGuard(room_id);
     }else if(giftType === "T"){
-        prizeRec.info("Gift: %s, room_id: %s", giftType, room_id);
-        acceptprize.acceptTv(room_id);
+        logging.info("Gift: %s, room_id: %s", giftType, room_id);
+        ac.acceptTv(room_id);
     }
 };
 
