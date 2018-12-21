@@ -4,8 +4,8 @@ let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KH
 
 class Acceptor {
     constructor(cookieDictList, loggerDict, defaultLogger) {
-        this.cookieDictList = cookieDictList;
-        this.loggerDict = loggerDict;
+        this.cookieDictList = cookieDictList || [];
+        this.loggerDict = loggerDict || {};
         this.defaultLogger = defaultLogger;
     }
     __guardJoin(room_id, gift_id, index) {
