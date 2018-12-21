@@ -17,7 +17,7 @@ except Exception:
 
 LOG_PATH = "./log" if DEBUG else "/home/wwwroot/log"
 fh = logging.FileHandler(os.path.join(LOG_PATH, "scanner.log"), encoding="utf-8")
-fh.setFormatter(logging.Formatter('%(message)s'))
+fh.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
 logger = logging.getLogger("prize")
 logger.setLevel(logging.DEBUG)
 logger.addHandler(fh)
