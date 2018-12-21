@@ -9,6 +9,7 @@ logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 let prizeRec = logger.creatLogger('prizerec', DEBUG ? "./log/" : "/home/wwwroot/log/");
 
 let onMessageReceived = (msg, addr) => {
+    console.log("Message received: %s", msg);
     if (msg.length < 5 || msg[0] !== "_"){return}
     let giftType = msg[1],
         room_id = parseInt(msg.slice(2));
