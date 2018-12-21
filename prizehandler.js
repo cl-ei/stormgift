@@ -1,5 +1,6 @@
 let net = require('net');
 let logger = require("./utils/logger");
+let path = require('path');
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
