@@ -3,13 +3,16 @@ let logger = require("./utils/logger");
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
-let logging = logger.creatLogger('prizehandler', DEBUG ? "./log/" : "/home/wwwroot/log/");
-logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
+let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log",
+    loggerConfigList = [{
+        loggerName: "prizehandler",
+        loggerFile: path.join(loggerFilePath, "prizehandler.log"),
+    }];
+
 
 let cookie_filename = './data/cookie.js';
 let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST,
-    COOKIE_DICT_LIST = [],
-    logerDict = {};
+    COOKIE_DICT_LIST = [];
 
 for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
     let cookie = RAW_COOKIES_LIST[i];
@@ -23,13 +26,22 @@ for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
                cookie: cookie,
                csrf_token: csrf_token,
             });
+            loggerConfigList.push({
+                loggerName: csrf_token,
+                loggerFile: path.join(loggerFilePath, csrf_token.slice(csrf_token.length/3) + ".log"),
+            });
             break;
         }
     }
 }
 
+let loggers = logger.batchCreateLogger(loggerConfigList);
+let logging = loggers["prizehandler"];
+logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
+
+
 let Acceptor = require("./utils/acceptprize").Acceptor;
-let ac = new Acceptor(COOKIE_DICT_LIST, logerDict, logging);
+let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging);
 
 let onMessageReceived = (msg, addr) => {
     if (msg.length < 5 || msg[0] !== "_"){return}
