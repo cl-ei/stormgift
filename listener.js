@@ -17,7 +17,7 @@ let PRIZE_NOTICE_PORT = 11111;
 let __prizeSenderList = [];
 let sendPrizeMessage = (message) => {
     if(__prizeSenderList.length > 0){
-        if (__prizeSenderList[0].write(message) !== undefined){
+        if (__prizeSenderList[0].write(message) !== true){
             logging.error("Prize message send failed: %s", message);
         }
     }else{
@@ -45,7 +45,6 @@ let __generateNoticeSender = () => {
     __prizeNoticeClient.connect(PRIZE_NOTICE_PORT, PRIZE_NOTICE_HOST, onConnected);
 };
 __generateNoticeSender();
-setInterval(function(){sendPrizeMessage("__1__")}, 2000);
 
 
 let MESSAGE_COUNT = 0;
@@ -128,18 +127,19 @@ function createClients(room_id){
         }
     };
     client.onclose = function() {
-        logging.error("----- Connection CLOSED! Should not close... -----");
-        // let existedClient = CURRENT_CONNECTIONS[room_id];
-        // if(existedClient === undefined) {
-        //     logging.info('Client UN-NORMAL Removed: '+ room_id);
-        // }else{
-        //     if(existedClient === client){
-        //         logging.error('Connection UNEXPECTED closed: '+ room_id);
-        //         // setTimeout(function(){createClients(room_id)}, Math.random()*10000)
-        //     }else{
-        //         logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
-        //     }
-        // }
+        logging.error("----- Connection CLOSED! Should not be closed... -----");
+        /*
+        let existedClient = CURRENT_CONNECTIONS[room_id];
+        if(existedClient === undefined) {
+            logging.info('Client UN-NORMAL Removed: '+ room_id);
+        }else{
+            if(existedClient === client){
+                logging.error('Connection UNEXPECTED closed: '+ room_id);
+                // setTimeout(function(){createClients(room_id)}, Math.random()*10000)
+            }else{
+                logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
+            }
+        }*/
     };
     client.onmessage = function(e) {
         bilisocket.parseMessage(e.data, room_id, procMessage);
