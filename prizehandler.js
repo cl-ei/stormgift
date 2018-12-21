@@ -4,7 +4,7 @@ let logger = require("./utils/logger");
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
-let logging = logger.creatLogger('paizehandler', DEBUG ? "./log/" : "/home/wwwroot/log/");
+let logging = logger.creatLogger('prizehandler', DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 let prizeRec = logger.creatLogger('prizerec', DEBUG ? "./log/" : "/home/wwwroot/log/");
 
