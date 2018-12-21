@@ -94,16 +94,7 @@ function createClients(room_id){
     CURRENT_CONNECTIONS[room_id] = client;
 
     client.onerror = function() {
-        client.onclose = undefined;
-        let existedClient = CURRENT_CONNECTIONS[room_id];
-        if (existedClient === undefined) {
-            logging.error('Connection had removed. room id: ' + room_id);
-        }else if (existedClient === client){
-            logging.error('UNEXPECTED Connection Error happened, room id: ' + room_id);
-            setTimeout(function(){createClients(room_id)}, Math.random()*10000)
-        }else{
-            logging.error('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
-        }
+        logging.error("")
     };
     client.onopen = function() {
         bilisocket.sendJoinRoom(client, room_id);
@@ -127,19 +118,15 @@ function createClients(room_id){
         }
     };
     client.onclose = function() {
-        logging.error("----- Connection CLOSED! Should not be closed... -----");
-        /*
         let existedClient = CURRENT_CONNECTIONS[room_id];
-        if(existedClient === undefined) {
-            logging.info('Client UN-NORMAL Removed: '+ room_id);
+        if (existedClient === undefined) {
+            logging.error('Connection had closed. room id: ' + room_id);
+        }else if (existedClient === client){
+            logging.error('UNEXPECTED Connection Error happened, room id: ' + room_id);
+            setTimeout(function(){createClients(room_id)}, Math.random()*10000)
         }else{
-            if(existedClient === client){
-                logging.error('Connection UNEXPECTED closed: '+ room_id);
-                // setTimeout(function(){createClients(room_id)}, Math.random()*10000)
-            }else{
-                logging.info('Connection closed by duplicated (EXPECTED): '+ room_id);
-            }
-        }*/
+            logging.error('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
+        }
     };
     client.onmessage = function(e) {
         bilisocket.parseMessage(e.data, room_id, procMessage);
