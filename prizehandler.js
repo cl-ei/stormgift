@@ -6,7 +6,7 @@ let DEBUG = !(sysArgs[0] === "server");
 let logging = logger.creatLogger('prizehandler', DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
-let cookie_filename = '../data/cookie.js';
+let cookie_filename = './data/cookie.js';
 let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST,
     COOKIE_DICT_LIST = [],
     logerDict = {};
