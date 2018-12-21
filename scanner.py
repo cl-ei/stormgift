@@ -8,11 +8,12 @@ import time
 
 sys_argv = sys.argv[1:]
 try:
-    DEBUG = sys_argv[0] == "server"
+    DEBUG = sys_argv[0] != "server"
     ROOM_COUNT_LIMIT = int(sys_argv[1])
 except Exception:
     DEBUG = True
     ROOM_COUNT_LIMIT = 500
+
 
 LOG_PATH = "./log" if DEBUG else "/home/wwwroot/log"
 fh = logging.FileHandler(os.path.join(LOG_PATH, "scanner.log"), encoding="utf-8")
