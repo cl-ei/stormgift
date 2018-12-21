@@ -13,6 +13,7 @@ let onMessageReceived = (msg, addr) => {
     if (msg.length < 5 || msg[0] !== "_"){return}
     let giftType = msg[1],
         room_id = parseInt(msg.slice(2));
+    console.log("Message received: %s, giftType: %s", room_id, giftType);
     if(giftType === "S"){
         prizeRec.info("Gift: %s, room_id: %s", giftType, room_id);
     }else if(giftType === "G"){
