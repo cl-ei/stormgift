@@ -8,39 +8,39 @@ class Acceptor {
         this.loggerDict = loggerDict || {};
         this.defaultLogger = defaultLogger;
     }
-    __guardJoin(room_id, gift_id, index) {
-        console.log(index, this.cookieDictList, this.loggerDict);
-        let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
-        request.post({
-            url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",
-            headers: {"User-Agent": UA, "Cookie": this.cookieDictList[index].cookie},
-            timeout: 5000,
-            form: {
-                roomid: room_id,
-                id: gift_id,
-                type: "guard",
-                csrf_token: this.cookieDictList[index].csrf_token,
-                csrf: this.cookieDictList[index].csrf_token,
-                visit_id: "",
-            }
-        }, function (err, res, body) {
-            if (err) {
-                logging.error("Error happened (r: " + room_id + "): " + err.toString());
-            } else {
-                let r = JSON.parse(body.toString());
-                if (r.code === 0) {
-                    let msg = r.data.message;
-                    logging.info("Succeed: [" + room_id + " - " + gift_id + "] -> " + msg + " from: " + r.data.from);
-                }
-            }
-        });
-    };
     acceptGuardSingle(room_id, index) {
-        let joinFn = this.__guardJoin;
+        let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
+        let csrf_token = this.cookieDictList[index].csrf_token;
+        let cookie = this.cookieDictList[index].cookie;
+        let joinFn = (gift_id) => {
+            request.post({
+                url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",
+                headers: {"User-Agent": UA, "Cookie": cookie},
+                timeout: 10000,
+                form: {
+                    roomid: room_id,
+                    id: gift_id,
+                    type: "guard",
+                    csrf_token: csrf_token,
+                    csrf: csrf_token,
+                    visit_id: "",
+                }
+            }, function (err, res, body) {
+                if (err) {
+                    logging.error("Error happened (r: " + room_id + "): " + err.toString());
+                } else {
+                    let r = JSON.parse(body.toString());
+                    if (r.code === 0) {
+                        let msg = r.data.message;
+                        logging.info("Succeed: [" + room_id + " - " + gift_id + "] -> " + msg + " from: " + r.data.from);
+                    }
+                }
+            });
+        };
         request({
             url: "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=" + room_id,
             method: "get",
-            headers: {"User-Agent": UA, "Cookie": this.cookieDictList[index].cookie},
+            headers: {"User-Agent": UA, "Cookie": cookie},
             timeout: 10000,
         },function (err, res, body) {
             if(err){
@@ -50,7 +50,7 @@ class Acceptor {
                 if(r.code === 0){
                     let data = r.data || [];
                     data.forEach(function(d){
-                        joinFn(room_id, parseInt(d.id), index);
+                        joinFn(parseInt(d.id));
                     })
                 }
             }
