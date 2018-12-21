@@ -2,7 +2,7 @@ let W3CWebSocket = require('websocket').w3cwebsocket;
 let fs = require("fs");
 let logger = require("./utils/logger");
 let bilisocket = require("./utils/bilisocket");
-let dgram = require('dgram');
+let net = require('net');
 
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
@@ -12,25 +12,40 @@ let PROC_NUMBER = parseInt(sysArgs[1]) || 0;
 let logging = logger.creatLogger('listener_' + PROC_NUMBER, DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> proc num: " + PROC_NUMBER + " , env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
-
+let PRIZE_NOTICE_HOST = DEBUG ? "localhost" : "111.230.235.254";
+let PRIZE_NOTICE_PORT = 11111;
+let __prizeSenderList = [];
 let sendPrizeMessage = (message) => {
-    let bmsg = Buffer.from(message);
-    dgram.createSocket('udp4').send(
-        bmsg,
-        0,
-        bmsg.length,
-        11111,
-        "localhost",
-        (e, bytes) => {
-            if(e){
-                console.log("Error happened");
-            }else{
-                console.log("%d bytes message sent.", bytes);
-            }
+    if(__prizeSenderList.length > 0){
+        if (__prizeSenderList[0].write(message) !== undefined){
+            logging.error("Prize message send failed: %s", message);
         }
-    );
+    }else{
+        logging.info("Default prize sender: %s", message);
+    }
 };
-
+let __generateNoticeSender = () => {
+    let __prizeNoticeClient = new net.Socket();
+    __prizeNoticeClient.on("error", () => {
+        // logging.error("Error happened in prizeNoticeClient.");
+        __prizeNoticeClient.destroy();
+    });
+    __prizeNoticeClient.on('data', (data) => {
+        logging.info('Client received: ' + data);
+    });
+    __prizeNoticeClient.on('close', () => {
+        logging.error('Connection closed! Unexpected!');
+        while(__prizeSenderList.pop() !== undefined){}
+        setTimeout(__generateNoticeSender, 500);
+    });
+    let onConnected = () => {
+        logging.info("PrizeNoticeClient connected.");
+        __prizeSenderList.push(__prizeNoticeClient);
+    };
+    __prizeNoticeClient.connect(PRIZE_NOTICE_PORT, PRIZE_NOTICE_HOST, onConnected);
+};
+__generateNoticeSender();
+setInterval(function(){sendPrizeMessage("__1__")}, 2000);
 
 
 let MESSAGE_COUNT = 0;

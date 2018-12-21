@@ -22,17 +22,14 @@ let onMessageReceived = (msg, addr) => {
 
 setTimeout(function(){
     let client = new net.Socket();
-    let clientConnectionListener = (client) => {
-        console.log('CONNECTED TO: ');
-        client.on('data', function(data) {
-            console.log('Client received: ' + data);
-        });
-        client.on('close', function() {
-            console.log('Connection closed');
-            client.connect(11111, "localhost");
-        });
-    };
-    client.connect(11111, "localhost", function() {clientConnectionListener(client)});
+    client.on('data', function(data) {
+        console.log('Client received: ' + data);
+    });
+    client.on('close', function() {
+        console.log('Connection closed');
+        client.connect(11111, "localhost");
+    });
+    client.connect(11111, "localhost", function() {console.log('CONNECTED TO: ');});
 
     client.write("123__");
     setTimeout(() => {
