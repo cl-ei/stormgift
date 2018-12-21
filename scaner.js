@@ -2,7 +2,7 @@ let request = require("request");
 let fs = require("fs");
 let log4js = require('log4js');
 let DEBUG = !(process.argv.splice(2)[0] === "server");
-let ROOM_COUNT_LIMIT = 12000;
+let ROOM_COUNT_LIMIT = 500;
 
 function creatLogger(loggerName, path_){
   let path = require("path");

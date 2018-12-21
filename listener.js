@@ -1,9 +1,8 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
 let fs = require("fs");
-let path = require('path');
-let log4js = require('log4js');
 let logger = require("./utils/logger");
 let bilisocket = require("./utils/bilisocket");
+let dgram = require('dgram');
 
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
@@ -11,7 +10,28 @@ let PROC_NUMBER = parseInt(sysArgs[1]) || 0;
 
 
 let logging = logger.creatLogger('listener_' + PROC_NUMBER, DEBUG ? "./log/" : "/home/wwwroot/log/");
-logging.info("Start proc -> proc num: " + PROC_NUMBER);
+logging.info("Start proc -> proc num: " + PROC_NUMBER + " , env: " + (DEBUG ? "DEBUG" : "SERVER"));
+
+
+let sendPrizeMessage = (message) => {
+    let bmsg = Buffer.from(message);
+    dgram.createSocket('udp4').send(
+        bmsg,
+        0,
+        bmsg.length,
+        11111,
+        "localhost",
+        (e, bytes) => {
+            if(e){
+                console.log("Error happened");
+            }else{
+                console.log("%d bytes message sent.", bytes);
+            }
+        }
+    );
+};
+
+
 
 let MESSAGE_COUNT = 0;
 let MESSAGE_INTERVAL_COUNT = 0;
@@ -26,12 +46,18 @@ function procMessage(msg, room_id){
         if (msg.data.giftName !== "节奏风暴") return;
         let count = msg.data.num;
         logging.info("Storm gift -> count: " + count + ", room_id: " + room_id);
+
+        msg = (DEBUG ? "D" : "_") + "S" + room_id;
+        sendPrizeMessage(msg);
     }
     else if(msg.cmd === "GUARD_BUY"){
         let count = msg.data.num;
         let gid = msg.data.gift_id;
         let gname = msg.data.gift_name;
         logging.info("Guard gift -> " + gname + ", count: " + count + ", room_id: " + room_id + ", gid: " + gid);
+
+        msg = (DEBUG ? "D" : "_") + "G" + room_id;
+        sendPrizeMessage(msg);
     }
 }
 
