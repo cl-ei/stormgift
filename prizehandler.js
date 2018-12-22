@@ -59,7 +59,7 @@ let tvCallBackFn = (room_id, gid, sender) => {
 };
 
 let Acceptor = require("./utils/acceptprize").Acceptor;
-let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging, guardCallBackFn, tvCallBackFn);
+let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging);
 
 let onMessageReceived = (msg, addr) => {
     if (msg.length < 5 || msg[0] !== "_"){return}
