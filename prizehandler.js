@@ -45,7 +45,7 @@ let dmksender = new damakusender.Sender(logging);
 let DDSLIVE_ROOM_NUMBER = 13369254;
 let guardCallBackFn = (room_id, gid, sender) => {
     // let message = "#@" + sender + "在" + room_id + "直播间登船~";
-    let message = "G-" + Buffer.from(room_id).toString('base64');
+    let message = "G-" + Buffer.from("" + room_id).toString('base64');
     setTimeout(
         function(){dmksender.sendDamaku(message, DDSLIVE_ROOM_NUMBER)},
         parseInt(Math.random()*1000*2)
@@ -53,7 +53,7 @@ let guardCallBackFn = (room_id, gid, sender) => {
 };
 let tvCallBackFn = (room_id, gid, sender) => {
     // let message = "#^" + sender + "在" + room_id + "发放低保~";
-    let message = "T-" + Buffer.from(room_id).toString('base64');
+    let message = "T-" + Buffer.from("" + room_id).toString('base64');
     setTimeout(
         function(){dmksender.sendDamaku(message, DDSLIVE_ROOM_NUMBER)},
         parseInt(Math.random()*1000*2)
