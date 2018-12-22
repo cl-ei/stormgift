@@ -3,10 +3,12 @@ let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KH
 
 
 class Acceptor {
-    constructor(cookieDictList, loggerDict, defaultLogger) {
+    constructor(cookieDictList, loggerDict, defaultLogger, gcbFn, tvcbFn) {
         this.cookieDictList = cookieDictList || [];
         this.loggerDict = loggerDict || {};
         this.defaultLogger = defaultLogger;
+        this.gcbFn = gcbFn || ((room_id, gid, sender) => {});
+        this.tvcbFn = tvcbFn || ((room_id, gid, sender) => {});
     }
     acceptGuardSingle(room_id, index) {
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
@@ -33,6 +35,7 @@ class Acceptor {
                     if (r.code === 0) {
                         let msg = r.data.message;
                         logging.info("Succeed: [" + room_id + " - " + gift_id + "] -> " + msg + " from: " + r.data.from);
+                        this.gcbFn(room_id, gift_id, r.data.from);
                     }
                 }
             });
@@ -66,7 +69,7 @@ class Acceptor {
         let csrf_token = this.cookieDictList[index].csrf_token;
         let cookie = this.cookieDictList[index].cookie;
 
-        let joinFn = (gift_id, title) => {
+        let joinFn = (gift_id, title, sender) => {
             request({
                 url: "https://api.live.bilibili.com/gift/v3/smalltv/join",
                 method: "post",
@@ -92,6 +95,7 @@ class Acceptor {
                             "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, type: %s, title: %s",
                             giftid, room_id, gtype, title
                         );
+                        this.tvcbFn(room_id, giftid, sender);
                     }else{
                         logging.error("TV ACCEPTOR: Failed! r: %s", JSON.stringify(r));
                     }
@@ -114,8 +118,9 @@ class Acceptor {
                         let gidlist = data.list || [];
                         for (let i = 0; i < gidlist.length; i++){
                             let gid = parseInt(gidlist[i].raffleId) || 0,
-                                title = gidlist[i].title || "Unknown";
-                            if (gid !== 0){joinFn(gid, title)}
+                                title = gidlist[i].title || "Unknown",
+                                sender = gidlist[i].from;
+                            if (gid !== 0){joinFn(gid, title, sender)}
                         }
                     }
                 }

@@ -40,9 +40,20 @@ let loggers = logger.batchCreateLogger(loggerConfigList);
 let logging = loggers["prizehandler"];
 logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
+let damakusender = require("./utils/danmakusender");
+let dmksender = new damakusender.Sender(logging);
+let DDSLIVE_ROOM_NUMBER = 13369254;
+let guardCallBackFn = (room_id, gid, sender) => {
+    let message = "#@" + sender + "在" + room_id + "直播间登船~";
+    dmksender.sendDamaku(message, DDSLIVE_ROOM_NUMBER);
+};
+let tvCallBackFn = (room_id, gid, sender) => {
+    let message = "#^" + sender + "在" + room_id + "发放低保~";
+    dmksender.sendDamaku(message, DDSLIVE_ROOM_NUMBER);
+};
 
 let Acceptor = require("./utils/acceptprize").Acceptor;
-let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging);
+let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging, guardCallBackFn, tvCallBackFn);
 
 let onMessageReceived = (msg, addr) => {
     if (msg.length < 5 || msg[0] !== "_"){return}
