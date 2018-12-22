@@ -89,8 +89,8 @@ class Acceptor {
                         let giftid = r.data.raffleId,
                             gtype = r.data.type;
                         logging.info(
-                            "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, type: %s, title: %s",
-                            giftid, room_id, gtype, title
+                            "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, title: %s, sender: %s",
+                            room_id, giftid, title, sender
                         );
                     }else{
                         logging.error("TV ACCEPTOR: Failed! r: %s", JSON.stringify(r));
