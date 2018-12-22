@@ -61,8 +61,72 @@ class Acceptor {
             this.acceptGuardSingle(room_id, i);
         }
     };
+    acceptTvSingle(room_id, index){
+        let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
+        let csrf_token = this.cookieDictList[index].csrf_token;
+        let cookie = this.cookieDictList[index].cookie;
+
+        let joinFn = (gift_id, title) => {
+            request({
+                url: "https://api.live.bilibili.com/gift/v3/smalltv/join",
+                method: "post",
+                headers: {"User-Agent": UA, "Cookie": cookie},
+                form: {
+                    roomid: room_id,
+                    raffleId: gift_id,
+                    type: "Gift",
+                    csrf_token: csrf_token,
+                    csrf: csrf_token,
+                    visit_id: "",
+                },
+                timeout: 10000,
+            }, function (err, res, body) {
+                if (err) {
+                    // TODO: add log.
+                } else {
+                    let r = JSON.parse(body.toString());
+                    if(r.code === 0){
+                        let giftid = r.data.raffleId,
+                            gtype = r.data.type;
+                        logging.info(
+                            "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, type: %s, title: %s",
+                            giftid, room_id, gtype, title
+                        );
+                    }else{
+                        logging.error("TV ACCEPTOR: Failed! r: %s", JSON.stringify(r));
+                    }
+                }
+            });
+        };
+        let getTvGiftId = (room_id) => {
+            request({
+                url: "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=" + room_id,
+                method: "get",
+                headers: {"User-Agent": UA, "Cookie": cookie},
+                timeout: 10000,
+            },function (err, res, body) {
+                if(err){
+                    // TODO: add log.
+                }else{
+                    let r = JSON.parse(body.toString());
+                    if(r.code === 0){
+                        let data = r.data || {};
+                        let gidlist = data.list || [];
+                        for (let i = 0; i < gidlist.length; i++){
+                            let gid = parseInt(gidlist[i].raffleId) || 0,
+                                title = gidlist[i].title || "Unknown";
+                            if (gid !== 0){joinFn(gid, title)}
+                        }
+                    }
+                }
+            })
+        };
+        getTvGiftId(room_id);
+    }
     acceptTv(room_id){
-        // todo: ...
+        for (let i = 0; i < this.cookieDictList.length; i++){
+            this.acceptTvSingle(room_id, i);
+        }
     }
 }
 module.exports.Acceptor = Acceptor;
