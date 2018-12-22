@@ -43,25 +43,17 @@ logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 let damakusender = require("./utils/danmakusender");
 let dmksender = new damakusender.Sender(1, logging);
 let DDSLIVE_ROOM_NUMBER = 13369254;
-let guardCallBackFn = (room_id, gid, sender) => {
+let sendNoticeDanmakuMsg = (room_id, gift_type) => {
     // let message = "#@" + sender + "在" + room_id + "直播间登船~";
-    let message = "G-" + Buffer.from("" + room_id).toString('base64');
+    let message = gift_type + Buffer.from("" + room_id).toString('base64');
     setTimeout(
         function(){dmksender.sendDamaku(message, DDSLIVE_ROOM_NUMBER)},
-        parseInt(Math.random()*1000*2)
-    );
-};
-let tvCallBackFn = (room_id, gid, sender) => {
-    // let message = "#^" + sender + "在" + room_id + "发放低保~";
-    let message = "T-" + Buffer.from("" + room_id).toString('base64');
-    setTimeout(
-        function(){dmksender.sendDamaku(message, DDSLIVE_ROOM_NUMBER)},
-        parseInt(Math.random()*1000*2)
+        parseInt(Math.random()*1000*1)
     );
 };
 
 let Acceptor = require("./utils/acceptprize").Acceptor;
-let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging, guardCallBackFn, tvCallBackFn);
+let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging);
 
 let onMessageReceived = (msg, addr) => {
     if (msg.length < 5 || msg[0] !== "_"){return}
@@ -73,9 +65,11 @@ let onMessageReceived = (msg, addr) => {
     }else if(giftType === "G"){
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
         ac.acceptGuard(room_id);
+        sendNoticeDanmakuMsg(room_id, "G");
     }else if(giftType === "T"){
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
         ac.acceptTv(room_id);
+        sendNoticeDanmakuMsg(room_id, "T");
     }
 };
 
