@@ -14,6 +14,7 @@ class Acceptor {
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
         let csrf_token = this.cookieDictList[index].csrf_token;
         let cookie = this.cookieDictList[index].cookie;
+        let gcbFn = this.gcbFn;
         let joinFn = (gift_id) => {
             request.post({
                 url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",
@@ -35,7 +36,7 @@ class Acceptor {
                     if (r.code === 0) {
                         let msg = r.data.message;
                         logging.info("Succeed: [" + room_id + " - " + gift_id + "] -> " + msg + " from: " + r.data.from);
-                        this.gcbFn(room_id, gift_id, r.data.from);
+                        gcbFn(room_id, gift_id, r.data.from);
                     }
                 }
             });
@@ -68,6 +69,7 @@ class Acceptor {
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
         let csrf_token = this.cookieDictList[index].csrf_token;
         let cookie = this.cookieDictList[index].cookie;
+        let tvcbFn = this.tvcbFn;
 
         let joinFn = (gift_id, title, sender) => {
             request({
@@ -95,7 +97,7 @@ class Acceptor {
                             "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, type: %s, title: %s",
                             giftid, room_id, gtype, title
                         );
-                        this.tvcbFn(room_id, giftid, sender);
+                        tvcbFn(room_id, giftid, sender);
                     }else{
                         logging.error("TV ACCEPTOR: Failed! r: %s", JSON.stringify(r));
                     }
