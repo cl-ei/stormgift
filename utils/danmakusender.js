@@ -2,11 +2,12 @@ let request = require("request");
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 
 class Sender {
-    constructor(defaultLogger) {
+    constructor(index, defaultLogger) {
+        index = index || 0;
         this.logging = defaultLogger;
         let cookie_filename = '../data/cookie.js';
         let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST;
-        this.cookie = RAW_COOKIES_LIST[0];
+        this.cookie = RAW_COOKIES_LIST[index];
         this.csrf_token = "";
         let cookie_kv = this.cookie.split(";");
 

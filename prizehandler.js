@@ -41,7 +41,7 @@ let logging = loggers["prizehandler"];
 logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
 let damakusender = require("./utils/danmakusender");
-let dmksender = new damakusender.Sender(logging);
+let dmksender = new damakusender.Sender(1, logging);
 let DDSLIVE_ROOM_NUMBER = 13369254;
 let guardCallBackFn = (room_id, gid, sender) => {
     // let message = "#@" + sender + "在" + room_id + "直播间登船~";
