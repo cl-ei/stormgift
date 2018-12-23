@@ -70,12 +70,49 @@ let signGroup = (cookie, index) => {
         }
     });
 };
-
+let doubleWatchTask = (cookie, index) => {
+    let cookie_kv = cookie.split(";");
+    let csrf_token = "";
+    for (let i = 0; i < cookie_kv.length; i++){
+        let kvstr = cookie_kv[i];
+        if (kvstr.indexOf("bili_jct") > -1){
+            csrf_token = kvstr.split("=")[1].trim();
+            break;
+        }
+    }
+    if (csrf_token.length < 10){
+        logging.error("Bad csrf token! index: %d.", index);
+        return;
+    }
+    request({
+        url: "https://api.live.bilibili.com/activity/v1/task/receive_award",
+        headers: {"User-Agent": UA, "Cookie": cookie},
+        timeout: 10000,
+        method: "post",
+        form: {
+            task_id: "double_watch_task",
+            csrf_token: csrf_token,
+            csrf: csrf_token,
+        }
+    }, function (err, res, body) {
+        if (err) {
+            logging.error("doubleWatchTask error, index: %d, e: %s", index, err.toString());
+        }else{
+            let r = JSON.parse(body.toString());
+            if(r.code === 0){
+                logging.info("doubleWatchTask success! index: %s", index)
+            }else{
+                logging.info("doubleWatchTask Error! index: %d, r: %s", index, body.toString());
+            }
+        }
+    });
+};
 (() => {
     logging.info("Start doSign proc, ENV: %s", DEBUG ? "DEBUG": "SERVER");
     for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
         let c = RAW_COOKIES_LIST[i];
         doSign(c, i);
         signGroup(c, i);
+        doubleWatchTask(c, i);
     }
 })();
