@@ -62,18 +62,18 @@ let ROOM_AREA_MAP = {
 let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
 let damakusender = require("./utils/danmakusender");
 let dmksender = new damakusender.Sender(0, logging);
-let lastActiveUseTimeInHansysRoom = getCurrentTimest() - 60*13;
 let HANSY_MSG_LIST = [
-    "📢 各位小可爱记得点上关注哟，点个关注不迷路 ヽ(✿ﾟ▽ﾟ)ノ",
-    "📢 喜欢泡泡的小伙伴，加粉丝QQ群436496941来撩骚呀~",
+    "📢 小可爱们记得点上关注哟，点个关注不迷路ヽ(✿ﾟ▽ﾟ)ノ",
+    "📢 喜欢泡泡的小伙伴，加粉丝群436496941来撩骚呀~",
     "📢 更多好听的原创歌和翻唱作品，网易云音乐搜索「管珩心」~",
-    "📢 泡泡的海盗船舰队正在招聘船长~加入舰队即可领取感恩福利(✿≖ ◡ ≖)✧",
-    "📢 获取「电磁泡」勋章：赠送1个B坷垃，或充电50电池，或给up的投稿投币20~",
-    "📢 一定要记得网易云关注「管珩心」哦，超百首高质量单曲，小珩心捧着奶茶等你来听~",
+    "📢 泡泡的海盗船正在招聘船长~欢迎加入舰队(✿≖ ◡ ≖)✧",
+    "📢 获取「电磁泡」勋章：赠送1个B坷垃，或充电50电池~",
+    "📢 一定要来网易云关注「管珩心」哦，超多高质量单曲等你来听~",
 ];
+let lastActiveUseTimeInHansysRoom = getCurrentTimest() - 120*HANSY_MSG_LIST.length;
 let HANSY_MSG_LIST_INDEX = 0;
 let intervalSendHansyDCallMsg = () => {
-    if (getCurrentTimest() - lastActiveUseTimeInHansysRoom > 121*HANSY_MSG_LIST.length){
+    if ((getCurrentTimest() - lastActiveUseTimeInHansysRoom) >= 120*HANSY_MSG_LIST.length){
         console.log("Need not to send danmaku.");
         return;
     }
