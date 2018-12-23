@@ -28,7 +28,7 @@ function doSign(cookie, index){
 }
 (() => {
     logging.info("Start doSign proc, ENV: %s", DEBUG ? "DEBUG": "SERVER");
-    for (let i = 1; i < RAW_COOKIES_LIST.length; i++){
+    for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
         let c = RAW_COOKIES_LIST[i];
         doSign(c, i);
     }
