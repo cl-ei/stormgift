@@ -1,5 +1,4 @@
 let request = require("request");
-let fs = require('fs');
 let logger = require("./utils/logger");
 let DEBUG = !(process.argv.splice(2)[0] === "server");
 
