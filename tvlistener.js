@@ -61,7 +61,7 @@ let ROOM_AREA_MAP = {
 
 let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
 let damakusender = require("./utils/danmakusender");
-let dmksender = new damakusender.Sender(logging);
+let dmksender = new damakusender.Sender(0, logging);
 let lastActiveUseTimeInHansysRoom = getCurrentTimest() - 60*13;
 let HANSY_MSG_LIST = [
     "📢 各位小可爱记得点上关注哟，点个关注不迷路 ヽ(✿ﾟ▽ﾟ)ノ",
@@ -271,8 +271,17 @@ let intervalConnectionMonitor = function () {
     );
 };
 
+let FORCE_UPDATE_AREAS_COUNTER = 0;
 let searchMonitorRoom = () => {
+    FORCE_UPDATE_AREAS_COUNTER += 1;
     logging.info("Start to earch and check monitor room.");
+    if(FORCE_UPDATE_AREAS_COUNTER > 6){
+        FORCE_UPDATE_AREAS_COUNTER = 0;
+        logging.info("LONG TIME, force update monitor room id list.");
+        for (let i = 1; i <= 5; i++){
+            delete ROOM_AREA_MAP[i];
+        }
+    }
     let searchSingleArea = (area, room_id) => {
         let searchNewRoom = (area) => {
             let url = "https://api.live.bilibili.com/room/v3/area/getRoomList?platform=web&cate_id=0&area_id=0&sort_type=&page=1&page_size=10&parent_area_id=" + area;
