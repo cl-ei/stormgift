@@ -76,6 +76,11 @@ let onMessageReceived = (msg, addr) => {
 
 (() => {
     let connectionListener = (sock) => {
+        if(sock.remoteAddress !== "127.0.0.1" || sock.remoteAddress !== "47.104.176.84"){
+            logging.error("ERROR ! Close connections without authentication! <- %s:%s", sock.remoteAddress, sock.remotePort);
+            sock.destroy();
+            return;
+        }
         logging.info('New client connected: addr: %s, port: %s', sock.remoteAddress, sock.remotePort);
         sock.on('data', function(data) {
             try{onMessageReceived(String(data), sock.remoteAddress)}catch(e){
