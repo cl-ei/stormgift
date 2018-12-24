@@ -73,7 +73,7 @@ let filtedExisted = (level, list) => {
             }, Math.random()*1000);
         }
     }
-    __g_existed_guard[level] = matchStr;
+    __g_existed_guard[level] = list;
     logging.info("Get new guard: level: %d, room_id_list: %s", level, finnalList);
 };
 
