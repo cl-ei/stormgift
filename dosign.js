@@ -43,9 +43,14 @@ let signGroup = (cookie, index) => {
             }else{
                 let r = JSON.parse(body.toString());
                 if(r.code === 0){
-                    logging.info("DoJoin success! index: %s, group_name: %s", index, group_name)
+                    let add_num = r.data.add_num;
+                    if(add_num > 0){
+                        logging.info("DoJoin success! index: %s, add: %d, group_name: %s", index, add_num, group_name);
+                    }else{
+                        logging.error("doSign add_num Error! index: %d, add_num: %d, group name: %s", index, add_num, group_name);
+                    }
                 }else{
-                    logging.info("doSign Error! index: %d, group name: %s, r: %s", index, group_name, body.toString());
+                    logging.error("doSign Error! index: %d, group name: %s, r: %s", index, group_name, body.toString());
                 }
             }
         });
