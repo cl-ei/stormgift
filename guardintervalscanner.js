@@ -59,7 +59,6 @@ let filtedExisted = (level, list) => {
         let cmpStr = oldList.slice(index).join("_");
         if (matchStr.indexOf(cmpStr) === 0){
             repeatedLength = cmpStr.length;
-            console.log(matchStr, cmpStr, index);
             break;
         }
     }
