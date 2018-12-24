@@ -45,7 +45,7 @@ __generateNoticeSender();
 
 
 let __g_existed_guard = {
-    0: ['91137', '574869', '11258437'],
+    0: [],
     1: [],
     2: [],
 };
@@ -70,12 +70,12 @@ let filtedExisted = (level, list) => {
         if(c.length > 0){
             finnalList.push(c);
             setTimeout(function(){
-                logging.info("Send guard info: level: %d, room_id: %s", level, c);
                 sendPrizeMessage("_G" + c);
             }, Math.random()*1000);
         }
     }
     __g_existed_guard[level] = finnalList;
+    logging.info("Get new guard: level: %d, room_id_list: %s", level, finnalList);
 };
 
 let getGuardList = () => {
@@ -100,7 +100,7 @@ let getGuardList = () => {
                 t_j[0].match(/live.bilibili.com\/(\d+)/g),
                 t_j[1].match(/live.bilibili.com\/(\d+)/g),
             ];
-            logging.info("Get guard list success! %s", unFilteredGuardList);
+            logging.info("Get guard list success!");
             for (let level = 0; level < unFilteredGuardList.length; level++){
                 let uf = unFilteredGuardList[level],
                     current = [];
