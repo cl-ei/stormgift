@@ -112,6 +112,6 @@ let getGuardList = () => {
 
 
 (() => {
-    setInterval(getGuardList, 1000*60*3);
+    setInterval(getGuardList, 1000*90);
     getGuardList();
 })();
