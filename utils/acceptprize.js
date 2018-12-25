@@ -16,7 +16,7 @@ class Acceptor {
             request.post({
                 url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",
                 headers: {"User-Agent": UA, "Cookie": cookie},
-                timeout: 10000,
+                timeout: 20000,
                 form: {
                     roomid: room_id,
                     id: gift_id,
@@ -41,7 +41,7 @@ class Acceptor {
             url: "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=" + room_id,
             method: "get",
             headers: {"User-Agent": UA, "Cookie": cookie},
-            timeout: 10000,
+            timeout: 20000,
         },function (err, res, body) {
             if(err){
                 logging.error("Accept single guard error: %s, room_id: %s", err.toString(), room_id);
@@ -81,7 +81,7 @@ class Acceptor {
                     csrf: csrf_token,
                     visit_id: "",
                 },
-                timeout: 10000,
+                timeout: 20000,
             }, function (err, res, body) {
                 if (err) {
                     logging.error("Accept tv prize error: %s, room_id: %s", err.toString(), room_id);
@@ -115,7 +115,7 @@ class Acceptor {
                 url: "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=" + room_id,
                 method: "get",
                 headers: {"User-Agent": UA, "Cookie": cookie},
-                timeout: 10000,
+                timeout: 20000,
             },function (err, res, body) {
                 if(err){
                     logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
@@ -146,8 +146,9 @@ class Acceptor {
         getTvGiftId(room_id);
     }
     acceptTv(room_id){
+        let fn = this.acceptTvSingle;
         for (let i = 0; i < 1; /* this.cookieDictList.length;*/ i++){
-            this.acceptTvSingle(room_id, i);
+            setTimeout(function(){fn(room_id, i)}, Math.random()*1000*90);
         }
     }
 }
