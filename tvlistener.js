@@ -1,6 +1,7 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
 let logger = require("./utils/logger");
 let bilisocket = require("./utils/bilisocket");
+let path = require('path');
 let net = require('net');
 let request = require("request");
 
