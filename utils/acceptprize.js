@@ -146,7 +146,7 @@ class Acceptor {
         getTvGiftId(room_id);
     }
     acceptTv(room_id){
-        for (let i = 0; i < this.cookieDictList.length; i++){
+        for (let i = 0; i < 1; /* this.cookieDictList.length;*/ i++){
             this.acceptTvSingle(room_id, i);
         }
     }
