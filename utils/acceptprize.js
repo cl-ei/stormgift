@@ -44,14 +44,16 @@ class Acceptor {
             timeout: 10000,
         },function (err, res, body) {
             if(err){
-                // TODO: add log.
+                logging.error("Accept single guard error: %s, room_id: %s", err.toString(), room_id);
             }else{
                 let r = JSON.parse(body.toString());
                 if(r.code === 0){
                     let data = r.data || [];
-                    data.forEach(function(d){
-                        joinFn(parseInt(d.id));
-                    })
+                    if (data.length === 0){
+                        logging.warn("INVALID_GUARD_NOTICE, CANNOT JOIN -> %s", room_id)
+                    }else{
+                        data.forEach(function(d){joinFn(parseInt(d.id))})
+                    }
                 }
             }
         })
@@ -82,7 +84,7 @@ class Acceptor {
                 timeout: 10000,
             }, function (err, res, body) {
                 if (err) {
-                    // TODO: add log.
+                    logging.error("Accept tv prize error: %s, room_id: %s", err.toString(), room_id);
                 } else {
                     let r = JSON.parse(body.toString());
                     if(r.code === 0){
@@ -106,12 +108,15 @@ class Acceptor {
                 timeout: 10000,
             },function (err, res, body) {
                 if(err){
-                    // TODO: add log.
+                    logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
                 }else{
                     let r = JSON.parse(body.toString());
                     if(r.code === 0){
                         let data = r.data || {};
                         let gidlist = data.list || [];
+                        if(gidlist.length === 0){
+                            logging.warn("INVALID_TV_NOTICE, CANNOT JOIN -> %s", room_id);
+                        }
                         for (let i = 0; i < gidlist.length; i++){
                             let gid = parseInt(gidlist[i].raffleId) || 0,
                                 title = gidlist[i].title || "Unknown",
