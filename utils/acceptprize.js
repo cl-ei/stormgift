@@ -146,9 +146,8 @@ class Acceptor {
         getTvGiftId(room_id);
     }
     acceptTv(room_id){
-        let fn = this.acceptTvSingle;
         for (let i = 0; i < this.cookieDictList.length; i++){
-            setTimeout(function(){fn(room_id, i)}, Math.random()*1000*45);
+            this.acceptTvSingle(room_id, i);
         }
     }
 }
