@@ -147,8 +147,8 @@ class Acceptor {
     }
     acceptTv(room_id){
         let fn = this.acceptTvSingle;
-        for (let i = 0; i < 1; /* this.cookieDictList.length;*/ i++){
-            setTimeout(function(){fn(room_id, i)}, Math.random()*1000*90);
+        for (let i = 0; i < this.cookieDictList.length; i++){
+            setTimeout(function(){fn(room_id, i)}, Math.random()*1000*45);
         }
     }
 }
