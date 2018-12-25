@@ -95,11 +95,11 @@ let getGuardList = () => {
             let z_tj = response.split("提督列表");
             let t_j = z_tj[1].split("舰长列表");
             let unFilteredGuardList = [
-                z_tj[0].match(/live.bilibili.com\/(\d+)/g),
-                t_j[0].match(/live.bilibili.com\/(\d+)/g),
-                t_j[1].match(/live.bilibili.com\/(\d+)/g),
+                z_tj[0].match(/live.bilibili.com\/(\d+)/g) || [],
+                t_j[0].match(/live.bilibili.com\/(\d+)/g) || [],
+                t_j[1].match(/live.bilibili.com\/(\d+)/g) || [],
             ];
-            logging.info("Get guard list success!");
+            logging.info("\nGet guard list success!");
             for (let level = 0; level < unFilteredGuardList.length; level++){
                 let uf = unFilteredGuardList[level],
                     current = [];
