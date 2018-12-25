@@ -41,6 +41,7 @@ let signGroup = (cookie, index) => {
             if (err) {
                 logging.error("JoinGroup error, index: %d, e: %s", index, err.toString());
             }else{
+                if(index !== 0){return}
                 let r = JSON.parse(body.toString());
                 if(r.code === 0){
                     let add_num = r.data.add_num;
