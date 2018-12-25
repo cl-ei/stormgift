@@ -86,10 +86,20 @@ class Acceptor {
                 if (err) {
                     logging.error("Accept tv prize error: %s, room_id: %s", err.toString(), room_id);
                 } else {
-                    let r = JSON.parse(body.toString());
+                    let r = {"-": "-"};
+                    try{
+                        r = JSON.parse(body.toString());
+                    }catch (e) {
+                        logging.error(
+                            "Error response acceptTvSingle JoinFn: %s, body:\n-------\n %\n\n",
+                            err.toString(), body
+                        );
+                        return;
+                    }
                     if(r.code === 0){
-                        let giftid = r.data.raffleId,
-                            gtype = r.data.type;
+                        let data = r.data || {};
+                        let giftid = data.raffleId,
+                            gtype = data.type;
                         logging.info(
                             "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, title: %s, sender: %s",
                             room_id, giftid, title, sender
@@ -110,7 +120,13 @@ class Acceptor {
                 if(err){
                     logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
                 }else{
-                    let r = JSON.parse(body.toString());
+                    let r = {"-": "-"};
+                    try{
+                        r = JSON.parse(body.toString());
+                    }catch (e) {
+                        logging.error("Error response getTvGiftId: %s, body:\n-------\n %\n\n", err.toString(), body);
+                        return;
+                    }
                     if(r.code === 0){
                         let data = r.data || {};
                         let gidlist = data.list || [];
