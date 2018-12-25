@@ -91,7 +91,7 @@ class Acceptor {
                         r = JSON.parse(body.toString());
                     }catch (e) {
                         logging.error(
-                            "Error response acceptTvSingle JoinFn: %s, body:\n-------\n %\n\n",
+                            "Error response acceptTvSingle JoinFn: %s, body:\n-------\n%s\n\n",
                             e.toString(), body
                         );
                         return;
@@ -124,7 +124,7 @@ class Acceptor {
                     try{
                         r = JSON.parse(body.toString());
                     }catch (e) {
-                        logging.error("Error response getTvGiftId: %s, body:\n-------\n %\n\n", e.toString(), body);
+                        logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
                         return;
                     }
                     if(r.code === 0){
