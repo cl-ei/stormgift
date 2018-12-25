@@ -56,8 +56,9 @@ let Acceptor = require("./utils/acceptprize").Acceptor;
 let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging);
 
 let onMessageReceived = (msg, addr) => {
-    if (msg.length < 5 || msg[0] !== "_"){return}
-    let giftType = msg[1],
+    if (msg.length < 5 ){return}
+    let sendGuardNotice = msg[0] === "_",
+        giftType = msg[1],
         room_id = parseInt(msg.slice(2));
 
     if(giftType === "S"){
@@ -65,7 +66,9 @@ let onMessageReceived = (msg, addr) => {
     }else if(giftType === "G"){
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
         ac.acceptGuard(room_id);
-        sendNoticeDanmakuMsg(room_id, "G");
+        if(sendGuardNotice){
+            sendNoticeDanmakuMsg(room_id, "G");
+        }
     }else if(giftType === "T"){
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
         ac.acceptTv(room_id);

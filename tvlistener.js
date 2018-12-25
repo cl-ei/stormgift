@@ -7,8 +7,21 @@ let request = require("request");
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
+let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log",
+    loggerConfigList = [
+        {
+            loggerName: "tvlistener",
+            loggerFile: path.join(loggerFilePath, "tvlistener.log"),
+        },
+        {
+            loggerName: "hansy_chat",
+            loggerFile: path.join(loggerFilePath, "hansy_chat.log"),
+        },
+    ];
 
-let logging = logger.creatLogger('tvlistener', DEBUG ? "./log/" : "/home/wwwroot/log/");
+let loggers = logger.batchCreateLogger(loggerConfigList);
+let logging = loggers["tvlistener"],
+    hansy_chat = loggers["hansy_chat"];
 logging.info("Start TV Listener proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
 let PRIZE_NOTICE_HOST = DEBUG ? "111.230.235.254" : "localhost";
@@ -128,7 +141,7 @@ let procMessage = (msg, room_id) => {
             dl = msg.info[3][0],
             decoration = msg.info[3][1],
             ul = msg.info[4][0];
-        logging.info("DANMU_MSG [UL %d] [%s %d] %s -> %s", ul, decoration, dl, username, message);
+        hansy_chat.info("[UL %d] [%s %d] %s -> %s", ul, decoration, dl, username, message);
 
         if (username !== "偷闲一天打个盹"){
             lastActiveUseTimeInHansysRoom = getCurrentTimest();

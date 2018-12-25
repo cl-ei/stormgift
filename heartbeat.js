@@ -65,7 +65,7 @@ function heartbeat_5m(cookie, index){
 }
 
 (() => {
-    logging.info("Start send heartbeat proc, ENV: %s", DEBUG ? "DEBUG": "SERVER");
+    logging.info("\nStart send heartbeat proc, ENV: %s", DEBUG ? "DEBUG": "SERVER");
     for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
         let c = RAW_COOKIES_LIST[i];
         heartbeat_5m(c, i);

@@ -69,7 +69,7 @@ let filtedExisted = (level, list) => {
         if(c.length > 0){
             finnalList.push(c);
             setTimeout(function(){
-                sendPrizeMessage("_G" + c);
+                sendPrizeMessage("XG" + c);
             }, Math.random()*1000);
         }
     }
