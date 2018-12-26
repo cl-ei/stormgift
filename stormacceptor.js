@@ -57,8 +57,8 @@ function acceptStormGift(room_id){
                 );
                 return;
             }
-            if(req_times >= 10) {
-                logging.error("Failed! room_id: %s, req_times: %s", room_id, req_times);
+            if(req_times >= 14) {
+                logging.error("Failed! room_id: %s, req_times: %s, r.code: %s", room_id, req_times, r.code);
                 return;
             }
             setTimeout(
