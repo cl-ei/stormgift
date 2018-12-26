@@ -7,7 +7,7 @@ let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
 let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log";
-let logging = logger.creatLogger("handler.log", loggerFilePath);
+let logging = logger.creatLogger("handler", loggerFilePath);
 logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
 
