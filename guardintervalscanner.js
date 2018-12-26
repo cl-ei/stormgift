@@ -99,7 +99,7 @@ let getGuardList = () => {
                 t_j[0].match(/live.bilibili.com\/(\d+)/g) || [],
                 t_j[1].match(/live.bilibili.com\/(\d+)/g) || [],
             ];
-            logging.info("\nGet guard list success!");
+            logging.info("Get guard list success!\n");
             for (let level = 0; level < unFilteredGuardList.length; level++){
                 let uf = unFilteredGuardList[level],
                     current = [];
