@@ -50,7 +50,7 @@ class Acceptor {
                 if(r.code === 0){
                     let data = r.data || [];
                     if (data.length === 0){
-                        logging.warn("INVALID_GUARD_NOTICE, CANNOT JOIN -> %s", room_id)
+                        // logging.warn("INVALID_GUARD_NOTICE, CANNOT JOIN -> %s", room_id)
                     }else{
                         data.forEach(function(d){joinFn(parseInt(d.id))})
                     }
