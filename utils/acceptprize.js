@@ -63,10 +63,11 @@ class Acceptor {
             this.acceptGuardSingle(room_id, i);
         }
     };
-    acceptTvSingle(room_id, index){
+    acceptTvSingle(room_id, index, delay){
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
         let csrf_token = this.cookieDictList[index].csrf_token;
         let cookie = this.cookieDictList[index].cookie;
+        delay = delay || false;
 
         let joinFn = (gift_id, title, sender) => {
             request({
@@ -143,11 +144,20 @@ class Acceptor {
                 }
             })
         };
-        getTvGiftId(room_id);
+        if(delay === true){
+            setTimeout(() => {getTvGiftId(room_id)}, Math.random()*10*1000);
+        }else{
+            getTvGiftId(room_id);
+        }
     }
     acceptTv(room_id){
-        for (let i = 0; i < this.cookieDictList.length; i++){
-            this.acceptTvSingle(room_id, i);
+        let hours = (new Date()).getHours();
+        if (hours > 21 || hours < 1){
+            this.acceptTvSingle(room_id, 0, true);
+        }else{
+            for (let i = 0; i < this.cookieDictList.length; i++){
+                this.acceptTvSingle(room_id, i);
+            }
         }
     }
 }
