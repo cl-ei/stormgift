@@ -152,7 +152,7 @@ class Acceptor {
     }
     acceptTv(room_id){
         let hours = (new Date()).getHours();
-        if (hours > 21 || hours < 1){
+        if (hours >= 21 || hours < 1){
             this.acceptTvSingle(room_id, 0, true);
         }else{
             for (let i = 0; i < this.cookieDictList.length; i++){
