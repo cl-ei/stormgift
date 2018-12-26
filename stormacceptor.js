@@ -57,13 +57,13 @@ function acceptStormGift(room_id){
                 );
                 return;
             }
-            if(req_times >= 14) {
+            if(req_times >= 50) {
                 logging.error("Failed! room_id: %s, req_times: %s, r.code: %s", room_id, req_times, r.code);
                 return;
             }
             setTimeout(
                 function(){stormJoin(room_id, gift_id, req_times + 1)},
-                Math.random()*1000
+                Math.random()*300
             )
         })
     };
