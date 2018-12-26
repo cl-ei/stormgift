@@ -89,6 +89,8 @@ class PrizeMsgReceiver(object):
 
 
 def main():
+    env = "DEBUG" if DEBUG else "SERVER"
+    print_to_log("Start HANDLER Proc, ENV: %s" % env)
     notice_handler = NoticeHandle()
     notice_handler.start_serve()
     receiver = PrizeMsgReceiver(notice_handler)
