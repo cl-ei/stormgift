@@ -65,7 +65,7 @@ let startPrizeMessageReceiver = () => {
             sock.destroy();
             return;
         }
-        logging.info('New client connected: addr: %s, port: %s', sock.remoteAddress, sock.remotePort);
+        logging.info('New prize message source added, addr: %s, port: %s', sock.remoteAddress, sock.remotePort);
         sock.on('data', function(data) {
             logging.info("Received prize message from source: %s", data);
             try{noticeToAll(data)}catch(e){
@@ -73,7 +73,7 @@ let startPrizeMessageReceiver = () => {
             }
         });
         sock.on('close', function(data) {
-            logging.error('Client closed: addr: %s, port: %s, data: %s', sock.remoteAddress, sock.remotePort, data);
+            logging.info('Prize message source closed: addr: %s, port: %s', sock.remoteAddress, sock.remotePort);
         });
     };
     net.createServer(connectionListener).listen(11111, "0.0.0.0");
