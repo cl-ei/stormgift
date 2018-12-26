@@ -12,7 +12,7 @@ let PROC_NUMBER = parseInt(sysArgs[1]) || 0;
 let logging = logger.creatLogger('listener_' + PROC_NUMBER, DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start proc -> proc num: " + PROC_NUMBER + " , env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
-let PRIZE_NOTICE_HOST = DEBUG ? "localhost" : "111.230.235.254";
+let PRIZE_NOTICE_HOST = DEBUG ? "localhost" : "123.207.240.122";
 let PRIZE_NOTICE_PORT = 11111;
 let __prizeSenderList = [];
 let sendPrizeMessage = (message) => {
