@@ -1,4 +1,4 @@
-let net = require('net');
+let W3CWebSocket = require('websocket').w3cwebsocket;
 let logger = require("./utils/logger");
 let path = require('path');
 let sysArgs = process.argv.splice(2);
@@ -6,7 +6,7 @@ let DEBUG = !(sysArgs[0] === "server");
 
 let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log",
     loggerConfigList = [{
-        loggerName: "prizehandler",
+        loggerName: "acceptor",
         loggerFile: path.join(loggerFilePath, "prizehandler.log"),
     }];
 
@@ -14,7 +14,6 @@ let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log",
 let cookie_filename = './data/cookie.js';
 let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST,
     COOKIE_DICT_LIST = [];
-
 for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
     let cookie = RAW_COOKIES_LIST[i];
     let cookie_kv = cookie.split(";");
@@ -37,7 +36,7 @@ for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
 }
 
 let loggers = logger.batchCreateLogger(loggerConfigList);
-let logging = loggers["prizehandler"];
+let logging = loggers["acceptor"];
 logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
 let damakusender = require("./utils/danmakusender");
@@ -48,14 +47,14 @@ let sendNoticeDanmakuMsg = (room_id, gift_type) => {
     let message = gift_type + Buffer.from("" + room_id).toString('base64');
     setTimeout(
         function(){dmksender.sendDamaku(message, DDSLIVE_ROOM_NUMBER)},
-        parseInt(Math.random()*1000*1)
+        parseInt(Math.random()*1000)
     );
 };
 
 let Acceptor = require("./utils/acceptprize").Acceptor;
 let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging);
 
-let onMessageReceived = (msg, addr) => {
+let onMessageReceived = (msg) => {
     if (msg.length < 5 ){return}
     let sendGuardNotice = msg[0] === "_",
         giftType = msg[1],
@@ -78,21 +77,27 @@ let onMessageReceived = (msg, addr) => {
 
 
 (() => {
-    let connectionListener = (sock) => {
-        if(sock.remoteAddress !== "127.0.0.1" && sock.remoteAddress !== "47.104.176.84"){
-            logging.error("ERROR ! Close connections without authentication! <- %s:%s", sock.remoteAddress, sock.remotePort);
-            sock.destroy();
-            return;
-        }
-        logging.info('New client connected: addr: %s, port: %s', sock.remoteAddress, sock.remotePort);
-        sock.on('data', function(data) {
-            try{onMessageReceived(String(data), sock.remoteAddress)}catch(e){
-                logging.error("Proc prize message coursed an error: %s", e.toString())
+    let ConnectToNoticeServer = () => {
+        let client = new W3CWebSocket("ws://127.0.0.1:11112");
+        client.onerror = () => {
+            logging.error("Connection to notice server error! Try reconnect...");
+            client.onclose = undefined;
+            setTimeout(ConnectToNoticeServer, 500);
+        };
+        client.onopen = () => {
+            function sendHeartBeat() {
+                if (client.readyState === client.OPEN){
+                    client.send("HEARTBEAT");
+                    setTimeout(sendHeartBeat, 10000);
+                }
             }
-        });
-        sock.on('close', function(data) {
-            logging.error('Client closed: addr: %s, port: %s, data: %s', sock.remoteAddress, sock.remotePort, data);
-        });
+            sendHeartBeat();
+        };
+        client.onclose = () => {
+            logging.error("ConnectToNoticeServer closed! Try reconnect...");
+            setTimeout(ConnectToNoticeServer, 500);
+        };
+        client.onmessage = (e) => {onMessageReceived(e.data)};
     };
-    net.createServer(connectionListener).listen(11111, "0.0.0.0");
+    ConnectToNoticeServer();
 })();
