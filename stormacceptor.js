@@ -21,6 +21,8 @@ for (let i = 0; i < cookie_kv.length; i++){
 }
 logging.info("Start stormacceptor proc -> env: %s, csrf_token: %s",  (DEBUG ? "DEBUG" : "SERVER"), csrf_token);
 
+let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
+let headers = {"User-Agent": UA, "Cookie": cookie};
 
 function acceptStormGift(room_id){
     let stormJoin = (room_id, gift_id, req_times) => {
