@@ -63,7 +63,7 @@ function acceptStormGift(room_id){
             }
             setTimeout(
                 function(){stormJoin(room_id, gift_id, req_times + 1)},
-                Math.random()*1000*2
+                Math.random()*1000
             )
         })
     };
