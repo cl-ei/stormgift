@@ -7,7 +7,7 @@ let DEBUG = !(sysArgs[0] === "server");
 let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log",
     loggerConfigList = [{
         loggerName: "acceptor",
-        loggerFile: path.join(loggerFilePath, "prizehandler.log"),
+        loggerFile: path.join(loggerFilePath, "acceptor.log"),
     }];
 
 
