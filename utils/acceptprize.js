@@ -152,9 +152,8 @@ class Acceptor {
     }
     acceptTv(room_id){
         let datetime = new Date();
-        let hours = datetime.getHours(),
-            minutes = datetime.getMinutes();
-        if (hours >= 21 || hours < 1 || (hours === 20 && minutes > 30)){
+        let hours = datetime.getHours();
+        if (hours >= 20 || hours < 1){
             this.acceptTvSingle(room_id, 0, true);
 
             let choice = parseInt(Math.random()*this.cookieDictList.length) +1;

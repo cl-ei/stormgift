@@ -108,6 +108,14 @@ let getRoomIdArea = (room_id) => {
     }
     return -1;
 };
+let AREA_NAME_MAP = {
+    0: "全区",
+    1: "娱乐",
+    2: "游戏",
+    3: "手游",
+    4: "绘画",
+    5: "电台",
+};
 
 let procMessage = (msg, room_id) => {
     MESSAGE_COUNT += 1;
@@ -119,17 +127,10 @@ let procMessage = (msg, room_id) => {
         let area = getRoomIdArea(room_id),
             message = msg.msg_self;
         let broadcastType = message.slice(0, 5);
-        if (
-            (area === 0 && broadcastType.indexOf("全区") > -1) ||
-            (area === 1 && broadcastType.indexOf("娱乐") > -1) ||
-            (area === 2 && broadcastType.indexOf("游戏") > -1) ||
-            (area === 3 && broadcastType.indexOf("手游") > -1) ||
-            (area === 4 && broadcastType.indexOf("绘画") > -1) ||
-            (area === 5 && broadcastType.indexOf("电台") > -1)
-        ){
+        if (broadcastType.indexOf(AREA_NAME_MAP[area]) > -1){
             let real_room_id = parseInt(msg.real_roomid) || 0;
             if(real_room_id !== 0){
-                logging.info("TV_PRIZE: %s, area: %s, room_id: %s", message, area, real_room_id);
+                logging.info("TV_PRIZE: %s, area: %s, room_id: %s", message, AREA_NAME_MAP[area], real_room_id);
                 sendPrizeMessage("_T" + real_room_id);
             }
         }
@@ -285,17 +286,9 @@ let intervalConnectionMonitor = function () {
     );
 };
 
-let FORCE_UPDATE_AREAS_COUNTER = 0;
 let searchMonitorRoom = () => {
-    FORCE_UPDATE_AREAS_COUNTER += 1;
-    logging.info("Start to earch and check monitor room.");
-    if(FORCE_UPDATE_AREAS_COUNTER > 12){
-        FORCE_UPDATE_AREAS_COUNTER = 0;
-        logging.info("LONG TIME, force update monitor room id list.");
-        for (let i = 1; i <= 5; i++){
-            delete ROOM_AREA_MAP[i];
-        }
-    }
+    logging.info("Start to search and check monitor room.");
+
     let searchSingleArea = (area, room_id) => {
         let searchNewRoom = (area) => {
             let url = "https://api.live.bilibili.com/room/v3/area/getRoomList?platform=web&cate_id=0&area_id=0&sort_type=&page=1&page_size=10&parent_area_id=" + area;
@@ -306,20 +299,29 @@ let searchMonitorRoom = () => {
                 timeout: 10000,
             },function (err, res, body) {
                 if(err){
-                    logging.error("Error happened in searchNewRoom, area: %s, room_id: %s, err: %s", area, err.toString());
+                    logging.error(
+                        "Error happened in searchNewRoom, area: %s, room_id: %s, err: %s",
+                        AREA_NAME_MAP[area], err.toString()
+                    );
                 }else{
                     let response = JSON.parse(body.toString());
                     if (response.code !== 0){
-                        logging.error("Get area %d live room id failed! r: %s", area, JSON.stringify(response));
+                        logging.error(
+                            "Get area %s live room id failed! r: %s",
+                            AREA_NAME_MAP[area], JSON.stringify(response)
+                        );
                         return;
                     }
                     let newRoomId = 0;
                     try{newRoomId = parseInt(response.data.list[0].roomid) || 0;}catch (e) {
-                        console.log("Get new room id error! e: %s", e.toString());
+                        console.log("Get new room id error! area: %s, e: %s",
+                            AREA_NAME_MAP[area],
+                            e.toString()
+                        );
                         return;
                     }
                     if(newRoomId !== 0){
-                        logging.info("Found new room id: %s, area: %s", newRoomId, area);
+                        logging.info("Found new room id: %s, area: %s", newRoomId, AREA_NAME_MAP[area]);
                         ROOM_AREA_MAP[area] = newRoomId;
                     }
                 }
@@ -327,7 +329,7 @@ let searchMonitorRoom = () => {
 
         };
         if (room_id === undefined || !room_id){
-            logging.error("Invalid room id: %d of area %d, search new.", room_id, area);
+            logging.warn("Invalid room id: %d of area %s, search new.", room_id, AREA_NAME_MAP[area]);
             return searchNewRoom(area);
         }
         let url = "https://live.bilibili.com/" + room_id;
@@ -340,9 +342,19 @@ let searchMonitorRoom = () => {
             if(err){
                 logging.error("Error happened in searchSingleArea, area: %s, room_id: %s, err: %s", area, room_id, err.toString());
             }else{
-                if(body.indexOf('"live_status":1') > -1) {
-                    logging.debug("Room %s from area %d is still lived!", room_id, area);
+                let room_still_available = true;
+                if(body.indexOf('"live_status":1') > -1){
+                    if(body.indexOf('"parent_area_name":"' + AREA_NAME_MAP[area]) > -1){
+                        logging.info("Room %s from area %s is still lived!", room_id, AREA_NAME_MAP[area]);
+                    }else{
+                        logging.error("Room %s has changed area! origin area %s.", room_id, AREA_NAME_MAP[area]);
+                        room_still_available = false;
+                    }
                 }else{
+                    logging.error("Room %s closed. now search new room, area: %s", AREA_NAME_MAP[area]);
+                    room_still_available = false;
+                }
+                if(!room_still_available){
                     return searchNewRoom(area);
                 }
             }
@@ -361,7 +373,7 @@ let searchMonitorRoom = () => {
         logging.info("Start monitor, current rooms: %s", JSON.stringify(ROOM_AREA_MAP));
         intervalConnectionMonitor();
 
-        setInterval(searchMonitorRoom, 1000*60*5);
+        setInterval(searchMonitorRoom, 1000*60*3);
         setInterval(intervalConnectionMonitor, 1000*60*2);
     }, 1000*10);
 })();
