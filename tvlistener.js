@@ -238,7 +238,7 @@ let printMessageSpeed = () => {
         MESSAGE_INTERVAL_COUNT + " received, " +
         mspeed + " msg/s, " +
         MESSAGE_COUNT + " total, " +
-        "lived rooms: " + livedRooms
+        "websocket connected rooms: " + livedRooms
     );
     if (MESSAGE_COUNT > 999999999999){MESSAGE_COUNT = 0;}
     MESSAGE_INTERVAL_COUNT = 0;
