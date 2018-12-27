@@ -351,7 +351,7 @@ let searchMonitorRoom = () => {
                         room_still_available = false;
                     }
                 }else{
-                    logging.error("Room %s closed. now search new room, area: %s", AREA_NAME_MAP[area]);
+                    logging.error("Room %s closed. now search new room, area: %s", room_id, AREA_NAME_MAP[area]);
                     room_still_available = false;
                 }
                 if(!room_still_available){
