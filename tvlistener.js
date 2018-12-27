@@ -289,7 +289,7 @@ let FORCE_UPDATE_AREAS_COUNTER = 0;
 let searchMonitorRoom = () => {
     FORCE_UPDATE_AREAS_COUNTER += 1;
     logging.info("Start to earch and check monitor room.");
-    if(FORCE_UPDATE_AREAS_COUNTER > 6){
+    if(FORCE_UPDATE_AREAS_COUNTER > 12){
         FORCE_UPDATE_AREAS_COUNTER = 0;
         logging.info("LONG TIME, force update monitor room id list.");
         for (let i = 1; i <= 5; i++){
@@ -361,7 +361,7 @@ let searchMonitorRoom = () => {
         logging.info("Start monitor, current rooms: %s", JSON.stringify(ROOM_AREA_MAP));
         intervalConnectionMonitor();
 
-        setInterval(searchMonitorRoom, 1000*60*10);
+        setInterval(searchMonitorRoom, 1000*60*5);
         setInterval(intervalConnectionMonitor, 1000*60*2);
     }, 1000*10);
 })();
