@@ -6,11 +6,9 @@ class Acceptor {
     static setInvalidGift(index, room_id, gift_id, logger){
         let k = "" + index + "_" + room_id + "_" + gift_id;
         if(this.__INVALID_PRIZE_POOL.indexOf(k) < 0){
-            let len = this.__INVALID_PRIZE_POOL.push(k);
-            if(len > 2000){
-                for(let i = 0; i < len - 100; i++){
-                    this.__INVALID_PRIZE_POOL.shift();
-                }
+            this.__INVALID_PRIZE_POOL.push(k);
+            while(this.__INVALID_PRIZE_POOL.length > 2000){
+                this.__INVALID_PRIZE_POOL.shift();
             }
             logger.debug(
                 "\t\tDEBUG: gift id set, room_id: %s, gift id: %s, gidPool len: %s",
