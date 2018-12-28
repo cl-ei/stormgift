@@ -155,8 +155,15 @@ class Acceptor {
         setTimeout(() => {getTvGiftId(room_id)}, delayTime);
     }
     acceptTv(room_id){
-        for (let i = 0; i < this.cookieDictList.length; i++){
-            this.acceptTvSingle(room_id, i);
+        this.acceptTvSingle(room_id, 0);
+
+        let datetime = new Date();
+        let hours = datetime.getHours();
+        let limitFreq = (hours >= 20 || hours < 1);
+        for (let i = 1; i < this.cookieDictList.length; i++){
+            if(limitFreq && Math.random() < 0.3){
+                this.acceptTvSingle(room_id, i);
+            }
         }
     }
 }
