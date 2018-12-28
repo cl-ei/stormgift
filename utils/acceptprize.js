@@ -32,7 +32,9 @@ class Acceptor {
                     let r = JSON.parse(body.toString());
                     if (r.code === 0) {
                         let msg = r.data.message;
-                        logging.info("Succeed: [" + room_id + " - " + gift_id + "] -> " + msg + " from: " + r.data.from);
+                        logging.info("GUARD ACCEPTOR: SUCCEED! room_id: %s, gift_id: %s, msg: %s, from: %s",
+                            room_id, gift_id, msg, r.data.from
+                        );
                     }
                 }
             });
@@ -46,7 +48,6 @@ class Acceptor {
             if(err){
                 logging.error("Accept single guard error: %s, room_id: %s", err.toString(), room_id);
             }else{
-                logging.info("G response: %s", body.toString());
                 let r = JSON.parse(body.toString());
                 if(r.code === 0){
                     let data = r.data || [];
@@ -102,7 +103,7 @@ class Acceptor {
                         let giftid = data.raffleId,
                             gtype = data.type;
                         logging.info(
-                            "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, title: %s, sender: %s",
+                            "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, title: %s, from: %s",
                             room_id, giftid, title, sender
                         );
                     }else{
@@ -121,7 +122,6 @@ class Acceptor {
                 if(err){
                     logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
                 }else{
-                    logging.info("response: %s", body.toString());
                     let r = {"-": "-"};
                     try{
                         r = JSON.parse(body.toString());
