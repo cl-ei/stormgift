@@ -140,7 +140,7 @@ class Acceptor {
                                 sender = gidlist[i].from;
                             if (gid !== 0){
                                 logging.info(
-                                    "\t\t Delay %.3f msecs to join TV prize, room_id: %s, gid: %s, title: %s, sender: %s",
+                                    "\t\t Delay %s msecs to join TV prize, room_id: %s, gid: %s, title: %s, sender: %s",
                                     delayTime/1000, room_id, gid, title, sender
                                 );
                                 setTimeout(() => {joinFn(gid, title, sender)}, delayTime);
@@ -151,7 +151,7 @@ class Acceptor {
             })
         };
         let delayTime = parseInt((index === 0 ? 10 : 60)*Math.random()*1000);
-        logging.info("\t\t Delay %.3f milliseconds to get TV gift id, room_id: %s", delayTime/1000, room_id);
+        logging.info("\t\t Delay %s milliseconds to get TV gift id, room_id: %s", delayTime/1000, room_id);
         setTimeout(() => {getTvGiftId(room_id)}, delayTime);
     }
     acceptTv(room_id){
