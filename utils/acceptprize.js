@@ -133,12 +133,12 @@ class Acceptor {
                         if(gidlist.length === 0){
                             logging.warn("INVALID_TV_NOTICE, CANNOT JOIN -> %s", room_id);
                         }
-                        let delayTime = parseInt((index === 0 ? 10 : 40)*1000*Math.random());
                         for (let i = 0; i < gidlist.length; i++){
                             let gid = parseInt(gidlist[i].raffleId) || 0,
                                 title = gidlist[i].title || "Unknown",
                                 sender = gidlist[i].from;
                             if (gid !== 0){
+                                let delayTime = parseInt((index === 0 ? 10 : 40)*1000*Math.random());
                                 logging.info(
                                     "\t\t Delay %s secs to join TV prize, room_id: %s, gid: %s, title: %s, sender: %s",
                                     delayTime/1000, room_id, gid, title, sender
