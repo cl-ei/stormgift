@@ -29,6 +29,7 @@ class Acceptor {
                 if (err) {
                     logging.error("Error happened (r: " + room_id + "): " + err.toString());
                 } else {
+                    logging.info("G response: %s", body.toString());
                     let r = JSON.parse(body.toString());
                     if (r.code === 0) {
                         let msg = r.data.message;
@@ -86,6 +87,7 @@ class Acceptor {
                 if (err) {
                     logging.error("Accept tv prize error: %s, room_id: %s", err.toString(), room_id);
                 } else {
+                    logging.info("response: %s", body.toString());
                     let r = {"-": "-"};
                     try{
                         r = JSON.parse(body.toString());
@@ -140,7 +142,7 @@ class Acceptor {
                             if (gid !== 0){
                                 let delayTime = parseInt((index === 0 ? 10 : 40)*1000*Math.random());
                                 logging.info(
-                                    "\t\t Delay %s secs to join TV prize, room_id: %s, gid: %s, title: %s, sender: %s",
+                                    "\t\t\t Delay %s secs to join TV prize, room_id: %s, gid: %s, title: %s, sender: %s",
                                     delayTime/1000, room_id, gid, title, sender
                                 );
                                 setTimeout(() => {joinFn(gid, title, sender)}, delayTime);
