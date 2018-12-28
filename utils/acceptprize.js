@@ -3,8 +3,8 @@ let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KH
 
 
 class Acceptor {
-    static setInvalidGift(room_id, gift_id, logger){
-        let k = "" + room_id + "_" + gift_id;
+    static setInvalidGift(index, room_id, gift_id, logger){
+        let k = "" + index + "_" + room_id + "_" + gift_id;
         if(this.__INVALID_PRIZE_POOL.indexOf(k) < 0){
             let len = this.__INVALID_PRIZE_POOL.push(k);
             if(len > 2000){
@@ -13,7 +13,7 @@ class Acceptor {
                 }
             }
             logger.debug(
-                "DEBUG: gift id set, room_id: %s, gift id: %s, gidPool len: %s",
+                "\t\tDEBUG: gift id set, room_id: %s, gift id: %s, gidPool len: %s",
                 room_id, gift_id, this.__INVALID_PRIZE_POOL.length
             );
         }
@@ -107,7 +107,7 @@ class Acceptor {
                 },
                 timeout: 20000,
             }, function (err, res, body) {
-                Acceptor.setInvalidGift(room_id, gift_id, logging);
+                Acceptor.setInvalidGift(index, room_id, gift_id, logging);
                 if (err) {
                     logging.error("Accept tv prize error: %s, room_id: %s", err.toString(), room_id);
                 } else {
@@ -163,6 +163,12 @@ class Acceptor {
                                 title = gidlist[i].title || "Unknown",
                                 from = gidlist[i].from;
                             if (gid !== 0){
+                                // 限制频率
+                                if (index !== 0 && Math.random() > 0.4){
+                                    Acceptor.setInvalidGift(index, room_id, gid, logging);
+                                    return
+                                }
+
                                 let delayTime = parseInt((index === 0 ? 10 : 40)*1000*Math.random());
                                 logging.info(
                                     "\t\t\t Delay %s secs to join TV prize, room_id: %s, gid: %s, title: %s, from: %s",
