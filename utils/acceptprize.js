@@ -3,7 +3,7 @@ let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KH
 
 
 class Acceptor {
-    static __INVALID_PRIZE_POOL = [];
+    static __INVALID_PRIZE_POOL;
     static setInvalidGift(room_id, gift_id, logger){
         let k = "" + room_id + "_" + gift_id;
         if(this.__INVALID_PRIZE_POOL.indexOf(k) < 0){
@@ -27,6 +27,7 @@ class Acceptor {
         this.cookieDictList = cookieDictList || [];
         this.loggerDict = loggerDict || {};
         this.defaultLogger = defaultLogger;
+        Acceptor.__INVALID_PRIZE_POOL = [];
     }
     acceptGuardSingle(room_id, index) {
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
