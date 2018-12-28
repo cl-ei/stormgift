@@ -7,6 +7,26 @@ class Acceptor {
         this.cookieDictList = cookieDictList || [];
         this.loggerDict = loggerDict || {};
         this.defaultLogger = defaultLogger;
+        this.invalidPrizePool = [];
+    }
+    setInvalidGift(room_id, gift_id, logger){
+        let k = "" + room_id + "_" + gift_id;
+        if(this.invalidPrizePool.indexOf(k) < 0){
+            let len = this.invalidPrizePool.push(k);
+            if(len > 2000){
+                for(let i = 0; i < len - 100; i++){
+                    this.invalidPrizePool.shift();
+                }
+            }
+            logger.debug(
+                "DEBUG: gift id set, room_id: %s, gift id: %s, gidPool len: %s",
+                room_id, gift_id, this.invalidPrizePool.length
+            );
+        }
+    }
+    giftIsAvailable(room_id, gift_id){
+        let k = "" + room_id + "_" + gift_id;
+        return this.invalidPrizePool.indexOf(k) < 0;
     }
     acceptGuardSingle(room_id, index) {
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
@@ -69,8 +89,13 @@ class Acceptor {
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
         let csrf_token = this.cookieDictList[index].csrf_token;
         let cookie = this.cookieDictList[index].cookie;
-
+        let giftCanJoin = this.giftIsAvailable,
+            setGiftAccepted = this.setInvalidGift;
         let joinFn = (gift_id, title, from) => {
+            if(!giftCanJoin(room_id, gift_id)){
+                logging.warn("TV GIFT: had accepted, skip it. room_id: %s, gift_id: %s", room_id, gift_id);
+                return;
+            }
             request({
                 url: "https://api.live.bilibili.com/gift/v3/smalltv/join",
                 method: "post",
@@ -85,6 +110,7 @@ class Acceptor {
                 },
                 timeout: 20000,
             }, function (err, res, body) {
+                setGiftAccepted(room_id, gift_id, logging);
                 if (err) {
                     logging.error("Accept tv prize error: %s, room_id: %s", err.toString(), room_id);
                 } else {
