@@ -158,14 +158,11 @@ let procMessage = (msg, room_id) => {
             }
         }
     }else if (msg.cmd === "ENTRY_EFFECT" && getRoomIdArea(room_id) === 0){
-        logging.info("Received ENTRY_EFFECT: %s", JSON.stringify(msg));
         let copyWriting = (msg.data || {}).copy_writing || "";
         let uname = (copyWriting.match(/<%(.*)%>/g) || [""])[0];
         if(uname.length > 5){
             uname = uname.slice(2, uname.length - 2);
-            logging.info("ourter uname : %s", uname);
             if(uname.length > 1 && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) >= 120*HANSY_MSG_LIST.length){
-                logging.info("uname : %s", uname);
                 let date = new Date();
                 let d = date.getDate(),
                     h = date.getHours(),
