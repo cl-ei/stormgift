@@ -29,7 +29,6 @@ class Acceptor {
                 if (err) {
                     logging.error("Error happened (r: " + room_id + "): " + err.toString());
                 } else {
-                    logging.info("G response: %s", body.toString());
                     let r = JSON.parse(body.toString());
                     if (r.code === 0) {
                         let msg = r.data.message;
@@ -47,6 +46,7 @@ class Acceptor {
             if(err){
                 logging.error("Accept single guard error: %s, room_id: %s", err.toString(), room_id);
             }else{
+                logging.info("G response: %s", body.toString());
                 let r = JSON.parse(body.toString());
                 if(r.code === 0){
                     let data = r.data || [];
@@ -87,7 +87,6 @@ class Acceptor {
                 if (err) {
                     logging.error("Accept tv prize error: %s, room_id: %s", err.toString(), room_id);
                 } else {
-                    logging.info("response: %s", body.toString());
                     let r = {"-": "-"};
                     try{
                         r = JSON.parse(body.toString());
@@ -122,6 +121,7 @@ class Acceptor {
                 if(err){
                     logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
                 }else{
+                    logging.info("response: %s", body.toString());
                     let r = {"-": "-"};
                     try{
                         r = JSON.parse(body.toString());
