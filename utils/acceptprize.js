@@ -147,6 +147,7 @@ class Acceptor {
             })
         };
         let delayTime = parseInt((index === 0 ? 10 : 60)*Math.random()*1000);
+        logging.info("\t\t Delay %d milliseconds later to get TV gift id, room_id: %s", delayTime, room_id);
         setTimeout(() => {getTvGiftId(room_id)}, delayTime);
     }
     acceptTv(room_id){
