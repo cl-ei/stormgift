@@ -63,11 +63,10 @@ class Acceptor {
             this.acceptGuardSingle(room_id, i);
         }
     };
-    acceptTvSingle(room_id, index, delay){
+    acceptTvSingle(room_id, index){
         let logging = this.loggerDict[this.cookieDictList[index].csrf_token] || this.defaultLogger;
         let csrf_token = this.cookieDictList[index].csrf_token;
         let cookie = this.cookieDictList[index].cookie;
-        delay = delay || false;
 
         let joinFn = (gift_id, title, sender) => {
             request({
@@ -134,34 +133,25 @@ class Acceptor {
                         if(gidlist.length === 0){
                             logging.warn("INVALID_TV_NOTICE, CANNOT JOIN -> %s", room_id);
                         }
+                        let delayTime = parseInt((index === 0 ? 10 : 40)*1000*Math.random());
                         for (let i = 0; i < gidlist.length; i++){
                             let gid = parseInt(gidlist[i].raffleId) || 0,
                                 title = gidlist[i].title || "Unknown",
                                 sender = gidlist[i].from;
-                            if (gid !== 0){joinFn(gid, title, sender)}
+                            if (gid !== 0){
+                                setTimeout(() => {joinFn(gid, title, sender)}, delayTime);
+                            }
                         }
                     }
                 }
             })
         };
-        if(delay === true){
-            setTimeout(() => {getTvGiftId(room_id)}, Math.random()*10*1000);
-        }else{
-            getTvGiftId(room_id);
-        }
+        let delayTime = parseInt((index === 0 ? 10 : 60)*Math.random()*1000);
+        setTimeout(() => {getTvGiftId(room_id)}, delayTime);
     }
     acceptTv(room_id){
-        let datetime = new Date();
-        let hours = datetime.getHours();
-        if (hours >= 20 || hours < 1){
-            this.acceptTvSingle(room_id, 0, true);
-
-            let choice = parseInt(Math.random()*this.cookieDictList.length) +1;
-            this.acceptTvSingle(room_id, choice, true);
-        }else{
-            for (let i = 0; i < this.cookieDictList.length; i++){
-                this.acceptTvSingle(room_id, i);
-            }
+        for (let i = 0; i < this.cookieDictList.length; i++){
+            this.acceptTvSingle(room_id, i);
         }
     }
 }
