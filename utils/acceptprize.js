@@ -70,7 +70,7 @@ class Acceptor {
         let csrf_token = this.cookieDictList[index].csrf_token;
         let cookie = this.cookieDictList[index].cookie;
 
-        let joinFn = (gift_id, title, sender) => {
+        let joinFn = (gift_id, title, from) => {
             request({
                 url: "https://api.live.bilibili.com/gift/v3/smalltv/join",
                 method: "post",
@@ -104,7 +104,7 @@ class Acceptor {
                             gtype = data.type;
                         logging.info(
                             "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, title: %s, from: %s",
-                            room_id, giftid, title, sender
+                            room_id, giftid, title, from
                         );
                     }else{
                         logging.error("TV ACCEPTOR: Failed! r: %s", JSON.stringify(r));
@@ -138,14 +138,14 @@ class Acceptor {
                         for (let i = 0; i < gidlist.length; i++){
                             let gid = parseInt(gidlist[i].raffleId) || 0,
                                 title = gidlist[i].title || "Unknown",
-                                sender = gidlist[i].from;
+                                from = gidlist[i].from;
                             if (gid !== 0){
                                 let delayTime = parseInt((index === 0 ? 10 : 40)*1000*Math.random());
                                 logging.info(
-                                    "\t\t\t Delay %s secs to join TV prize, room_id: %s, gid: %s, title: %s, sender: %s",
-                                    delayTime/1000, room_id, gid, title, sender
+                                    "\t\t\t Delay %s secs to join TV prize, room_id: %s, gid: %s, title: %s, from: %s",
+                                    delayTime/1000, room_id, gid, title, from
                                 );
-                                setTimeout(() => {joinFn(gid, title, sender)}, delayTime);
+                                setTimeout(() => {joinFn(gid, title, from)}, delayTime);
                             }
                         }
                     }
