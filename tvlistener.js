@@ -134,10 +134,7 @@ let procMessage = (msg, room_id) => {
                 sendPrizeMessage("_T" + real_room_id);
             }
         }
-    }else if (msg.cmd === "DANMU_MSG"){
-        let area = getRoomIdArea(room_id);
-        if (area !== 0){return}
-
+    }else if (msg.cmd === "DANMU_MSG" && getRoomIdArea(room_id) === 0){
         let message = msg.info[1],
             username = msg.info[2][1],
             dl = msg.info[3][0],
@@ -158,6 +155,21 @@ let procMessage = (msg, room_id) => {
                     ][Math.floor((Math.random()*3)+1)],
                     HANSY_ROOM_ID
                 )
+            }
+        }
+    }else if (msg.cmd === "ENTRY_EFFECT" && getRoomIdArea(room_id) === 0){
+        let copyWriting = (msg.data || {}).copy_writing || "";
+        let uname = (copyWriting.match(/<%(.*)%>/g) || [""])[0];
+        if(uname.length > 5){
+            uname = uname.slice(2, uname.length - 2);
+            if(uname.length > 1 && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) >= 120*HANSY_MSG_LIST.length){
+                let date = new Date();
+                let d = date.getDate(),
+                    h = date.getHours(),
+                    m = date.getMinutes();
+                let dtstr = "🤖 " + d + "日" + h + "点" + m + "分，";
+                let msg = dtstr + uname + "写下了思念";
+                dmksender.sendDamaku(msg, HANSY_ROOM_ID)
             }
         }
     }
