@@ -51,8 +51,8 @@ let sendNoticeDanmakuMsg = (room_id, gift_type) => {
     );
 };
 
-let Acceptor = require("./utils/acceptprize").Acceptor;
-let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging);
+let Gac = require("./utils/guardacceptor").Acceptor;
+Gac.init(COOKIE_DICT_LIST, loggers, logging);
 
 let Tac = require("./utils/tvacceptor").Acceptor;
 Tac.init(COOKIE_DICT_LIST, loggers, logging);
@@ -66,7 +66,7 @@ let onMessageReceived = (msg) => {
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
     }else if(giftType === "G"){
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
-        ac.acceptGuard(room_id);
+        Gac.accept(room_id);
         if(sendNotice){
             sendNoticeDanmakuMsg(room_id, "G");
         }
