@@ -40,46 +40,49 @@ let Acceptor = {
             default_cookie = Acceptor.cookieDictList[0].cookie;
         let logging = Acceptor.loggerDict[default_csrf_token] || Acceptor.defaultLogger;
 
-        request({
+        let reqParam = {
             url: "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=" + room_id,
             method: "get",
             headers: {"User-Agent": UA, "Cookie": default_cookie},
             timeout: 20000,
-        },function (err, res, body) {
+        },
+        cbFn = (err, res, body) => {
             if (err) {
                 logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
-            } else {
-                let r = {"-": "-"};
-                try {
-                    r = JSON.parse(body.toString());
-                } catch (e) {
-                    logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
-                    return;
-                }
-                if (r.code !== 0) {return}
+                return;
+            }
+            let r = {"-": "-"};
+            try {
+                r = JSON.parse(body.toString());
+            } catch (e) {
+                logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
+                return;
+            }
+            if (r.code !== 0) {return}
 
-                let data = r.data || {};
-                let gidlist = data.list || [];
-                if (gidlist.length === 0) {logging.warn("INVALID_TV_NOTICE, CANNOT JOIN -> %s", room_id)}
+            let data = r.data || {};
+            let gidlist = data.list || [];
+            if (gidlist.length === 0) {logging.warn("INVALID_TV_NOTICE, CANNOT JOIN -> %s", room_id)}
 
-                for (let i = 0; i < gidlist.length; i++) {
-                    let gift_id = parseInt(gidlist[i].raffleId) || 0,
-                        title = gidlist[i].title || "Unknown",
-                        from = gidlist[i].from;
+            for (let i = 0; i < gidlist.length; i++) {
+                let gift_id = parseInt(gidlist[i].raffleId) || 0,
+                    title = gidlist[i].title || "Unknown",
+                    from = gidlist[i].from;
 
-                    let k = "" + room_id + "_" + gift_id + "_" + title + "_" + from;
-                    if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0){
-                        Acceptor.__GIFT_ID_POOL.push(k);
-                        if (Acceptor.__joinTVDispatcherTask === 0){
-                            Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 500);
-                            Acceptor.defaultLogger.info(
-                                "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVDispatcherTask
-                            );
-                        }
+                let k = "" + room_id + "_" + gift_id + "_" + title + "_" + from;
+                if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0){
+                    Acceptor.__GIFT_ID_POOL.push(k);
+                    if (Acceptor.__joinTVDispatcherTask === 0){
+                        Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 500);
+                        Acceptor.defaultLogger.info(
+                            "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVDispatcherTask
+                        );
                     }
                 }
             }
-        })
+        };
+        Acceptor.defaultLogger.info("\tSEND GET TVGIFTID REQ, room_id: %s", room_id);
+        request(reqParam, cbFn);
     },
     __joinTVDispatcher: () => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
@@ -158,6 +161,7 @@ let Acceptor = {
                 }
             }
         };
+        Acceptor.defaultLogger.info("\tSEND JOIN REQ, index: %s, room_id: %s, gift_id: %s", index, room_id, gift_id);
         request(reqParam, cbFn);
     },
     __checkGiftAvailable: (k) => {
