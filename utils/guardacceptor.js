@@ -22,7 +22,7 @@ let Acceptor = {
         if (Acceptor.__ROOM_ID_POOL.indexOf(room_id) < 0) {
             Acceptor.__ROOM_ID_POOL.push(room_id);
             if (Acceptor.__getGIDTask === 0) {
-                Acceptor.__getGIDTask = setInterval(Acceptor.__getGID, 1000);
+                Acceptor.__getGIDTask = setInterval(Acceptor.__getGID, 500);
                 Acceptor.defaultLogger.info("GUARD: Start __getGID task.");
             }
         }
