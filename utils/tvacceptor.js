@@ -22,7 +22,7 @@ let Acceptor = {
         if (Acceptor.__ROOM_ID_POOL.indexOf(room_id) < 0) {
             Acceptor.__ROOM_ID_POOL.push(room_id);
             if (Acceptor.__getTVGiftIdTask === 0) {
-                Acceptor.__getTVGiftIdTask = setInterval(Acceptor.__getTVGiftId, 2 * 1000);
+                Acceptor.__getTVGiftIdTask = setInterval(Acceptor.__getTVGiftId, 5 * 1000);
                 Acceptor.defaultLogger.info("Start __getTVGiftId task, task id: %s.", Acceptor.__getTVGiftIdTask);
             }
         }
