@@ -29,7 +29,7 @@ let Acceptor = {
     },
     __getTVGiftId: () => {
         let room_id = Acceptor.__ROOM_ID_POOL.shift();
-        Acceptor.defaultLogger.info("__getTVGiftId active, search room: %s", room_id);
+        Acceptor.defaultLogger.info("getTVGiftId search room: %s", room_id);
         if(Acceptor.__ROOM_ID_POOL.length === 0 && Acceptor.__getTVGiftIdTask !== 0){
             clearInterval(Acceptor.__getTVGiftIdTask);
             Acceptor.__getTVGiftIdTask = 0;
@@ -67,7 +67,7 @@ let Acceptor = {
                         title = gidlist[i].title || "Unknown",
                         from = gidlist[i].from;
 
-                    let k = "" + room_id + "_" + gift_id;
+                    let k = "" + room_id + "_" + gift_id + "_" + title + "_" + from;
                     if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0){
                         Acceptor.__GIFT_ID_POOL.push(k);
                         if (Acceptor.__joinTVDispatcherTask === 0){
@@ -83,7 +83,7 @@ let Acceptor = {
     },
     __joinTVDispatcher: () => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
-        Acceptor.defaultLogger.info("__joinTVDispatcher active, dispatch: %s", k);
+        Acceptor.defaultLogger.info("Dispatch: %s", k);
         if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinTVDispatcherTask !== 0){
             clearInterval(Acceptor.__joinTVDispatcherTask);
             Acceptor.__joinTVDispatcherTask = 0;
@@ -95,8 +95,10 @@ let Acceptor = {
         }
         let rg = k.split("_");
         let room_id = parseInt(rg[0]),
-            gift_id = parseInt(rg[1]);
-        Acceptor.__joinTVSingle(0, room_id, gift_id);
+            gift_id = parseInt(rg[1]),
+            title = rg[2],
+            from = rg[3];
+        Acceptor.__joinTVSingle(0, room_id, gift_id, title, from);
 
         let datetime = new Date();
         let hours = datetime.getHours();
@@ -104,13 +106,13 @@ let Acceptor = {
         for(let i = 1; i < Acceptor.cookieDictList.length; i++){
             if((limitFreq && Math.random() < 0.3) || (!limitFreq)){
                 setTimeout(
-                    () => {Acceptor.__joinTVSingle(i, room_id, gift_id)},
-                    Math.random()*1000*20
+                    () => {Acceptor.__joinTVSingle(i, room_id, gift_id, title, from)},
+                    Math.random()*1000*40
                 );
             }
         }
     },
-    __joinTVSingle: (index, room_id, gift_id) => {
+    __joinTVSingle: (index, room_id, gift_id, title, from) => {
         let csrf_token = Acceptor.cookieDictList[index].csrf_token,
             cookie = Acceptor.cookieDictList[index].cookie;
         let logging = Acceptor.loggerDict[csrf_token] || Acceptor.defaultLogger;
@@ -149,7 +151,7 @@ let Acceptor = {
                         gtype = data.type;
                     logging.info(
                         "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, gtype: %s, from: %s",
-                        room_id, gift_id, gtype, "from-" // title, from
+                        room_id, gift_id, title, from
                     );
                 }else{
                     logging.error("TV ACCEPTOR: Failed! r: %s", JSON.stringify(r));
