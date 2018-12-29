@@ -73,7 +73,7 @@ let Acceptor = {
                 if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0){
                     Acceptor.__GIFT_ID_POOL.push(k);
                     if (Acceptor.__joinTVDispatcherTask === 0){
-                        Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 500);
+                        Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 1000);
                         Acceptor.defaultLogger.info(
                             "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVDispatcherTask
                         );
@@ -110,7 +110,7 @@ let Acceptor = {
             if((limitFreq && Math.random() < 0.3) || (!limitFreq)){
                 setTimeout(
                     () => {Acceptor.__joinTVSingle(i, room_id, gift_id, title, from)},
-                    Math.random()*1000*40
+                    Math.random()*1000*70
                 );
             }
         }
