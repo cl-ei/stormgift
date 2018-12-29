@@ -29,6 +29,7 @@ let Acceptor = {
     },
     __getTVGiftId: () => {
         let room_id = Acceptor.__ROOM_ID_POOL.shift();
+        Acceptor.defaultLogger.info("__getTVGiftId active, search room: %s", room_id);
         if(Acceptor.__ROOM_ID_POOL.length === 0 && Acceptor.getTVGiftIdTask !== 0){
             clearInterval(Acceptor.getTVGiftIdTask);
             Acceptor.getTVGiftIdTask = 0;
@@ -82,6 +83,7 @@ let Acceptor = {
     },
     __joinTVDispatcher: () => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
+        Acceptor.defaultLogger.info("__joinTVDispatcher active, dispatch: %s", k);
         if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinTVTask !== 0){
             clearInterval(Acceptor.__joinTVTask);
             Acceptor.__joinTVTask = 0;
