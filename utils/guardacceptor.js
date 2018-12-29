@@ -86,7 +86,7 @@ let Acceptor = {
         if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinDispatcherTask !== 0){
             clearInterval(Acceptor.__joinDispatcherTask);
             Acceptor.__joinDispatcherTask = 0;
-            Acceptor.defaultLogger.info("GUARD: Kill __joinTVDispatcher task, Last proc k: %s.", k);
+            Acceptor.defaultLogger.info("GUARD: Kill __joinDispatcher task, Last proc k: %s.", k);
         }
         if(!Acceptor.__checkGiftAvailable(k, true)){
             Acceptor.defaultLogger.warn("GUARD: INVALID k: %s, SKIP IT!", k);
