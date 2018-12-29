@@ -70,10 +70,10 @@ let Acceptor = {
                     from = gidlist[i].from;
 
                 let k = "" + room_id + "_" + gift_id + "_" + title + "_" + from;
-                if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0){
+                if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0 && Acceptor.__checkGiftAvailable(k)){
                     Acceptor.__GIFT_ID_POOL.push(k);
                     if (Acceptor.__joinTVDispatcherTask === 0){
-                        Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 500);
+                        Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 200);
                         Acceptor.defaultLogger.info(
                             "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVDispatcherTask
                         );
@@ -92,7 +92,7 @@ let Acceptor = {
             Acceptor.__joinTVDispatcherTask = 0;
             Acceptor.defaultLogger.info("Kill __joinTVDispatcher task, Last proc k: %s.", k);
         }
-        if(!Acceptor.__checkGiftAvailable(k)){
+        if(!Acceptor.__checkGiftAvailable(k, true)){
             Acceptor.defaultLogger.warn("INVALID k: %s, SKIP IT!", k);
             return;
         }
@@ -164,9 +164,9 @@ let Acceptor = {
         Acceptor.defaultLogger.info("\tSEND JOIN REQ, index: %s, room_id: %s, gift_id: %s", index, room_id, gift_id);
         request(reqParam, cbFn);
     },
-    __checkGiftAvailable: (k) => {
+    __checkGiftAvailable: (k, autoset) => {
         let r = Acceptor.__INVALID_PRIZE_POOL.indexOf(k) < 0;
-        if(r){
+        if(r && autoset === true){
             Acceptor.__INVALID_PRIZE_POOL.push(k);
             while(Acceptor.__INVALID_PRIZE_POOL.length > 2000){
                 Acceptor.__INVALID_PRIZE_POOL.shift();
