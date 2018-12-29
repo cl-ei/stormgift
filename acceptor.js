@@ -58,8 +58,7 @@ let Tac = require("./utils/tvacceptor").Acceptor;
 Tac.init(COOKIE_DICT_LIST, loggers, logging);
 
 let onMessageReceived = (msg) => {
-    if (msg.length < 5 ){return}
-    let sendGuardNotice = msg[0] === "_",
+    let sendNotice = msg[0] === "_",
         giftType = msg[1],
         room_id = parseInt(msg.slice(2));
 
@@ -68,7 +67,7 @@ let onMessageReceived = (msg) => {
     }else if(giftType === "G"){
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
         ac.acceptGuard(room_id);
-        if(sendGuardNotice){
+        if(sendNotice){
             sendNoticeDanmakuMsg(room_id, "G");
         }
     }else if(giftType === "T"){
@@ -100,7 +99,10 @@ let onMessageReceived = (msg) => {
             logging.error("ConnectToNoticeServer closed! Try reconnect...");
             setTimeout(ConnectToNoticeServer, 500);
         };
-        client.onmessage = (e) => {onMessageReceived(e.data)};
+        client.onmessage = (e) => {
+            let mList = e.data.match(/(_T|_G|XG|_S)\d{3,}/g) || [];
+            for(let i = 0; i < mList.length; i++){onMessageReceived(mList[i])}
+        };
     };
     ConnectToNoticeServer();
 })();

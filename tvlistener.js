@@ -157,7 +157,8 @@ let procMessage = (msg, room_id) => {
                 )
             }
         }
-    }else if (msg.cmd === "ENTRY_EFFECT" && getRoomIdArea(room_id) === 0){
+    }/*
+    else if (msg.cmd === "ENTRY_EFFECT" && getRoomIdArea(room_id) === 0){
         if((msg.data || {}).uid === 20932326){return}
         let copyWriting = (msg.data || {}).copy_writing || "";
         let uname = (copyWriting.match(/<%(.*)%>/g) || [""])[0];
@@ -173,7 +174,7 @@ let procMessage = (msg, room_id) => {
                 dmksender.sendDamaku(msg, HANSY_ROOM_ID)
             }
         }
-    }
+    }*/
 };
 let createClients = (room_id) => {
     let existedClient = CURRENT_CONNECTIONS[room_id],
