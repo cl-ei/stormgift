@@ -10,7 +10,7 @@ let Acceptor = {
     __ROOM_ID_POOL: [],
     __GIFT_ID_POOL: [],
     __getTVGiftIdTask: 0,
-    __joinTVTask: 0,
+    __joinTVDispatcherTask: 0,
 
     __INVALID_PRIZE_POOL: [],
     init: (cookieDict, loggerDict, defaultLogger) => {
@@ -30,9 +30,9 @@ let Acceptor = {
     __getTVGiftId: () => {
         let room_id = Acceptor.__ROOM_ID_POOL.shift();
         Acceptor.defaultLogger.info("__getTVGiftId active, search room: %s", room_id);
-        if(Acceptor.__ROOM_ID_POOL.length === 0 && Acceptor.getTVGiftIdTask !== 0){
-            clearInterval(Acceptor.getTVGiftIdTask);
-            Acceptor.getTVGiftIdTask = 0;
+        if(Acceptor.__ROOM_ID_POOL.length === 0 && Acceptor.__getTVGiftIdTask !== 0){
+            clearInterval(Acceptor.__getTVGiftIdTask);
+            Acceptor.__getTVGiftIdTask = 0;
             Acceptor.defaultLogger.info("Kill __getTVGiftId task. Last proc room_id: %s.", room_id);
         }
 
@@ -70,10 +70,10 @@ let Acceptor = {
                     let k = "" + room_id + "_" + gift_id;
                     if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0){
                         Acceptor.__GIFT_ID_POOL.push(k);
-                        if (Acceptor.__joinTVTask === 0){
-                            Acceptor.__joinTVTask = setInterval(Acceptor.__joinTVDispatcher, 500);
+                        if (Acceptor.__joinTVDispatcherTask === 0){
+                            Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 500);
                             Acceptor.defaultLogger.info(
-                                "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVTask
+                                "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVDispatcherTask
                             );
                         }
                     }
@@ -84,9 +84,9 @@ let Acceptor = {
     __joinTVDispatcher: () => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
         Acceptor.defaultLogger.info("__joinTVDispatcher active, dispatch: %s", k);
-        if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinTVTask !== 0){
-            clearInterval(Acceptor.__joinTVTask);
-            Acceptor.__joinTVTask = 0;
+        if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinTVDispatcherTask !== 0){
+            clearInterval(Acceptor.__joinTVDispatcherTask);
+            Acceptor.__joinTVDispatcherTask = 0;
             Acceptor.defaultLogger.info("Kill __joinTVDispatcher task, Last proc k: %s.", k);
         }
         if(!Acceptor.__checkGiftAvailable(k)){
