@@ -54,6 +54,9 @@ let sendNoticeDanmakuMsg = (room_id, gift_type) => {
 let Acceptor = require("./utils/acceptprize").Acceptor;
 let ac = new Acceptor(COOKIE_DICT_LIST, loggers, logging);
 
+let Tac = require("./utils/tvacceptor").Acceptor;
+Tac.init(COOKIE_DICT_LIST, loggers, logging);
+
 let onMessageReceived = (msg) => {
     if (msg.length < 5 ){return}
     let sendGuardNotice = msg[0] === "_",
@@ -70,7 +73,7 @@ let onMessageReceived = (msg) => {
         }
     }else if(giftType === "T"){
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
-        ac.acceptTv(room_id);
+        Tac.accept(room_id);
         sendNoticeDanmakuMsg(room_id, "T");
     }
 };
