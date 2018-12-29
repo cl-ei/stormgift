@@ -149,7 +149,7 @@ let Acceptor = {
             }
         };
         Acceptor.defaultLogger.info("GUARD: \tSEND JOIN REQ, index: %s, room_id: %s, gift_id: %s", index, room_id, gift_id);
-        request(reqParam, cbFn);
+        request.post(reqParam, cbFn);
     },
     __checkGiftAvailable: (k, autoset) => {
         let r = Acceptor.__INVALID_PRIZE_POOL.indexOf(k) < 0;
