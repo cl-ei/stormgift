@@ -54,12 +54,12 @@ let startServer = () => {
     wsServer.on('request', function(request) {
         let connection = request.accept();
         console.log(
-            'Log Server accept a new client, addr %s, port: %s.',
+            'Log Server accept a new client, addr: %s, port: %s.',
             connection.remoteAddress, connection.socket.remotePort
         );
         connection.on('close', function(reasonCode, description) {
             console.log(
-                'Log Server disconnect a client %s:%s, r: %s, des: %s',
+                'Log Server disconnect a client: %s:%s, r: %s, des: %s',
                 connection.remoteAddress, connection.socket.remotePort, reasonCode, description
             );
             __connectedClients.delete(connection);
