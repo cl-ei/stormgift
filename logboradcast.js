@@ -49,7 +49,7 @@ let startServer = () => {
         response.writeHead(404);
         response.end();
     });
-    server.listen(22223, () => {console.log('Log Server is listening on port 22223')});
+    server.listen(22223, "0.0.0.0", () => {console.log('Log Server is listening on port 22223')});
 
     let wsServer = new WebSocketServer({httpServer: server, autoAcceptConnections: false});
     wsServer.on('request', function(request) {
