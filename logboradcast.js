@@ -36,8 +36,7 @@ let __connectedClients = new Set();
 let noticeToAll = (msg) => {
     __connectedClients.forEach((c) => {
         try{
-            console.log("Send to all: %s", msg);
-            c.send(msg);
+            c.sendUTF(msg);
         }catch (e) {
             console.log("Cannot send prize message to acceptor client, e: %s", e.toString())
         }
