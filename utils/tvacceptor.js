@@ -107,7 +107,7 @@ let Acceptor = {
         let hours = datetime.getHours();
         let limitFreq = (hours >= 20 || hours < 1);
         for(let i = 1; i < Acceptor.cookieDictList.length; i++){
-            if((limitFreq && Math.random() < 0.3) || (!limitFreq)){
+            if((limitFreq && Math.random() < 0.9) || (!limitFreq)){
                 setTimeout(
                     () => {Acceptor.__joinTVSingle(i, room_id, gift_id, title, from)},
                     Math.random()*1000*70
