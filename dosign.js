@@ -48,7 +48,7 @@ let signGroup = (cookie, index) => {
                     if(add_num > 0){
                         logging.info("DoJoin success! index: %s, add: %d, group_name: %s", index, add_num, group_name);
                     }else{
-                        logging.error("doSign add_num Error! index: %d, add_num: %d, group name: %s", index, add_num, group_name);
+                        // logging.error("doSign add_num Error! index: %d, add_num: %d, group name: %s", index, add_num, group_name);
                     }
                 }else{
                     logging.error("doSign Error! index: %d, group name: %s, r: %s", index, group_name, body.toString());
@@ -104,6 +104,7 @@ let doubleWatchTask = (cookie, index) => {
         if (err) {
             logging.error("doubleWatchTask error, index: %d, e: %s", index, err.toString());
         }else{
+            if(index !== 0){return}
             let r = JSON.parse(body.toString());
             if(r.code === 0){
                 logging.info("doubleWatchTask success! index: %s", index)
@@ -113,12 +114,52 @@ let doubleWatchTask = (cookie, index) => {
         }
     });
 };
+let silverToCoin = (cookie, index) => {
+    let csrf_token = "",
+        cookie_kv = cookie.split(";");
+    for (let i = 0; i < cookie_kv.length; i++){
+        let kvstr = cookie_kv[i];
+        if (kvstr.indexOf("bili_jct") > -1){
+            csrf_token = kvstr.split("=")[1].trim();
+            break;
+        }
+    }
+
+    let reqParam = {
+        url: "https://api.live.bilibili.com/pay/v1/Exchange/silver2coin",
+        headers: {"User-Agent": UA, "Cookie": cookie},
+        timeout: 10000,
+        method: "post",
+        form: {
+            platform: "pc",
+            csrf_token: csrf_token
+        }
+    },
+    cbFn = (err, res, body) => {
+        if (err) {
+            logging.error("silverToCoin error, index: %d, e: %s", index, err.toString());
+        }else{
+            if(index !== 0){return}
+            let r = JSON.parse(body.toString());
+            if(r.code === 0){
+                logging.info("silverToCoin succeed! sliver: %s", (r.data || {}).silver);
+            }else{
+                logging.error("silverToCoin Failed! r: %s", body.toString());
+            }
+        }
+    };
+    request(reqParam, cbFn);
+};
+
 (() => {
-    logging.info("Start doSign proc, ENV: %s", DEBUG ? "DEBUG": "SERVER");
+    logging.info("Start doSign proc, ENV: %s\n", DEBUG ? "DEBUG": "SERVER");
     for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
         let c = RAW_COOKIES_LIST[i];
         doSign(c, i);
         signGroup(c, i);
         doubleWatchTask(c, i);
+        if(i <= 1){
+            silverToCoin(RAW_COOKIES_LIST[i], i);
+        }
     }
 })();
