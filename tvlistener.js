@@ -1,28 +1,15 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
 let logger = require("./utils/logger");
 let bilisocket = require("./utils/bilisocket");
-let path = require('path');
 let net = require('net');
 let request = require("request");
 
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
-let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log",
-    loggerConfigList = [
-        {
-            loggerName: "tvlistener",
-            loggerFile: path.join(loggerFilePath, "tvlistener.log"),
-        },
-        {
-            loggerName: "hansy_chat",
-            loggerFile: path.join(loggerFilePath, "hansy_chat.log"),
-        },
-    ];
+let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log";
+let logging = logger.creatLogger("tvlistener", loggerFilePath);
 
-let loggers = logger.batchCreateLogger(loggerConfigList);
-let logging = loggers["tvlistener"],
-    hansy_chat = loggers["hansy_chat"];
 logging.info("Start TV Listener proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
 let PRIZE_NOTICE_HOST = DEBUG ? "111.230.235.254" : "localhost";
@@ -68,36 +55,9 @@ let headers = {
 let MESSAGE_COUNT = 0;
 let MESSAGE_INTERVAL_COUNT = 0;
 let CURRENT_CONNECTIONS = {};
-let HANSY_ROOM_ID = 2516117;
 let ROOM_AREA_MAP = {
-    0: HANSY_ROOM_ID,
+    0: 2516117,
 };
-
-let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
-let damakusender = require("./utils/danmakusender");
-let dmksender = new damakusender.Sender(0, logging);
-let HANSY_MSG_LIST = [
-    "📢 小可爱们记得点上关注哟，点个关注不迷路ヽ(✿ﾟ▽ﾟ)ノ",
-    "📢 喜欢泡泡的小伙伴，加粉丝群436496941来撩骚呀~",
-    "📢 更多好听的原创歌和翻唱作品，网易云音乐搜索「管珩心」~",
-    "📢 泡泡的海盗船正在招聘船长~欢迎加入舰队(✿≖ ◡ ≖)✧",
-    "📢 获取「电磁泡」勋章：赠送1个B坷垃，或充电50电池~",
-    "📢 一定要来网易云关注「管珩心」哦，超多高质量单曲等你来听~",
-];
-let lastActiveUseTimeInHansysRoom = getCurrentTimest() - 120*HANSY_MSG_LIST.length;
-let HANSY_MSG_LIST_INDEX = 0;
-let intervalSendHansyDCallMsg = () => {
-    if ((getCurrentTimest() - lastActiveUseTimeInHansysRoom) >= 120*HANSY_MSG_LIST.length){
-        console.log("Need not to send danmaku.");
-        return;
-    }
-    HANSY_MSG_LIST_INDEX += 1;
-    HANSY_MSG_LIST_INDEX = HANSY_MSG_LIST_INDEX % HANSY_MSG_LIST.length;
-    dmksender.sendDamaku(HANSY_MSG_LIST[HANSY_MSG_LIST_INDEX], HANSY_ROOM_ID)
-};
-if (!DEBUG){
-    setInterval(intervalSendHansyDCallMsg, 120*1000);
-}
 
 
 let getRoomIdArea = (room_id) => {
@@ -134,47 +94,7 @@ let procMessage = (msg, room_id) => {
                 sendPrizeMessage("_T" + real_room_id);
             }
         }
-    }else if (msg.cmd === "DANMU_MSG" && getRoomIdArea(room_id) === 0){
-        let message = msg.info[1],
-            username = msg.info[2][1],
-            dl = msg.info[3][0],
-            decoration = msg.info[3][1],
-            ul = msg.info[4][0];
-        hansy_chat.info("[UL %d] [%s %d] %s -> %s", ul, decoration, dl, username, message);
-
-        if (username !== "偷闲一天打个盹"){
-            lastActiveUseTimeInHansysRoom = getCurrentTimest();
-
-            if (message.indexOf("好听") > -1){
-                if(Math.random() > 0.5){return;}
-                dmksender.sendDamaku(
-                    [
-                        "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
-                        "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
-                        "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
-                    ][Math.floor((Math.random()*3)+1)],
-                    HANSY_ROOM_ID
-                )
-            }
-        }
-    }/*
-    else if (msg.cmd === "ENTRY_EFFECT" && getRoomIdArea(room_id) === 0){
-        if((msg.data || {}).uid === 20932326){return}
-        let copyWriting = (msg.data || {}).copy_writing || "";
-        let uname = (copyWriting.match(/<%(.*)%>/g) || [""])[0];
-        if(uname.length > 5){
-            uname = uname.slice(2, uname.length - 2);
-            if(uname.length > 1 && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) >= 120*HANSY_MSG_LIST.length){
-                let date = new Date();
-                let d = date.getDate(),
-                    h = date.getHours(),
-                    m = date.getMinutes();
-                let dtstr = "🤖 " + d + "日" + h + "点" + m + "分，";
-                let msg = dtstr + uname + "写下了思念";
-                dmksender.sendDamaku(msg, HANSY_ROOM_ID)
-            }
-        }
-    }*/
+    }
 };
 let createClients = (room_id) => {
     let existedClient = CURRENT_CONNECTIONS[room_id],
@@ -193,13 +113,11 @@ let createClients = (room_id) => {
     let client = new W3CWebSocket(bilisocket.MONITOR_URL);
     CURRENT_CONNECTIONS[room_id] = client;
 
-    client.onerror = function() {
-        logging.error("")
-    };
-    client.onopen = function() {
+    client.onerror = () => {logging.error("Client error!")};
+    client.onopen = () => {
         bilisocket.sendJoinRoom(client, room_id);
 
-        function sendHeartBeat() {
+        let sendHeartBeat = () => {
             if (client.readyState !== client.OPEN){return}
             if(CURRENT_CONNECTIONS[room_id] === client) {
                 client.send(bilisocket.HEART_BEAT_PACKAGE);
@@ -211,26 +129,22 @@ let createClients = (room_id) => {
                     client.close()
                 }catch(e){}
             }
-        }
+        };
         sendHeartBeat();
-        if (reconnectFlag){
-            logging.info("Reconnected to " + room_id + " !");
-        }
+        if (reconnectFlag){logging.info("Reconnected to " + room_id + " !")}
     };
-    client.onclose = function() {
+    client.onclose = () => {
         let existedClient = CURRENT_CONNECTIONS[room_id];
         if (existedClient === undefined) {
             logging.error('Connection had closed. room id: ' + room_id);
         }else if (existedClient === client){
             logging.error('UNEXPECTED Connection Error happened, room id: ' + room_id);
-            setTimeout(function(){createClients(room_id)}, Math.random()*10000)
+            setTimeout(() => {createClients(room_id)}, Math.random()*10000)
         }else{
             logging.error('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
         }
     };
-    client.onmessage = function(e) {
-        bilisocket.parseMessage(e.data, room_id, procMessage);
-    };
+    client.onmessage = (e) => {bilisocket.parseMessage(e.data, room_id, procMessage)};
 };
 
 let printMessageSpeed = () => {
@@ -293,8 +207,8 @@ let intervalConnectionMonitor = function () {
         }
     }
     logging.info(
-        "ICM: current connection " + Object.keys(CURRENT_CONNECTIONS).length + " , " +
-        "ROOM_AREA_MAP size " + distRoomIds.length + " , " +
+        "ICM: current connection " + Object.keys(CURRENT_CONNECTIONS).length + ", " +
+        "ROOM_AREA_MAP size " + distRoomIds.length + ", " +
         killedRooms.length + " removed, " +
         triggered.length + " new triggered."
     );
