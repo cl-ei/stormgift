@@ -113,7 +113,7 @@ let procMessage = (msg, room_id) => {
             dl = msg.info[3][0],
             decoration = msg.info[3][1],
             ul = msg.info[4][0];
-        chat.info("[%d][UL %d] [%s %d] %s -> %s", uid, ul, decoration, dl, username, message);
+        chat.info("[ %d ] [UL %d] [%s %d] %s -> %s", uid, ul, decoration, dl, username, message);
 
         if (uid === 20932326 /*  */){return}
 
