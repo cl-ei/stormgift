@@ -65,7 +65,7 @@ let Acceptor = {
 
             for (let i = 0; i < gidlist.length; i++) {
                 let gift_id = parseInt(gidlist[i].id) || 0;
-                let k = "" + room_id + "_" + gift_id;
+                let k = "" + room_id + "$" + gift_id;
 
                 if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0 && Acceptor.__checkGiftAvailable(k)){
                     Acceptor.__GIFT_ID_POOL.push(k);
@@ -92,7 +92,7 @@ let Acceptor = {
             Acceptor.defaultLogger.warn("GUARD: INVALID k: %s, SKIP IT!", k);
             return;
         }
-        let rg = k.split("_");
+        let rg = k.split("$");
         let room_id = parseInt(rg[0]),
             gift_id = parseInt(rg[1]);
 

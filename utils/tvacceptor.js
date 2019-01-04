@@ -69,7 +69,7 @@ let Acceptor = {
                     title = gidlist[i].title || "Unknown",
                     from = gidlist[i].from;
 
-                let k = "" + room_id + "_" + gift_id + "_" + title + "_" + from;
+                let k = [room_id, gift_id, title, from].join("$");
                 if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0 && Acceptor.__checkGiftAvailable(k)){
                     Acceptor.__GIFT_ID_POOL.push(k);
                     if (Acceptor.__joinTVDispatcherTask === 0){
@@ -96,7 +96,7 @@ let Acceptor = {
             Acceptor.defaultLogger.warn("INVALID k: %s, SKIP IT!", k);
             return;
         }
-        let rg = k.split("_");
+        let rg = k.split("$");
         let room_id = parseInt(rg[0]),
             gift_id = parseInt(rg[1]),
             title = rg[2],
