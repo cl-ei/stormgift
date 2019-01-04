@@ -79,6 +79,10 @@ let intervalSendHansyDCallMsg = () => {
 if (!DEBUG){
     setInterval(intervalSendHansyDCallMsg, 120*1000);
 }
+let randomChoice = (l) => {
+    l = l || [];
+    return l[parseInt(Math.random()*l.length)];
+};
 
 let procMessage = (msg, room_id) => {
     if(msg.cmd === "SEND_GIFT"){
@@ -116,18 +120,24 @@ let procMessage = (msg, room_id) => {
         chat.info("[ %d ] [UL %d] [%s %d] %s -> %s", uid, ul, decoration, dl, username, message);
 
         if (uid === 20932326 /*  */){return}
-
         lastActiveUseTimeInHansysRoom = getCurrentTimest();
+
         if (message.indexOf("好听") > -1){
             if(Math.random() > 0.5){return;}
-            dmksender.sendDamaku(
-                [
-                    "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
-                    "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
-                    "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
-                ][Math.floor((Math.random()*3)+1)],
-                HANSY_ROOM_ID
-            )
+            dmksender.sendDamaku(randomChoice([
+                "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
+                "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
+                "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
+            ]));
+            return ;
+        }
+
+        if (uid === 65981801 && (message.indexOf("心") > -1 || message.indexOf("美") > -1 || message.indexOf("好") > -1)){
+            dmksender.sendDamaku(randomChoice([
+                "🤖 大连你是个大居蹄子！",
+                "🤖 大连给我把你的舌头吞回去！",
+                "🤖 大连啊大连，你在东北玩泥巴，我在大连木有家呀(￣△￣)~",
+            ]))
         }
     }
 };
