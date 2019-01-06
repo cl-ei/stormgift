@@ -96,13 +96,17 @@ let procMessage = (msg, room_id) => {
             "[%d][%s] -> %s - %s * %s (%s)",
             uid, uname, coin_type, gift_name, num, total_coin
         )
+        // if(coin_type === "sliver" && ){
+        //     dmksender.sendDamaku("🤖 谢谢" + uname + "送的" + num + "个" + gift_name + "~", HANSY_ROOM_ID)
+        // }
     }else if(msg.cmd === "COMBO_END"){
         let uid = " combo ",
             uname = msg.data.uname,
             gift_name = msg.data.gift_name,
             price = msg.data.price,
             num = msg.data.combo_num;
-        gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price)
+        gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price);
+        dmksender.sendDamaku("🤖 谢谢" + uname + "送的" + num + "个" + gift_name + "~", HANSY_ROOM_ID)
     }else if(msg.cmd === "GUARD_BUY"){
         let uid = msg.data.uid,
             uname = msg.data.username,
@@ -128,7 +132,7 @@ let procMessage = (msg, room_id) => {
                 "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
                 "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
                 "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
-            ]));
+            ]), HANSY_ROOM_ID);
             return ;
         }
 
@@ -137,7 +141,7 @@ let procMessage = (msg, room_id) => {
                 "🤖 大连你是个大居蹄子！",
                 "🤖 大连给我把你的舌头吞回去！",
                 "🤖 大连啊大连，你在东北玩泥巴，我在大连木有家呀(￣△￣)~",
-            ]))
+            ]), HANSY_ROOM_ID)
         }
     }
 };
