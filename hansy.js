@@ -87,20 +87,22 @@ let randomChoice = (l) => {
 let Gift = {
     __GIFT_LIST: {},
     __GIFT_THANK_TASK: 0,
+    __LAST_THANK_USER: "$",
     sendThankDamaku: () => {
-        chat.debug("Enter sendThankDamaku.");
         let users = Object.keys(Gift.__GIFT_LIST);
         for (let i = 0; i < users.length; i++){
             let u = users[i];
             let gifts = Gift.__GIFT_LIST[u];
             delete Gift.__GIFT_LIST[u];
 
-            setTimeout(() => {
-                dmksender.sendDamaku("🤖 谢谢" + u + "赠送的" + gifts.join("、") + "~", HANSY_ROOM_ID)
-            }, 400*i);
+            if(Gift.__LAST_THANK_USER !== u){
+                setTimeout(() => {
+                    dmksender.sendDamaku("🤖 谢谢" + u + "赠送的" + gifts.join("、") + "~", HANSY_ROOM_ID)
+                }, 400*i);
+                Gift.__LAST_THANK_USER = u;
+            }
         }
         if(Gift.__GIFT_THANK_TASK !== 0){
-            chat.debug("Kill __GIFT_THANK_TASK. %s", Object.keys(Gift.__GIFT_LIST).length);
             clearInterval(Gift.__GIFT_THANK_TASK);
             Gift.__GIFT_THANK_TASK = 0;
         }
@@ -113,7 +115,6 @@ let Gift = {
         }
 
         if (Gift.__GIFT_THANK_TASK === 0) {
-            chat.debug("Start sendThank task.");
             Gift.__GIFT_THANK_TASK = setInterval(Gift.sendThankDamaku, 10000)
         }
     }
