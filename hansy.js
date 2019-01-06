@@ -54,6 +54,17 @@ let chat = log4js.getLogger("chat"),
     sliver = log4js.getLogger("sliver");
 
 chat.info("________Start Hansy recorder proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
+let USER_ID_TO_NAME = {
+    20932326: "我自己",
+    22218720: "寞寞",
+    359496014: "阿音",
+    38133678: "柳柳",
+    28629254: "青词",
+    13989100: "小克",
+    24250809: "阿雨",
+    10864099: "月度",
+    15968297: "小炎",
+};
 
 let HANSY_ROOM_ID = 2516117;
 let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
@@ -132,8 +143,9 @@ let procMessage = (msg, room_id) => {
             "[%d][%s] -> %s - %s * %s (%s)",
             uid, uname, coin_type, gift_name, num, total_coin
         );
+        if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[uname] = USER_ID_TO_NAME[uid]}
         if(coin_type === "silver" && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) < 120*HANSY_MSG_LIST.length){
-            Gift.addGift(uname, gift_name);
+            Gift.addGift(USER_ID_TO_NAME[uid] || uname, gift_name);
         }
     }else if(msg.cmd === "COMBO_END"){
         let uid = " combo ",
@@ -142,6 +154,8 @@ let procMessage = (msg, room_id) => {
             price = msg.data.price,
             num = msg.data.combo_num;
         gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price);
+
+        uname = USER_ID_TO_NAME[uname] || uname;
         setTimeout(() => {
             dmksender.sendDamaku("🤖 谢谢" + uname + "送的" + num + "个" + gift_name + "~", HANSY_ROOM_ID)
         },  parseInt(Math.random()*3000));
@@ -151,7 +165,8 @@ let procMessage = (msg, room_id) => {
             gift_name = msg.data.gift_name,
             num = msg.data.num,
             price = msg.data.price;
-        gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price)
+        gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price);
+        if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[uname] = USER_ID_TO_NAME[uid]}
     }else if (msg.cmd === "DANMU_MSG"){
         let message = msg.info[1],
             uid = msg.info[2][0],
@@ -161,6 +176,7 @@ let procMessage = (msg, room_id) => {
             ul = msg.info[4][0];
         chat.info("[ %d ] [UL %d] [%s %d] %s -> %s", uid, ul, decoration, dl, username, message);
 
+        if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[username] = USER_ID_TO_NAME[uid]}
         if (uid === 20932326 /*  */){return}
         lastActiveUseTimeInHansysRoom = getCurrentTimest();
 
