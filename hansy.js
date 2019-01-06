@@ -84,6 +84,41 @@ let randomChoice = (l) => {
     return l[parseInt(Math.random()*l.length)];
 };
 
+let Gift = {
+    __GIFT_LIST: {},
+    __GIFT_THANK_TASK: 0,
+    sendThankDamaku: () => {
+        chat.debug("Enter sendThankDamaku.");
+        let users = Object.keys(Gift.__GIFT_LIST);
+        for (let i = 0; i < users.length; i++){
+            let u = users[i];
+            let gifts = Gift.__GIFT_LIST[u];
+            delete Gift.__GIFT_LIST[u];
+
+            setTimeout(() => {
+                dmksender.sendDamaku("谢谢" + u + "赠送的" + gifts.join("、") + "~", HANSY_ROOM_ID)
+            }, 400*i);
+        }
+        if(Gift.__GIFT_THANK_TASK !== 0){
+            chat.debug("Kill __GIFT_THANK_TASK. %s", Object.keys(Gift.__GIFT_LIST).length);
+            clearInterval(Gift.__GIFT_THANK_TASK);
+            Gift.__GIFT_THANK_TASK = 0;
+        }
+    },
+    addGift: (user, gift_name) => {
+        if (Gift.__GIFT_LIST[user] === undefined){
+            Gift.__GIFT_LIST[gift_name] = [user]
+        }else if (Gift.__GIFT_LIST[user].indexOf(gift_name) < 0){
+            Gift.__GIFT_LIST[user].push(gift_name)
+        }
+
+        if (Gift.__GIFT_THANK_TASK === 0) {
+            chat.debug("Start sendThank task.");
+            Gift.__GIFT_THANK_TASK = setInterval(Gift.sendThankDamaku, 5000)
+        }
+    }
+};
+
 let procMessage = (msg, room_id) => {
     if(msg.cmd === "SEND_GIFT"){
         let uid = msg.data.uid,
@@ -95,10 +130,10 @@ let procMessage = (msg, room_id) => {
         (coin_type === "gold" ? gold : sliver).info(
             "[%d][%s] -> %s - %s * %s (%s)",
             uid, uname, coin_type, gift_name, num, total_coin
-        )
-        // if(coin_type === "sliver" && ){
-        //     dmksender.sendDamaku("🤖 谢谢" + uname + "送的" + num + "个" + gift_name + "~", HANSY_ROOM_ID)
-        // }
+        );
+        if(coin_type === "sliver" && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) < 120*HANSY_MSG_LIST.length){
+            Gift.addGift(uname, gift_name);
+        }
     }else if(msg.cmd === "COMBO_END"){
         let uid = " combo ",
             uname = msg.data.uname,
