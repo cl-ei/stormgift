@@ -96,7 +96,7 @@ let Gift = {
             delete Gift.__GIFT_LIST[u];
 
             setTimeout(() => {
-                dmksender.sendDamaku("谢谢" + u + "赠送的" + gifts.join("、") + "~", HANSY_ROOM_ID)
+                dmksender.sendDamaku("🤖 谢谢" + u + "赠送的" + gifts.join("、") + "~", HANSY_ROOM_ID)
             }, 400*i);
         }
         if(Gift.__GIFT_THANK_TASK !== 0){
@@ -107,7 +107,7 @@ let Gift = {
     },
     addGift: (user, gift_name) => {
         if (Gift.__GIFT_LIST[user] === undefined){
-            Gift.__GIFT_LIST[gift_name] = [user]
+            Gift.__GIFT_LIST[user] = [gift_name]
         }else if (Gift.__GIFT_LIST[user].indexOf(gift_name) < 0){
             Gift.__GIFT_LIST[user].push(gift_name)
         }
