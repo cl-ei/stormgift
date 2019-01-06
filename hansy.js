@@ -142,7 +142,9 @@ let procMessage = (msg, room_id) => {
             price = msg.data.price,
             num = msg.data.combo_num;
         gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price);
-        dmksender.sendDamaku("🤖 谢谢" + uname + "送的" + num + "个" + gift_name + "~", HANSY_ROOM_ID)
+        setTimeout(() => {
+            dmksender.sendDamaku("🤖 谢谢" + uname + "送的" + num + "个" + gift_name + "~", HANSY_ROOM_ID)
+        },  parseInt(Math.random()*3000));
     }else if(msg.cmd === "GUARD_BUY"){
         let uid = msg.data.uid,
             uname = msg.data.username,
