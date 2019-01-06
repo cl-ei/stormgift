@@ -114,7 +114,7 @@ let Gift = {
 
         if (Gift.__GIFT_THANK_TASK === 0) {
             chat.debug("Start sendThank task.");
-            Gift.__GIFT_THANK_TASK = setInterval(Gift.sendThankDamaku, 5000)
+            Gift.__GIFT_THANK_TASK = setInterval(Gift.sendThankDamaku, 10000)
         }
     }
 };
