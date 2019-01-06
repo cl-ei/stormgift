@@ -143,10 +143,11 @@ let procMessage = (msg, room_id) => {
             "[%d][%s] -> %s - %s * %s (%s)",
             uid, uname, coin_type, gift_name, num, total_coin
         );
-        if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[uname] = USER_ID_TO_NAME[uid]}
-        if(coin_type === "silver" && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) < 120*HANSY_MSG_LIST.length){
-            Gift.addGift(USER_ID_TO_NAME[uid] || uname, gift_name);
-        }
+
+        // if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[uname] = USER_ID_TO_NAME[uid]}
+        // if(coin_type === "silver" && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) < 120*HANSY_MSG_LIST.length){
+        //     Gift.addGift(USER_ID_TO_NAME[uid] || uname, gift_name);
+        // }
     }else if(msg.cmd === "COMBO_END"){
         let uid = " combo ",
             uname = msg.data.uname,
@@ -155,10 +156,10 @@ let procMessage = (msg, room_id) => {
             num = msg.data.combo_num;
         gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price);
 
-        uname = USER_ID_TO_NAME[uname] || uname;
-        setTimeout(() => {
-            dmksender.sendDamaku("🤖 谢谢" + uname + "送的" + num + "个" + gift_name + "~", HANSY_ROOM_ID)
-        },  parseInt(Math.random()*3000));
+        // uname = USER_ID_TO_NAME[uname] || uname;
+        // setTimeout(() => {
+        //     dmksender.sendDamaku("🤖 谢谢" + uname + "送的" + num + "个" + gift_name + "~", HANSY_ROOM_ID)
+        // },  parseInt(Math.random()*3000));
     }else if(msg.cmd === "GUARD_BUY"){
         let uid = msg.data.uid,
             uname = msg.data.username,
@@ -166,7 +167,8 @@ let procMessage = (msg, room_id) => {
             num = msg.data.num,
             price = msg.data.price;
         gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price);
-        if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[uname] = USER_ID_TO_NAME[uid]}
+
+        // if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[uname] = USER_ID_TO_NAME[uid]}
     }else if (msg.cmd === "DANMU_MSG"){
         let message = msg.info[1],
             uid = msg.info[2][0],
@@ -176,7 +178,7 @@ let procMessage = (msg, room_id) => {
             ul = msg.info[4][0];
         chat.info("[ %d ] [UL %d] [%s %d] %s -> %s", uid, ul, decoration, dl, username, message);
 
-        if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[username] = USER_ID_TO_NAME[uid]}
+        // if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[username] = USER_ID_TO_NAME[uid]}
         if(HANSY_MSG_LIST.indexOf(message) < 0){lastActiveUseTimeInHansysRoom = getCurrentTimest()}
         if (uid === 20932326 /*  */){return}
 
