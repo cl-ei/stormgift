@@ -131,7 +131,7 @@ let procMessage = (msg, room_id) => {
             "[%d][%s] -> %s - %s * %s (%s)",
             uid, uname, coin_type, gift_name, num, total_coin
         );
-        if(coin_type === "sliver" && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) < 120*HANSY_MSG_LIST.length){
+        if(coin_type === "silver" && (getCurrentTimest() - lastActiveUseTimeInHansysRoom) < 120*HANSY_MSG_LIST.length){
             Gift.addGift(uname, gift_name);
         }
     }else if(msg.cmd === "COMBO_END"){
