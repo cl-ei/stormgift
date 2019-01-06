@@ -177,7 +177,7 @@ let procMessage = (msg, room_id) => {
         chat.info("[ %d ] [UL %d] [%s %d] %s -> %s", uid, ul, decoration, dl, username, message);
 
         if(uid in USER_ID_TO_NAME){USER_ID_TO_NAME[username] = USER_ID_TO_NAME[uid]}
-        if(HANSY_MSG_LIST.indexOf(message) < -1){lastActiveUseTimeInHansysRoom = getCurrentTimest()}
+        if(HANSY_MSG_LIST.indexOf(message) < 0){lastActiveUseTimeInHansysRoom = getCurrentTimest()}
         if (uid === 20932326 /*  */){return}
 
         if (message.indexOf("好听") > -1){
