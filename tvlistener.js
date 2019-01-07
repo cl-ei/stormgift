@@ -186,6 +186,7 @@ let TVMonitor = {
             }
         }else if(msg.cmd === "PREPARING"){
             let area = TVMonitor.getAreaNameByRoomId(room_id);
+            if (area === 0) {return}
             logging.info("Room closed! prepare to search new. room_id: %s, area: %s.", room_id, AREA_NAME_MAP[area]);
             TVMonitor.updateMonitorRooms([area]);
         }
