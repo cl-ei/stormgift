@@ -168,12 +168,10 @@ let TVMonitor = {
     },
     procMessage: (msg, room_id) => {
         MessageCounter.add();
-        if(msg.cmd === "NOTICE_MSG"){
-            if (msg.msg_type !== 2){
-                logging.debug("NOTICE_MSG_%d: %s", msg.msg_type, JSON.stringify(msg));
-                return;
-            }
+        let msgJStr = JSON.stringify(msg);
+        if(msgJStr.indexOf("任意") > -1){logging.debug("NOTICE_MSG_223: %s", msgJStr)}
 
+        if(msg.cmd === "NOTICE_MSG"){
             let area = TVMonitor.getAreaNameByRoomId(room_id),
                 message = msg.msg_self;
             let broadcastType = message.slice(0, 5);
@@ -186,6 +184,8 @@ let TVMonitor = {
                     );
                     NoticeSender.sendMsg("_T" + real_room_id);
                 }
+            }else{
+                logging.debug("NOTICE_MSG_2993: %s", msgJStr)
             }
         }else if(msg.cmd === "PREPARING"){
             let area = TVMonitor.getAreaNameByRoomId(room_id);
