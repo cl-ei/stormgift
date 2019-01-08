@@ -149,12 +149,12 @@ let procMessage = (msg, room_id) => {
         //     Gift.addGift(USER_ID_TO_NAME[uid] || uname, gift_name);
         // }
     }else if(msg.cmd === "COMBO_END"){
-        let uid = " combo ",
-            uname = msg.data.uname,
-            gift_name = msg.data.gift_name,
-            price = msg.data.price,
-            num = msg.data.combo_num;
-        gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price);
+        // let uid = " combo ",
+        //     uname = msg.data.uname,
+        //     gift_name = msg.data.gift_name,
+        //     price = msg.data.price,
+        //     num = msg.data.combo_num;
+        // gold.info("[%s][%s] -> %s * %s (%s)", uid, uname, gift_name, num, price);
 
         // uname = USER_ID_TO_NAME[uname] || uname;
         // setTimeout(() => {
