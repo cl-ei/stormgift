@@ -169,7 +169,10 @@ let TVMonitor = {
     procMessage: (msg, room_id) => {
         MessageCounter.add();
         if(msg.cmd === "NOTICE_MSG"){
-            if (msg.msg_type !== 2){return}
+            if (msg.msg_type !== 2){
+                logging.debug("NOTICE_MSG_%d: %s", msg.msg_type, JSON.stringify(msg));
+                return;
+            }
 
             let area = TVMonitor.getAreaNameByRoomId(room_id),
                 message = msg.msg_self;
