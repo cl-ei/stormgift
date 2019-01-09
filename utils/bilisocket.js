@@ -24,6 +24,7 @@ function sendJoinRoom(client, rid){
 
 function parseMessage(arrayBuffer, room_id, procFn, failedFn){
     if(arrayBuffer.byteLength < 21) {return}
+    failedFn = failedFn || ((e, msg) => {});
 
     let buff = Buffer.from(arrayBuffer);
     let view = new Uint8Array(arrayBuffer);
@@ -33,11 +34,15 @@ function parseMessage(arrayBuffer, room_id, procFn, failedFn){
         let current = buff.slice(0, length);
         buff = buff.slice(length);
         if (current.length > 16 && current[16] !== 0){
+            let currentRawMsg = "" + current.slice(16);
+            let msg = undefined;
             try{
-                let msg = JSON.parse("" + current.slice(16));
-                procFn(msg, room_id);
+                msg = JSON.parse(currentRawMsg);
             }catch (e) {
-                (failedFn || function(e){})("e: " + current);
+                failedFn(e, "Error parse: " + currentRawMsg);
+            }
+            if(msg !== undefined){
+                try{procFn(msg, room_id)}catch (e) {failedFn(e, currentRawMsg)}
             }
         }
     }

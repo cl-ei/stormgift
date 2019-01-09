@@ -170,15 +170,16 @@ let TVMonitor = {
         MessageCounter.add();
 
         if(msg.cmd === "NOTICE_MSG"){
-            let area = TVMonitor.getAreaNameByRoomId(room_id),
-                message = msg.msg_self;
-            let broadcastType = message.slice(0, 5);
+            let area = TVMonitor.getAreaNameByRoomId(room_id);
+            let msgSelf = msg.msg_self || "";
+            let broadcastType = msgSelf.slice(0, 5);
+
             if (broadcastType.indexOf(AREA_NAME_MAP[area]) > -1){
                 let real_room_id = parseInt(msg.real_roomid) || 0;
                 if(real_room_id !== 0){
                     logging.info(
                         "TV_PRIZE: %s, area: %s, room_id: %s",
-                        message, AREA_NAME_MAP[area], real_room_id
+                        msgSelf, AREA_NAME_MAP[area], real_room_id
                     );
                     NoticeSender.sendMsg("_T" + real_room_id);
                 }
@@ -189,6 +190,9 @@ let TVMonitor = {
             logging.info("Room closed! prepare to search new. room_id: %s, area: %s.", room_id, AREA_NAME_MAP[area]);
             TVMonitor.updateMonitorRooms([area]);
         }
+    },
+    procException: (e, msg) => {
+        logging.error("ERROR in TVMonitor.procException, e: %s, msg: %s.", e.toString(), msg)
     },
     createClients: (room_id) => {
         let existedClient = TVMonitor.CURRENT_CONNECTIONS[room_id],
@@ -238,7 +242,7 @@ let TVMonitor = {
                 logging.error('Connection Removed (EXPECTED, but caused by duplicated!), room id: ' + room_id);
             }
         };
-        client.onmessage = (e) => {bilisocket.parseMessage(e.data, room_id, TVMonitor.procMessage)};
+        client.onmessage = (e) => {bilisocket.parseMessage(e.data, room_id, TVMonitor.procMessage, TVMonitor.procException)};
     },
     __updateWSConnection: () => {
         if(TVMonitor.WS_CONNECTION_UPDATING){
