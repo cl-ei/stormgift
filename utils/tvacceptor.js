@@ -133,15 +133,15 @@ let Acceptor = {
         },
         cbFn = (err, res, body) => {
             if (err) {
-                logging.error("Accept tv prize error: %s, room_id: %s", err.toString(), room_id);
+                logging.error("%s - Accept tv prize error: %s, room_id: %s", csrf_token, err.toString(), room_id);
             } else {
                 let r = {"-": "-"};
                 try{
                     r = JSON.parse(body.toString());
                 }catch (e) {
                     logging.error(
-                        "Error response acceptTvSingle JoinFn: %s, body:\n-------\n%s\n\n",
-                        e.toString(), body
+                        "%s - Error response acceptTvSingle JoinFn: %s, body:\n-------\n%s\n\n",
+                        csrf_token, e.toString(), body
                     );
                     return;
                 }
@@ -150,11 +150,11 @@ let Acceptor = {
                     let gift_id = data.raffleId,
                         gtype = data.type;
                     logging.info(
-                        "TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, gtype: %s, from: %s",
-                        room_id, gift_id, title, from
+                        "%s - TV ACCEPTOR: SUCCEED! room id: %s, gift id: %s, gtype: %s, from: %s",
+                        csrf_token, room_id, gift_id, title, from
                     );
                 }else{
-                    logging.error("TV ACCEPTOR: Failed! r: %s", JSON.stringify(r));
+                    logging.error("%s - TV ACCEPTOR: Failed! r: %s", csrf_token, JSON.stringify(r));
                 }
             }
         };
