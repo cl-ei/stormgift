@@ -1,8 +1,7 @@
 let path = require('path');
-let sysArgs = process.argv.splice(2);
-let DEBUG = !(sysArgs[0] === "server");
+let env = process.env.NODE_ENV;
 
-let loggerFilePath = "/home/wwwroot/log/";
+let loggerFilePath = env === "server" ? "/home/wwwroot/log/" : "./log/";
 let config = {
     appenders: {
         acceptor: {
@@ -55,3 +54,4 @@ module.exports.apz_guard = log4js.getLogger("apz_guard");
 module.exports.apz_other_users = log4js.getLogger("apz_other_users");
 
 module.exports.acceptor = log4js.getLogger("acceptor");
+module.exports.default = log4js.getLogger("default");

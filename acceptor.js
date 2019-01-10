@@ -1,11 +1,7 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
-let log4js = require("log4js");
-let path = require('path');
-let sysArgs = process.argv.splice(2);
-let DEBUG = !(sysArgs[0] === "server");
 
 let logging = require("./config/loggers").acceptor;
-logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
+logging.info("Start acceptor proc.");
 
 
 let cookie_filename = './data/cookie.js';
