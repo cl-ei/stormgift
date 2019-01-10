@@ -1,7 +1,9 @@
 let path = require('path');
 let env = process.env.NODE_ENV;
 
+console.log("Config log4js env: %s.", env);
 let loggerFilePath = env === "server" ? "/home/wwwroot/log/" : "./log/";
+
 let config = {
     appenders: {
         acceptor: {
