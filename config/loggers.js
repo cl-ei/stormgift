@@ -38,6 +38,7 @@ let config = {
         console: {type: 'console'}
     },
     categories: {
+        acceptor: { appenders: ['console', "acceptor"], level: 'ALL'},
         apz_tv: { appenders: ['console', "apz_tv", "apz_default"], level: 'ALL'},
         apz_guard: { appenders: ['console', "apz_guard", "apz_default"], level: 'ALL'},
         apz_other_users: { appenders: ['console', "apz_other_users"], level: 'ALL'},
