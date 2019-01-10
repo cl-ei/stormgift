@@ -1,11 +1,13 @@
 let request = require("request");
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 
+let loggers = require("../config/loggers");
+let acceptor_logging = loggers.acceptor;
+let guard_logging = loggers.apz_guard;
+let other_users_logging = loggers.apz_other_users;
 
 let Acceptor = {
     cookieDictList: [],
-    loggerDict: {},
-    defaultLogger: undefined,
 
     __ROOM_ID_POOL: [],
     __GIFT_ID_POOL: [],
@@ -13,33 +15,28 @@ let Acceptor = {
     __joinDispatcherTask: 0,
     __INVALID_PRIZE_POOL: [],
 
-    init: (cookieDict, loggerDict, defaultLogger) => {
+    init: (cookieDict) => {
         Acceptor.cookieDictList = cookieDict;
-        Acceptor.loggerDict = loggerDict;
-        Acceptor.defaultLogger = defaultLogger;
     },
     accept: (room_id) => {
         if (Acceptor.__ROOM_ID_POOL.indexOf(room_id) < 0) {
             Acceptor.__ROOM_ID_POOL.push(room_id);
             if (Acceptor.__getGIDTask === 0) {
                 Acceptor.__getGIDTask = setInterval(Acceptor.__getGID, 500);
-                Acceptor.defaultLogger.info("GUARD: Start __getGID task.");
+                acceptor_logging.info("GUARD: Start __getGID task.");
             }
         }
     },
     __getGID: () => {
         let room_id = Acceptor.__ROOM_ID_POOL.shift();
-        Acceptor.defaultLogger.info("GUARD: __getGID search room: %s", room_id);
+        acceptor_logging.info("GUARD: __getGID search room: %s", room_id);
         if(Acceptor.__ROOM_ID_POOL.length === 0 && Acceptor.__getGIDTask !== 0){
             clearInterval(Acceptor.__getGIDTask);
             Acceptor.__getGIDTask = 0;
-            Acceptor.defaultLogger.info("GUARD: Kill __getGID task. Last proc room_id: %s.", room_id);
+            acceptor_logging.info("GUARD: Kill __getGID task. Last proc room_id: %s.", room_id);
         }
 
-        let csrf_token = Acceptor.cookieDictList[0].csrf_token,
-            cookie = Acceptor.cookieDictList[0].cookie;
-        let logging = Acceptor.loggerDict[csrf_token] || Acceptor.defaultLogger;
-
+        let cookie = Acceptor.cookieDictList[0].cookie;
         let reqParam = {
             url: "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=" + room_id,
             method: "get",
@@ -48,14 +45,14 @@ let Acceptor = {
         },
         cbFn = (err, res, body) => {
             if (err) {
-                logging.error("Get guard gift id error: %s, room_id: %s", err.toString(), room_id);
+                acceptor_logging.error("Get guard gift id error: %s, room_id: %s", err.toString(), room_id);
                 return;
             }
             let r = {"-": "-"};
             try {
                 r = JSON.parse(body.toString());
             } catch (e) {
-                logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
+                acceptor_logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
                 return;
             }
             if (r.code !== 0) {return}
@@ -71,25 +68,25 @@ let Acceptor = {
                     Acceptor.__GIFT_ID_POOL.push(k);
                     if (Acceptor.__joinDispatcherTask === 0){
                         Acceptor.__joinDispatcherTask = setInterval(Acceptor.__joinDispatcher, 200);
-                        Acceptor.defaultLogger.info("GUARD: Start __joinDispatcher task.");
+                        acceptor_logging.info("GUARD: Start __joinDispatcher task.");
                     }
                 }
             }
         };
-        Acceptor.defaultLogger.info("GUARD:\tSEND GET GUARD GIFT ID REQ, room_id: %s", room_id);
+        acceptor_logging.info("GUARD:\tSEND GET GUARD GIFT ID REQ, room_id: %s", room_id);
         request(reqParam, cbFn);
     },
     __joinDispatcher: () => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
-        Acceptor.defaultLogger.info("GUARD: Dispatch: %s", k);
+        acceptor_logging.info("GUARD: Dispatch: %s", k);
 
         if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinDispatcherTask !== 0){
             clearInterval(Acceptor.__joinDispatcherTask);
             Acceptor.__joinDispatcherTask = 0;
-            Acceptor.defaultLogger.info("GUARD: Kill __joinDispatcher task, Last proc k: %s.", k);
+            acceptor_logging.info("GUARD: Kill __joinDispatcher task, Last proc k: %s.", k);
         }
         if(!Acceptor.__checkGiftAvailable(k, true)){
-            Acceptor.defaultLogger.warn("GUARD: INVALID k: %s, SKIP IT!", k);
+            acceptor_logging.warn("GUARD: INVALID k: %s, SKIP IT!", k);
             return;
         }
         let rg = k.split("$");
@@ -106,7 +103,6 @@ let Acceptor = {
     __joinGuardSingle: (index, room_id, gift_id) => {
         let csrf_token = Acceptor.cookieDictList[index].csrf_token,
             cookie = Acceptor.cookieDictList[index].cookie;
-        let logging = Acceptor.loggerDict[csrf_token] || Acceptor.defaultLogger;
 
         let reqParam = {
             url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",
@@ -122,16 +118,17 @@ let Acceptor = {
             }
         },
         cbFn = (err, res, body) => {
+            let logging = (index === 0 ? guard_logging : other_users_logging);
             if (err) {
-                logging.error("Accept guard prize error: %s, room_id: %s", err.toString(), room_id);
+                logging.error("%s - Accept guard prize error: %s, room_id: %s", csrf_token, err.toString(), room_id);
             } else {
                 let r = {"-": "-"};
                 try{
                     r = JSON.parse(body.toString());
                 }catch (e) {
                     logging.error(
-                        "Error response __joinGuardSingle: %s, body:\n-------\n%s\n\n",
-                        e.toString(), body
+                        "%s - Error response __joinGuardSingle: %s, body:\n-------\n%s\n\n",
+                        csrf_token, e.toString(), body
                     );
                     return;
                 }
@@ -140,15 +137,15 @@ let Acceptor = {
                     let msg = data.message,
                         from = data.from;
                     logging.info(
-                        "GUARD ACCEPTOR: SUCCEED! room_id: %s, gift_id: %s, msg: %s, from: %s",
-                        room_id, gift_id, msg, from
+                        "%s - GUARD ACCEPTOR: SUCCEED! room_id: %s, gift_id: %s, msg: %s, from: %s",
+                        csrf_token, room_id, gift_id, msg, from
                     );
                 }else{
-                    logging.error("GUARD: __joinGuardSingle Failed! r: %s", JSON.stringify(r));
+                    logging.error("%s - GUARD: __joinGuardSingle Failed! r: %s", csrf_token, JSON.stringify(r));
                 }
             }
         };
-        Acceptor.defaultLogger.info("GUARD: \tSEND JOIN REQ, index: %s, room_id: %s, gift_id: %s", index, room_id, gift_id);
+        acceptor_logging.info("GUARD: \tSEND JOIN REQ, index: %s, room_id: %s, gift_id: %s", index, room_id, gift_id);
         request.post(reqParam, cbFn);
     },
     __checkGiftAvailable: (k, autoset) => {

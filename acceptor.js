@@ -1,14 +1,11 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
-let logger = require("./utils/logger");
+let log4js = require("log4js");
 let path = require('path');
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
-let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log",
-    loggerConfigList = [{
-        loggerName: "acceptor",
-        loggerFile: path.join(loggerFilePath, "acceptor.log"),
-    }];
+let logging = require("./config/loggers").acceptor;
+logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
 
 let cookie_filename = './data/cookie.js';
@@ -26,18 +23,10 @@ for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
                cookie: cookie,
                csrf_token: csrf_token,
             });
-            loggerConfigList.push({
-                loggerName: csrf_token,
-                loggerFile: path.join(loggerFilePath, "apz_" + csrf_token.slice(csrf_token.length/2) + ".log"),
-            });
             break;
         }
     }
 }
-
-let loggers = logger.batchCreateLogger(loggerConfigList);
-let logging = loggers["acceptor"];
-logging.info("Start proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 
 let damakusender = require("./utils/danmakusender");
 let dmksender = new damakusender.Sender(1, logging);
@@ -52,10 +41,10 @@ let sendNoticeDanmakuMsg = (room_id, gift_type) => {
 };
 
 let Gac = require("./utils/guardacceptor").Acceptor;
-Gac.init(COOKIE_DICT_LIST, loggers, logging);
+Gac.init(COOKIE_DICT_LIST);
 
 let Tac = require("./utils/tvacceptor").Acceptor;
-Tac.init(COOKIE_DICT_LIST, loggers, logging);
+Tac.init(COOKIE_DICT_LIST);
 
 let onMessageReceived = (msg) => {
     let sendNotice = msg[0] === "_",

@@ -1,11 +1,13 @@
 let request = require("request");
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 
+let loggers = require("../config/loggers");
+let acceptor_logging = loggers.acceptor;
+let tv_logging = loggers.apz_tv;
+let other_users_logging = loggers.apz_other_users;
 
 let Acceptor = {
     cookieDictList: [],
-    loggerDict: {},
-    defaultLogger: undefined,
 
     __ROOM_ID_POOL: [],
     __GIFT_ID_POOL: [],
@@ -13,33 +15,28 @@ let Acceptor = {
     __joinTVDispatcherTask: 0,
 
     __INVALID_PRIZE_POOL: [],
-    init: (cookieDict, loggerDict, defaultLogger) => {
+    init: (cookieDict) => {
         Acceptor.cookieDictList = cookieDict;
-        Acceptor.loggerDict = loggerDict;
-        Acceptor.defaultLogger = defaultLogger;
     },
     accept: (room_id) => {
         if (Acceptor.__ROOM_ID_POOL.indexOf(room_id) < 0) {
             Acceptor.__ROOM_ID_POOL.push(room_id);
             if (Acceptor.__getTVGiftIdTask === 0) {
                 Acceptor.__getTVGiftIdTask = setInterval(Acceptor.__getTVGiftId, 1000);
-                Acceptor.defaultLogger.info("Start __getTVGiftId task, task id: %s.", Acceptor.__getTVGiftIdTask);
+                acceptor_logging.info("Start __getTVGiftId task, task id: %s.", Acceptor.__getTVGiftIdTask);
             }
         }
     },
     __getTVGiftId: () => {
         let room_id = Acceptor.__ROOM_ID_POOL.shift();
-        Acceptor.defaultLogger.info("getTVGiftId search room: %s", room_id);
+        acceptor_logging.info("getTVGiftId search room: %s", room_id);
         if(Acceptor.__ROOM_ID_POOL.length === 0 && Acceptor.__getTVGiftIdTask !== 0){
             clearInterval(Acceptor.__getTVGiftIdTask);
             Acceptor.__getTVGiftIdTask = 0;
-            Acceptor.defaultLogger.info("Kill __getTVGiftId task. Last proc room_id: %s.", room_id);
+            acceptor_logging.info("Kill __getTVGiftId task. Last proc room_id: %s.", room_id);
         }
 
-        let default_csrf_token = Acceptor.cookieDictList[0].csrf_token,
-            default_cookie = Acceptor.cookieDictList[0].cookie;
-        let logging = Acceptor.loggerDict[default_csrf_token] || Acceptor.defaultLogger;
-
+        let default_cookie = Acceptor.cookieDictList[0].cookie;
         let reqParam = {
             url: "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=" + room_id,
             method: "get",
@@ -48,21 +45,21 @@ let Acceptor = {
         },
         cbFn = (err, res, body) => {
             if (err) {
-                logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
+                acceptor_logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
                 return;
             }
             let r = {"-": "-"};
             try {
                 r = JSON.parse(body.toString());
             } catch (e) {
-                logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
+                acceptor_logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
                 return;
             }
             if (r.code !== 0) {return}
 
             let data = r.data || {};
             let gidlist = data.list || [];
-            if (gidlist.length === 0) {logging.warn("INVALID_TV_NOTICE, CANNOT JOIN -> %s", room_id)}
+            if (gidlist.length === 0) {acceptor_logging.warn("INVALID_TV_NOTICE, CANNOT JOIN -> %s", room_id)}
 
             for (let i = 0; i < gidlist.length; i++) {
                 let gift_id = parseInt(gidlist[i].raffleId) || 0,
@@ -74,26 +71,26 @@ let Acceptor = {
                     Acceptor.__GIFT_ID_POOL.push(k);
                     if (Acceptor.__joinTVDispatcherTask === 0){
                         Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 200);
-                        Acceptor.defaultLogger.info(
+                        acceptor_logging.info(
                             "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVDispatcherTask
                         );
                     }
                 }
             }
         };
-        Acceptor.defaultLogger.info("\tSEND GET TVGIFTID REQ, room_id: %s", room_id);
+        acceptor_logging.info("\tSEND GET TVGIFTID REQ, room_id: %s", room_id);
         request(reqParam, cbFn);
     },
     __joinTVDispatcher: () => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
-        Acceptor.defaultLogger.info("Dispatch: %s", k);
+        acceptor_logging.info("Dispatch: %s", k);
         if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinTVDispatcherTask !== 0){
             clearInterval(Acceptor.__joinTVDispatcherTask);
             Acceptor.__joinTVDispatcherTask = 0;
-            Acceptor.defaultLogger.info("Kill __joinTVDispatcher task, Last proc k: %s.", k);
+            acceptor_logging.info("Kill __joinTVDispatcher task, Last proc k: %s.", k);
         }
         if(!Acceptor.__checkGiftAvailable(k, true)){
-            Acceptor.defaultLogger.warn("INVALID k: %s, SKIP IT!", k);
+            acceptor_logging.warn("INVALID k: %s, SKIP IT!", k);
             return;
         }
         let rg = k.split("$");
@@ -118,7 +115,7 @@ let Acceptor = {
     __joinTVSingle: (index, room_id, gift_id, title, from) => {
         let csrf_token = Acceptor.cookieDictList[index].csrf_token,
             cookie = Acceptor.cookieDictList[index].cookie;
-        let logging = Acceptor.loggerDict[csrf_token] || Acceptor.defaultLogger;
+        let logging = (index === 0 ? tv_logging : other_users_logging);
 
         let reqParam = {
             url: "https://api.live.bilibili.com/gift/v3/smalltv/join",
@@ -161,7 +158,7 @@ let Acceptor = {
                 }
             }
         };
-        Acceptor.defaultLogger.info("\tSEND JOIN REQ, index: %s, room_id: %s, gift_id: %s", index, room_id, gift_id);
+        acceptor_logging.info("\tSEND JOIN REQ, index: %s, room_id: %s, gift_id: %s", index, room_id, gift_id);
         request(reqParam, cbFn);
     },
     __checkGiftAvailable: (k, autoset) => {
