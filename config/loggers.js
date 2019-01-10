@@ -5,36 +5,6 @@ let DEBUG = !(sysArgs[0] === "server");
 let loggerFilePath = "/home/wwwroot/log/";
 let config = {
     appenders: {
-        gold: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "gold.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        sliver: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "sliver.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        gift: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "gift.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        mix: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "mix.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        chat: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "chat.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
         acceptor: {
             type: 'file',
             filename: path.join(loggerFilePath, "acceptor.log"),
@@ -68,10 +38,6 @@ let config = {
         console: {type: 'console'}
     },
     categories: {
-        chat: { appenders: ['console', "chat", "mix"], level: 'ALL'},
-        gold: { appenders: ['console', "gold", "mix", "gift"], level: 'ALL'},
-        sliver: { appenders: ['console', "sliver", "mix", "gift"], level: 'ALL'},
-
         apz_tv: { appenders: ['console', "apz_tv", "apz_default"], level: 'ALL'},
         apz_guard: { appenders: ['console', "apz_guard", "apz_default"], level: 'ALL'},
         apz_other_users: { appenders: ['console', "apz_other_users"], level: 'ALL'},
