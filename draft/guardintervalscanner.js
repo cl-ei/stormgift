@@ -4,7 +4,7 @@ let net = require('net');
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 let DEBUG = !(process.argv.splice(2)[0] === "server");
 
-let logger = require("./utils/logger");
+let logger = require("../utils/logger");
 let logging = logger.creatLogger('guardintervalscanner', DEBUG ? "./log/" : "/home/wwwroot/log/");
 logging.info("Start guardintervalscanner proc, ENV: %s", DEBUG ? "DEBUG" : "SERVER");
 
