@@ -82,7 +82,7 @@ let onMessageReceived = (msg) => {
             setTimeout(ConnectToNoticeServer, 500);
         };
         client.onmessage = (e) => {
-            let mList = e.data.match(/(_T|_G|XG|_S|NG)\d{3,}\$?\d+/g) || [];
+            let mList = e.data.match(/(_T|_G|XG|_S|NG)\d{2,}\$?\d+/g) || [];
             for(let i = 0; i < mList.length; i++){onMessageReceived(mList[i])}
         };
     };
