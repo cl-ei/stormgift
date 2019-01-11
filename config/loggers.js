@@ -1,5 +1,6 @@
 let path = require('path');
-let env = process.env.NODE_ENV;
+let proj_config = require("./proj_config");
+let env = proj_config.env;
 
 console.log("Config log4js env: %s.", env);
 let loggerFilePath = env === "server" ? "/home/wwwroot/log/" : "./log/";
@@ -36,6 +37,12 @@ let config = {
             maxLogSize: 1024*1024*50,
             backups: 2,
         },
+        guardlistener: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "guardlistener.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
         console: {type: 'console'}
     },
     categories: {
@@ -43,6 +50,7 @@ let config = {
         apz_tv: { appenders: ['console', "apz_tv", "apz_default"], level: 'ALL'},
         apz_guard: { appenders: ['console', "apz_guard", "apz_default"], level: 'ALL'},
         apz_other_users: { appenders: ['console', "apz_other_users"], level: 'ALL'},
+        guardlistener: { appenders: ['console', "guardlistener"], level: 'ALL'},
 
         default: { appenders: ['console'], level: 'ALL'}
     }
@@ -56,4 +64,6 @@ module.exports.apz_guard = log4js.getLogger("apz_guard");
 module.exports.apz_other_users = log4js.getLogger("apz_other_users");
 
 module.exports.acceptor = log4js.getLogger("acceptor");
+module.exports.guardlistener = log4js.getLogger("guardlistener");
+
 module.exports.default = log4js.getLogger("default");

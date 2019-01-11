@@ -36,26 +36,23 @@ let sendNoticeDanmakuMsg = (room_id, gift_type) => {
     );
 };
 
-let Gac = require("./utils/guardacceptor").Acceptor;
+let Gac = require("./utils/guard_acceptor_directly").Acceptor;
 Gac.init(COOKIE_DICT_LIST);
 
 let Tac = require("./utils/tvacceptor").Acceptor;
 Tac.init(COOKIE_DICT_LIST);
 
 let onMessageReceived = (msg) => {
-    let sendNotice = msg[0] === "_",
+    let source = msg[0],
         giftType = msg[1],
-        room_id = parseInt(msg.slice(2));
+        msgBody = msg.slice(2);
 
-    if(giftType === "S"){
-        logging.info("Gift: %s, room_id: %s", giftType, room_id);
-    }else if(giftType === "G"){
-        logging.info("Gift: %s, room_id: %s", giftType, room_id);
-        Gac.accept(room_id);
-        if(sendNotice){
-            sendNoticeDanmakuMsg(room_id, "G");
-        }
+    if(source === "N" && giftType === "G"){
+        logging.info("Gift: %s, msgBody: %s", giftType, msgBody);
+        Gac.accept(msgBody);
+
     }else if(giftType === "T"){
+        let room_id = parseInt(msgBody);
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
         Tac.accept(room_id);
         sendNoticeDanmakuMsg(room_id, "T");
@@ -85,7 +82,7 @@ let onMessageReceived = (msg) => {
             setTimeout(ConnectToNoticeServer, 500);
         };
         client.onmessage = (e) => {
-            let mList = e.data.match(/(_T|_G|XG|_S)\d{3,}/g) || [];
+            let mList = e.data.match(/(_T|_G|XG|_S|NG)\d{3,}\$?\d{3,}/g) || [];
             for(let i = 0; i < mList.length; i++){onMessageReceived(mList[i])}
         };
     };
