@@ -99,6 +99,7 @@ let Recoreder = {
 
 
 (() => {
+    DataAccess.init();
     let ConnectToNoticeServer = () => {
         let client = new W3CWebSocket(env === "server" ? "ws://127.0.0.1:11112" : "ws://129.204.43.2:11112");
         client.onerror = () => {
