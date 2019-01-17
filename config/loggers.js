@@ -2,11 +2,40 @@ let path = require('path');
 let proj_config = require("./proj_config");
 let env = proj_config.env;
 
-console.log("Config log4js env: %s.", env);
 let loggerFilePath = env === "server" ? "/home/wwwroot/log/" : "./log/";
 
 let config = {
     appenders: {
+        gold: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "gold.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        sliver: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "sliver.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        gift: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "gift.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        mix: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "mix.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        chat: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "chat.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
         acceptor: {
             type: 'file',
             filename: path.join(loggerFilePath, "acceptor.log"),
@@ -52,6 +81,10 @@ let config = {
         console: {type: 'console'}
     },
     categories: {
+        chat: { appenders: ['console', "chat", "mix"], level: 'ALL'},
+        gold: { appenders: ['console', "gold", "mix", "gift"], level: 'ALL'},
+        sliver: { appenders: ['console', "sliver", "mix", "gift"], level: 'ALL'},
+
         acceptor: { appenders: ['console', "acceptor"], level: 'ALL'},
         apz_tv: { appenders: ['console', "apz_tv", "apz_default"], level: 'ALL'},
         apz_guard: { appenders: ['console', "apz_guard", "apz_default"], level: 'ALL'},
@@ -64,6 +97,10 @@ let config = {
 
 let log4js = require("log4js");
 log4js.configure(config);
+
+module.exports.chat = log4js.getLogger("chat");
+module.exports.gold = log4js.getLogger("gold");
+module.exports.sliver = log4js.getLogger("sliver");
 
 module.exports.apz_tv = log4js.getLogger("apz_tv");
 module.exports.apz_guard = log4js.getLogger("apz_guard");

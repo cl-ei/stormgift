@@ -1,57 +1,12 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
-let log4js = require("log4js");
-let bilisocket = require("./utils/bilisocket");
-let path = require('path');
+let bilisocket = require("../utils/bilisocket");
+let env = require("../config/proj_config").env;
+let DEBUG = !(env === "server");
 
-let sysArgs = process.argv.splice(2);
-let DEBUG = !(sysArgs[0] === "server");
-
-let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log/hansy";
-let config = {
-    appenders: {
-        gold: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "gold.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        sliver: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "sliver.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        gift: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "gift.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        mix: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "mix.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        chat: {
-            type: 'file',
-            filename: path.join(loggerFilePath, "chat.log"),
-            maxLogSize: 1024*1024*50,
-            backups: 2,
-        },
-        console: {type: 'console'}
-    },
-    categories: {
-        chat: { appenders: ['console', "chat", "mix"], level: 'ALL'},
-        gold: { appenders: ['console', "gold", "mix", "gift"], level: 'ALL'},
-        sliver: { appenders: ['console', "sliver", "mix", "gift"], level: 'ALL'},
-        default: { appenders: ['console'], level: 'ALL'}
-    }
-};
-log4js.configure(config);
-let chat = log4js.getLogger("chat"),
-    gold = log4js.getLogger("gold"),
-    sliver = log4js.getLogger("sliver");
+let loggers = require("../config/loggers");
+let chat = loggers.chat;
+let gold = loggers.gold;
+let sliver = loggers.sliver;
 
 chat.info("________Start Hansy recorder proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 let USER_ID_TO_NAME = {
@@ -68,14 +23,14 @@ let USER_ID_TO_NAME = {
 
 let HANSY_ROOM_ID = 2516117;
 let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
-let damakusender = require("./utils/danmakusender");
+let damakusender = require("../utils/danmakusender");
 let dmksender = new damakusender.Sender(0, chat);
 let HANSY_MSG_LIST = [
     "📢 小可爱们记得点上关注哟，点个关注不迷路ヽ(✿ﾟ▽ﾟ)ノ",
     "📢 喜欢泡泡的小伙伴，加粉丝群436496941来撩骚呀~",
     "📢 更多好听的原创歌和翻唱作品，网易云音乐搜索「管珩心」~",
     "📢 泡泡的海盗船正在招聘船长~欢迎加入舰队(✿≖ ◡ ≖)✧",
-    "📢 获取「电磁泡」勋章：赠送1个B坷垃，或充电50电池~",
+    "📢 获取「电磁泡」勋章：赠送1个B坷垃/投币20/充电50~",
     "📢 一定要来网易云关注「管珩心」哦，超多高质量单曲等你来听~",
 ];
 let lastActiveUseTimeInHansysRoom = getCurrentTimest() - 120*HANSY_MSG_LIST.length;
