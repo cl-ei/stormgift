@@ -42,6 +42,34 @@ loop = asyncio.get_event_loop()
 objects = Manager(mysql_db, loop=loop)
 
 
+async def get_or_update_user_obj(uid, name, face):
+    _users = await objects.execute(User.select().where(User.uid == uid))
+    if not _users:
+        _users = await objects.execute(User.select().where(User.name == name))
+
+    if _users:
+        user_obj = list(_users)[0]
+        need_update = False
+        update_info = ""
+
+        if user_obj.face != face:
+            update_info += "face update: %s -> %s " % (user_obj.face, face)
+            need_update = True
+            user_obj.face = face
+
+        if user_obj.name != name:
+            update_info += "name update: %s -> %s " % (user_obj.name, name)
+            need_update = True
+            user_obj.name = name
+
+        if need_update:
+            print("User obj uid(%s) %s" % (user_obj.uid, update_info))
+            await objects.update(user_obj)
+    else:
+        user_obj = await objects.create(User, name=name, uid=uid, face=face)
+    return user_obj
+
+
 async def sync_guard_single_rec(redis_conn, k):
     try:
         data = await redis_conn.execute('get', k)
@@ -51,22 +79,7 @@ async def sync_guard_single_rec(redis_conn, k):
 
     user_info = r["sender"]
     k = k.decode("utf-8")
-
-    _users = await objects.execute(User.select().where(User.uid == user_info["uid"]))
-    if _users:
-        user_obj = list(_users)[0]
-        need_update = False
-        if user_obj.face != user_info["face"]:
-            need_update = True
-            user_obj.face = user_info["face"]
-        if user_obj.name != user_info["uname"]:
-            need_update = True
-            user_obj.name = user_info["uname"]
-        if need_update:
-            objects.update(user_obj)
-    else:
-        user_obj = await objects.create(User, name=user_info["uname"], uid=None, face=user_info["face"])
-
+    user_obj = await get_or_update_user_obj(user_info["uid"], user_info["uname"], user_info["face"])
     existed_gift_rec = await objects.execute(GiftRec.select(GiftRec.key).where(GiftRec.key == k))
     if not existed_gift_rec:
         g = await objects.create(GiftRec, **{
