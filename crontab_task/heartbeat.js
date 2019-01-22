@@ -46,7 +46,7 @@ function heartbeat_5m(cookie, index){
         if (err) {
             logging.error(
                 "5m Heartbeat send error! index: %s, e: %s, body: %s",
-                index, err.toString(), body
+                index, err.toString(), res
             );
         }else{
             let r = JSON.parse(body.toString());
