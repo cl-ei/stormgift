@@ -30,7 +30,7 @@ function postLatestTime(cookie, index){
         }else{
             let r = JSON.parse(body.toString());
             if(r.code === 0){
-                // logging.info("postLatestTime Success! index: %d, timest: %s", index, timest);
+                logging.info("postLatestTime Success! index: %d, timest: %s", index, timest);
             }else{
                 logging.error("postLatestTime Error! index: %d, r: %s", index, body.toString());
             }
@@ -51,7 +51,7 @@ function heartbeat_5m(cookie, index){
         }else{
             let r = JSON.parse(body.toString());
             if(r.code === 0){
-                // logging.info("Send Heartbeat Success! index: %d", index);
+                logging.info("Send Heartbeat Success! index: %d", index);
             }else{
                 logging.error("Error happened in 5m, index: %d, r: %s", index, body.toString());
             }
@@ -61,9 +61,12 @@ function heartbeat_5m(cookie, index){
 }
 
 (() => {
-    logging.info("\nStart send heartbeat proc.");
+    logging.info("Start send heartbeat proc.");
     for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
         let c = RAW_COOKIES_LIST[i];
         heartbeat_5m(c, i);
     }
+    setTimeout(() => {
+        logging.info("Finished. \n\n")
+    }, 20000)
 })();
