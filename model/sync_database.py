@@ -1,4 +1,7 @@
 import time
+import os
+import sys
+import logging
 import json
 import aioredis
 import datetime
@@ -6,6 +9,19 @@ import asyncio
 
 import peewee
 from peewee_async import Manager, PooledMySQLDatabase
+
+with open("../config/proj_config.json") as f:
+    ENV = json.load(f)["env"]
+DEBUG = False if ENV == "server" else True
+LOG_PATH = "../log" if DEBUG else "/home/wwwroot/log"
+fh = logging.FileHandler(os.path.join(LOG_PATH, "sync_database.log"), encoding="utf-8")
+fh.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
+logger = logging.getLogger("sync_database")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(fh)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+logging = logger
+
 
 with open("../config/proj_config.json", "rb") as f:
     config = json.loads(f.read().decode("utf-8"))
@@ -71,7 +87,7 @@ class SyncTool(object):
                 user_obj.name = name
 
             if need_update:
-                print("User obj uid(%s) %s" % (user_obj.uid, update_info))
+                logging.info("User obj uid(%s) %s" % (user_obj.uid, update_info))
                 await objects.update(user_obj)
         else:
             user_obj = await objects.create(User, name=name, uid=uid, face=face)
@@ -82,7 +98,7 @@ class SyncTool(object):
         try:
             r = json.loads(data.decode("utf-8"))
         except Exception as e:
-            print("Error in sync_tv_single_rec: %s" % e)
+            logging.error("Error in sync_tv_single_rec: %s" % e)
             return
 
         if k.startswith("_T"):
@@ -126,7 +142,7 @@ class SyncTool(object):
 
         existed_keys = await objects.execute(GiftRec.select(GiftRec.key))
         need_synced_keys = {_.decode("utf-8") for _ in keys} - {_.key for _ in existed_keys}
-        print("Need sync count: %s." % len(need_synced_keys))
+        logging.info("Need sync count: %s." % len(need_synced_keys))
 
         source_info = {}
         pipe = redis.pipeline()
@@ -143,19 +159,18 @@ class SyncTool(object):
 
         need_create_gift_rec = []
         for k, info in source_info.items():
-            print("Proc key: %s" % k)
             param = await cls.proc_single_info(k, info.result())
             if param is not None:
                 need_create_gift_rec.append(param)
 
             if len(need_create_gift_rec) >= 100:
                 r = await objects.execute(GiftRec.insert_many(need_create_gift_rec))
-                print("Bulk create succeed! r: %s" % r)
+                logging.info("Bulk create succeed! r: %s" % r)
                 need_create_gift_rec = []
 
         if need_create_gift_rec:
             r = await objects.execute(GiftRec.insert_many(need_create_gift_rec))
-            print("Bulk create succeed! r: %s" % r)
+            logging.info("Bulk create succeed! r: %s" % r)
 
     @classmethod
     async def run(cls):
