@@ -136,6 +136,7 @@ class SyncTool(object):
             source_info[k] = pipe.get(k)
             if count >= 100:
                 await pipe.execute()
+                pipe = redis.pipeline()
                 count = 0
         if count > 0:
             await pipe.execute()
