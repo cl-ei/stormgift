@@ -1,11 +1,7 @@
 let request = require("request");
-let logger = require("./utils/logger");
-let DEBUG = !(process.argv.splice(2)[0] === "server");
-
-
-let logging = logger.creatLogger('heartbeat', DEBUG ? "./log/" : "/home/wwwroot/log/");
+let logging = require("../config/loggers").heartbeat;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
-let RAW_COOKIES_LIST = require('./data/cookie.js').RAW_COOKIE_LIST;
+let RAW_COOKIES_LIST = require('../data/cookie.js').RAW_COOKIE_LIST;
 
 
 function heartbeat_90s(cookie){
@@ -34,9 +30,9 @@ function postLatestTime(cookie, index){
         }else{
             let r = JSON.parse(body.toString());
             if(r.code === 0){
-                logging.info("postLatestTime Success! index: %d, timest: %s", index, timest);
+                // logging.info("postLatestTime Success! index: %d, timest: %s", index, timest);
             }else{
-                logging.info("postLatestTime Error! index: %d, r: %s", index, body.toString());
+                logging.error("postLatestTime Error! index: %d, r: %s", index, body.toString());
             }
         }
     });
@@ -55,9 +51,9 @@ function heartbeat_5m(cookie, index){
         }else{
             let r = JSON.parse(body.toString());
             if(r.code === 0){
-                logging.info("Send Heartbeat Success! index: %d", index);
+                // logging.info("Send Heartbeat Success! index: %d", index);
             }else{
-                logging.info("Error happened in 5m, index: %d, r: %s", index, body.toString());
+                logging.error("Error happened in 5m, index: %d, r: %s", index, body.toString());
             }
         }
         postLatestTime(cookie, index);
@@ -65,7 +61,7 @@ function heartbeat_5m(cookie, index){
 }
 
 (() => {
-    logging.info("\nStart send heartbeat proc, ENV: %s", DEBUG ? "DEBUG": "SERVER");
+    logging.info("\nStart send heartbeat proc.");
     for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
         let c = RAW_COOKIES_LIST[i];
         heartbeat_5m(c, i);

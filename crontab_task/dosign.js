@@ -1,11 +1,7 @@
 let request = require("request");
-let logger = require("./utils/logger");
-let DEBUG = !(process.argv.splice(2)[0] === "server");
-
-
-let logging = logger.creatLogger('dosign', DEBUG ? "./log/" : "/home/wwwroot/log/");
+let logging = require("../config/loggers").dosign;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
-let RAW_COOKIES_LIST = require('./data/cookie.js').RAW_COOKIE_LIST;
+let RAW_COOKIES_LIST = require('../data/cookie.js').RAW_COOKIE_LIST;
 
 
 let doSign = (cookie, index) => {
@@ -19,7 +15,7 @@ let doSign = (cookie, index) => {
         }else{
             let r = JSON.parse(body.toString());
             if(r.code === 0){
-                logging.info("doSign Success! index: %d, ", index);
+                // logging.info("doSign Success! index: %d, ", index);
             }else{
                 logging.info("doSign Error! index: %d, r: %s", index, body.toString());
             }
@@ -51,7 +47,7 @@ let signGroup = (cookie, index) => {
                         // logging.error("doSign add_num Error! index: %d, add_num: %d, group name: %s", index, add_num, group_name);
                     }
                 }else{
-                    logging.error("doSign Error! index: %d, group name: %s, r: %s", index, group_name, body.toString());
+                    logging.error("JoinGroup Error! index: %d, group name: %s, r: %s", index, group_name, body.toString());
                 }
             }
         });
@@ -71,7 +67,7 @@ let signGroup = (cookie, index) => {
                     joinGroup(groupList[i].group_id, groupList[i].owner_uid, groupList[i].group_name)
                 }
             }else{
-                logging.info("doSign Error! index: %d, r: %s", index, body.toString());
+                logging.error("Get groups to join Error! index: %d, r: %s", index, body.toString());
             }
         }
     });
@@ -109,7 +105,7 @@ let doubleWatchTask = (cookie, index) => {
             if(r.code === 0){
                 logging.info("doubleWatchTask success! index: %s", index)
             }else{
-                logging.info("doubleWatchTask Error! index: %d, r: %s", index, body.toString());
+                // logging.info("doubleWatchTask Error! index: %d, r: %s", index, body.toString());
             }
         }
     });
@@ -142,7 +138,7 @@ let silverToCoin = (cookie, index) => {
             if(index !== 0){return}
             let r = JSON.parse(body.toString());
             if(r.code === 0){
-                logging.info("silverToCoin succeed! sliver: %s", (r.data || {}).silver);
+                // logging.info("silverToCoin succeed! sliver: %s", (r.data || {}).silver);
             }else{
                 logging.error("silverToCoin Failed! r: %s", body.toString());
             }
@@ -152,7 +148,6 @@ let silverToCoin = (cookie, index) => {
 };
 
 (() => {
-    logging.info("Start doSign proc, ENV: %s\n", DEBUG ? "DEBUG": "SERVER");
     for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
         let c = RAW_COOKIES_LIST[i];
         doSign(c, i);
