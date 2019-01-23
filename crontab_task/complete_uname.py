@@ -49,37 +49,31 @@ objects = Manager(mysql_db, loop=loop)
 class SyncTool(object):
     @classmethod
     async def get_or_update_user_obj(cls, uid, name, face):
-        _users = None
-        if uid is not None:
-            _users = await objects.execute(User.select().where(User.uid == uid))
-        if not _users:
-            _users = await objects.execute(User.select().where(User.name == name))
+        if uid is None:
+            users = await objects.execute(User.select().where(User.name == name))
+            if users:
+                return users[0]
+            else:
+                return await objects.create(User, name=name, uid=uid, face=face)
 
-        if _users:
-            user_obj = list(_users)[0]
-            need_update = False
-            update_info = ""
-            if uid is not None and user_obj.uid is None:
-                update_info += "uid update: %s -> %s " % (user_obj.uid, uid)
-                need_update = True
-                user_obj.uid = uid
-
-            if user_obj.face != face:
-                update_info += "face update: %s -> %s " % (user_obj.face, face)
-                need_update = True
-                user_obj.face = face
-
+        users = await objects.execute(User.select().where(User.uid == uid))
+        if users:
+            user_obj = users[0]
             if user_obj.name != name:
-                update_info += "name update: %s -> %s " % (user_obj.name, name)
-                need_update = True
+                logging.info("User obj name update: %s -> %s" % (user_obj.name, name))
                 user_obj.name = name
-
-            if need_update:
-                logging.info("User obj uid(%s) %s" % (user_obj.uid, update_info))
                 await objects.update(user_obj)
+            return user_obj
         else:
-            user_obj = await objects.create(User, name=name, uid=uid, face=face)
-        return user_obj
+            users = await objects.execute(User.select().where(User.name == name))
+            if users:
+                user_obj = users[0]
+                user_obj.uid = uid
+                logging.info("User obj(%s) uid update: %s -> %s" % (name, user_obj.uid, uid))
+                await objects.update(user_obj)
+                return user_obj
+            else:
+                return await objects.create(User, name=name, uid=uid, face=face)
 
     @classmethod
     async def get_user_id(cls, name):
@@ -122,33 +116,27 @@ class SyncTool(object):
         user_objs = await objects.execute(User.select().where((User.uid == None) & (User.info == None)))
         logging.info("Need update user objs: %s" % len(user_objs))
 
-        searched_result = {}
-        for user_obj in user_objs[:100]:
+        for user_obj in user_objs:
             uid = await cls.get_user_id(user_obj.name)
-            if uid:
-                searched_result[uid] = user_obj
+            if not uid:
+                user_obj.info = "cannotupdate_%s" % uid
+                await objects.update(user_obj)
+                logging.info("Can not find: %s" % user_obj.name)
+                continue
 
-        existed_user_obj = await objects.execute(User.select().where(User.uid.in_(list(searched_result))))
-        existed_map = {u.uid: u for u in existed_user_obj}
-        for uid, user_obj in searched_result.items():
-            if uid in existed_map:
-                null_uid_obj = user_obj
-                existed_obj = existed_map[uid]
-                print("id: %s %s " % (null_uid_obj.id, existed_obj.id))
-            # if existed:
-            #     existed = existed[0]
-            #     logging.info(
-            #         "User Duplicate, rec id: %s, need updated id: %s"
-            #         % (existed.id, user_obj.id)
-            #     )
-            #
-            #     # user_obj.info = "duplicate_searched_%s_rec_%s" % (uid, existed.uid)
-            #     # await objects.update(user_obj)
-            # elif uid:
-            #     # user_obj.uid = uid
-            #     # user_obj.info = "checked_%s" % time.time()
-            #     # await objects.update(user_obj)
-            #     logging.info("Update uid: %s -> name: %s" % (uid, user_obj.name))
+            existed_objs = await objects.execute(User.select().where(User.uid == uid))
+            if existed_objs:
+                existed_obj = existed_objs[0]
+                old_name = user_obj.name
+                user_obj.name = existed_obj.name
+                user_obj.info = "Duplicate_%s" % existed_obj.id
+                await objects.update(user_obj)
+                logging.info("Duplicate! %s -> %s" % (old_name, user_obj.name))
+            else:
+                user_obj.uid = uid
+                user_obj.info = "checked_%s" % time.time()
+                await objects.update(user_obj)
+                logging.info("Update uid: %s -> name: %s" % (uid, user_obj.name))
 
     @classmethod
     async def run(cls):
