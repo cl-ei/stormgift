@@ -177,6 +177,7 @@ class SyncTool(object):
 
     @classmethod
     async def run(cls):
+        start_time = time.time()
         await objects.connect()
         redis = await aioredis.create_redis(
             address='redis://%s:%s' % (redis_config["host"], redis_config["port"]),
@@ -189,6 +190,7 @@ class SyncTool(object):
         redis.close()
         await redis.wait_closed()
         await objects.close()
+        logging.info("Execute finished, cost: %s.\n\n" % (time.time() - start_time))
 
 
 loop.run_until_complete(SyncTool.run())
