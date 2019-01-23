@@ -11,7 +11,7 @@ import peewee
 from peewee_async import Manager, PooledMySQLDatabase
 
 
-if os.environ.get("ENV") == "server":
+if sys.platform == "linux":
     CONFIG_FILE = "/home/wwwroot/stormgift/config/proj_config.json"
     LOG_PATH = "/home/wwwroot/log"
 else:
