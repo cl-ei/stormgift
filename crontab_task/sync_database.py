@@ -10,9 +10,9 @@ import asyncio
 import peewee
 from peewee_async import Manager, PooledMySQLDatabase
 
-WORK_DIR = "/home/wwwroot/stormgift/crontab_task"
+
 if os.environ.get("ENV") == "server":
-    os.chdir(WORK_DIR)
+    os.chdir("/home/wwwroot/stormgift")
     LOG_PATH = "/home/wwwroot/log"
 else:
     os.chdir("../")
