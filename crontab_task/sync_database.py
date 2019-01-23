@@ -10,10 +10,13 @@ import asyncio
 import peewee
 from peewee_async import Manager, PooledMySQLDatabase
 
-with open("../config/proj_config.json") as f:
-    ENV = json.load(f)["env"]
-DEBUG = False if ENV == "server" else True
-LOG_PATH = "../log" if DEBUG else "/home/wwwroot/log"
+WORK_DIR = "/home/wwwroot/stormgift/crontab_task"
+if os.environ.get("ENV") == "server":
+    os.chdir(WORK_DIR)
+    LOG_PATH = "/home/wwwroot/log"
+else:
+    os.chdir("../")
+    LOG_PATH = "./log"
 fh = logging.FileHandler(os.path.join(LOG_PATH, "sync_database.log"), encoding="utf-8")
 fh.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
 logger = logging.getLogger("sync_database")
@@ -23,7 +26,7 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 logging = logger
 
 
-with open("../config/proj_config.json", "rb") as f:
+with open("./config/proj_config.json", "rb") as f:
     config = json.loads(f.read().decode("utf-8"))
     mysql_config = config.get("mysql")
     redis_config = config.get("redis")
