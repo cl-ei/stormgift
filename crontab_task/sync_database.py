@@ -37,6 +37,7 @@ class User(peewee.Model):
     name = peewee.CharField()
     uid = peewee.IntegerField(unique=True, null=True, )
     face = peewee.CharField()
+    info = peewee.CharField()
 
     class Meta:
         database = mysql_db
