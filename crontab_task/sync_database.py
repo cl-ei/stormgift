@@ -12,11 +12,11 @@ from peewee_async import Manager, PooledMySQLDatabase
 
 
 if os.environ.get("ENV") == "server":
-    os.chdir("/home/wwwroot/stormgift")
+    CONFIG_FILE = "/home/wwwroot/stormgift/config/proj_config.json"
     LOG_PATH = "/home/wwwroot/log"
 else:
-    os.chdir("../")
-    LOG_PATH = "./log"
+    CONFIG_FILE = "../config/proj_config.json"
+    LOG_PATH = "../log"
 fh = logging.FileHandler(os.path.join(LOG_PATH, "sync_database.log"), encoding="utf-8")
 fh.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
 logger = logging.getLogger("sync_database")
@@ -26,7 +26,7 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 logging = logger
 
 
-with open("./config/proj_config.json", "rb") as f:
+with open(CONFIG_FILE, "rb") as f:
     config = json.loads(f.read().decode("utf-8"))
     mysql_config = config.get("mysql")
     redis_config = config.get("redis")
