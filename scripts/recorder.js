@@ -166,7 +166,7 @@ let DataAccess = {
                 }
                 logging.info(
                     "Gift recorded, giftrec id: %s, room_id: %s, gift_type: %s, sender name: %s, uid: %s",
-                    rows.insertId, values.gift_id, values.gift_type, name, sender_id
+                    rows.insertId, values.room_id, values.gift_type, name, sender_id
                 );
             });
         };
