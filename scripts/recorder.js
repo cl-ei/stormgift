@@ -168,6 +168,22 @@ let DataAccess = {
             });
         };
         DataAccess.getUser(uid, name, face, saveGift);
+    },
+    checkIfGiftExisted: (key, Fn) => {
+        if (DataAccess.connection === undefined){
+            setTimeout(() => {DataAccess.checkIfGiftExisted(key, Fn)}, 500);
+            return;
+        }
+        let sql = "select * from giftrec where `key` = ? limit 1";
+        DataAccess.connection.query(sql, [key], (err, rows, fields) => {
+            if (err) {
+                let msg = "Mysql query error in checkIfGiftExisted! e: %s" + err;
+                logging.error(msg);
+                Fn(msg, false);
+                return ;
+            }
+            Fn(undefined, rows && rows.length > 0);
+        });
     }
 };
 
@@ -523,5 +539,117 @@ let Receiver = {
     }
 };
 
+
+let GuardListener = {
+    GUARD_ROOM_ID_LIST: [],
+    GET_GID_DISPATCHER_TASK_ID: 0,
+
+    getSingleGid: (room_id) => {
+        let reqParam = {
+            url: "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=" + room_id,
+            method: "get",
+            headers: {"User-Agent": UA},
+            timeout: 20000,
+        },
+        cbFn = (err, res, body) => {
+            if (err) {
+                logging.error("Get guard gift id error: %s, room_id: %s", err.toString(), room_id);
+                return;
+            }
+            let r = {"-": "-"};
+            try {
+                r = JSON.parse(body.toString());
+            } catch (e) {
+                logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
+                return;
+            }
+            if (r.code !== 0) {return}
+
+            let gidlist = r.data || [];
+            for (let i = 0; i < gidlist.length; i++) {
+                let giftInfo = gidlist[i];
+                giftInfo.created_time = getLocalTimeStr();
+
+                let gift_id = parseInt(giftInfo.id) || 0;
+                let k = "NG" + room_id + "$" + gift_id;
+
+                DataAccess.checkIfGiftExisted(k, (e, result) => {
+                    if(e){
+                        logging.error("Error happened in checkIfGiftExisted: %s", e);
+                        return;
+                    }
+                    if(result){
+                        logging.warn("Gift already existed! room_id: %s, gift id: %s", room_id, gift_id);
+                    }else{
+                        let uid = giftInfo.sender.uid;
+                        let name = giftInfo.sender.uname;
+                        let face = giftInfo.sender.face;
+                        let gift_creation_valuse = {
+                            key: k,
+                            room_id: room_id,
+                            gift_id: gift_id,
+                            gift_name: "guard",
+                            gift_type: "G" + giftInfo.privilege_type,
+                            sender_type: null,
+                            created_time: giftInfo.created_time,
+                            status: giftInfo.status,
+                        };
+                        logging.info("create: name: %s, uid: %s, gift_id: %s", name, uid, gift_id);
+                        DataAccess.createGiftRec(uid, name, face, gift_creation_valuse);
+                    }
+                });
+            }
+        };
+        logging.info("Send getting guard gift id request, room_id: %s", room_id);
+        request(reqParam, cbFn);
+    },
+    getGidDispatcher: () => {
+        let room_id = GuardListener.GUARD_ROOM_ID_LIST.shift();
+        if(GuardListener.GUARD_ROOM_ID_LIST.length === 0 && GuardListener.GET_GID_DISPATCHER_TASK_ID !== 0){
+            clearInterval(GuardListener.GET_GID_DISPATCHER_TASK_ID);
+            GuardListener.GET_GID_DISPATCHER_TASK_ID = 0;
+        }
+        GuardListener.getSingleGid(room_id);
+    },
+    getGuardList: () => {
+        request({
+            url: "https://dmagent.chinanorth.cloudapp.chinacloudapi.cn:23333/Governors/View",
+            method: "get",
+            headers: {"User-Agent": UA},
+            timeout: 10000,
+        },function (err, res, body) {
+            if(err){
+                logging.error("Error happened: %s, r: %s", err.toString(), body.toString());
+                return;
+            }
+            let response = body.toString();
+            if (response.indexOf("提督列表") < 0 || response.indexOf("舰长列表") < 0){
+                logging.error("Response data error! r: %s", body.toString());
+                return;
+            }
+
+            let totallist = response.match(/live.bilibili.com\/(\d+)/g) || [];
+            logging.info("Get guard list success, length: %s.", totallist.length);
+
+            for (let i = 0; i < totallist.length; i++){
+                let url = totallist[i];
+                let room_id = parseInt(url.match(/\d+/g)[0]);
+                if(GuardListener.GUARD_ROOM_ID_LIST.indexOf(room_id) < 0){
+                    GuardListener.GUARD_ROOM_ID_LIST.push(room_id);
+                }
+            }
+            if (GuardListener.GUARD_ROOM_ID_LIST.length > 0 && GuardListener.GET_GID_DISPATCHER_TASK_ID === 0){
+                GuardListener.GET_GID_DISPATCHER_TASK_ID = setInterval(GuardListener.getGidDispatcher, 250);
+            }
+        })
+    },
+    init: () => {
+        setInterval(GuardListener.getGuardList, 5*60*1000);
+        GuardListener.getGuardList();
+    },
+};
+
+
 DataAccess.init();
 Receiver.init();
+GuardListener.init();
