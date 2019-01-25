@@ -171,8 +171,6 @@ let DataAccess = {
     }
 };
 
-DataAccess.init();
-
 let UidAcquirer = {
     __ADMIN_WAY_LOCK: null,
     __getCookieCsrfTokenAnchorid: () => {
@@ -367,17 +365,178 @@ let UidAcquirer = {
     }
 };
 
-let cb = (e, uid) => {
-    if (e){
-        console.log("Error in getUidByName: %s", e);
-        return;
+
+let Parser = {
+    cookieDictList: [],
+
+    __ROOM_ID_POOL: [],
+    __getTVGiftIdTask: 0,
+
+    __INVALID_PRIZE_POOL: [],
+    __checkGiftAvailable: (k) => {
+        let r = Parser.__INVALID_PRIZE_POOL.indexOf(k) < 0;
+        if(r){
+            Parser.__INVALID_PRIZE_POOL.push(k);
+            while(Parser.__INVALID_PRIZE_POOL.length > 2000){
+                Parser.__INVALID_PRIZE_POOL.shift();
+            }
+        }
+        return r;
+    },
+    parse: (room_id) => {
+        if (Parser.__ROOM_ID_POOL.indexOf(room_id) < 0) {
+            Parser.__ROOM_ID_POOL.push(room_id);
+            if (Parser.__getTVGiftIdTask === 0) {
+                Parser.__getTVGiftIdTask = setInterval(Parser.__getTVGiftId, 1000);
+            }
+        }
+    },
+    __getTVGiftId: () => {
+        let room_id = Parser.__ROOM_ID_POOL.shift();
+        if(Parser.__ROOM_ID_POOL.length === 0 && Parser.__getTVGiftIdTask !== 0){
+            clearInterval(Parser.__getTVGiftIdTask);
+            Parser.__getTVGiftIdTask = 0;
+        }
+
+        let reqParam = {
+            url: "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=" + room_id,
+            method: "get",
+            headers: {"User-Agent": UA},
+            timeout: 20000,
+        },
+        cbFn = (err, res, body) => {
+            if (err) {
+                logging.error("Get tv gift id error: %s, room_id: %s", err.toString(), room_id);
+                return;
+            }
+            let r = {"-": "-"};
+            try {
+                r = JSON.parse(body.toString());
+            } catch (e) {
+                logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
+                return;
+            }
+            if (r.code !== 0) {return}
+            logging.info("Response: %s", JSON.stringify(r));
+
+            let gidlist = (r.data || {}).list || [];
+
+            let procDist = {};
+            for (let i = 0; i < gidlist.length; i++) {
+                let gidObject = gidlist[i];
+
+                let gift_id = parseInt(gidObject.raffleId) || 0;
+                let key = "_T" + room_id + "$" + gift_id;
+                if (Parser.__checkGiftAvailable(key)){
+                    gidObject.room_id = room_id;
+                    gidObject.created_time = getLocalTimeStr();
+
+                    let username = gidObject.from;
+                    if (username in procDist){
+                        procDist[username].push(gidObject)
+                    }else{
+                        procDist[username] = [gidObject]
+                    }
+                }
+            }
+            let usernames = Object.keys(procDist);
+            for(let i = 0; i < usernames.length; i++){
+                let name = usernames[i];
+                setTimeout(() => {Parser.__recoredByUser(name, procDist[name])}, 500*(i+1));
+            }
+        };
+        request(reqParam, cbFn);
+    },
+    __recoredByUser: (name, giftList) => {
+        logging.debug("__recoredSingle: %s", JSON.stringify(giftList));
+
+        let callback = (e, uid) => {
+            if(e){
+                logging.error("Cannot get uid by name: %s, e: %s", name, e);
+                uid = null;
+            }
+            for (let i = 0; i < giftList.length; i++){
+                let info = giftList[i];
+
+                let face = info.from_user.face;
+                let room_id = info.room_id;
+                let gift_id = info.raffleId;
+                let gift_creation_valuse = {
+                    key: "_T" + room_id + "$" + gift_id,
+                    room_id: room_id,
+                    gift_id: gift_id,
+                    gift_name: info.title,
+                    gift_type: info.type,
+                    sender_type: info.sender_type,
+                    created_time: info.created_time,
+                    status: info.status,
+                };
+                logging.info("create: name: %s, uid: %s, gift_id: %s", name, uid, gift_id);
+                DataAccess.createGiftRec(uid, name, face, gift_creation_valuse);
+            }
+        };
+        UidAcquirer.getUidByName(name, callback);
     }
-    console.log("Get uid by name, uid: %s", uid);
 };
 
-UidAcquirer.getUidByName("账号已删除1502", cb);
-UidAcquirer.getUidByName("ss2", cb);
-UidAcquirer.getUidByName("账号已删除", cb);
+
+let Receiver = {
+    connectToNoticeServer: () => {
+        let W3CWebSocket = require('websocket').w3cwebsocket;
+        let client = new W3CWebSocket(env === "server" ? "ws://127.0.0.1:11112" : "ws://129.204.43.2:11112");
+        client.onerror = () => {
+            logging.error("Connection to notice server error! Try reconnect...");
+            client.onclose = undefined;
+            setTimeout(Receiver.connectToNoticeServer, 500);
+        };
+        client.onopen = () => {
+            logging.info("Receiver started.");
+            function sendHeartBeat() {
+                if (client.readyState === client.OPEN){
+                    client.send("HEARTBEAT");
+                    setTimeout(sendHeartBeat, 10000);
+                }
+            }
+            sendHeartBeat();
+        };
+        client.onclose = () => {
+            logging.error("ConnectToNoticeServer closed! Try reconnect...");
+            setTimeout(Receiver.connectToNoticeServer, 500);
+        };
+        client.onmessage = (e) => {
+            let mList = e.data.match(/(_T|_G|XG|_S|NG)\d{2,}\$?\d+/g) || [];
+            for(let i = 0; i < mList.length; i++){
+                let msg = mList[i];
+                let source = msg[0];
+                let giftType = msg[1];
+                let msgBody = msg.slice(2);
+                if(giftType === "T"){
+                    let room_id = parseInt(msgBody);
+                    logging.info("Receiver: Gift: %s, room_id: %s", giftType, room_id);
+                    Parser.parse(room_id);
+                }
+            }
+        };
+    },
+    init: () => {
+        Receiver.connectToNoticeServer();
+    }
+};
+
+DataAccess.init();
+Receiver.init();
+//
+// let cb = (e, uid) => {
+//     if (e){
+//         console.log("Error in getUidByName: %s", e);
+//         return;
+//     }
+//     console.log("Get uid by name, uid: %s", uid);
+// };
+//
+// UidAcquirer.getUidByName("账号已删除1502", cb);
+// UidAcquirer.getUidByName("ss2", cb);
+// UidAcquirer.getUidByName("账号已删除", cb);
 
 // DataAccess.createGiftRec(111133335, "亻白亻二丶23", "", {
 //         key: "_T999120$11111",
