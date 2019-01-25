@@ -108,8 +108,7 @@ let GuardListener = {
 
                 let gift_id = parseInt(postdata.id) || 0;
                 let k = "NG" + room_id + "$" + gift_id;
-                let postdataStr = JSON.stringify(postdata);
-                DataAccess.nonRepetitiveExecute(k, postdataStr, () => {NoticeSender.sendMsg(k)});
+                DataAccess.nonRepetitiveExecute(k, () => {NoticeSender.sendMsg(k)});
             }
         };
         logging.info("Send getting guard gift id request, room_id: %s", room_id);
