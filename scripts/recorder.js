@@ -1,4 +1,5 @@
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
+let request = require("request");
 let proj_config = require("../config/proj_config");
 let env = proj_config.env;
 
@@ -172,15 +173,220 @@ let DataAccess = {
 
 DataAccess.init();
 
+let UidAcquirer = {
+    __ADMIN_WAY_LOCK: null,
+    __getCookieCsrfTokenAnchorid: () => {
+        let cookie_filename = '../data/cookie.js';
+        let cookie = require(cookie_filename).RAW_COOKIE_LIST[0];
 
-DataAccess.createGiftRec(111133335, "亻白亻二丶23", "", {
-        key: "_T999120$11111",
-        room_id: 999120,
-        gift_id: 11111,
-        gift_name: "test",
-        gift_type: "test_type",
-        sender_type: null,
-        created_time: getLocalTimeStr(),
-        status: 0,
+        let cookie_kv = cookie.split(";");
+        let csrf_token = "";
+        for (let i = 0; i < cookie_kv.length; i++){
+            let kvstr = cookie_kv[i];
+            if (kvstr.indexOf("bili_jct") > -1){
+                csrf_token = kvstr.split("=")[1].trim();
+                break;
+            }
+        }
+
+        let anchor_id = 0;
+        for (let i = 0; i < cookie_kv.length; i++){
+            let kvstr = cookie_kv[i];
+            if (kvstr.indexOf("DedeUserID") > -1){
+                anchor_id = parseInt(kvstr.split("=")[1].trim());
+                break;
+            }
+        }
+        return [cookie, csrf_token, anchor_id];
+    },
+    ___getByAdminList_delAdminList: (name, Fn, cookie, csrf_token, anchor_id, uid) => {
+        let delAdminReqParam = {
+            url: "https://api.live.bilibili.com/xlive/app-ucenter/v1/roomAdmin/dismiss",
+            method: "post",
+            headers: {"User-Agent": UA, "Cookie": cookie},
+            form: {
+                uid: uid,
+                csrf_token: csrf_token,
+                csrf: csrf_token,
+                visit_id: ""
+            },
+            timeout: 20000,
+        };
+        let onResponse = (err, res, body) => {
+            if (err) {
+                logging.error("Add admin error! e: %s", err.toString());
+            }
+            Fn();
+        };
+        request(delAdminReqParam, onResponse);
+    },
+    ___getByAdminList_getAdminList: (name, Fn, cookie, csrf_token, anchor_id) => {
+        let reqParam = {
+            url: "https://api.live.bilibili.com/xlive/app-ucenter/v1/roomAdmin/get_by_anchor?page=1",
+            method: "get",
+            headers: {"User-Agent": UA, "Cookie": cookie},
+            timeout: 20000,
+        };
+        let onResponse = (err, res, body) => {
+            if (err) {
+                logging.error("read adminList error! e: %s", err.toString());
+                UidAcquirer.__ADMIN_WAY_LOCK = null;
+                Fn("Cannot read admin list!", null);
+                return;
+            }
+            let r = {"-": "-"};
+            try {
+                r = JSON.parse(body.toString());
+            } catch (e) {
+                logging.error(
+                    "Error response JSON, in ___getByAdminList_getAdminList. e: %s, body:\n-------\n%s\n\n",
+                    e.toString(), body
+                );
+
+                UidAcquirer.__ADMIN_WAY_LOCK = null;
+                Fn("Error response JSON in ___getByAdminList_getAdminList!", null);
+                return;
+            }
+
+            let result = (r.data || {}).data || [];
+            let uid = null;
+            for (let i = 0; i < result.length; i++){
+                if (result[i].uname === name){
+                    uid = result[i].uid;
+                    break;
+                }
+            }
+            if(uid === null) {
+                UidAcquirer.__ADMIN_WAY_LOCK = null;
+                Fn("Cannot add admin for user: " + name + ", msg: " + r.message, null)
+            }else{
+                let callback = () => {
+                    UidAcquirer.__ADMIN_WAY_LOCK = null;
+                    Fn(undefined, uid);
+                };
+                UidAcquirer.___getByAdminList_delAdminList(name, callback, cookie, csrf_token, anchor_id, uid);
+            }
+        };
+        request(reqParam, onResponse);
+    },
+    _getByAdminList: (name, Fn) => {
+        let current = new Date().valueOf();
+        if (UidAcquirer.__ADMIN_WAY_LOCK === null){
+            UidAcquirer.__ADMIN_WAY_LOCK = current;
+        }else{
+            let lockTime = current - UidAcquirer.__ADMIN_WAY_LOCK;
+            if(lockTime < 30*1000){
+                logging.warn("_getByAdminList on locking! lockTime: %s", lockTime);
+                setTimeout(() => {UidAcquirer._getByAdminList(name, Fn)}, 1000);
+                return;
+            }
+            logging.info("Lock time too long. now open it. lockTime: %s", lockTime);
+            UidAcquirer.__ADMIN_WAY_LOCK = current;
+        }
+
+        let cca = UidAcquirer.__getCookieCsrfTokenAnchorid();
+        let cookie = cca[0] || "";
+        let csrf_token = cca[1] || "";
+        let anchor_id = cca[2] || 0;
+        if(cookie.length < 5 || csrf_token.length < 5 || !anchor_id){
+            logging.error("When get uid by admin list find an error cookie!");
+
+            UidAcquirer.__ADMIN_WAY_LOCK = null;
+            Fn("Error cookie", null);
+            return;
+        }
+        let addAdminReqParam = {
+            url: "https://api.live.bilibili.com/live_user/v1/RoomAdmin/add",
+            method: "post",
+            headers: {"User-Agent": UA, "Cookie": cookie},
+            form: {
+                admin: name,
+                anchor_id: anchor_id,
+                csrf_token: csrf_token,
+                csrf: csrf_token,
+                visit_id: ""
+            },
+            timeout: 20000,
+        };
+        let onAddAdminResponse = (err, res, body) => {
+            if (err) {
+                logging.error("Add admin error! e: %s", err.toString());
+            }
+            UidAcquirer.___getByAdminList_getAdminList(name, Fn, cookie, csrf_token, anchor_id);
+        };
+        request(addAdminReqParam, onAddAdminResponse);
+    },
+    _getBySearch: (name, Fn) => {
+        let reqParam = {
+            url: encodeURI(
+                "https://api.bilibili.com/x/web-interface/search/type?search_type=bili_user&keyword=" + name
+            ),
+            method: "get",
+            headers: {"User-Agent": UA},
+            timeout: 20000,
+        };
+        let onResponse = (err, res, body) => {
+            if (err) {
+                logging.error("Get User by name response Error, try other way. name: %s, e: %s", name, err.toString());
+                UidAcquirer._getByAdminList(name, Fn);
+                return;
+            }
+            let r = {"-": "-"};
+            try {
+                r = JSON.parse(body.toString());
+            } catch (e) {
+                logging.error("Error response JSON, try other way. e: %s, body:\n-------\n%s\n\n", e.toString(), body);
+                UidAcquirer._getByAdminList(name, Fn);
+                return;
+            }
+            if (r.code !== 0) {
+                logging.error("Response code is not 0. try other way. code: %s, info: %s", r.code, r.message);
+                UidAcquirer._getByAdminList(name, Fn);
+                return;
+            }
+            let ulist = (r.data || {}).result || [];
+            let uid = null;
+            for (let i = 0; i < ulist.length; i++){
+                if(ulist[i].uname === name){
+                    uid = ulist[i].mid;
+                    break;
+                }
+            }
+            if (uid){
+                logging.info("Uid obtained by search way, name: %s, uid: %s", name, uid);
+                Fn(undefined, uid);
+                return;
+            }
+            logging.warn("Uid can not get by search way, try other way. name: %s, uid: %s", name, uid);
+            UidAcquirer._getByAdminList(name, Fn);
+        };
+        request(reqParam, onResponse);
+    },
+    getUidByName: (name, Fn) => {
+        UidAcquirer._getBySearch(name, Fn)
     }
-);
+};
+
+let cb = (e, uid) => {
+    if (e){
+        console.log("Error in getUidByName: %s", e);
+        return;
+    }
+    console.log("Get uid by name, uid: %s", uid);
+};
+
+UidAcquirer.getUidByName("账号已删除1502", cb);
+UidAcquirer.getUidByName("ss2", cb);
+UidAcquirer.getUidByName("账号已删除", cb);
+
+// DataAccess.createGiftRec(111133335, "亻白亻二丶23", "", {
+//         key: "_T999120$11111",
+//         room_id: 999120,
+//         gift_id: 11111,
+//         gift_name: "test",
+//         gift_type: "test_type",
+//         sender_type: null,
+//         created_time: getLocalTimeStr(),
+//         status: 0,
+//     }
+// );
