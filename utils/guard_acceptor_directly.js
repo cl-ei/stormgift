@@ -7,25 +7,23 @@ let guard_logging = loggers.apz_guard;
 let other_users_logging = loggers.apz_other_users;
 
 let Acceptor = {
-    cookieDictList: [],
-
     __GIFT_ID_POOL: [],
     __getGIDTask: 0,
     __joinDispatcherTask: 0,
 
-    init: (cookieDict) => {
-        Acceptor.cookieDictList = cookieDict;
-    },
-    accept: (k) => {
+    accept: (k, cookieDict) => {
         if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0) {
             Acceptor.__GIFT_ID_POOL.push(k);
         }
         if (Acceptor.__GIFT_ID_POOL.length > 0 && Acceptor.__joinDispatcherTask === 0){
-            Acceptor.__joinDispatcherTask = setInterval(Acceptor.__joinDispatcher, 200);
+            Acceptor.__joinDispatcherTask = setInterval(
+                () => {Acceptor.__joinDispatcher(cookieDict)},
+                200
+            );
             acceptor_logging.info("GUARD: Start __joinDispatcher task.");
         }
     },
-    __joinDispatcher: () => {
+    __joinDispatcher: (cookieDictList) => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
         acceptor_logging.info("GUARD: Dispatch: %s", k);
 
@@ -39,16 +37,16 @@ let Acceptor = {
         let room_id = parseInt(rg[0]),
             gift_id = parseInt(rg[1]);
 
-        for(let i = 0; i < Acceptor.cookieDictList.length; i++){
+        for(let i = 0; i < cookieDictList.length; i++){
             setTimeout(
-                () => {Acceptor.__joinGuardSingle(i, room_id, gift_id)},
+                () => {Acceptor.__joinGuardSingle(i, room_id, gift_id, cookieDictList)},
                 300*(i + 1)
             );
         }
     },
-    __joinGuardSingle: (index, room_id, gift_id) => {
-        let csrf_token = Acceptor.cookieDictList[index].csrf_token,
-            cookie = Acceptor.cookieDictList[index].cookie;
+    __joinGuardSingle: (index, room_id, gift_id, cookieDictList) => {
+        let csrf_token = cookieDictList[index].csrf_token,
+            cookie = cookieDictList[index].cookie;
 
         let reqParam = {
             url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",

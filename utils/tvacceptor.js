@@ -15,19 +15,19 @@ let Acceptor = {
     __joinTVDispatcherTask: 0,
 
     __INVALID_PRIZE_POOL: [],
-    init: (cookieDict) => {
-        Acceptor.cookieDictList = cookieDict;
-    },
-    accept: (room_id) => {
+    accept: (room_id, cookieDictList) => {
         if (Acceptor.__ROOM_ID_POOL.indexOf(room_id) < 0) {
             Acceptor.__ROOM_ID_POOL.push(room_id);
             if (Acceptor.__getTVGiftIdTask === 0) {
-                Acceptor.__getTVGiftIdTask = setInterval(Acceptor.__getTVGiftId, 1000);
+                Acceptor.__getTVGiftIdTask = setInterval(
+                    () => {Acceptor.__getTVGiftId(cookieDictList)},
+                    1000
+                );
                 acceptor_logging.info("Start __getTVGiftId task, task id: %s.", Acceptor.__getTVGiftIdTask);
             }
         }
     },
-    __getTVGiftId: () => {
+    __getTVGiftId: (cookieDictList) => {
         let room_id = Acceptor.__ROOM_ID_POOL.shift();
         acceptor_logging.info("getTVGiftId search room: %s", room_id);
         if(Acceptor.__ROOM_ID_POOL.length === 0 && Acceptor.__getTVGiftIdTask !== 0){
@@ -36,7 +36,7 @@ let Acceptor = {
             acceptor_logging.info("Kill __getTVGiftId task. Last proc room_id: %s.", room_id);
         }
 
-        let default_cookie = Acceptor.cookieDictList[0].cookie;
+        let default_cookie = cookieDictList[0].cookie;
         let reqParam = {
             url: "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=" + room_id,
             method: "get",
@@ -59,7 +59,6 @@ let Acceptor = {
 
             let data = r.data || {};
             let gidlist = data.list || [];
-            if (gidlist.length === 0) {acceptor_logging.warn("INVALID_TV_NOTICE, CANNOT JOIN -> %s", room_id)}
 
             for (let i = 0; i < gidlist.length; i++) {
                 let gift_id = parseInt(gidlist[i].raffleId) || 0,
@@ -70,7 +69,10 @@ let Acceptor = {
                 if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0 && Acceptor.__checkGiftAvailable(k)){
                     Acceptor.__GIFT_ID_POOL.push(k);
                     if (Acceptor.__joinTVDispatcherTask === 0){
-                        Acceptor.__joinTVDispatcherTask = setInterval(Acceptor.__joinTVDispatcher, 200);
+                        Acceptor.__joinTVDispatcherTask = setInterval(
+                            () => {Acceptor.__joinTVDispatcher(cookieDictList)},
+                            200
+                        );
                         acceptor_logging.info(
                             "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVDispatcherTask
                         );
@@ -81,7 +83,7 @@ let Acceptor = {
         acceptor_logging.info("\tSEND GET TVGIFTID REQ, room_id: %s", room_id);
         request(reqParam, cbFn);
     },
-    __joinTVDispatcher: () => {
+    __joinTVDispatcher: (cookieDictList) => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
         acceptor_logging.info("Dispatch: %s", k);
         if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinTVDispatcherTask !== 0){
@@ -98,7 +100,7 @@ let Acceptor = {
             gift_id = parseInt(rg[1]),
             title = rg[2],
             from = rg[3];
-        Acceptor.__joinTVSingle(0, room_id, gift_id, title, from);
+        Acceptor.__joinTVSingle(0, room_id, gift_id, title, from, cookieDictList);
 
         let datetime = new Date();
         let hours = datetime.getHours();
@@ -106,15 +108,15 @@ let Acceptor = {
         for(let i = 1; i < Acceptor.cookieDictList.length; i++){
             if((limitFreq && Math.random() < 0.9) || (!limitFreq)){
                 setTimeout(
-                    () => {Acceptor.__joinTVSingle(i, room_id, gift_id, title, from)},
+                    () => {Acceptor.__joinTVSingle(i, room_id, gift_id, title, from, cookieDictList)},
                     Math.random()*1000*70
                 );
             }
         }
     },
-    __joinTVSingle: (index, room_id, gift_id, title, from) => {
-        let csrf_token = Acceptor.cookieDictList[index].csrf_token,
-            cookie = Acceptor.cookieDictList[index].cookie;
+    __joinTVSingle: (index, room_id, gift_id, title, from, cookieDictList) => {
+        let csrf_token = cookieDictList[index].csrf_token,
+            cookie = cookieDictList[index].cookie;
         let logging = (index === 0 ? tv_logging : other_users_logging);
 
         let reqParam = {

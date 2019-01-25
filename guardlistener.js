@@ -9,26 +9,18 @@ let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KH
 
 let DataAccess = {
     redis_client: undefined,
-    nonRepetitiveExecute: (key, data, cbFn) => {
-        if (DataAccess.redis_client === undefined){return}
-
-        DataAccess.redis_client.get(key, (e, d) => {
-            if(e !== null){
-                logging.error("Error happened when get k: %s", key);
+    nonRepetitiveExecute: (key, cbFn) => {
+        if (DataAccess.redis_client === undefined){
+            setTimeout(() => {DataAccess.nonRepetitiveExecute(key, cbFn)}, 500);
+            return;
+        }
+        DataAccess.redis_client.set(key, true, "ex", 3600*24, "nx", (e, d) => {
+            if(e){
+                logging.error("Redis set error! %s", e);
+                cbFn();
                 return;
             }
-            if(d === null){
-                DataAccess.redis_client.set(key, data, (e, reason) => {
-                    if(e !== null){
-                        logging.error(
-                            "Error happened when set, e: %s, k: %s, data: %s, reason: %s.",
-                            e.toString(), key, data, reason
-                        );
-                    }else{
-                        cbFn();
-                    }
-                });
-            }
+            if(d){cbFn()}
         });
     },
     init: () => {

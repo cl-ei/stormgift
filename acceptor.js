@@ -4,25 +4,29 @@ let logging = require("./config/loggers").acceptor;
 logging.info("Start acceptor proc.");
 
 
-let cookie_filename = './data/cookie.js';
-let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST,
-    COOKIE_DICT_LIST = [];
-for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
-    let cookie = RAW_COOKIES_LIST[i];
-    let cookie_kv = cookie.split(";");
-    let csrf_token = "";
-    for (let i = 0; i < cookie_kv.length; i++){
-        let kvstr = cookie_kv[i];
-        if (kvstr.indexOf("bili_jct") > -1){
-            csrf_token = kvstr.split("=")[1].trim();
-            COOKIE_DICT_LIST.push({
-               cookie: cookie,
-               csrf_token: csrf_token,
-            });
-            break;
+let loadCookieList = () => {
+    let cookie_filename = './data/cookie.js';
+    let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST,
+        COOKIE_DICT_LIST = [];
+    for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
+        let cookie = RAW_COOKIES_LIST[i];
+        let cookie_kv = cookie.split(";");
+        let csrf_token = "";
+        for (let i = 0; i < cookie_kv.length; i++){
+            let kvstr = cookie_kv[i];
+            if (kvstr.indexOf("bili_jct") > -1){
+                csrf_token = kvstr.split("=")[1].trim();
+                COOKIE_DICT_LIST.push({
+                   cookie: cookie,
+                   csrf_token: csrf_token,
+                });
+                break;
+            }
         }
     }
-}
+    return COOKIE_DICT_LIST;
+};
+
 
 let damakusender = require("./utils/danmakusender");
 let dmksender = new damakusender.Sender(1, logging);
@@ -37,10 +41,7 @@ let sendNoticeDanmakuMsg = (room_id, gift_type) => {
 };
 
 let Gac = require("./utils/guard_acceptor_directly").Acceptor;
-Gac.init(COOKIE_DICT_LIST);
-
 let Tac = require("./utils/tvacceptor").Acceptor;
-Tac.init(COOKIE_DICT_LIST);
 
 let onMessageReceived = (msg) => {
     let source = msg[0],
@@ -49,12 +50,12 @@ let onMessageReceived = (msg) => {
 
     if(source === "N" && giftType === "G"){
         logging.info("Gift: %s, msgBody: %s", giftType, msgBody);
-        Gac.accept(msgBody);
+        Gac.accept(msgBody, loadCookieList());
 
     }else if(giftType === "T"){
         let room_id = parseInt(msgBody);
         logging.info("Gift: %s, room_id: %s", giftType, room_id);
-        Tac.accept(room_id);
+        Tac.accept(room_id, loadCookieList());
         sendNoticeDanmakuMsg(room_id, "T");
     }
 };
