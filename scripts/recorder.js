@@ -26,6 +26,7 @@ let getLocalTimeStr = () => {
 
 let DataAccess = {
     connection: undefined,
+    operationLock: null,
     init: () => {
         let mysql = require('mysql');
         let connection = mysql.createConnection(proj_config.mysql);
@@ -59,8 +60,8 @@ let DataAccess = {
         let sql = 'insert into user(uid, name, face) values(?, ?, ?)';
         DataAccess.connection.query(sql, [uid, name, face], (err, rows, fields) => {
             if (err) {
-                let msg = "Mysql createUser error! e: %s" + err;
-                logging.error(msg);
+                logging.error("Mysql createUser error! e: " + err);
+                Fn(null);
                 return ;
             }
             logging.debug("User has been created. id: %s, uid: %s, name: %s", rows.insertId, uid, name);
@@ -73,8 +74,8 @@ let DataAccess = {
         let sql = "select * from user where uid = ? limit 1";
         DataAccess.connection.query(sql, [uid], (err, rows, fields) => {
             if (err) {
-                let msg = "Mysql query error! e: %s" + err;
-                logging.error(msg);
+                logging.error("Mysql query error in getUserByUid: e: " + err);
+                Fn(null);
                 return ;
             }
             if(rows && rows.length > 0){
@@ -129,11 +130,6 @@ let DataAccess = {
         })
     },
     getUser: (uid, name, face, Fn) => {
-        if (DataAccess.connection === undefined){
-            setTimeout(() => {DataAccess.getUser(uid, name, face, Fn)}, 500);
-            return;
-        }
-
         if (uid){
             DataAccess.getUserByUid(uid, name, face, Fn);
         }else{
@@ -141,7 +137,31 @@ let DataAccess = {
         }
     },
     createGiftRec: (uid, name, face, values) => {
+        if (DataAccess.connection === undefined){
+            setTimeout(() => {DataAccess.createGiftRec(uid, name, face, values)}, 500);
+            return;
+        }
+
+        let current = new Date().valueOf();
+        if (DataAccess.operationLock === null){
+            DataAccess.operationLock = current;
+        }else{
+            let lockTime = current - DataAccess.operationLock;
+            if(lockTime < 2000){
+                logging.warn("createGiftRec on locking! lockTime: %s", lockTime);
+                setTimeout(() => {DataAccess.createGiftRec(uid, name, face, values)}, 500);
+                return;
+            }
+            logging.info("createGiftRec lock time too long. now open it. lockTime: %s", lockTime);
+            DataAccess.operationLock = current;
+        }
+
         let saveGift = (sender_id) => {
+            DataAccess.operationLock = null;
+            if (sender_id === null || sender_id === undefined){
+                logging.error("Gift do not saved! cannot get sender id. key: %s", values.key);
+                return;
+            }
             logging.debug("Now create GiftRec, sender_id: %s, uid: %s, name: %s", sender_id, uid, name);
             let sql = "" +
                 "insert into giftrec" +
