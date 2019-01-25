@@ -3,7 +3,7 @@ let request = require("request");
 let proj_config = require("../config/proj_config");
 let env = proj_config.env;
 
-let logging = require("../config/loggers").tvrecorder;
+let logging = require("../config/loggers").recorder;
 logging.info("Start tvrecorder proc.");
 
 

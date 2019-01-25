@@ -72,9 +72,9 @@ let config = {
             maxLogSize: 1024*1024*50,
             backups: 2,
         },
-        tvrecorder: {
+        recorder: {
             type: 'file',
-            filename: path.join(loggerFilePath, "tvrecorder.log"),
+            filename: path.join(loggerFilePath, "recorder.log"),
             maxLogSize: 1024*1024*50,
             backups: 2,
         },
@@ -102,7 +102,7 @@ let config = {
         apz_guard: { appenders: ['console', "apz_guard", "apz_default"], level: 'ALL'},
         apz_other_users: { appenders: ['console', "apz_other_users"], level: 'ALL'},
         guardlistener: { appenders: ['console', "guardlistener"], level: 'ALL'},
-        tvrecorder: { appenders: ['console', "tvrecorder"], level: 'ALL'},
+        recorder: { appenders: ['console', "recorder"], level: 'ALL'},
 
         dosign: { appenders: ['console', "dosign"], level: 'ALL'},
         heartbeat: { appenders: ['console', "heartbeat"], level: 'ALL'},
@@ -124,7 +124,7 @@ module.exports.apz_other_users = log4js.getLogger("apz_other_users");
 
 module.exports.acceptor = log4js.getLogger("acceptor");
 module.exports.guardlistener = log4js.getLogger("guardlistener");
-module.exports.tvrecorder = log4js.getLogger("tvrecorder");
+module.exports.recorder = log4js.getLogger("recorder");
 
 module.exports.dosign = log4js.getLogger("dosign");
 module.exports.heartbeat = log4js.getLogger("heartbeat");
