@@ -4,7 +4,7 @@ let proj_config = require("../config/proj_config");
 let env = proj_config.env;
 
 let logging = require("../config/loggers").recorder;
-logging.info("Start tvrecorder proc.");
+logging.info("Start recorder proc.");
 
 
 let getLocalTimeStr = () => {
@@ -44,11 +44,10 @@ let DataAccess = {
         let sql = 'update user set uid=?, name=?, face=? where id=?';
         DataAccess.connection.query(sql, [data.uid, data.name, data.face, id], (err, rows, fields) => {
             if (err) {
-                let msg = "Mysql createUser error! e: %s" + err;
-                logging.error(msg);
-                return ;
+                logging.error("Mysql updateUser error! e: %s" + err);
+            }else{
+                logging.info("User has been updated, id: %s, uid: %s, name: %s", id, data.uid, data.name);
             }
-            logging.info("User has been updated, id: %s, uid: %s, name: %s", id, data.uid, data.name);
             Fn(id);
         });
     },
@@ -92,8 +91,8 @@ let DataAccess = {
                 sql = "select * from user where uid is NULL and name = ? limit 1";
                 DataAccess.connection.query(sql, [name], (err, rows, fields) => {
                     if (err) {
-                        let msg = "Mysql query error! e: %s" + err;
-                        logging.error(msg);
+                        logging.error("Mysql query error in get user by name. now try create it. e: %s" + err);
+                        DataAccess.createUser(uid, name, face, Fn);
                         return ;
                     }
                     if(rows && rows.length > 0){
@@ -101,7 +100,7 @@ let DataAccess = {
                         logging.info("User has been obtained by name, name: %s, id: %s. now update its uid.", u.name, u.id);
                         DataAccess.updateUser(u.id, {uid: uid, name: name, face: face}, Fn);
                     }else{
-                        logging.info("Cannot get user by uid and name, now create one. uid: %s, name: %s", uid, name);
+                        logging.info("User not existed, now create it. uid: %s, name: %s", uid, name);
                         DataAccess.createUser(uid, name, face, Fn);
                     }
                 })
@@ -114,8 +113,8 @@ let DataAccess = {
         let sql = "select * from user where name = ? limit 1";
         DataAccess.connection.query(sql, [name], (err, rows, fields) => {
             if (err) {
-                let msg = "Mysql query by name error! e: %s" + err;
-                logging.error(msg);
+                logging.error("Mysql query by name error! now try to create it. e: %s" + err);
+                DataAccess.createUser(null, name, face, Fn);
                 return;
             }
             if (rows && rows.length > 0) {
