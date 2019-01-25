@@ -164,7 +164,10 @@ let DataAccess = {
                     logging.error(msg);
                     return;
                 }
-                logging.info("Gift recorded, giftrec id: %s", rows.insertId);
+                logging.info(
+                    "Gift recorded, giftrec id: %s, room_id: %s, gift_type: %s, sender name: %s, uid: %s",
+                    rows.insertId, values.gift_id, values.gift_type, name, sender_id
+                );
             });
         };
         DataAccess.getUser(uid, name, face, saveGift);
