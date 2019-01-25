@@ -387,7 +387,7 @@ let Parser = {
         if (Parser.__ROOM_ID_POOL.indexOf(room_id) < 0) {
             Parser.__ROOM_ID_POOL.push(room_id);
             if (Parser.__getTVGiftIdTask === 0) {
-                Parser.__getTVGiftIdTask = setInterval(Parser.__getTVGiftId, 1000);
+                Parser.__getTVGiftIdTask = setInterval(Parser.__getTVGiftId, 2000);
             }
         }
     },
@@ -525,27 +525,3 @@ let Receiver = {
 
 DataAccess.init();
 Receiver.init();
-//
-// let cb = (e, uid) => {
-//     if (e){
-//         console.log("Error in getUidByName: %s", e);
-//         return;
-//     }
-//     console.log("Get uid by name, uid: %s", uid);
-// };
-//
-// UidAcquirer.getUidByName("账号已删除1502", cb);
-// UidAcquirer.getUidByName("ss2", cb);
-// UidAcquirer.getUidByName("账号已删除", cb);
-
-// DataAccess.createGiftRec(111133335, "亻白亻二丶23", "", {
-//         key: "_T999120$11111",
-//         room_id: 999120,
-//         gift_id: 11111,
-//         gift_name: "test",
-//         gift_type: "test_type",
-//         sender_type: null,
-//         created_time: getLocalTimeStr(),
-//         status: 0,
-//     }
-// );
