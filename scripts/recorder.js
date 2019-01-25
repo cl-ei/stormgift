@@ -277,6 +277,7 @@ let UidAcquirer = {
                 UidAcquirer.__ADMIN_WAY_LOCK = null;
                 Fn("Cannot add admin for user: " + name + ", msg: " + r.message, null)
             }else{
+                logging.info("Uid has been obtained by admin list, name: %s, uid: %s", name, uid);
                 let callback = () => {
                     UidAcquirer.__ADMIN_WAY_LOCK = null;
                     Fn(undefined, uid);
@@ -326,6 +327,7 @@ let UidAcquirer = {
             timeout: 20000,
         };
         let onAddAdminResponse = (err, res, body) => {
+            logging.info("Get uid by Admin list: user has been added to admin list. name: %s", name);
             if (err) {
                 logging.error("Add admin error! e: %s", err.toString());
             }
