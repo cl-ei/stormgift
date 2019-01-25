@@ -24,7 +24,9 @@ let USER_ID_TO_NAME = {
 let HANSY_ROOM_ID = 2516117;
 let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
 let damakusender = require("../utils/danmakusender");
-let dmksender = new damakusender.Sender(0, chat);
+let sendDanmakuToHansyRoomId = (msg) => {
+    (new damakusender.Sender(0, chat)).sendDamaku(msg, HANSY_ROOM_ID)
+};
 let HANSY_MSG_LIST = [
     "📢 小可爱们记得点上关注哟，点个关注不迷路ヽ(✿ﾟ▽ﾟ)ノ",
     "📢 喜欢泡泡的小伙伴，加粉丝群436496941来撩骚呀~",
@@ -40,7 +42,7 @@ let intervalSendHansyDCallMsg = () => {
         return;
     }
     HANSY_MSG_LIST_INDEX = (HANSY_MSG_LIST_INDEX + 1) % HANSY_MSG_LIST.length;
-    dmksender.sendDamaku(HANSY_MSG_LIST[HANSY_MSG_LIST_INDEX], HANSY_ROOM_ID)
+    sendDanmakuToHansyRoomId(HANSY_MSG_LIST[HANSY_MSG_LIST_INDEX])
 };
 if (!DEBUG){
     setInterval(intervalSendHansyDCallMsg, 120*1000);
@@ -63,7 +65,7 @@ let Gift = {
 
             if(Gift.__LAST_THANK_USER !== u){
                 setTimeout(() => {
-                    dmksender.sendDamaku("🤖 谢谢" + u + "赠送的" + gifts.join("、") + "~", HANSY_ROOM_ID)
+                    sendDanmakuToHansyRoomId("🤖 谢谢" + u + "赠送的" + gifts.join("、") + "~")
                 }, 400*i);
                 Gift.__LAST_THANK_USER = u;
             }
@@ -139,20 +141,21 @@ let procMessage = (msg, room_id) => {
 
         if (message.indexOf("好听") > -1){
             if(Math.random() > 0.5){return;}
-            dmksender.sendDamaku(randomChoice([
+            sendDanmakuToHansyRoomId(randomChoice([
                 "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
                 "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
                 "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
-            ]), HANSY_ROOM_ID);
+            ]));
             return ;
         }
 
         if (uid === 65981801 && (message.indexOf("心") > -1 || message.indexOf("美") > -1 || message.indexOf("好") > -1)){
-            dmksender.sendDamaku(randomChoice([
+            let dmksender = new damakusender.Sender(0, chat);
+            sendDanmakuToHansyRoomId(randomChoice([
                 "🤖 大连你是个大居蹄子！",
                 "🤖 大连给我把你的舌头吞回去！",
                 "🤖 大连啊大连，你在东北玩泥巴，我在大连木有家呀(￣△￣)~",
-            ]), HANSY_ROOM_ID)
+            ]))
         }
     }
 };

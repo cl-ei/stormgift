@@ -29,13 +29,12 @@ let loadCookieList = () => {
 
 
 let damakusender = require("./utils/danmakusender");
-let dmksender = new damakusender.Sender(1, logging);
 let DDSLIVE_ROOM_NUMBER = 13369254;
 let sendNoticeDanmakuMsg = (room_id, gift_type) => {
     // let message = "#@" + sender + "在" + room_id + "直播间登船~";
     let message = gift_type + Buffer.from("" + room_id).toString('base64');
     setTimeout(
-        function(){dmksender.sendDamaku(message, DDSLIVE_ROOM_NUMBER)},
+        () => {(new damakusender.Sender(1, logging)).sendDamaku(message, DDSLIVE_ROOM_NUMBER)},
         parseInt(Math.random()*1000)
     );
 };

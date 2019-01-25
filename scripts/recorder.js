@@ -433,8 +433,6 @@ let Parser = {
                 return;
             }
             if (r.code !== 0) {return}
-            logging.info("Response: %s", JSON.stringify(r));
-
             let gidlist = (r.data || {}).list || [];
 
             let procDist = {};
