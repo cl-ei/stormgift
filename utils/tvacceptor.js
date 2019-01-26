@@ -67,6 +67,7 @@ let Acceptor = {
                 }
             }
         };
+        acceptor_logging.info("\tGET gift list for room_id: %s",room_id);
         request(reqParam, cbFn);
     },
     __joinTVDispatcher: () => {
