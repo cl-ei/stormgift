@@ -4,41 +4,6 @@ let logging = require("./config/loggers").acceptor;
 logging.info("Start acceptor proc.");
 
 
-let loadCookieList = () => {
-    let cookie_filename = './data/cookie.js';
-    let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST,
-        COOKIE_DICT_LIST = [];
-    for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
-        let cookie = RAW_COOKIES_LIST[i];
-        let cookie_kv = cookie.split(";");
-        let csrf_token = "";
-        for (let i = 0; i < cookie_kv.length; i++){
-            let kvstr = cookie_kv[i];
-            if (kvstr.indexOf("bili_jct") > -1){
-                csrf_token = kvstr.split("=")[1].trim();
-                COOKIE_DICT_LIST.push({
-                   cookie: cookie,
-                   csrf_token: csrf_token,
-                });
-                break;
-            }
-        }
-    }
-    return COOKIE_DICT_LIST;
-};
-
-
-let damakusender = require("./utils/danmakusender");
-let DDSLIVE_ROOM_NUMBER = 13369254;
-let sendNoticeDanmakuMsg = (room_id, gift_type) => {
-    // let message = "#@" + sender + "在" + room_id + "直播间登船~";
-    let message = gift_type + Buffer.from("" + room_id).toString('base64');
-    setTimeout(
-        () => {(new damakusender.Sender(1, logging)).sendDamaku(message, DDSLIVE_ROOM_NUMBER)},
-        parseInt(Math.random()*1000)
-    );
-};
-
 let Gac = require("./utils/guard_acceptor_directly").Acceptor;
 let Tac = require("./utils/tvacceptor").Acceptor;
 
@@ -48,14 +13,10 @@ let onMessageReceived = (msg) => {
         msgBody = msg.slice(2);
 
     if(source === "N" && giftType === "G"){
-        logging.info("Gift: %s, msgBody: %s", giftType, msgBody);
-        Gac.accept(msgBody, loadCookieList());
+        Gac.accept(msgBody);
 
     }else if(giftType === "T"){
-        let room_id = parseInt(msgBody);
-        logging.info("Gift: %s, room_id: %s", giftType, room_id);
-        Tac.accept(room_id, loadCookieList());
-        sendNoticeDanmakuMsg(room_id, "T");
+        Tac.accept(parseInt(msgBody));
     }
 };
 

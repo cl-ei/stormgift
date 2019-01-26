@@ -6,48 +6,60 @@ let acceptor_logging = loggers.acceptor;
 let guard_logging = loggers.apz_guard;
 let other_users_logging = loggers.apz_other_users;
 
+
+let loadCookieList = () => {return require("./data/cookie.js").RAW_COOKIE_LIST};
+
+
 let Acceptor = {
     __GIFT_ID_POOL: [],
     __getGIDTask: 0,
     __joinDispatcherTask: 0,
 
-    accept: (k, cookieDict) => {
+    accept: (k) => {
         if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0) {
             Acceptor.__GIFT_ID_POOL.push(k);
         }
         if (Acceptor.__GIFT_ID_POOL.length > 0 && Acceptor.__joinDispatcherTask === 0){
             Acceptor.__joinDispatcherTask = setInterval(
-                () => {Acceptor.__joinDispatcher(cookieDict)},
-                200
+                () => {Acceptor.__joinDispatcher()},
+                500
             );
-            acceptor_logging.info("GUARD: Start __joinDispatcher task.");
         }
     },
-    __joinDispatcher: (cookieDictList) => {
+    __joinDispatcher: () => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
-        acceptor_logging.info("GUARD: Dispatch: %s", k);
-
         if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinDispatcherTask !== 0){
             clearInterval(Acceptor.__joinDispatcherTask);
             Acceptor.__joinDispatcherTask = 0;
-            acceptor_logging.info("GUARD: Kill __joinDispatcher task, Last proc k: %s.", k);
         }
 
         let rg = k.split("$");
         let room_id = parseInt(rg[0]),
             gift_id = parseInt(rg[1]);
 
-        for(let i = 0; i < cookieDictList.length; i++){
+        let cookieList = loadCookieList();
+        for(let i = 0; i < cookieList.length; i++){
+            let cookie = cookieList[i];
             setTimeout(
-                () => {Acceptor.__joinGuardSingle(i, room_id, gift_id, cookieDictList)},
-                300*(i + 1)
+                () => {Acceptor.__joinGuardSingle(i, room_id, gift_id, cookie)},
+                500*(i + 1)
             );
         }
     },
-    __joinGuardSingle: (index, room_id, gift_id, cookieDictList) => {
-        let csrf_token = cookieDictList[index].csrf_token,
-            cookie = cookieDictList[index].cookie;
-
+    __joinGuardSingle: (index, room_id, gift_id, cookie) => {
+        let csrf_token = "";
+        let cookie_kv = cookie.split(";");
+        for (let i = 0; i < cookie_kv.length; i++){
+            let kv = cookie_kv[i];
+            if (kv.indexOf("bili_jct") > -1){
+                csrf_token = kv.split("=")[1].trim();
+                break;
+            }
+        }
+        if (csrf_token.length < 10){
+            acceptor_logging.error("In guard acceptor, find bad cookie! index: %s, cookie: %s.", index, cookie);
+            return;
+        }
         let reqParam = {
             url: "https://api.live.bilibili.com/lottery/v2/Lottery/join",
             headers: {"User-Agent": UA, "Cookie": cookie},

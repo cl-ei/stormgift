@@ -6,6 +6,10 @@ let acceptor_logging = loggers.acceptor;
 let tv_logging = loggers.apz_tv;
 let other_users_logging = loggers.apz_other_users;
 
+
+let loadCookieList = () => {return require("./data/cookie.js").RAW_COOKIE_LIST};
+
+
 let Acceptor = {
     cookieDictList: [],
 
@@ -15,32 +19,24 @@ let Acceptor = {
     __joinTVDispatcherTask: 0,
 
     __INVALID_PRIZE_POOL: [],
-    accept: (room_id, cookieDictList) => {
+    accept: (room_id) => {
         if (Acceptor.__ROOM_ID_POOL.indexOf(room_id) < 0) {
             Acceptor.__ROOM_ID_POOL.push(room_id);
             if (Acceptor.__getTVGiftIdTask === 0) {
-                Acceptor.__getTVGiftIdTask = setInterval(
-                    () => {Acceptor.__getTVGiftId(cookieDictList)},
-                    1000
-                );
-                acceptor_logging.info("Start __getTVGiftId task, task id: %s.", Acceptor.__getTVGiftIdTask);
+                Acceptor.__getTVGiftIdTask = setInterval(() => {Acceptor.__getTVGiftId()},1000);
             }
         }
     },
-    __getTVGiftId: (cookieDictList) => {
+    __getTVGiftId: () => {
         let room_id = Acceptor.__ROOM_ID_POOL.shift();
-        acceptor_logging.info("getTVGiftId search room: %s", room_id);
         if(Acceptor.__ROOM_ID_POOL.length === 0 && Acceptor.__getTVGiftIdTask !== 0){
             clearInterval(Acceptor.__getTVGiftIdTask);
             Acceptor.__getTVGiftIdTask = 0;
-            acceptor_logging.info("Kill __getTVGiftId task. Last proc room_id: %s.", room_id);
         }
-
-        let default_cookie = cookieDictList[0].cookie;
         let reqParam = {
             url: "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=" + room_id,
             method: "get",
-            headers: {"User-Agent": UA, "Cookie": default_cookie},
+            headers: {"User-Agent": UA},
             timeout: 20000,
         },
         cbFn = (err, res, body) => {
@@ -55,41 +51,29 @@ let Acceptor = {
                 acceptor_logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
                 return;
             }
-            if (r.code !== 0) {return}
 
-            let data = r.data || {};
-            let gidlist = data.list || [];
-
-            for (let i = 0; i < gidlist.length; i++) {
-                let gift_id = parseInt(gidlist[i].raffleId) || 0,
-                    title = gidlist[i].title || "Unknown",
-                    from = gidlist[i].from;
-
+            let gidList = (r.data || {}).list || [];
+            for (let i = 0; i < gidList.length; i++) {
+                let gift_id = parseInt(gidList[i].raffleId) || 0,
+                    title = gidList[i].title || "Unknown",
+                    from = gidList[i].from;
                 let k = [room_id, gift_id, title, from].join("$");
+
                 if (Acceptor.__GIFT_ID_POOL.indexOf(k) < 0 && Acceptor.__checkGiftAvailable(k)){
                     Acceptor.__GIFT_ID_POOL.push(k);
                     if (Acceptor.__joinTVDispatcherTask === 0){
-                        Acceptor.__joinTVDispatcherTask = setInterval(
-                            () => {Acceptor.__joinTVDispatcher(cookieDictList)},
-                            200
-                        );
-                        acceptor_logging.info(
-                            "Start __joinTVDispatcher task, task id: %s.", Acceptor.__joinTVDispatcherTask
-                        );
+                        Acceptor.__joinTVDispatcherTask = setInterval(() => {Acceptor.__joinTVDispatcher()},400);
                     }
                 }
             }
         };
-        acceptor_logging.info("\tSEND GET TVGIFTID REQ, room_id: %s", room_id);
         request(reqParam, cbFn);
     },
-    __joinTVDispatcher: (cookieDictList) => {
+    __joinTVDispatcher: () => {
         let k = Acceptor.__GIFT_ID_POOL.shift();
-        acceptor_logging.info("Dispatch: %s", k);
         if(Acceptor.__GIFT_ID_POOL.length === 0 && Acceptor.__joinTVDispatcherTask !== 0){
             clearInterval(Acceptor.__joinTVDispatcherTask);
             Acceptor.__joinTVDispatcherTask = 0;
-            acceptor_logging.info("Kill __joinTVDispatcher task, Last proc k: %s.", k);
         }
         if(!Acceptor.__checkGiftAvailable(k, true)){
             acceptor_logging.warn("INVALID k: %s, SKIP IT!", k);
@@ -100,23 +84,31 @@ let Acceptor = {
             gift_id = parseInt(rg[1]),
             title = rg[2],
             from = rg[3];
-        Acceptor.__joinTVSingle(0, room_id, gift_id, title, from, cookieDictList);
 
-        let datetime = new Date();
-        let hours = datetime.getHours();
-        let limitFreq = (hours >= 20 || hours < 1);
-        for(let i = 1; i < Acceptor.cookieDictList.length; i++){
-            if((limitFreq && Math.random() < 0.9) || (!limitFreq)){
-                setTimeout(
-                    () => {Acceptor.__joinTVSingle(i, room_id, gift_id, title, from, cookieDictList)},
-                    Math.random()*1000*70
-                );
-            }
+        let cookieList = loadCookieList();
+        for (let i = 0; i < cookieList.length; i++){
+            let cookie = cookieList[i];
+            setTimeout(
+                () => {Acceptor.__joinTVSingle(i, room_id, gift_id, title, from, cookie)},
+                1000*(i + 1)
+            )
         }
     },
-    __joinTVSingle: (index, room_id, gift_id, title, from, cookieDictList) => {
-        let csrf_token = cookieDictList[index].csrf_token,
-            cookie = cookieDictList[index].cookie;
+    __joinTVSingle: (index, room_id, gift_id, title, from, cookie) => {
+        let csrf_token = "";
+        let cookie_kv = cookie.split(";");
+        for (let i = 0; i < cookie_kv.length; i++){
+            let kv = cookie_kv[i];
+            if (kv.indexOf("bili_jct") > -1){
+                csrf_token = kv.split("=")[1].trim();
+                break;
+            }
+        }
+        if (csrf_token.length < 10){
+            acceptor_logging.error("In tv acceptor, find bad cookie! index: %s, cookie: %s.", index, cookie);
+            return;
+        }
+
         let logging = (index === 0 ? tv_logging : other_users_logging);
 
         let reqParam = {
