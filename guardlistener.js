@@ -40,7 +40,7 @@ let DataAccess = {
                 return;
             }
             if(d){
-                logging.info("Guard info saved, key: %s", key);
+                logging.info("Guard info saved, key: %s, data: %s", key, data);
                 cbFn();
             }
         });
