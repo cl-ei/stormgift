@@ -98,7 +98,7 @@ let UidAcquirer = {
         };
         let onResponse = (err, res, body) => {
             if (err) {
-                logging.error("Add admin error! e: %s", err.toString());
+                logging.error("Del admin error! e: %s", err.toString());
             }
             FnWithOpenLock();
         };
