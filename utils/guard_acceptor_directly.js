@@ -7,7 +7,7 @@ let guard_logging = loggers.apz_guard;
 let other_users_logging = loggers.apz_other_users;
 
 
-let loadCookieList = () => {return require("./data/cookie.js").RAW_COOKIE_LIST};
+let loadCookieList = () => {return require("../data/cookie.js").RAW_COOKIE_LIST};
 
 
 let Acceptor = {
