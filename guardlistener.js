@@ -7,16 +7,35 @@ let net = require('net');
 let logging = require("./config/loggers").guardlistener;
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 
+
+let getLocalTimeStr = () => {
+    let unixtimestamp = new Date();
+    let year = 1900 + unixtimestamp.getYear();
+    let month = "0" + (unixtimestamp.getMonth() + 1);
+    let date = "0" + unixtimestamp.getDate();
+    let hour = "0" + unixtimestamp.getHours();
+    let minute = "0" + unixtimestamp.getMinutes();
+    let second = "0" + unixtimestamp.getSeconds();
+    let result = year +
+        "-" + month.substring(month.length - 2, month.length) +
+        "-" + date.substring(date.length - 2, date.length) +
+        " " + hour.substring(hour.length - 2, hour.length) +
+        ":" + minute.substring(minute.length - 2, minute.length) +
+        ":" + second.substring(second.length - 2, second.length);
+    return result;
+};
+
+
 let DataAccess = {
     redis_client: undefined,
-    nonRepetitiveExecute: (key, cbFn) => {
+    nonRepetitiveExecute: (key, data, cbFn) => {
         if (DataAccess.redis_client === undefined){
             setTimeout(() => {DataAccess.nonRepetitiveExecute(key, cbFn)}, 500);
             return;
         }
-        DataAccess.redis_client.set(key, true, "ex", 3600*24, "nx", (e, d) => {
+        DataAccess.redis_client.set(key, data, "ex", 3600*24*7, "nx", (e, d) => {
             if(e){
-                logging.error("Redis set error! %s", e);
+                logging.error("Redis set error! %s, key: %s, data: %s", e, key, data);
                 cbFn();
                 return;
             }
@@ -99,16 +118,24 @@ let GuardListener = {
             }
             if (r.code !== 0) {return}
 
-            let gidlist = r.data || [];
-            if (gidlist.length === 0){return}
-
-            for (let i = 0; i < gidlist.length; i++) {
-                let postdata = gidlist[i];
-                postdata._saved_time = (new Date()).valueOf();
-
-                let gift_id = parseInt(postdata.id) || 0;
+            let gidList = r.data || [];
+            for (let i = 0; i < gidList.length; i++) {
+                let giftInfo = gidList[i];
+                let gift_id = parseInt(giftInfo.id);
+                let savedData = JSON.stringify({
+                    uid: giftInfo.sender.uid,
+                    name: giftInfo.sender.uname,
+                    face: giftInfo.sender.face,
+                    room_id: room_id,
+                    gift_id: gift_id,
+                    gift_name: "guard",
+                    gift_type: "G" + giftInfo.privilege_type,
+                    sender_type: null,
+                    created_time: getLocalTimeStr(),
+                    status: giftInfo.status
+                });
                 let k = "NG" + room_id + "$" + gift_id;
-                DataAccess.nonRepetitiveExecute(k, () => {NoticeSender.sendMsg(k)});
+                DataAccess.nonRepetitiveExecute(k, savedData, () => {NoticeSender.sendMsg(k)});
             }
         };
         logging.info("Send getting guard gift id request, room_id: %s", room_id);
@@ -116,12 +143,9 @@ let GuardListener = {
     },
     getGidDispatcher: () => {
         let room_id = GuardListener.GUARD_ROOM_ID_LIST.shift();
-        logging.info("getGidTask search room: %s", room_id);
-
         if(GuardListener.GUARD_ROOM_ID_LIST.length === 0 && GuardListener.GET_GID_DISPATCHER_TASK_ID !== 0){
             clearInterval(GuardListener.GET_GID_DISPATCHER_TASK_ID);
             GuardListener.GET_GID_DISPATCHER_TASK_ID = 0;
-            logging.info("Kill GuardListener.getGidDispatcher. Last proc room_id: %s.", room_id);
         }
         GuardListener.getSingleGid(room_id);
     },
