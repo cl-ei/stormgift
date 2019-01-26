@@ -1,5 +1,6 @@
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 let request = require("request");
+let redis = require("redis");
 let proj_config = require("../config/proj_config");
 let env = proj_config.env;
 
@@ -25,186 +26,33 @@ let getLocalTimeStr = () => {
 };
 
 let DataAccess = {
-    connection: undefined,
-    operationLock: null,
+    redis_client: undefined,
+    nonRepetitiveExecute: (key, data, cbFn) => {
+        if (DataAccess.redis_client === undefined){
+            setTimeout(() => {DataAccess.nonRepetitiveExecute(key, cbFn)}, 500);
+            return;
+        }
+        DataAccess.redis_client.set(key, data, "ex", 3600*24*7, "nx", (e, d) => {
+            if(e){
+                logging.error("Redis set error! %s, key: %s, data: %s", e, key, data);
+                cbFn();
+                return;
+            }
+            if(d){
+                logging.info("Guard info saved, key: %s", key);
+                cbFn();
+            }
+        });
+    },
     init: () => {
-        let mysql = require('mysql');
-        let connection = mysql.createConnection(proj_config.mysql);
-        connection.connect(function (err) {
-            if (err) {
-                let msg = "Mysql cannot connect! e: %s" + err;
-                logging.error(msg);
-                throw msg;
-            }
-            DataAccess.connection = connection;
-            logging.info("Mysql connected.");
-        })
-    },
-    updateUser: (id, data, Fn) => {
-        logging.debug("Update user, id: %s, data: %s", id, JSON.stringify(data));
-        let sql = 'update user set uid=?, name=?, face=? where id=?';
-        DataAccess.connection.query(sql, [data.uid, data.name, data.face, id], (err, rows, fields) => {
-            if (err) {
-                logging.error("Mysql updateUser error! e: %s" + err);
-            }else{
-                logging.info("User has been updated, id: %s, uid: %s, name: %s", id, data.uid, data.name);
-            }
-            Fn(id);
-        });
-    },
-    createUser: (uid, name, face, Fn) => {
-        logging.debug("Creating user... uid: %s, name: %s", uid, name);
-        if (uid === null || uid === undefined || uid < 1){
-            uid = null;
-        }
-        let sql = 'insert into user(uid, name, face) values(?, ?, ?)';
-        DataAccess.connection.query(sql, [uid, name, face], (err, rows, fields) => {
-            if (err) {
-                logging.error("Mysql createUser error! e: " + err);
-                Fn(null);
-                return ;
-            }
-            logging.debug("User has been created. id: %s, uid: %s, name: %s", rows.insertId, uid, name);
-            Fn(rows.insertId);
-        });
-    },
-    getUserByUid: (uid, name, face, Fn) => {
-        logging.debug("Now try to get user ByUid, uid: %s, name: %s", uid, name);
-
-        let sql = "select * from user where uid = ? limit 1";
-        DataAccess.connection.query(sql, [uid], (err, rows, fields) => {
-            if (err) {
-                logging.error("Mysql query error in getUserByUid: e: " + err);
-                Fn(null);
-                return ;
-            }
-            if(rows && rows.length > 0){
-                let u = rows[0];
-                if(u.name === name){
-                    logging.debug("User has been obtained by uid, uid: %s, name: %s", uid, name);
-                    Fn(u.id);
-                }else{
-                    logging.debug("User need update, uid: %s, name: %s, old_name: %s", uid, name, u.name);
-                    DataAccess.updateUser(u.id, {uid: uid, name: name, face: face}, Fn);
-                }
-            }else{
-                logging.warn("Cannot get user just by uid, try get by name. uid: %s", uid);
-                sql = "select * from user where uid is NULL and name = ? limit 1";
-                DataAccess.connection.query(sql, [name], (err, rows, fields) => {
-                    if (err) {
-                        logging.error("Mysql query error in get user by name. now try create it. e: %s" + err);
-                        DataAccess.createUser(uid, name, face, Fn);
-                        return ;
-                    }
-                    if(rows && rows.length > 0){
-                        let u = rows[0];
-                        logging.info("User has been obtained by name, name: %s, id: %s. now update its uid.", u.name, u.id);
-                        DataAccess.updateUser(u.id, {uid: uid, name: name, face: face}, Fn);
-                    }else{
-                        logging.info("User not existed, now create it. uid: %s, name: %s", uid, name);
-                        DataAccess.createUser(uid, name, face, Fn);
-                    }
-                })
-            }
-        })
-    },
-    getUserByName: (name, face, Fn) => {
-        logging.debug("Now try to get user ByName, name: %s", name);
-
-        let sql = "select * from user where name = ? limit 1";
-        DataAccess.connection.query(sql, [name], (err, rows, fields) => {
-            if (err) {
-                logging.error("Mysql query by name error! now try to create it. e: %s" + err);
-                DataAccess.createUser(null, name, face, Fn);
-                return;
-            }
-            if (rows && rows.length > 0) {
-                let u = rows[0];
-
-                logging.info("User has been obtained, name: %s, id: %s", name, u.id);
-                Fn(u.id);
-            }else{
-                logging.info("Cannot get user, create one. name: %s", name);
-                DataAccess.createUser(null, name, face, Fn);
-            }
-        })
-    },
-    getUser: (uid, name, face, Fn) => {
-        if (uid){
-            DataAccess.getUserByUid(uid, name, face, Fn);
-        }else{
-            DataAccess.getUserByName(name, face, Fn);
-        }
-    },
-    createGiftRec: (uid, name, face, values) => {
-        if (DataAccess.connection === undefined){
-            setTimeout(() => {DataAccess.createGiftRec(uid, name, face, values)}, 500);
-            return;
-        }
-
-        let current = new Date().valueOf();
-        if (DataAccess.operationLock === null){
-            DataAccess.operationLock = current;
-        }else{
-            let lockTime = current - DataAccess.operationLock;
-            if(lockTime < 2000){
-                logging.warn("createGiftRec on locking! lockTime: %s", lockTime);
-                setTimeout(() => {DataAccess.createGiftRec(uid, name, face, values)}, 500);
-                return;
-            }
-            logging.info("createGiftRec lock time too long. now open it. lockTime: %s", lockTime);
-            DataAccess.operationLock = current;
-        }
-
-        let saveGift = (sender_id) => {
-            DataAccess.operationLock = null;
-            if (sender_id === null || sender_id === undefined){
-                logging.error("Gift do not saved! cannot get sender id. key: %s", values.key);
-                return;
-            }
-            logging.debug("Now create GiftRec, sender_id: %s, uid: %s, name: %s", sender_id, uid, name);
-            let sql = "" +
-                "insert into giftrec" +
-                "(`key`, room_id, gift_id, gift_name, gift_type, sender_id, sender_type, created_time, status) " +
-                "values(?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            DataAccess.connection.query(sql, [
-                values.key,
-                values.room_id,
-                values.gift_id,
-                values.gift_name,
-                values.gift_type,
-                sender_id,
-                values.sender_type,
-                values.created_time,
-                values.status
-            ], (err, rows, fields) => {
-                if (err) {
-                    let msg = "Mysql createGiftRec error! e: " + err;
-                    logging.error(msg);
-                    return;
-                }
-                logging.info(
-                    "Gift recorded, giftrec id: %s, room_id: %s, gift_type: %s, sender name: %s, uid: %s",
-                    rows.insertId, values.room_id, values.gift_type, name, sender_id
-                );
-            });
-        };
-        DataAccess.getUser(uid, name, face, saveGift);
-    },
-    checkIfGiftExisted: (key, Fn) => {
-        if (DataAccess.connection === undefined){
-            setTimeout(() => {DataAccess.checkIfGiftExisted(key, Fn)}, 500);
-            return;
-        }
-        let sql = "select * from giftrec where `key` = ? limit 1";
-        DataAccess.connection.query(sql, [key], (err, rows, fields) => {
-            if (err) {
-                let msg = "Mysql query error in checkIfGiftExisted! e: %s" + err;
-                logging.error(msg);
-                Fn(msg, false);
-                return ;
-            }
-            Fn(undefined, rows && rows.length > 0);
+        let rc = redis.createClient(
+            proj_config.redis.port,
+            proj_config.redis.host,
+            {auth_pass: proj_config.redis.auth_pass, db: proj_config.redis.db}
+        );
+        rc.on('connect',function(){
+            DataAccess.redis_client = rc;
+            console.log('Redis client connected.');
         });
     }
 };
@@ -235,7 +83,7 @@ let UidAcquirer = {
         }
         return [cookie, csrf_token, anchor_id];
     },
-    ___getByAdminList_delAdminList: (name, Fn, cookie, csrf_token, anchor_id, uid) => {
+    ___getByAdminList_delAdminList: (name, FnWithOpenLock, cookie, csrf_token, anchor_id, uid) => {
         let delAdminReqParam = {
             url: "https://api.live.bilibili.com/xlive/app-ucenter/v1/roomAdmin/dismiss",
             method: "post",
@@ -252,11 +100,11 @@ let UidAcquirer = {
             if (err) {
                 logging.error("Add admin error! e: %s", err.toString());
             }
-            Fn();
+            FnWithOpenLock();
         };
         request(delAdminReqParam, onResponse);
     },
-    ___getByAdminList_getAdminList: (name, Fn, cookie, csrf_token, anchor_id) => {
+    ___getByAdminList_getAdminList: (name, FnWithOpenLock, cookie, csrf_token, anchor_id) => {
         let reqParam = {
             url: "https://api.live.bilibili.com/xlive/app-ucenter/v1/roomAdmin/get_by_anchor?page=1",
             method: "get",
@@ -264,44 +112,33 @@ let UidAcquirer = {
             timeout: 20000,
         };
         let onResponse = (err, res, body) => {
+            let uid = null;
             if (err) {
                 logging.error("read adminList error! e: %s", err.toString());
-                UidAcquirer.__ADMIN_WAY_LOCK = null;
-                Fn("Cannot read admin list!", null);
-                return;
-            }
-            let r = {"-": "-"};
-            try {
-                r = JSON.parse(body.toString());
-            } catch (e) {
-                logging.error(
-                    "Error response JSON, in ___getByAdminList_getAdminList. e: %s, body:\n-------\n%s\n\n",
-                    e.toString(), body
-                );
-
-                UidAcquirer.__ADMIN_WAY_LOCK = null;
-                Fn("Error response JSON in ___getByAdminList_getAdminList!", null);
-                return;
-            }
-
-            let result = (r.data || {}).data || [];
-            let uid = null;
-            for (let i = 0; i < result.length; i++){
-                if (result[i].uname === name){
-                    uid = result[i].uid;
-                    break;
+            }else {
+                let r = {"-": "-"};
+                try {
+                    r = JSON.parse(body.toString());
+                } catch (e) {
+                    logging.error(
+                        "Error response JSON, in ___getByAdminList_getAdminList. e: %s, body:\n-------\n%s\n\n",
+                        e.toString(), body
+                    );
+                }
+                let result = (r.data || {}).data || [];
+                for (let i = 0; i < result.length; i++) {
+                    if (result[i].uname === name) {
+                        uid = result[i].uid;
+                        break;
+                    }
                 }
             }
+
             if(uid === null) {
-                UidAcquirer.__ADMIN_WAY_LOCK = null;
-                Fn("Cannot add admin for user: " + name + ", msg: " + r.message, null)
+                FnWithOpenLock("Cannot add admin for user: " + name, null)
             }else{
                 logging.info("Uid has been obtained by admin list, name: %s, uid: %s", name, uid);
-                let callback = () => {
-                    UidAcquirer.__ADMIN_WAY_LOCK = null;
-                    Fn(undefined, uid);
-                };
-                UidAcquirer.___getByAdminList_delAdminList(name, callback, cookie, csrf_token, anchor_id, uid);
+                UidAcquirer.___getByAdminList_delAdminList(name, FnWithOpenLock, cookie, csrf_token, anchor_id, uid);
             }
         };
         request(reqParam, onResponse);
@@ -320,6 +157,11 @@ let UidAcquirer = {
             logging.info("Lock time too long. now open it. lockTime: %s", lockTime);
             UidAcquirer.__ADMIN_WAY_LOCK = current;
         }
+        let FnWithOpenLock = (e, uid) => {
+            logging.info("Get uid job done, cost time: %s ms.", (new Date().valueOf()) - UidAcquirer.__ADMIN_WAY_LOCK);
+            UidAcquirer.__ADMIN_WAY_LOCK = null;
+            Fn(e, uid);
+        };
 
         let cca = UidAcquirer.__getCookieCsrfTokenAnchorid();
         let cookie = cca[0] || "";
@@ -327,11 +169,9 @@ let UidAcquirer = {
         let anchor_id = cca[2] || 0;
         if(cookie.length < 5 || csrf_token.length < 5 || !anchor_id){
             logging.error("When get uid by admin list find an error cookie!");
-
-            UidAcquirer.__ADMIN_WAY_LOCK = null;
-            Fn("Error cookie", null);
-            return;
+            return FnWithOpenLock("Error cookie", null);
         }
+
         let addAdminReqParam = {
             url: "https://api.live.bilibili.com/live_user/v1/RoomAdmin/add",
             method: "post",
@@ -350,7 +190,7 @@ let UidAcquirer = {
             if (err) {
                 logging.error("Add admin error! e: %s", err.toString());
             }
-            UidAcquirer.___getByAdminList_getAdminList(name, Fn, cookie, csrf_token, anchor_id);
+            UidAcquirer.___getByAdminList_getAdminList(name, FnWithOpenLock, cookie, csrf_token, anchor_id);
         };
         request(addAdminReqParam, onAddAdminResponse);
     },
@@ -427,7 +267,7 @@ let Parser = {
         if (Parser.__ROOM_ID_POOL.indexOf(room_id) < 0) {
             Parser.__ROOM_ID_POOL.push(room_id);
             if (Parser.__getTVGiftIdTask === 0) {
-                Parser.__getTVGiftIdTask = setInterval(Parser.__getTVGiftId, 2000);
+                Parser.__getTVGiftIdTask = setInterval(Parser.__getTVGiftId, 1000);
             }
         }
     },
@@ -456,12 +296,11 @@ let Parser = {
                 logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
                 return;
             }
-            if (r.code !== 0) {return}
-            let gidlist = (r.data || {}).list || [];
+            let gidList = (r.data || {}).list || [];
 
             let procDist = {};
-            for (let i = 0; i < gidlist.length; i++) {
-                let gidObject = gidlist[i];
+            for (let i = 0; i < gidList.length; i++) {
+                let gidObject = gidList[i];
 
                 let gift_id = parseInt(gidObject.raffleId) || 0;
                 let key = "_T" + room_id + "$" + gift_id;
@@ -477,16 +316,17 @@ let Parser = {
                     }
                 }
             }
-            let usernames = Object.keys(procDist);
-            for(let i = 0; i < usernames.length; i++){
-                let name = usernames[i];
-                setTimeout(() => {Parser.__recoredByUser(name, procDist[name])}, 500*(i+1));
+            let user_names = Object.keys(procDist);
+            for(let i = 0; i < user_names.length; i++){
+                let name = user_names[i];
+                setTimeout(() => {Parser.__recordByUser(name, procDist[name])}, 500*(i+1));
             }
         };
+        logging.info("Send request for getting guard gift id, room_id: %s", room_id);
         request(reqParam, cbFn);
     },
-    __recoredByUser: (name, giftList) => {
-        logging.debug("__recoredSingle: %s", JSON.stringify(giftList));
+    __recordByUser: (name, giftList) => {
+        logging.debug("__recordByUser, name: %s, gift list: %s", name, giftList.length);
 
         let callback = (e, uid) => {
             if(e){
@@ -495,22 +335,26 @@ let Parser = {
             }
             for (let i = 0; i < giftList.length; i++){
                 let info = giftList[i];
-
-                let face = info.from_user.face;
-                let room_id = info.room_id;
                 let gift_id = info.raffleId;
-                let gift_creation_valuse = {
-                    key: "_T" + room_id + "$" + gift_id,
+                let room_id = info.room_id;
+                let key = "_T" + room_id + "$" + gift_id;
+
+                let savedData = JSON.stringify({
+                    uid: uid,
+                    name: name,
+                    face: info.from_user.face,
                     room_id: room_id,
                     gift_id: gift_id,
                     gift_name: info.title,
                     gift_type: info.type,
                     sender_type: info.sender_type,
                     created_time: info.created_time,
-                    status: info.status,
-                };
-                logging.info("create: name: %s, uid: %s, gift_id: %s", name, uid, gift_id);
-                DataAccess.createGiftRec(uid, name, face, gift_creation_valuse);
+                    status: info.status
+                });
+
+                DataAccess.nonRepetitiveExecute(key, savedData, () => {
+                    logging.info("Tv gift info saved, key: %s, data: %s", key, savedData);
+                });
             }
         };
         UidAcquirer.getUidByName(name, callback);
@@ -562,116 +406,5 @@ let Receiver = {
 };
 
 
-let GuardListener = {
-    GUARD_ROOM_ID_LIST: [],
-    GET_GID_DISPATCHER_TASK_ID: 0,
-
-    getSingleGid: (room_id) => {
-        let reqParam = {
-            url: "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=" + room_id,
-            method: "get",
-            headers: {"User-Agent": UA},
-            timeout: 20000,
-        },
-        cbFn = (err, res, body) => {
-            if (err) {
-                logging.error("Get guard gift id error: %s, room_id: %s", err.toString(), room_id);
-                return;
-            }
-            let r = {"-": "-"};
-            try {
-                r = JSON.parse(body.toString());
-            } catch (e) {
-                logging.error("Error response getTvGiftId: %s, body:\n-------\n%s\n\n", e.toString(), body);
-                return;
-            }
-            if (r.code !== 0) {return}
-
-            let gidlist = r.data || [];
-            for (let i = 0; i < gidlist.length; i++) {
-                let giftInfo = gidlist[i];
-                giftInfo.created_time = getLocalTimeStr();
-
-                let gift_id = parseInt(giftInfo.id) || 0;
-                let k = "NG" + room_id + "$" + gift_id;
-
-                DataAccess.checkIfGiftExisted(k, (e, result) => {
-                    if(e){
-                        logging.error("Error happened in checkIfGiftExisted: %s", e);
-                        return;
-                    }
-                    if(result){
-                        logging.warn("Gift already existed! room_id: %s, gift id: %s", room_id, gift_id);
-                    }else{
-                        let uid = giftInfo.sender.uid;
-                        let name = giftInfo.sender.uname;
-                        let face = giftInfo.sender.face;
-                        let gift_creation_valuse = {
-                            key: k,
-                            room_id: room_id,
-                            gift_id: gift_id,
-                            gift_name: "guard",
-                            gift_type: "G" + giftInfo.privilege_type,
-                            sender_type: null,
-                            created_time: giftInfo.created_time,
-                            status: giftInfo.status,
-                        };
-                        logging.info("create: name: %s, uid: %s, gift_id: %s", name, uid, gift_id);
-                        DataAccess.createGiftRec(uid, name, face, gift_creation_valuse);
-                    }
-                });
-            }
-        };
-        logging.info("Send getting guard gift id request, room_id: %s", room_id);
-        request(reqParam, cbFn);
-    },
-    getGidDispatcher: () => {
-        let room_id = GuardListener.GUARD_ROOM_ID_LIST.shift();
-        if(GuardListener.GUARD_ROOM_ID_LIST.length === 0 && GuardListener.GET_GID_DISPATCHER_TASK_ID !== 0){
-            clearInterval(GuardListener.GET_GID_DISPATCHER_TASK_ID);
-            GuardListener.GET_GID_DISPATCHER_TASK_ID = 0;
-        }
-        GuardListener.getSingleGid(room_id);
-    },
-    getGuardList: () => {
-        request({
-            url: "https://dmagent.chinanorth.cloudapp.chinacloudapi.cn:23333/Governors/View",
-            method: "get",
-            headers: {"User-Agent": UA},
-            timeout: 10000,
-        },function (err, res, body) {
-            if(err){
-                logging.error("Error happened: %s, r: %s", err.toString(), body.toString());
-                return;
-            }
-            let response = body.toString();
-            if (response.indexOf("提督列表") < 0 || response.indexOf("舰长列表") < 0){
-                logging.error("Response data error! r: %s", body.toString());
-                return;
-            }
-
-            let totallist = response.match(/live.bilibili.com\/(\d+)/g) || [];
-            logging.info("Get guard list success, length: %s.", totallist.length);
-
-            for (let i = 0; i < totallist.length; i++){
-                let url = totallist[i];
-                let room_id = parseInt(url.match(/\d+/g)[0]);
-                if(GuardListener.GUARD_ROOM_ID_LIST.indexOf(room_id) < 0){
-                    GuardListener.GUARD_ROOM_ID_LIST.push(room_id);
-                }
-            }
-            if (GuardListener.GUARD_ROOM_ID_LIST.length > 0 && GuardListener.GET_GID_DISPATCHER_TASK_ID === 0){
-                GuardListener.GET_GID_DISPATCHER_TASK_ID = setInterval(GuardListener.getGidDispatcher, 250);
-            }
-        })
-    },
-    init: () => {
-        setInterval(GuardListener.getGuardList, 5*60*1000);
-        GuardListener.getGuardList();
-    },
-};
-
-
 DataAccess.init();
 Receiver.init();
-GuardListener.init();

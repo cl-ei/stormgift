@@ -1,7 +1,7 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
 let fs = require("fs");
-let logger = require("./utils/logger");
-let bilisocket = require("./utils/bilisocket");
+let logger = require("../utils/logger");
+let bilisocket = require("../utils/bilisocket");
 let net = require('net');
 
 let sysArgs = process.argv.splice(2);

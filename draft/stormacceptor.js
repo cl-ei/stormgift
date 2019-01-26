@@ -1,6 +1,6 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
 let request = require("request");
-let logger = require("./utils/logger");
+let logger = require("../utils/logger");
 let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
