@@ -39,7 +39,7 @@ let DataAccess = {
                 return;
             }
             if(d){
-                logging.info("Guard info saved, key: %s", key);
+                logging.info("Tv info saved, key: %s", key);
                 cbFn();
             }
         });
@@ -330,7 +330,7 @@ let Parser = {
 
         let callback = (e, uid) => {
             if(e){
-                logging.error("Cannot get uid by name: %s, e: %s", name, e);
+                logging.error("Cannot get uid by all method: %s, e: %s", name, e);
                 uid = null;
             }
             for (let i = 0; i < giftList.length; i++){
