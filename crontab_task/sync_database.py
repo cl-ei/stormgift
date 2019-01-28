@@ -142,7 +142,7 @@ class SyncTool(object):
             if r and r.get("_saved_time"):
                 old_key.append(key)
 
-        print("Len: %s" % len(old_key))
+        print(old_key)
         return
         db_keys = {_.key for _ in await objects.execute(GiftRec.select(GiftRec.key))}
         need_deleted_from_redis = keys - db_keys
