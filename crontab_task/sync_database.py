@@ -132,13 +132,15 @@ class SyncTool(object):
 
     @classmethod
     async def sync_rec(cls, redis):
-        pipe = redis.pipeline()
-        pipe.keys('_T*')
-        pipe.keys('NG*')
-        r = await pipe.execute()
-        keys = r[0] + r[1]
-
+        # keys = await redis.execute("keys", "NG*")
         existed_keys = await objects.execute(GiftRec.select(GiftRec.key))
+        for _ in existed_keys:
+            key = _.key
+            r = await redis.execute("del", key)
+            print("del: %s, r: %s" % (key, r))
+
+        return
+        keys = []
         need_synced_keys = {_.decode("utf-8") for _ in keys} - {_.key for _ in existed_keys}
         logging.info("Need sync count: %s." % len(need_synced_keys))
 
@@ -174,7 +176,7 @@ class SyncTool(object):
     async def run(cls):
         start_time = time.time()
         await objects.connect()
-        redis = await aioredis.create_redis(
+        redis = await aioredis.create_connection(
             address='redis://%s:%s' % (redis_config["host"], redis_config["port"]),
             db=redis_config["db"],
             password=redis_config["auth_pass"],
