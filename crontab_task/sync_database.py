@@ -103,6 +103,8 @@ class SyncTool(object):
         name = r["name"]
         face = r["face"]
         user_obj = await cls.get_or_update_user_obj(uid=uid, name=name, face=face)
+        if uid is None:
+            logging.error("User name is None! key: %s, name: %s, user_obj: %s" % (k, r["name"], user_obj))
 
         create_param = {
             "key": k,
