@@ -132,12 +132,21 @@ class SyncTool(object):
 
     @classmethod
     async def sync_rec(cls, redis):
-        # keys = await redis.execute("keys", "NG*")
-        existed_keys = await objects.execute(GiftRec.select(GiftRec.key))
-        for _ in existed_keys:
-            key = _.key
-            r = await redis.execute("del", key)
-            print("del: %s, r: %s" % (key, r))
+        ng_keys = await redis.execute("keys", "NG*")
+        _t_keys = await redis.execute("keys", "_T*")
+        keys = set(ng_keys + _t_keys)
+        old_key = []
+        for key in keys:
+            r = await redis.execute("get", key)
+            r = json.loads(r.decode("utf-8"))
+            if r and r.get("_saved_time"):
+                old_key.append(key)
+
+        print("Len: %s" % len(old_key))
+        return
+        db_keys = {_.key for _ in await objects.execute(GiftRec.select(GiftRec.key))}
+        need_deleted_from_redis = keys - db_keys
+        print(len(need_deleted_from_redis))
 
         return
         keys = []
