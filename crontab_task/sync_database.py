@@ -99,72 +99,44 @@ class SyncTool(object):
             logging.error("Error in sync_tv_single_rec: %s" % e)
             return
 
-        if k.startswith("_T"):
-            user_info = r["from_user"]
-            user_obj = await cls.get_or_update_user_obj(uid=None, name=user_info["uname"], face=user_info["face"])
-            return {
-                "key": k,
-                "room_id": int(k[2:].split("$")[0]),
-                "gift_id": r["raffleId"],
-                "gift_name": r["title"],
-                "gift_type": r["type"],
-                "sender": user_obj,
-                "sender_type": r["sender_type"],
-                "created_time": datetime.datetime.fromtimestamp(r["_saved_time"] / 1000),
-                "status": r["status"],
-            }
-        elif k.startswith("NG"):
-            user_info = r["sender"]
-            user_obj = await cls.get_or_update_user_obj(user_info["uid"], user_info["uname"], user_info["face"])
-            return {
-                "key": k,
-                "room_id": int(k[2:].split("$")[0]),
-                "gift_id": int(k[2:].split("$")[-1]),
-                "gift_name": "guard",
-                "gift_type": "G" + str(r["privilege_type"]),
-                "sender": user_obj,
-                "sender_type": None,
-                "created_time": datetime.datetime.fromtimestamp(r["_saved_time"] / 1000),
-                "status": r["status"],
-            }
-        else:
-            return
+        uid = r.get("uid", None)
+        name = r["name"]
+        face = r["face"]
+        user_obj = await cls.get_or_update_user_obj(uid=uid, name=name, face=face)
+
+        create_param = {
+            "key": k,
+            "room_id": r["room_id"],
+            "gift_id": r["gift_id"],
+            "gift_name": r["gift_name"],
+            "gift_type": r["gift_type"],
+            "sender": user_obj,
+            "sender_type": r["sender_type"],
+            "created_time": r["created_time"],
+            "status": r["status"],
+        }
+        return create_param
 
     @classmethod
     async def sync_rec(cls, redis):
         keys = await redis.execute("keys", "NG*") + await redis.execute("keys", "_T*")
-        for k in keys:
-            r = await redis.execute("get", k)
-            try:
-                r = json.loads(r.decode("utf-8"))
-            except Exception as e:
-                print(e)
-            else:
-                if isinstance(r, dict):
-                    pass
-                else:
-                    print("r: ", r)
-        return
-
-        need_synced_keys = {_.decode("utf-8") for _ in old_key} - {_.key for _ in existed_keys}
+        keys = {_.decode("utf-8") for _ in keys}
+        db_keys = await objects.execute(GiftRec.select(GiftRec.key).where(GiftRec.key << keys))
+        need_synced_keys = keys - {_.key for _ in db_keys}
         logging.info("Need sync count: %s." % len(need_synced_keys))
 
         source_info = {}
-        pipe = redis.pipeline()
         count = 0
         for k in need_synced_keys:
             count += 1
-            source_info[k] = pipe.get(k)
-            if count >= 100:
-                await pipe.execute()
-                pipe = redis.pipeline()
-                count = 0
-        if count > 0:
-            await pipe.execute()
+            r = await redis.execute("get", k)
+            source_info[k] = r
+            if count > 0 and count % 100 == 0:
+                logging.info("%s redis key proceed." % count)
 
         need_create_gift_rec = []
         for k, info in source_info.items():
-            param = await cls.proc_single_info(k, info.result())
+            param = await cls.proc_single_info(k, info)
             if param is not None:
                 need_create_gift_rec.append(param)
 
