@@ -14,10 +14,11 @@ logging.info("Start TV Listener proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 let AREA_NAME_MAP = {
     0: "全区",
     1: "娱乐",
-    2: "游戏",
+    2: "网游",
     3: "手游",
     4: "绘画",
     5: "电台",
+    6: "单机",
 };
 
 let BiliAPI = {
@@ -159,7 +160,7 @@ let TVMonitor = {
     WS_CONNECTION_UPDATING: false,
 
     getAreaNameByRoomId: (room_id) => {
-        for (let area = 0; area <= 5; area++){
+        for (let area = 0; area <= 6; area++){
             if (TVMonitor.ROOM_AREA_MAP[area] === room_id){
                 return area;
             }
@@ -294,7 +295,7 @@ let TVMonitor = {
         TVMonitor.WS_CONNECTION_UPDATING = false;
     },
     updateMonitorRooms: (areaList) => {
-        areaList = areaList || [1, 2, 3, 4, 5];
+        areaList = areaList || [1, 2, 3, 4, 5, 6];
         for (let i = 0; i < areaList.length; i++){
             let area = areaList[i];
             setTimeout(() => {
