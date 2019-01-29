@@ -1,4 +1,5 @@
 let request = require("request");
+let fs = require("fs");
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 
 module.exports.sendDanmaku = (message, room_id, color, cookieIdx, logging) => {
