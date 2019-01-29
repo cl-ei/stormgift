@@ -1,4 +1,5 @@
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
+let fs = require("fs");
 let request = require("request");
 let redis = require("redis");
 let proj_config = require("../config/proj_config");
@@ -60,9 +61,7 @@ let DataAccess = {
 let UidAcquirer = {
     __ADMIN_WAY_LOCK: null,
     __getCookieCsrfTokenAnchorid: () => {
-        let cookie_filename = '../data/cookie.js';
-        let cookie = require(cookie_filename).RAW_COOKIE_LIST[0];
-
+        let cookie = JSON.parse(fs.readFileSync('../data/cookie.json','utf-8')).RAW_COOKIE_LIST[0];
         let cookie_kv = cookie.split(";");
         let csrf_token = "";
         for (let i = 0; i < cookie_kv.length; i++){

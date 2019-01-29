@@ -25,7 +25,7 @@ let HANSY_ROOM_ID = 2516117;
 let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
 let damakusender = require("../utils/danmakusender");
 let sendDanmakuToHansyRoomId = (msg) => {
-    (new damakusender.Sender(0, chat)).sendDamaku(msg, HANSY_ROOM_ID)
+    damakusender.sendDanmaku(msg, HANSY_ROOM_ID, undefined, 0, undefined);
 };
 let HANSY_MSG_LIST = [
     "📢 小可爱们记得点上关注哟，点个关注不迷路ヽ(✿ﾟ▽ﾟ)ノ",
@@ -150,7 +150,6 @@ let procMessage = (msg, room_id) => {
         }
 
         if (uid === 65981801 && (message.indexOf("心") > -1 || message.indexOf("美") > -1 || message.indexOf("好") > -1)){
-            let dmksender = new damakusender.Sender(0, chat);
             sendDanmakuToHansyRoomId(randomChoice([
                 "🤖 大连你是个大居蹄子！",
                 "🤖 大连给我把你的舌头吞回去！",

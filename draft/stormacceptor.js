@@ -7,7 +7,7 @@ let DEBUG = !(sysArgs[0] === "server");
 let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log";
 let logging = logger.creatLogger("stormacceptor", loggerFilePath);
 
-let cookie_filename = './data/cookie.js';
+let cookie_filename = '';
 let RAW_COOKIES_LIST = require(cookie_filename).RAW_COOKIE_LIST;
 let cookie = RAW_COOKIES_LIST[0];
 let cookie_kv = cookie.split(";");

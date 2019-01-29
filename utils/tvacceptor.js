@@ -1,4 +1,5 @@
 let request = require("request");
+let fs = require("fs");
 let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";
 
 let loggers = require("../config/loggers");
@@ -7,7 +8,9 @@ let tv_logging = loggers.apz_tv;
 let other_users_logging = loggers.apz_other_users;
 
 
-let loadCookieList = () => {return require("../data/cookie.js").RAW_COOKIE_LIST};
+let loadCookieList = () => {
+    return JSON.parse(fs.readFileSync('../data/cookie.json','utf-8')).RAW_COOKIE_LIST;
+};
 
 
 let Acceptor = {
