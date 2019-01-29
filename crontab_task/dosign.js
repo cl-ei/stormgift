@@ -2,7 +2,8 @@ let request = require("request");
 let logging = require("../config/loggers").dosign;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 let fs = require("fs");
-let RAW_COOKIES_LIST = JSON.parse(fs.readFileSync("../data/cookie.json", "utf-8")).RAW_COOKIE_LIST;
+let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
+let RAW_COOKIES_LIST = JSON.parse(fs.readFileSync(COOKIE_FILE_PATH, "utf-8")).RAW_COOKIE_LIST;
 
 
 let doSign = (cookie, index) => {

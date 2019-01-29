@@ -4,7 +4,8 @@ let UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KH
 
 module.exports.sendDanmaku = (message, room_id, color, cookieIdx, logging) => {
     cookieIdx = cookieIdx || 0;
-    let cookie = JSON.parse(fs.readFileSync('../data/cookie.json','utf-8')).RAW_COOKIE_LIST[cookieIdx];
+    let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
+    let cookie = JSON.parse(fs.readFileSync(COOKIE_FILE_PATH,'utf-8')).RAW_COOKIE_LIST[cookieIdx];
     let csrf_token = "";
     let cookie_kv = cookie.split(";");
 

@@ -9,7 +9,8 @@ let other_users_logging = loggers.apz_other_users;
 
 
 let loadCookieList = () => {
-    return JSON.parse(fs.readFileSync('../data/cookie.json','utf-8')).RAW_COOKIE_LIST;
+    let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
+    return JSON.parse(fs.readFileSync(COOKIE_FILE_PATH,'utf-8')).RAW_COOKIE_LIST;
 };
 
 

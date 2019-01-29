@@ -61,7 +61,8 @@ let DataAccess = {
 let UidAcquirer = {
     __ADMIN_WAY_LOCK: null,
     __getCookieCsrfTokenAnchorid: () => {
-        let cookie = JSON.parse(fs.readFileSync('../data/cookie.json','utf-8')).RAW_COOKIE_LIST[0];
+        let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
+        let cookie = JSON.parse(fs.readFileSync(COOKIE_FILE_PATH,'utf-8')).RAW_COOKIE_LIST[0];
         let cookie_kv = cookie.split(";");
         let csrf_token = "";
         for (let i = 0; i < cookie_kv.length; i++){
