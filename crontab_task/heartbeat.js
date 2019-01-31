@@ -26,7 +26,7 @@ function postLatestTime(cookie, index){
     request.get({
         url: "https://api.live.bilibili.com/relation/v1/feed/heartBeat?_=" + timest,
         headers: {"User-Agent": UA, "Cookie": cookie},
-        timeout: 5000,
+        timeout: 30000,
     }, function (err, res, body) {
         let err_msg = "";
         if (err) {
@@ -59,7 +59,7 @@ function heartbeat_5m(cookie, index){
     request.post({
         url: "https://api.live.bilibili.com/User/userOnlineHeart",
         headers: {"User-Agent": UA, "Cookie": cookie},
-        timeout: 5000,
+        timeout: 30000,
     }, function (err, res, body) {
         let err_msg = "";
         if (err) {
