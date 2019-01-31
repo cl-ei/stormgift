@@ -1,4 +1,5 @@
 let request = require("request");
+let sendMail = require("../utils/mail").sendMail;
 let logging = require("../config/loggers").heartbeat;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 let fs = require("fs");
@@ -27,15 +28,30 @@ function postLatestTime(cookie, index){
         headers: {"User-Agent": UA, "Cookie": cookie},
         timeout: 5000,
     }, function (err, res, body) {
+        let err_msg = "";
         if (err) {
-            logging.error("90s Heartbeat send error, index: %d, e: %s", index, err.toString());
+            err_msg = err.toString();
+            logging.error("90s Heartbeat send error, index: %d, e: %s", index, err_msg);
         }else{
-            let r = JSON.parse(body.toString());
+            let r = {"-": "-"};
+            try{
+                r = JSON.parse(body.toString());
+            }catch (e) {
+                err_msg = e.toString()
+            }
             if(r.code === 0){
                 logging.info("postLatestTime Success! index: %d, timest: %s", index, timest);
             }else{
+                err_msg += " body: " + body.toString();
                 logging.error("postLatestTime Error! index: %d, r: %s", index, body.toString());
             }
+        }
+
+        if(err_msg.length > 0){
+            let text = "postLatestTime -> 挂辣条异常：index: " + index + "err_msg: " + err_msg;
+            sendMail("挂辣条异常", text, (e, info) => {
+                if (e){logging.error("postLatestTime send mail error! %s", e.toString())}
+            })
         }
     });
 }
@@ -45,18 +61,29 @@ function heartbeat_5m(cookie, index){
         headers: {"User-Agent": UA, "Cookie": cookie},
         timeout: 5000,
     }, function (err, res, body) {
+        let err_msg = "";
         if (err) {
-            logging.error(
-                "5m Heartbeat send error! index: %s, e: %s, body: %s",
-                index, err.toString(), res
-            );
+            err_msg = err.toString();
+            logging.error("5m Heartbeat send error! index: %s, e: %s, body: %s", index, err_msg, res);
         }else{
-            let r = JSON.parse(body.toString());
+            let r = {"-": "-"};
+            try{
+                r = JSON.parse(body.toString());
+            }catch (e) {
+                err_msg = e.toString();
+            }
             if(r.code === 0){
                 logging.info("Send Heartbeat Success! index: %d", index);
             }else{
+                err_msg += " body: " + body.toString();
                 logging.error("Error happened in 5m, index: %d, r: %s", index, body.toString());
             }
+        }
+        if(err_msg.length > 0){
+            let text = "heartbeat_5m -> 挂辣条异常：index: " + index + "err_msg: " + err_msg;
+            sendMail("挂辣条异常", text, (e, info) => {
+                if (e){logging.error("heartbeat_5m send mail error! %s", e.toString())}
+            })
         }
         postLatestTime(cookie, index);
     });
