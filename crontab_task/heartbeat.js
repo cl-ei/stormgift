@@ -31,7 +31,7 @@ function postLatestTime(cookie, index){
         let err_msg = "";
         if (err) {
             err_msg = err.toString();
-            logging.error("90s Heartbeat send error, index: %d, e: %s", index, err_msg);
+            logging.error("postLatestTime send error, index: %d, e: %s", index, err_msg);
         }else{
             let r = {"-": "-"};
             try{
