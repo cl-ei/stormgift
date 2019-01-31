@@ -45,7 +45,10 @@ let Acceptor = {
         let cookieList = cookieFile.RAW_COOKIE_LIST;
         let blackList = cookieFile.BLACK_LIST;
         for(let i = 0; i < cookieList.length; i++){
-            if(blackList.indexOf(i) > -1){continue}
+            if(blackList.indexOf(i) > -1){
+                other_users_logging.warn("%s - GUARD ACCEPTOR: SKIPPED! (In black list.)", i);
+                continue;
+            }
             let cookie = cookieList[i];
             setTimeout(
                 () => {Acceptor.__joinGuardSingle(i, room_id, gift_id, cookie)},
