@@ -80,7 +80,7 @@ let Acceptor = {
         cbFn = (err, res, body) => {
             let logging = (index === 0 ? guard_logging : other_users_logging);
             if (err) {
-                logging.error("%s - Accept guard prize error: %s, room_id: %s", csrf_token, err.toString(), room_id);
+                logging.error("%s - Accept guard prize error: %s, room_id: %s", index, err.toString(), room_id);
             } else {
                 let r = {"-": "-"};
                 try{
@@ -88,7 +88,7 @@ let Acceptor = {
                 }catch (e) {
                     logging.error(
                         "%s - Error response __joinGuardSingle: %s, body:\n-------\n%s\n\n",
-                        csrf_token, e.toString(), body
+                        index, e.toString(), body
                     );
                     return;
                 }
@@ -98,10 +98,10 @@ let Acceptor = {
                         from = data.from;
                     logging.info(
                         "%s - GUARD ACCEPTOR: SUCCEED! room_id: %s, gift_id: %s, msg: %s, from: %s",
-                        csrf_token, room_id, gift_id, msg, from
+                        index, room_id, gift_id, msg, from
                     );
                 }else{
-                    logging.error("%s - GUARD: __joinGuardSingle Failed! r: %s", csrf_token, JSON.stringify(r));
+                    logging.error("%s - GUARD: __joinGuardSingle Failed! r: %s", index, JSON.stringify(r));
                 }
             }
         };
