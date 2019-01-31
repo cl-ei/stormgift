@@ -48,7 +48,7 @@ function postLatestTime(cookie, index){
         }
 
         if(err_msg.length > 0){
-            let text = "postLatestTime -> 挂辣条异常：index: " + index + "err_msg: " + err_msg;
+            let text = "postLatestTime -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
             sendMail("挂辣条异常", text, (e, info) => {
                 if (e){logging.error("postLatestTime send mail error! %s", e.toString())}
             })
@@ -80,7 +80,7 @@ function heartbeat_5m(cookie, index){
             }
         }
         if(err_msg.length > 0){
-            let text = "heartbeat_5m -> 挂辣条异常：index: " + index + "err_msg: " + err_msg;
+            let text = "heartbeat_5m -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
             sendMail("挂辣条异常", text, (e, info) => {
                 if (e){logging.error("heartbeat_5m send mail error! %s", e.toString())}
             })
