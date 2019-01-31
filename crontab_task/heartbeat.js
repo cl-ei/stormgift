@@ -93,9 +93,6 @@ function heartbeat_5m(cookie, index){
     logging.info("Start send heartbeat proc.");
     for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
         let c = RAW_COOKIES_LIST[i];
-        heartbeat_5m(c, i);
+        setTimeout(() => {heartbeat_5m(c, i)}, 2000*i);
     }
-    setTimeout(() => {
-        logging.info("Finished. \n\n")
-    }, 20000)
 })();
