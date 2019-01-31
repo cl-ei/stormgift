@@ -8,9 +8,9 @@ let tv_logging = loggers.apz_tv;
 let other_users_logging = loggers.apz_other_users;
 
 
-let loadCookieList = () => {
+let loadCookieFile = () => {
     let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
-    return JSON.parse(fs.readFileSync(COOKIE_FILE_PATH,'utf-8')).RAW_COOKIE_LIST;
+    return JSON.parse(fs.readFileSync(COOKIE_FILE_PATH,'utf-8'));
 };
 
 
@@ -90,8 +90,11 @@ let Acceptor = {
             title = rg[2],
             from = rg[3];
 
-        let cookieList = loadCookieList();
+        let cookieFile = loadCookieFile();
+        let cookieList = cookieFile.RAW_COOKIE_LIST;
+        let blackList = cookieFile.BLACK_LIST;
         for (let i = 0; i < cookieList.length; i++){
+            if(blackList.indexOf(i) > -1){continue}
             let cookie = cookieList[i];
             setTimeout(
                 () => {Acceptor.__joinTVSingle(i, room_id, gift_id, title, from, cookie)},
