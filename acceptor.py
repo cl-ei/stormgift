@@ -2,6 +2,7 @@ import json
 import asyncio
 import websockets
 from config import PRIZE_HANDLER_SERVE_ADDR
+from utils.ws import ReConnectingWsClient
 
 
 class ReconnectedWsClient(object):
@@ -101,7 +102,9 @@ async def main():
     async def on_price_message(key):
         await a.add_task(key)
 
-    c = ReconnectedWsClient("129.204.43.2", 11112, on_message=on_price_message)  # *PRIZE_HANDLER_SERVE_ADDR)
+    # *PRIZE_HANDLER_SERVE_ADDR
+    # ("129.204.43.2", 11112)
+    c = ReConnectingWsClient(uri="ws://%s:%s" % ("129.204.43.2", 11112), on_message=on_price_message)
     await c.start()
     await acceptor_task
 

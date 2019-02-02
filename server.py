@@ -15,12 +15,13 @@ class NoticeHandler(object):
         self.__clients.add(ws)
         print("New client connected: (%s, %s), path: %s" % (ws.host, ws.port, path))
         print("Current connections: %s" % len(self.__clients))
+        ws.last_active_time = time.time()
 
         async def wait_timeout():
             while not ws.closed:
                 await asyncio.sleep(10)
                 time_delta = time.time() - getattr(ws, "last_active_time", 0)
-                if time_delta > 15:
+                if time_delta > 25:
                     print("Heart beat time out: %s. close it!" % time_delta)
                     await ws.close()
 
@@ -76,9 +77,10 @@ class PrizeInfoReceiver(asyncio.protocols.BaseProtocol):
 async def main():
     h = NoticeHandler(*PRIZE_HANDLER_SERVE_ADDR)
     await h.serve()
-
+    print("Notice handler started.")
     PrizeInfoReceiver.notice_handler = h
     await loop.create_datagram_endpoint(PrizeInfoReceiver, local_addr=PRIZE_SOURCE_PUSH_ADDR)
+    print("Price info acceptor started.")
     while True:
         await asyncio.sleep(5)
         # print("*"*20)
