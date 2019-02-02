@@ -11,22 +11,22 @@ class ReconnectedWsClient(object):
         self.on_message = on_message
 
     async def start(self):
-        try:
-            await asyncio.create_task(self._create_client())
-        except Exception as e:
-            print(e)
+        while True:
+            try:
+                await asyncio.create_task(self._create_client())
+            except Exception as e:
+                print(e)
 
-        self.retry_times += 1
-        if self.retry_times < 3:
-            sleep = 0.1
-        elif self.retry_times < 10:
-            sleep = 0.5
-        elif self.retry_times < 20:
-            sleep = 2
-        else:
-            sleep = 5
-        await asyncio.sleep(sleep)
-        await self.start()
+            self.retry_times += 1
+            if self.retry_times < 3:
+                sleep = 0.1
+            elif self.retry_times < 10:
+                sleep = 0.5
+            elif self.retry_times < 20:
+                sleep = 2
+            else:
+                sleep = 5
+            await asyncio.sleep(sleep)
 
     async def _create_client(self):
         async with websockets.connect(self.server_uri) as ws:
