@@ -14,6 +14,7 @@ class NoticeHandler(object):
     async def handler(self, ws, path):
         self.__clients.add(ws)
         print("New client connected: (%s, %s), path: %s" % (ws.host, ws.port, path))
+        print("Current connections: %s" % len(self.__clients))
 
         async def wait_timeout():
             while not ws.closed:
@@ -31,8 +32,12 @@ class NoticeHandler(object):
             except Exception as e:
                 print("Exception on receiving: %s. close it." % e)
                 break
+
+            if type(m) == bytes:
+                m = m.decode()
             print("Ws message received: %s" % m)
             if m == "heart beat":
+                print("set heart beat time.")
                 ws.last_active_time = time.time()
 
         if not task.cancelled():
@@ -76,10 +81,10 @@ async def main():
     await loop.create_datagram_endpoint(PrizeInfoReceiver, local_addr=PRIZE_SOURCE_PUSH_ADDR)
     while True:
         await asyncio.sleep(5)
-        print("*"*20)
-        for task in asyncio.all_tasks():
-            print(task)
-        print("*" * 20)
+        # print("*"*20)
+        # for task in asyncio.all_tasks():
+        #     print(task)
+        # print("*" * 20)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
