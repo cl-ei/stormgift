@@ -1,0 +1,3 @@
+
+PRIZE_SOURCE_PUSH_ADDR = ("localhost", 11111)
+PRIZE_HANDLER_SERVE_ADDR = ("localhost", 22222)

@@ -8,7 +8,8 @@ def create_task(c):
 
 async def create_client():
     ws_session = aiohttp.ClientSession()
-    async with ws_session.ws_connect(url='ws://localhost:8765') as ws:
+    async with ws_session.ws_connect(url='ws://localhost:22222') as ws:
+
         async def send_heart_beat():
             while not ws.closed:
                 print("send heart beat")
@@ -17,11 +18,11 @@ async def create_client():
                 except Exception as e:
                     print("e: %s" % e)
                     return
-                await asyncio.sleep(10)
+                await asyncio.sleep(50)
 
         task = create_task(send_heart_beat())
         async for msg in ws:
-            print("r: %s" % msg.type)
+            print("r: %s: %s" % (msg.type, msg.data))
         await task
 
     await ws_session.close()

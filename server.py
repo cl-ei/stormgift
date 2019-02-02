@@ -2,64 +2,85 @@ import time
 import asyncio
 import websockets
 
-cnt = 0
+from config import PRIZE_HANDLER_SERVE_ADDR, PRIZE_SOURCE_PUSH_ADDR
 
 
 class NoticeHandler(object):
-    def __init__(self):
+    def __init__(self, host, port):
         self.__clients = set()
+        self.host = host
+        self.port = port
 
     async def handler(self, ws, path):
         self.__clients.add(ws)
+        print("New client connected: (%s, %s), path: %s" % (ws.host, ws.port, path))
 
         async def wait_timeout():
             while not ws.closed:
                 await asyncio.sleep(10)
-                if time.time() - getattr(ws, "last_active_time", 0) > 10:
-                    print("close it!")
+                time_delta = time.time() - getattr(ws, "last_active_time", 0)
+                if time_delta > 15:
+                    print("Heart beat time out: %s. close it!" % time_delta)
                     await ws.close()
 
-        task = asyncio.get_event_loop().create_task(wait_timeout())
+        task = asyncio.create_task(wait_timeout())
 
         while not ws.closed:
             try:
                 m = await ws.recv()
-            except Exception:
-                print("close")
+            except Exception as e:
+                print("Exception on receiving: %s. close it." % e)
                 break
-
-            print("receive: %s" % m)
+            print("Ws message received: %s" % m)
             if m == "heart beat":
                 ws.last_active_time = time.time()
-                print("ws last_active_time set: %s" % ws.last_active_time)
 
         if not task.cancelled():
             task.cancel()
-        print("--")
         if ws in self.__clients:
             self.__clients.remove(ws)
+            print("Client leave: %s, current connections: %s" % (ws, len(self.__clients)))
 
     def serve(self):
-        return websockets.serve(self.handler, 'localhost', 8765)
+        return websockets.serve(self.handler, self.host, self.port)
 
     async def notice_all(self, msg):
-        for c in self.__clients:
+        lived_clients = [c for c in self.__clients if not c.closed]
+        print("Lived clients: %s" % len(lived_clients))
+        for c in lived_clients:
             if not c.closed:
-                print(c)
                 await c.send(msg)
 
 
-h = NoticeHandler()
+class PrizeInfoReceiver(asyncio.protocols.BaseProtocol):
+    notice_handler = None
 
+    def __init__(self):
+        super(PrizeInfoReceiver, self).__init__()
+        self.transport = None
 
-async def mo():
-    await asyncio.sleep(5)
-    await h.notice_all("123")
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def datagram_received(self, data, addr):
+        message = data.decode()
+        if self.__class__.notice_handler:
+            asyncio.gather(self.__class__.notice_handler.notice_all(message))
 
 
 async def main():
+    h = NoticeHandler(*PRIZE_HANDLER_SERVE_ADDR)
     await h.serve()
 
+    PrizeInfoReceiver.notice_handler = h
+    await loop.create_datagram_endpoint(PrizeInfoReceiver, local_addr=PRIZE_SOURCE_PUSH_ADDR)
+    while True:
+        await asyncio.sleep(5)
+        print("*"*20)
+        for task in asyncio.all_tasks():
+            print(task)
+        print("*" * 20)
+
 loop = asyncio.get_event_loop()
-asyncio.gather(main(), mo())
+loop.run_until_complete(main())
 loop.run_forever()
