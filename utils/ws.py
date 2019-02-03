@@ -35,6 +35,7 @@ class ReConnectingWsClient(object):
                 else:
                     sleep = 5
                 asyncio.gather(self.start(sleep))
+                print("restart!!!!---")
         self._reconnect_cb = reconnect_cb
 
         def exc_handler(*rags, **kw):
