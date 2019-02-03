@@ -143,7 +143,7 @@ class PrizeProcessor(object):
             info["uid"] = uid
             room_id = info["room_id"]
             gift_id = info["gift_id"]
-            key = f"NG{room_id}${gift_id}"
+            key = f"_T{room_id}${gift_id}"
             result = await self.__info_setter.non_repeated_save(key, info)
             if result:
                 self.send_prize_info(key)
