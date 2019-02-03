@@ -52,7 +52,7 @@ class NoticeHandler(object):
 
     async def notice_all(self, msg):
         lived_clients = [c for c in self.__clients if not c.closed]
-        print("Lived clients: %s" % len(lived_clients))
+        print(f"Notice to all, msg: {msg}, Lived clients: {len(lived_clients)}")
         for c in lived_clients:
             if not c.closed:
                 await c.send(msg)
@@ -80,13 +80,8 @@ async def main():
     print("Notice handler started.")
     PrizeInfoReceiver.notice_handler = h
     await loop.create_datagram_endpoint(PrizeInfoReceiver, local_addr=PRIZE_SOURCE_PUSH_ADDR)
-    print("Price info acceptor started.")
-    while True:
-        await asyncio.sleep(5)
-        # print("*"*20)
-        # for task in asyncio.all_tasks():
-        #     print(task)
-        # print("*" * 20)
+    print("Prize info acceptor started.")
+
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

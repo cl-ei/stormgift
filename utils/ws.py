@@ -48,7 +48,8 @@ class ReConnectingWsClient(object):
             try:
                 await self.connect()
             except Exception as e:
-                print("Error happened: %s" % e)
+                # print("Error happened: %s" % e)
+                pass
 
         task = asyncio.create_task(catch_connect_error())
         task.add_done_callback(self._reconnect_cb)
@@ -60,16 +61,16 @@ class ReConnectingWsClient(object):
             await self.__client.close()
         if not self.__task.cancelled():
             self.__task.remove_done_callback(self._reconnect_cb)
-            self.__task.cancel()
-        self.status = "stopped"
 
-        if self.on_shut_down:
-            await self.on_shut_down()
+            def call_back(t):
+                self.status = "stopped"
+                if self.on_shut_down:
+                    asyncio.gather(self.on_shut_down())
+            self.__task.add_done_callback(call_back)
+            self.__task.cancel()
 
     async def connect(self):
         async with websockets.connect(self.server_uri) as ws:
-            print("Notice server connected.")
-
             self.status = "connected"
             self.retry_times = 0
             self.__client = ws
@@ -97,5 +98,5 @@ class ReConnectingWsClient(object):
                     break
             heart_beat_task.cancel()
 
-        print("Notice Server disconnected.")
-        self.status = "reconnecting"
+        if self.status not in ("stopping", "stopped"):
+            self.status = "reconnecting"
