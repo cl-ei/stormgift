@@ -2,40 +2,41 @@ import asyncio
 import aiohttp
 
 
-def create_task(c):
-    return asyncio.get_event_loop().create_task(c)
+async def main():
+    from utils.ws import ReConnectingWsClient
+    from utils.biliapi import WsApi
 
+    async def on_connect():
+        print("Connected!")
 
-async def create_client():
-    ws_session = aiohttp.ClientSession()
-    async with ws_session.ws_connect(url='ws://localhost:22222') as ws:
+    async def on_shut_down(*args):
+        print("dfasfasf")
 
-        async def send_heart_beat():
-            while not ws.closed:
-                print("send heart beat")
-                try:
-                    await ws.send_str("heart beat")
-                except Exception as e:
-                    print("e: %s" % e)
-                    return
-                await asyncio.sleep(50)
+    async def on_connect(ws):
+        print("on_connect")
+        await ws.send(WsApi.gen_join_room_pkg(478948))
 
-        task = create_task(send_heart_beat())
-        async for msg in ws:
-            print("r: %s: %s" % (msg.type, msg.data))
-        await task
+    async def on_shut_down():
+        print("shut done! %s, area: %s" % (4424139, 23))
 
-    await ws_session.close()
+    async def on_message(*args):
+        print(args)
 
+    new_client = ReConnectingWsClient(
+        uri=WsApi.BILI_WS_URI,  # "ws://localhost:22222",
+        on_message=on_message,
+        on_connect=on_connect,
+        on_shut_down=on_shut_down,
+        heart_beat_pkg=WsApi.gen_heart_beat_pkg(),
+        heart_beat_interval=10
+    )
 
-async def manager():
+    await new_client.start()
+    print("Stated")
     while True:
-        tasks = asyncio.all_tasks()
-        for _ in tasks:
-            print(_)
-        await asyncio.sleep(2)
+        await asyncio.sleep(5)
 
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(asyncio.gather(create_client()))
+loop.run_until_complete(asyncio.gather( main()))
 loop.run_forever()

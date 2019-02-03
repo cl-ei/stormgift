@@ -78,13 +78,21 @@ class ClientManager(object):
             room_id = getattr(client, "room_id", None)
             status = await BiliApi.check_live_status(room_id, area_id)
             if not status:
+                print(f"Room {room_id} status {area_id} not active, change it.")
                 await self.force_change_room(old_room_id=room_id, area=area_id)
 
     async def run(self):
         await self.force_change_room(old_room_id=None, area=0)
+
+        count = 0
         while True:
-            await self.check_status()
-            await asyncio.sleep(60*2)
+            if count % 10 == 0:
+                for area, client in self.__rws_clients.items():
+                    print("status: %s -> %s" % (area, await client.det_get_inner_status()))
+            if count % 120 == 0:
+                await self.check_status()
+            count += 1
+            await asyncio.sleep(1)
 
 
 class PrizeProcessor(object):
@@ -105,7 +113,6 @@ class PrizeProcessor(object):
         s.close()
 
     async def proc_single_gift_of_guard(self, room_id, gift_info):
-        print(f"proc_single_gift_of_guard: %s" % gift_info)
         info = {
             "uid": gift_info.get("sender").get("uid"),
             "name": gift_info.get("sender").get("uname"),
@@ -214,7 +221,7 @@ class GuardScanner(object):
 async def main():
     p = PrizeProcessor()
 
-    guard_scanner = GuardScanner(p.add_gift)
+    # guard_scanner = GuardScanner(p.add_gift)
     m = ClientManager(p.add_gift)
 
     def on_tesk_done(s):
@@ -223,13 +230,13 @@ async def main():
     tv_proc_task = asyncio.create_task(p.run_forever())
     tv_proc_task.add_done_callback(on_tesk_done)
 
-    guard_proc_task = asyncio.create_task(guard_scanner.run_forever())
-    guard_proc_task.add_done_callback(on_tesk_done)
+    # guard_proc_task = asyncio.create_task(guard_scanner.run_forever())
+    # guard_proc_task.add_done_callback(on_tesk_done)
 
     await m.run()
     print("Task stopped!")
     await tv_proc_task
-    await guard_proc_task
+    # await guard_proc_task
 
 
 loop = asyncio.get_event_loop()
