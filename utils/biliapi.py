@@ -369,7 +369,7 @@ class BiliApi:
                     r = json.loads(await resp.text())
             except Exception as e:
                 msg = f"Join tv response error: {str(e)}. index: {i}, key: {room_id}${gift_id}"
-                logging.error(msg)
+                logging.error(msg, exc_info=True)
                 return False, msg
 
         result = r.get("code") == 0
@@ -408,7 +408,7 @@ class BiliApi:
                     r = json.loads(await resp.text())
             except Exception as e:
                 msg = f"Join guard response error: {str(e)}. index: {i}, room_id: {room_id}, gift_id: {gift_id}"
-                logging.error(msg)
+                logging.error(msg, exc_info=True)
                 return False, msg
 
         result = r.get("code") == 0
