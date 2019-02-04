@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+from websockets.protocol import State
 
 
 class ReConnectingWsClient(object):
@@ -35,15 +36,7 @@ class ReConnectingWsClient(object):
                 else:
                     sleep = 5
                 asyncio.gather(self.start(sleep))
-                print("restart!!!!---")
         self._reconnect_cb = reconnect_cb
-
-        def exc_handler(*rags, **kw):
-            print("----<>", *rags, **kw)
-            loop = asyncio.get_running_loop()
-            print("h: %s" % loop.get_exception_handler())
-        loop = asyncio.get_running_loop()
-        loop.set_exception_handler(exc_handler)
 
     async def start(self, delay=0):
         if delay:
@@ -77,7 +70,7 @@ class ReConnectingWsClient(object):
             self.__task.add_done_callback(call_back)
             self.__task.cancel()
 
-    async def det_get_inner_status(self):
+    async def get_inner_status(self):
         return getattr(self.__client, "state", None)
 
     async def connect(self):

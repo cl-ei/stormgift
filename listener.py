@@ -3,13 +3,18 @@ import socket
 import json
 import asyncio
 
-from config import PRIZE_SOURCE_PUSH_ADDR, REDIS_CONFIG
-from utils.ws import ReConnectingWsClient
+from utils.ws import ReConnectingWsClient, State
 from utils.biliapi import BiliApi, WsApi
 from utils.dao import GiftRedisCache
 
+from config.log4 import listener_logger as logging
+from config.log4 import status_logger
+from config import config
+PRIZE_SOURCE_PUSH_ADDR = tuple(config["PRIZE_SOURCE_PUSH_ADDR"])
+REDIS_CONFIG = config["redis"]
 
-class ClientManager(object):
+
+class TvScanner(object):
     AREA_MAP = {
         0: "全区",
         1: "娱乐",
@@ -27,12 +32,19 @@ class ClientManager(object):
     async def on_message(self, area, room_id, message):
         cmd = message.get("cmd")
         if cmd == "PREPARING":
-            print(f"Room {room_id} from area {self.AREA_MAP[area]} closed! now search new.")
+            logging.warning(f"Room {room_id} from area {self.AREA_MAP[area]} closed! now search new.")
             await self.force_change_room(old_room_id=room_id, area=area)
         elif cmd == "NOTICE_MSG":
             msg_self = message.get("msg_self", "")
-            if msg_self.startswith(self.AREA_MAP[area]):
+            matched_notice_area = False
+            if area == 1 and msg_self.startswith("全区"):
+                matched_notice_area = True
+            elif msg_self.startswith(self.AREA_MAP[area]):
+                matched_notice_area = True
+
+            if matched_notice_area:
                 real_room_id = message.get("real_roomid", 0)
+                logging.info(f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}")
                 await self.message_putter("T", real_room_id)
 
     async def force_change_room(self, old_room_id, area):
@@ -44,7 +56,7 @@ class ClientManager(object):
             await self.update_clients_of_single_area(room_id=new_room_id, area=area)
 
     async def update_clients_of_single_area(self, room_id, area):
-        print(f"Create_client, room_id: {room_id}, area: {self.AREA_MAP[area]}")
+        logging.info(f"Create_client, room_id: {room_id}, area: {self.AREA_MAP[area]}")
 
         client = self.__rws_clients.get(area)
         if client and client.status not in ("stopping", "stopped"):
@@ -58,10 +70,10 @@ class ClientManager(object):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
 
         async def on_shut_down():
-            print("shut done! %s, area: %s" % (room_id, self.AREA_MAP[area]))
+            logging.warning(f"Client shutdown! room_id: {room_id}, area: {self.AREA_MAP[area]}")
 
         new_client = ReConnectingWsClient(
-            uri=WsApi.BILI_WS_URI,  # "ws://localhost:22222",
+            uri=WsApi.BILI_WS_URI,
             on_message=on_message,
             on_connect=on_connect,
             on_shut_down=on_shut_down,
@@ -73,26 +85,31 @@ class ClientManager(object):
         await new_client.start()
 
     async def check_status(self):
+        for area, client in self.__rws_clients.items():
+            status = await client.get_inner_status()
+            if status != State.OPEN:
+                room_id = getattr(client, "room_id", None)
+                msg = f"Client state Error! room_id: {room_id}, area: {self.AREA_MAP[area]}, state: {status}."
+                logging.error(msg)
+                status_logger.info(msg)
+
         for area_id in [1, 2, 3, 4, 5, 6]:
             client = self.__rws_clients.get(area_id)
             room_id = getattr(client, "room_id", None)
-            status = await BiliApi.check_live_status(room_id, area_id)
+            result, status = await BiliApi.check_live_status(room_id, area_id)
+            if not result:
+                logging.warning(f"Request error when check live room status. "
+                                f"room_id: {room_id}, area: {self.AREA_MAP[area_id]}")
+                continue
+
             if not status:
-                print(f"Room {room_id} status {area_id} not active, change it.")
+                logging.warning(f"Room [{room_id}] from area [{self.AREA_MAP[area_id]}] not active, change it.")
                 await self.force_change_room(old_room_id=room_id, area=area_id)
 
-    async def run(self):
-        await self.force_change_room(old_room_id=None, area=0)
-
-        count = 0
+    async def run_forever(self):
         while True:
-            if count % 10 == 0:
-                for area, client in self.__rws_clients.items():
-                    print("status: %s -> %s" % (area, await client.det_get_inner_status()))
-            if count % 120 == 0:
-                await self.check_status()
-            count += 1
-            await asyncio.sleep(1)
+            await self.check_status()
+            await asyncio.sleep(120)
 
 
 class PrizeProcessor(object):
@@ -102,14 +119,14 @@ class PrizeProcessor(object):
             REDIS_CONFIG["host"],
             REDIS_CONFIG["port"],
             db=1,
-            password=REDIS_CONFIG["password"]
+            password=REDIS_CONFIG["auth_pass"]
         )
 
     @staticmethod
     def send_prize_info(msg):
-        print("send key: %s" % msg)
+        logging.info(f"Push gift info key: {msg}")
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.sendto(json.dumps(msg).encode("utf-8"), PRIZE_SOURCE_PUSH_ADDR)
+        s.sendto(msg.encode("utf-8"), PRIZE_SOURCE_PUSH_ADDR)
         s.close()
 
     async def proc_single_gift_of_guard(self, room_id, gift_info):
@@ -135,16 +152,18 @@ class PrizeProcessor(object):
             with open("data/cookie.json", "r") as f:
                 cookies = json.load(f)
             cookie = cookies.get("RAW_COOKIE_LIST", [""])[0]
-        except Exception:
-            # TODO: add log
+        except Exception as e:
+            logging.error(
+                f"Error when read cookies: {str(e)}. Do not search uid for user {user_name}. "
+                f"gift_list length: {len(gift_list)}", exc_info=True)
             uid = None
         else:
             result, uid = await BiliApi.get_user_id_by_name(user_name, cookie, retry_times=3)
-            if not result:
-                # TODO: add log
-                uid = None
+            if result:
+                logging.info(f"Get user info: {user_name}: {uid}. gift_list length: {len(gift_list)}.")
             else:
-                print(f"User {user_name} found: {uid}")
+                logging.error(f"Cannot get uid for user: {user_name}")
+                uid = None
 
         for info in gift_list:
             info["uid"] = uid
@@ -195,11 +214,7 @@ class PrizeProcessor(object):
                 try:
                     await self.proc_single_room(room_id, g_type)
                 except Exception as e:
-                    print("Exception: %s" % e)
-
-                    import traceback
-                    print(traceback.format_exc())
-
+                    logging.error(f"Error when proc_single_room of tv_gift, e: {str(e)}", exc_info=True)
             await asyncio.sleep(0.5)
 
 
@@ -219,24 +234,22 @@ class GuardScanner(object):
 
 
 async def main():
+    def on_task_done(s):
+        logging.error(f"Task unexpected done! {s}")
+
     p = PrizeProcessor()
 
-    # guard_scanner = GuardScanner(p.add_gift)
-    m = ClientManager(p.add_gift)
+    guard_scanner = GuardScanner(message_putter=p.add_gift)
+    guard_task = asyncio.create_task(guard_scanner.run_forever())
+    guard_task.add_done_callback(on_task_done)
 
-    def on_tesk_done(s):
-        print(f"Task unexpected done! {s}")
+    tv_scanner = TvScanner(message_putter=p.add_gift)
+    tv_task = asyncio.create_task(tv_scanner.run_forever())
+    tv_task.add_done_callback(on_task_done)
 
-    tv_proc_task = asyncio.create_task(p.run_forever())
-    tv_proc_task.add_done_callback(on_tesk_done)
-
-    # guard_proc_task = asyncio.create_task(guard_scanner.run_forever())
-    # guard_proc_task.add_done_callback(on_tesk_done)
-
-    await m.run()
-    print("Task stopped!")
-    await tv_proc_task
-    # await guard_proc_task
+    await p.run_forever()
+    await guard_task
+    await tv_task
 
 
 loop = asyncio.get_event_loop()

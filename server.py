@@ -2,7 +2,10 @@ import time
 import asyncio
 import websockets
 
-from config import PRIZE_HANDLER_SERVE_ADDR, PRIZE_SOURCE_PUSH_ADDR
+from config import config
+
+PRIZE_HANDLER_SERVE_ADDR = tuple(config["PRIZE_HANDLER_SERVE_ADDR"])
+PRIZE_SOURCE_PUSH_ADDR = tuple(config["PRIZE_SOURCE_PUSH_ADDR"])
 
 
 class NoticeHandler(object):
@@ -36,9 +39,7 @@ class NoticeHandler(object):
 
             if type(m) == bytes:
                 m = m.decode()
-            print("Ws message received: %s" % m)
             if m == "heart beat":
-                print("set heart beat time.")
                 ws.last_active_time = time.time()
 
         if not task.cancelled():
@@ -47,40 +48,40 @@ class NoticeHandler(object):
             self.__clients.remove(ws)
             print("Client leave: %s, current connections: %s" % (ws, len(self.__clients)))
 
-    def serve(self):
+    def start_server(self):
         return websockets.serve(self.handler, self.host, self.port)
 
     async def notice_all(self, msg):
         lived_clients = [c for c in self.__clients if not c.closed]
-        print(f"Notice to all, msg: {msg}, Lived clients: {len(lived_clients)}")
+        print(f"Notice to all, msg: [{msg}], Lived clients: {len(lived_clients)}")
         for c in lived_clients:
-            if not c.closed:
-                await c.send(msg)
+            await c.send(msg)
 
 
-class PrizeInfoReceiver(asyncio.protocols.BaseProtocol):
+class PrizeInfoReceiver:
     notice_handler = None
-
-    def __init__(self):
-        super(PrizeInfoReceiver, self).__init__()
-        self.transport = None
 
     def connection_made(self, transport):
         self.transport = transport
 
-    def datagram_received(self, data, addr):
-        message = data.decode()
+    def datagram_received(self, message, addr):
+        print(f"Message received from udp server: [{message}]")
         if self.__class__.notice_handler:
-            asyncio.gather(self.__class__.notice_handler.notice_all(message))
+            asyncio.gather(self.__class__.notice_handler(message))
+
+    @classmethod
+    async def start_server(cls):
+        listen = loop.create_datagram_endpoint(cls, local_addr=('127.0.0.1', 11111))
+        await asyncio.ensure_future(listen)
 
 
 async def main():
     h = NoticeHandler(*PRIZE_HANDLER_SERVE_ADDR)
-    await h.serve()
-    print("Notice handler started.")
-    PrizeInfoReceiver.notice_handler = h
-    await loop.create_datagram_endpoint(PrizeInfoReceiver, local_addr=PRIZE_SOURCE_PUSH_ADDR)
-    print("Prize info acceptor started.")
+
+    PrizeInfoReceiver.notice_handler = h.notice_all
+    await PrizeInfoReceiver.start_server()
+    await h.start_server()
+    print(f"Server started.")
 
 
 loop = asyncio.get_event_loop()
