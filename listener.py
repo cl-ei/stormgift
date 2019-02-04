@@ -118,7 +118,7 @@ class PrizeProcessor(object):
         self.__info_setter = GiftRedisCache(
             REDIS_CONFIG["host"],
             REDIS_CONFIG["port"],
-            db=1,
+            db=REDIS_CONFIG["db"],
             password=REDIS_CONFIG["auth_pass"]
         )
 
