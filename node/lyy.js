@@ -1,11 +1,9 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
 let log4js = require("log4js");
-let bilisocket = require("./utils/bilisocket");
+let bilisocket = require("./bilisocket");
 let path = require('path');
 
-let sysArgs = process.argv.splice(2);
-let DEBUG = !(sysArgs[0] === "server");
-
+DEBUG = true;
 let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log/lyy";
 let config = {
     appenders: {

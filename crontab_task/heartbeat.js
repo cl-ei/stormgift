@@ -1,6 +1,6 @@
 let request = require("request");
-let sendMail = require("../utils/mail").sendMail;
-let logging = require("../config/loggers").heartbeat;
+// let sendMail = require("../utils/mail").sendMail;
+let logging = require("../node/loggers").heartbeat;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 let fs = require("fs");
 let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
@@ -47,12 +47,12 @@ function postLatestTime(cookie, index){
             }
         }
 
-        if(err_msg.length > 0){
-            let text = "postLatestTime -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
-            sendMail("挂辣条异常", text, (e, info) => {
-                if (e){logging.error("postLatestTime send mail error! %s", e.toString())}
-            })
-        }
+        // if(err_msg.length > 0){
+        //     let text = "postLatestTime -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
+        //     sendMail("挂辣条异常", text, (e, info) => {
+        //         if (e){logging.error("postLatestTime send mail error! %s", e.toString())}
+        //     })
+        // }
     });
 }
 function heartbeat_5m(cookie, index){
@@ -79,12 +79,12 @@ function heartbeat_5m(cookie, index){
                 logging.error("Error happened in 5m, index: %d, r: %s", index, body.toString());
             }
         }
-        if(err_msg.length > 0){
-            let text = "heartbeat_5m -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
-            sendMail("挂辣条异常", text, (e, info) => {
-                if (e){logging.error("heartbeat_5m send mail error! %s", e.toString())}
-            })
-        }
+        // if(err_msg.length > 0){
+        //     let text = "heartbeat_5m -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
+        //     sendMail("挂辣条异常", text, (e, info) => {
+        //         if (e){logging.error("heartbeat_5m send mail error! %s", e.toString())}
+        //     })
+        // }
         postLatestTime(cookie, index);
     });
 }

@@ -1,9 +1,9 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
-let bilisocket = require("../utils/bilisocket");
+let bilisocket = require("./bilisocket");
 let env = require("../config/proj_config").env;
 let DEBUG = !(env === "server");
 
-let loggers = require("../config/loggers");
+let loggers = require("./loggers");
 let chat = loggers.chat;
 let gold = loggers.gold;
 let sliver = loggers.sliver;
@@ -23,7 +23,7 @@ let USER_ID_TO_NAME = {
 
 let HANSY_ROOM_ID = 2516117;
 let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
-let damakusender = require("../utils/danmakusender");
+let damakusender = require("./danmakusender");
 let sendDanmakuToHansyRoomId = (msg) => {
     damakusender.sendDanmaku(msg, HANSY_ROOM_ID, undefined, 0, undefined);
 };

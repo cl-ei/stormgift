@@ -6,7 +6,7 @@ let sysArgs = process.argv.splice(2);
 let DEBUG = !(sysArgs[0] === "server");
 
 let Monitor = {
-    MONITOR_LOG_FILE: DEBUG ? "./log/test.txt" : "/home/wwwroot/log/supervisor/supervisord.log",
+    MONITOR_LOG_FILE: DEBUG ? "./log/stormgift.log" : "/home/wwwroot/log/supervisor/stormgift.log",
     __FILE_POS: 0,
     __cbFn: undefined,
 

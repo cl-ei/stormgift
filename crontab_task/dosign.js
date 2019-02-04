@@ -1,5 +1,5 @@
 let request = require("request");
-let logging = require("../config/loggers").dosign;
+let logging = require("../node/loggers").dosign;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 let fs = require("fs");
 let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
