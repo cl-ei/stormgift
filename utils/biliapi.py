@@ -224,7 +224,7 @@ class BiliApi:
                 logging.error(f"Error response in _get_user_id_by_search_way, e: {str(e)}")
                 return False, None
         if r.get("code") not in (0, "0"):
-            logging.error(f"Response code is not 0! r: {r}.")
+            logging.error(f"_get_user_id_by_search_way: Response code is not 0! r: {r}.")
             return False, None
 
         result_list = r.get("data", {}).get("result", []) or []
@@ -281,7 +281,7 @@ class BiliApi:
                 logging.error(f"Response error! {str(e)}.", exc_info=True)
                 return []
         if r.get("code") not in (0, "0"):
-            logging.error(f"Response code is not 0! r: {r}.")
+            logging.error(f"_get_admin_list Response code is not 0! r: {r}.")
             return []
         return r.get("data", {}).get("data", []) or []
 
