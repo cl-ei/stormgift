@@ -383,8 +383,9 @@ class BiliApi:
         try:
             csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
         except (IndexError, ValueError, TypeError):
-            logging.error(f"Can not get csrf token when join tv. index: {i}, room_id: {room_id}, gift_id: {gift_id}")
-            return False
+            msg = f"Can not get csrf token when join tv. index: {i}, room_id: {room_id}, gift_id: {gift_id}"
+            logging.error(msg)
+            return False, msg
 
         timeout = aiohttp.ClientTimeout(total=timeout)
         req_url = "https://api.live.bilibili.com/lottery/v2/Lottery/join"
@@ -406,8 +407,9 @@ class BiliApi:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
             except Exception as e:
-                logging.error(f"Join guard response error: {str(e)}. index: {i}, room_id: {room_id}, gift_id: {gift_id}")
-                return False
+                msg = f"Join guard response error: {str(e)}. index: {i}, room_id: {room_id}, gift_id: {gift_id}"
+                logging.error(msg)
+                return False, msg
 
         result = r.get("code") == 0
         if result:
