@@ -92,7 +92,7 @@ class BiliApi:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
-                    r = await resp.json()
+                    r = json.loads(await resp.text())
             except Exception as e:
                 pass
 
@@ -120,7 +120,7 @@ class BiliApi:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
-                    r = await resp.json()
+                    r = json.loads(await resp.text())
             except Exception as e:
                 logging.error(f"Error in check_live_status e: {str(e)}.", exc_info=True)
                 return False, False
@@ -145,7 +145,7 @@ class BiliApi:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
-                    r = await resp.json()
+                    r = json.loads(await resp.text())
             except Exception as e:
                 print(e)
                 pass
@@ -171,7 +171,7 @@ class BiliApi:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
-                    r = await resp.json()
+                    r = json.loads(await resp.text())
             except Exception as e:
                 print(e)
 
@@ -219,7 +219,7 @@ class BiliApi:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
-                    r = await resp.json()
+                    r = json.loads(await resp.text())
             except Exception as e:
                 logging.error(f"Error response in _get_user_id_by_search_way, e: {str(e)}")
                 return False, None
@@ -258,7 +258,7 @@ class BiliApi:
                 async with session.post(req_url, data=data) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
-                    r = await resp.json()
+                    r = json.loads(await resp.text())
             except Exception as e:
                 logging.error(f"Cannot set admin({name})! e: {str(e)}")
                 return False
@@ -276,7 +276,7 @@ class BiliApi:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
-                    r = await resp.json()
+                    r = json.loads(await resp.text())
             except Exception as e:
                 logging.error(f"Response error! {str(e)}.", exc_info=True)
                 return []
@@ -308,7 +308,7 @@ class BiliApi:
                 async with session.post(req_url, data=data) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
-                    r = await resp.json()
+                    r = json.loads(await resp.text())
             except Exception as e:
                 logging.error(f"Can not remove admin(uid: {uid}). e: {str(e)}")
                 return False
