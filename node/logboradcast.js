@@ -64,6 +64,7 @@ let startServer = () => {
             );
             __connectedClients.delete(connection);
         });
+        connection.sendUTF("Log server has been connected. your ip is " + connection.remoteAddress + ", transferring data...");
         __connectedClients.add(connection);
     });
 };
