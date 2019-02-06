@@ -1,3 +1,4 @@
+import re
 import json
 import asyncio
 from utils.ws import ReConnectingWsClient
@@ -32,19 +33,25 @@ class Acceptor(object):
 
     @staticmethod
     async def accept_tv(i, room_id, gift_id, cookie):
+        uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
+        user_id = uid_list[0] if uid_list else "Unknown-uid"
+
         r, msg = await BiliApi.join_tv(i, room_id, gift_id, cookie)
         if r:
-            logging.info(f"TV ACCEPTOR SUCCESS! {i}, key: {room_id}${gift_id}, msg: {msg}")
+            logging.info(f"TV AC SUCCESS! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
         else:
-            logging.critical(f"TV ACCEPTOR FAILED! {i}, key: {room_id}${gift_id}, msg: {msg}")
+            logging.critical(f"TV AC FAILED! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
 
     @staticmethod
     async def accept_guard(i, room_id, gift_id, cookie):
+        uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
+        user_id = uid_list[0] if uid_list else "Unknown-uid"
+
         r, msg = await BiliApi.join_guard(i, room_id, gift_id, cookie)
         if r:
-            logging.info(f"GUARD ACCEPTOR SUCCESS! {i}, key: {room_id}${gift_id}, msg: {msg}")
+            logging.info(f"GUARD AC SUCCESS! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
         else:
-            logging.critical(f"GUARD ACCEPTOR FAILED! {i}, key: {room_id}${gift_id}, msg: {msg}")
+            logging.critical(f"GUARD AC FAILED! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
 
     async def accept_prize(self, key):
         if not isinstance(key, str):
