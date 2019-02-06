@@ -86,10 +86,9 @@ class BiliApi:
             "&parent_area_id=%s" % area
         )
         r = {}
-        timeout = aiohttp.ClientTimeout(total=timeout)
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-                async with session.get(req_url) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(req_url, headers=cls.headers, timeout=timeout) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -114,10 +113,9 @@ class BiliApi:
             "?platform=android&room_id=%s" % room_id
         )
         r = {}
-        timeout = aiohttp.ClientTimeout(total=timeout)
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-                async with session.get(req_url) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(req_url, headers=cls.headers, timeout=timeout) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -140,10 +138,9 @@ class BiliApi:
     async def get_tv_raffle_id(cls, room_id, return_detail=False, timeout=5):
         req_url = "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=%s" % room_id
         r = {}
-        timeout = aiohttp.ClientTimeout(total=timeout)
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-                async with session.get(req_url) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(req_url, headers=cls.headers, timeout=timeout) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -166,10 +163,9 @@ class BiliApi:
     async def get_guard_raffle_id(cls, room_id, return_detail=False, timeout=5):
         req_url = "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=%s" % room_id
         r = {}
-        timeout = aiohttp.ClientTimeout(total=timeout)
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-                async with session.get(req_url) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(req_url, headers=cls.headers, timeout=timeout) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -189,13 +185,12 @@ class BiliApi:
         return list(return_data)
 
     @classmethod
-    async def get_guard_room_list(cls):
+    async def get_guard_room_list(cls, timeout=5):
         req_url = "https://dmagent.chinanorth.cloudapp.chinacloudapi.cn:23333/Governors/View"
         r = ""
-        timeout = aiohttp.ClientTimeout(total=20)
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-                async with session.get(req_url) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(req_url, headers=cls.headers, timeout=timeout) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = await resp.text()
@@ -213,13 +208,12 @@ class BiliApi:
         return result
 
     @classmethod
-    async def _get_user_id_by_search_way(cls, name):
+    async def _get_user_id_by_search_way(cls, name, timeout=5):
         req_url = "https://api.bilibili.com/x/web-interface/search/type?search_type=bili_user&keyword=%s" % name
         r = {}
-        timeout = aiohttp.ClientTimeout(total=5)
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-                async with session.get(req_url) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(req_url, headers=cls.headers, timeout=timeout) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -238,14 +232,13 @@ class BiliApi:
         return False, None
 
     @classmethod
-    async def _add_admin(cls, name, cookie):
+    async def _add_admin(cls, name, cookie, timeout=5):
         try:
             anchor_id = re.findall(r"DedeUserID=(\d+)", cookie)[0]
             csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
         except (IndexError, ValueError, TypeError):
             return False
 
-        timeout = aiohttp.ClientTimeout(total=5)
         req_url = "https://api.live.bilibili.com/live_user/v1/RoomAdmin/add"
         headers = {"Cookie": cookie}
         headers.update(cls.headers)
@@ -258,8 +251,8 @@ class BiliApi:
         }
         r = {}
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-                async with session.post(req_url, data=data) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(req_url, data=data, timeout=timeout, headers=headers) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -269,15 +262,14 @@ class BiliApi:
         return r.get("code") == 0
 
     @classmethod
-    async def _get_admin_list(cls, cookie):
+    async def _get_admin_list(cls, cookie, timeout=5):
         req_url = "https://api.live.bilibili.com/xlive/app-ucenter/v1/roomAdmin/get_by_anchor?page=1"
         headers = {"Cookie": cookie}
         headers.update(cls.headers)
-        timeout = aiohttp.ClientTimeout(total=5)
         r = {}
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-                async with session.get(req_url) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(req_url, timeout=timeout, headers=headers) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -292,13 +284,12 @@ class BiliApi:
         return r.get("data", {}).get("data", []) or []
 
     @classmethod
-    async def _remove_admin(cls, uid, cookie):
+    async def _remove_admin(cls, uid, cookie, timeout=5):
         try:
             csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
         except (IndexError, ValueError, TypeError):
             return False
 
-        timeout = aiohttp.ClientTimeout(total=5)
         req_url = "https://api.live.bilibili.com/xlive/app-ucenter/v1/roomAdmin/dismiss"
         headers = {"Cookie": cookie}
         headers.update(cls.headers)
@@ -310,8 +301,8 @@ class BiliApi:
         }
         r = {}
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-                async with session.post(req_url, data=data) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(req_url, timeout=timeout, headers=headers, data=data) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -347,14 +338,11 @@ class BiliApi:
 
     @classmethod
     async def join_tv(cls, i, room_id, gift_id, cookie, timeout=5):
-        try:
-            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        except (IndexError, ValueError, TypeError):
-            msg = f"Can not get csrf token when join tv. index: {i}, room_id: {room_id}, gift_id: {gift_id}"
-            logging.error(msg)
-            return False, msg
+        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
+        if not csrf_token_list:
+            return False, f"Cannot get csrf_token!"
 
-        timeout = aiohttp.ClientTimeout(total=timeout)
+        csrf_token = csrf_token_list[0]
         req_url = "https://api.live.bilibili.com/gift/v3/smalltv/join"
         headers = {"Cookie": cookie}
         headers.update(cls.headers)
@@ -368,8 +356,8 @@ class BiliApi:
         }
         r = {}
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-                async with session.post(req_url, data=data) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(req_url, timeout=timeout, headers=headers, data=data) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
@@ -386,14 +374,11 @@ class BiliApi:
 
     @classmethod
     async def join_guard(cls, i, room_id, gift_id, cookie, timeout=5):
-        try:
-            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        except (IndexError, ValueError, TypeError):
-            msg = f"Can not get csrf token when join tv. index: {i}, room_id: {room_id}, gift_id: {gift_id}"
-            logging.error(msg)
-            return False, msg
+        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
+        if not csrf_token_list:
+            return False, f"Cannot get csrf_token!"
 
-        timeout = aiohttp.ClientTimeout(total=timeout)
+        csrf_token = csrf_token_list[0]
         req_url = "https://api.live.bilibili.com/lottery/v2/Lottery/join"
         headers = {"Cookie": cookie}
         headers.update(cls.headers)
@@ -407,8 +392,8 @@ class BiliApi:
         }
         r = {}
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-                async with session.post(req_url, data=data) as resp:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(req_url, data=data, timeout=timeout, headers=headers) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
