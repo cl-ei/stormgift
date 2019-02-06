@@ -33,12 +33,18 @@ class Acceptor(object):
     @staticmethod
     async def accept_tv(i, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_tv(i, room_id, gift_id, cookie)
-        logging.info(f"TV ACCEPTOR {'SUCCESS' if r else 'FAILED'}! {i}, key: {room_id}${gift_id}, msg: {msg}")
+        if r:
+            logging.info(f"TV ACCEPTOR SUCCESS! {i}, key: {room_id}${gift_id}, msg: {msg}")
+        else:
+            logging.critical(f"TV ACCEPTOR FAILED! {i}, key: {room_id}${gift_id}, msg: {msg}")
 
     @staticmethod
     async def accept_guard(i, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_guard(i, room_id, gift_id, cookie)
-        logging.info(f"GUARD ACCEPTOR {'SUCCESS' if r else 'FAILED'}! {i}, key: {room_id}${gift_id}, msg: {msg}")
+        if r:
+            logging.info(f"GUARD ACCEPTOR SUCCESS! {i}, key: {room_id}${gift_id}, msg: {msg}")
+        else:
+            logging.critical(f"GUARD ACCEPTOR FAILED! {i}, key: {room_id}${gift_id}, msg: {msg}")
 
     async def accept_prize(self, key):
         if not isinstance(key, str):
