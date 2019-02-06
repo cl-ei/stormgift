@@ -87,14 +87,14 @@ class BiliApi:
         )
         r = {}
         timeout = aiohttp.ClientTimeout(total=timeout)
-        async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                pass
+        except Exception as e:
+            pass
 
         room_id = 0
         room_info_list = r.get("data", {}).get("list", [])
@@ -115,15 +115,16 @@ class BiliApi:
         )
         r = {}
         timeout = aiohttp.ClientTimeout(total=timeout)
-        async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                logging.error(f"Error in check_live_status e: {str(e)}.", exc_info=True)
-                return False, False
+        except Exception as e:
+            logging.error(f"Error in check_live_status e: {str(e)}.", exc_info=True)
+            return False, False
+
         if r.get("code") not in (0, "0"):
             logging.error(f"Error in check_live_status response code is not 0. r: {r}")
             return False, False
@@ -140,15 +141,15 @@ class BiliApi:
         req_url = "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=%s" % room_id
         r = {}
         timeout = aiohttp.ClientTimeout(total=timeout)
-        async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                print(e)
-                pass
+        except Exception as e:
+            logging.error(f"Response error in get_tv_raffle_id, e: {e}")
+            return []
 
         raffle_id_list = r.get("data", {}).get("list", [])
         if return_detail:
@@ -166,14 +167,15 @@ class BiliApi:
         req_url = "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=%s" % room_id
         r = {}
         timeout = aiohttp.ClientTimeout(total=timeout)
-        async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                print(e)
+        except Exception as e:
+            logging.error(f"Response error in get_guard_raffle_id, e: {e}")
+            return []
 
         raffle_id_list = r.get("data", [])
         if return_detail:
@@ -191,14 +193,15 @@ class BiliApi:
         req_url = "https://dmagent.chinanorth.cloudapp.chinacloudapi.cn:23333/Governors/View"
         r = ""
         timeout = aiohttp.ClientTimeout(total=20)
-        async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = await resp.text()
-            except Exception as e:
-                print(e)
+        except Exception as e:
+            logging.error(f"Response error in get_guard_room_list, e: {e}")
+            return set()
 
         room_list = re.findall(r"https://live.bilibili.com/(\d+)", r)
         result = set()
@@ -214,15 +217,16 @@ class BiliApi:
         req_url = "https://api.bilibili.com/x/web-interface/search/type?search_type=bili_user&keyword=%s" % name
         r = {}
         timeout = aiohttp.ClientTimeout(total=5)
-        async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=cls.headers) as session:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                logging.error(f"Error response in _get_user_id_by_search_way, e: {str(e)}")
-                return False, None
+        except Exception as e:
+            logging.error(f"Error response in _get_user_id_by_search_way, e: {str(e)}")
+            return False, None
+
         if r.get("code") not in (0, "0"):
             logging.error(f"_get_user_id_by_search_way: Response code is not 0! r: {r}.")
             return False, None
@@ -253,15 +257,15 @@ class BiliApi:
             "visit_id": ""
         }
         r = {}
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
                 async with session.post(req_url, data=data) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                logging.error(f"Cannot set admin({name})! e: {str(e)}")
-                return False
+        except Exception as e:
+            logging.error(f"Cannot set admin({name})! e: {str(e)}")
+            return False
         return r.get("code") == 0
 
     @classmethod
@@ -271,18 +275,20 @@ class BiliApi:
         headers.update(cls.headers)
         timeout = aiohttp.ClientTimeout(total=5)
         r = {}
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
                 async with session.get(req_url) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                logging.error(f"Response error! {str(e)}.", exc_info=True)
-                return []
+        except Exception as e:
+            logging.error(f"Response error! {str(e)}.", exc_info=True)
+            return []
+
         if r.get("code") not in (0, "0"):
             logging.error(f"_get_admin_list Response code is not 0! r: {r}.")
             return []
+
         return r.get("data", {}).get("data", []) or []
 
     @classmethod
@@ -303,15 +309,15 @@ class BiliApi:
             "visit_id": ""
         }
         r = {}
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
                 async with session.post(req_url, data=data) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                logging.error(f"Can not remove admin(uid: {uid}). e: {str(e)}")
-                return False
+        except Exception as e:
+            logging.error(f"Can not remove admin(uid: {uid}). e: {str(e)}")
+            return False
         return r.get("code") == 0
 
     @classmethod
@@ -361,16 +367,16 @@ class BiliApi:
             "visit_id": ""
         }
         r = {}
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
                 async with session.post(req_url, data=data) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                msg = f"Join tv response error: {str(e)}. index: {i}, key: {room_id}${gift_id}"
-                logging.error(msg, exc_info=True)
-                return False, msg
+        except Exception as e:
+            msg = f"Join tv response error: {str(e)}. index: {i}, key: {room_id}${gift_id}"
+            logging.error(msg, exc_info=True)
+            return False, msg
 
         result = r.get("code") == 0
         if result:
@@ -400,16 +406,16 @@ class BiliApi:
             "visit_id": "",
         }
         r = {}
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-            try:
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
                 async with session.post(req_url, data=data) as resp:
                     if resp.status != 200:
                         raise Exception(f"Response status error! ({resp.status})")
                     r = json.loads(await resp.text())
-            except Exception as e:
-                msg = f"Join guard response error: {str(e)}. index: {i}, room_id: {room_id}, gift_id: {gift_id}"
-                logging.error(msg, exc_info=True)
-                return False, msg
+        except Exception as e:
+            msg = f"Join guard response error: {str(e)}. index: {i}, room_id: {room_id}, gift_id: {gift_id}"
+            logging.error(msg, exc_info=True)
+            return False, msg
 
         result = r.get("code") == 0
         if result:
