@@ -85,16 +85,22 @@ class TvScanner(object):
         await new_client.start()
 
     async def check_status(self):
-        for area, client in self.__rws_clients.items():
-            status = await client.get_inner_status()
-            if status != State.OPEN:
-                room_id = getattr(client, "room_id", None)
-                msg = f"Client state Error! room_id: {room_id}, area: {self.AREA_MAP[area]}, state: {status}."
-                logging.error(msg)
-                status_logger.info(msg)
-
         for area_id in [1, 2, 3, 4, 5, 6]:
             client = self.__rws_clients.get(area_id)
+            if client is None:
+                logging.error(f"None client for area: {self.AREA_MAP[area_id]}!")
+            else:
+                status = await client.get_inner_status()
+                if status != State.OPEN:
+                    room_id = getattr(client, "room_id", None)
+                    outer_status = client.status
+                    msg = (
+                        f"Client state Error! room_id: {room_id}, area: {self.AREA_MAP[area_id]}, "
+                        f"state: {status}, outer_statues: {outer_status}."
+                    )
+                    logging.error(msg)
+                    status_logger.info(msg)
+
             room_id = getattr(client, "room_id", None)
             result, status = await BiliApi.check_live_status(room_id, area_id)
             if not result:
@@ -234,6 +240,8 @@ class GuardScanner(object):
 
 
 async def main():
+    logging.info("Start listener proc...")
+
     def on_task_done(s):
         logging.error(f"Task unexpected done! {s}")
 
