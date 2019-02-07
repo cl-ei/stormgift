@@ -187,7 +187,6 @@ class PrizeProcessor(object):
                 return True, uid
         return False, None
 
-
     async def proc_tv_gifts_by_single_user(self, user_name, gift_list):
         try:
             with open("data/cookie.json", "r") as f:
@@ -199,7 +198,7 @@ class PrizeProcessor(object):
                 f"gift_list length: {len(gift_list)}", exc_info=True)
             uid = None
         else:
-            result, uid = await BiliApi.get_user_id_by_name(user_name, cookie, retry_times=3)
+            result, uid = await self.get_uid_by_name(user_name, cookie, retry_times=3)
             if result:
                 logging.info(f"Get user info: {user_name}: {uid}. gift_list length: {len(gift_list)}.")
             else:
