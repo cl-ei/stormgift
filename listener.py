@@ -219,7 +219,7 @@ class PrizeProcessor(object):
         if g_type == "G":
             flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
             if not flag:
-                logging.error(f"Guard proc_single_room: {gift_info_list}")
+                logging.error(f"Guard proc_single_room, room_id: {room_id}, e: {gift_info_list}")
                 return
 
             for gift_info in gift_info_list:
@@ -228,7 +228,7 @@ class PrizeProcessor(object):
         elif g_type == "T":
             flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
             if not flag:
-                logging.error(f"TV proc_single_room: {gift_info_list}")
+                logging.error(f"TV proc_single_room, room_id: {room_id}, e: {gift_info_list}")
                 return
 
             result = {}
