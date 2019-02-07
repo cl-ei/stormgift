@@ -164,8 +164,8 @@ class PrizeProcessor(object):
             if r:
                 return True, uid
 
-            logging.error(f"Cannot get uid by search, try other way. "
-                          f"retry times: {retry_time}, search result: {uid}")
+            logging.warning(f"Cannot get uid by search, try other way. "
+                            f"retry times: {retry_time}, search result: {uid}")
 
             flag, r = await BiliApi.add_admin(user_name, cookie)
             if not flag:
