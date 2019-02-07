@@ -36,7 +36,7 @@ class Acceptor(object):
         uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
         user_id = uid_list[0] if uid_list else "Unknown-uid"
 
-        r, msg = await BiliApi.join_tv(i, room_id, gift_id, cookie)
+        r, msg = await BiliApi.join_tv(room_id, gift_id, cookie)
         if r:
             logging.info(f"TV AC SUCCESS! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
         else:
@@ -47,7 +47,7 @@ class Acceptor(object):
         uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
         user_id = uid_list[0] if uid_list else "Unknown-uid"
 
-        r, msg = await BiliApi.join_guard(i, room_id, gift_id, cookie)
+        r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
         if r:
             logging.info(f"GUARD AC SUCCESS! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
         else:

@@ -51,7 +51,11 @@ class TvScanner(object):
         if area == 0:
             new_room_id = 4424139
         else:
-            new_room_id = await BiliApi.search_live_room(area=area, old_room_id=old_room_id)
+            flag, new_room_id = await BiliApi.search_live_room(area=area, old_room_id=old_room_id)
+            if not flag:
+                logging.error(f"Force change room error, search_live_room_error: {new_room_id}")
+                return
+
         if new_room_id:
             await self.update_clients_of_single_area(room_id=new_room_id, area=area)
 
@@ -153,6 +157,37 @@ class PrizeProcessor(object):
         if result:
             self.send_prize_info(key)
 
+    async def get_uid_by_name(self, user_name, cookie, retry_times=3):
+        for retry_time in range(retry_times):
+            r, uid = await BiliApi.get_user_id_by_search_way(user_name)
+            if r:
+                return uid
+
+            logging.error(f"Cannot get uid by search, try other way. "
+                          f"retry times: {retry_time}, search result: {uid}")
+
+            flag, r = await BiliApi.add_admin(user_name, cookie)
+            if not flag:
+                logging.error(f"Ignored error when add_admin: {r}")
+
+            flag, admin_list = await BiliApi.get_admin_list(cookie)
+            if not flag:
+                logging.error(f"Cannot get admin list: {admin_list}, retry time: {retry_time}")
+                continue
+
+            uid = None
+            for admin in admin_list:
+                if admin.get("uname") == user_name:
+                    uid = admin.get("uid")
+                    break
+            if uid:
+                flag, r = await BiliApi.remove_admin(uid, cookie)
+                if not flag:
+                    logging.error(f"Ignored error in remove_admin: {r}")
+                return True, uid
+        return False, None
+
+
     async def proc_tv_gifts_by_single_user(self, user_name, gift_list):
         try:
             with open("data/cookie.json", "r") as f:
@@ -182,11 +217,15 @@ class PrizeProcessor(object):
 
     async def proc_single_room(self, room_id, g_type):
         if g_type == "G":
-            gift_info_list = await BiliApi.get_guard_raffle_id(room_id, return_detail=True)
+            gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
             for gift_info in gift_info_list:
                 await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
         elif g_type == "T":
-            gift_info_list = await BiliApi.get_tv_raffle_id(room_id, return_detail=True)
+            r, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
+            if not r:
+                logging.error(f"TV proc_single_room: {gift_info_list}")
+                return
+
             result = {}
             for info in gift_info_list:
                 user_name = info.get("from_user").get("uname")
@@ -229,7 +268,12 @@ class GuardScanner(object):
         self.message_putter = message_putter
 
     async def search(self):
-        for room_id in await BiliApi.get_guard_room_list():
+        flag, r = await BiliApi.get_guard_room_list()
+        if not flag:
+            logging.error(f"Cannot find guard room. r: {r}")
+            return
+
+        for room_id in r:
             await self.message_putter("G", room_id)
 
     async def run_forever(self):
