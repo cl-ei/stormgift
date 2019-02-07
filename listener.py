@@ -162,7 +162,7 @@ class PrizeProcessor(object):
         for retry_time in range(retry_times):
             r, uid = await BiliApi.get_user_id_by_search_way(user_name)
             if r:
-                return uid
+                return True, uid
 
             logging.error(f"Cannot get uid by search, try other way. "
                           f"retry times: {retry_time}, search result: {uid}")
@@ -199,8 +199,8 @@ class PrizeProcessor(object):
                 f"gift_list length: {len(gift_list)}", exc_info=True)
             uid = None
         else:
-            result, uid = await self.get_uid_by_name(user_name, cookie, retry_times=3)
-            if result:
+            flag, uid = await self.get_uid_by_name(user_name, cookie, retry_times=3)
+            if flag:
                 logging.info(f"Get user info: {user_name}: {uid}. gift_list length: {len(gift_list)}.")
             else:
                 logging.error(f"Cannot get uid for user: {user_name}")
