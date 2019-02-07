@@ -217,12 +217,15 @@ class PrizeProcessor(object):
 
     async def proc_single_room(self, room_id, g_type):
         if g_type == "G":
-            gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
+            flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
+            if not flag:
+                logging.error(f"Guard proc_single_room: {gift_info_list}")
             for gift_info in gift_info_list:
                 await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
+
         elif g_type == "T":
-            r, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
-            if not r:
+            flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
+            if not flag:
                 logging.error(f"TV proc_single_room: {gift_info_list}")
                 return
 
@@ -259,7 +262,7 @@ class PrizeProcessor(object):
                 try:
                     await self.proc_single_room(room_id, g_type)
                 except Exception as e:
-                    logging.error(f"Error when proc_single_room of tv_gift, e: {str(e)}", exc_info=True)
+                    logging.error(f"Error when proc_single_room of {g_type}, e: {str(e)}", exc_info=True)
             await asyncio.sleep(0.5)
 
 
