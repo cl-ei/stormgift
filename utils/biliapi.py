@@ -105,7 +105,7 @@ class BiliApi:
             return True, result
 
         if result.get("code") not in (0, "0"):
-            return False, f"Error code not 0! r: {result}"
+            return False, f"Error code not 0! r: {result.get('message')}"
         else:
             return True, result
 
