@@ -171,20 +171,10 @@ class BiliApi:
             return False, r
 
         raffle_id_list = r.get("data", {}).get("list", [])
-        if not raffle_id_list:
-            return False, f"Empty raffle_id_list in response."
-
-        return_data = {}
-        for raffle in raffle_id_list:
-            raffle_id = raffle.get("raffleId", 0)
-            if raffle_id:
-                return_data[raffle_id] = raffle
-
-        return_data = return_data.values()
-        if return_data:
-            return True, return_data
+        if raffle_id_list:
+            return True, raffle_id_list
         else:
-            return False, f"Cannot get valid raffleId from list, r:{r}"
+            return False, f"Empty raffle_id_list in response."
 
     @classmethod
     async def get_guard_raffle_id(cls, room_id, timeout=5):
