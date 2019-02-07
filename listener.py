@@ -2,6 +2,7 @@ import datetime
 import socket
 import json
 import asyncio
+import traceback
 
 from utils.ws import ReConnectingWsClient, State
 from utils.biliapi import BiliApi, WsApi
@@ -219,6 +220,8 @@ class PrizeProcessor(object):
             flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
             if not flag:
                 logging.error(f"Guard proc_single_room: {gift_info_list}")
+                return
+
             for gift_info in gift_info_list:
                 await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
 
@@ -261,7 +264,8 @@ class PrizeProcessor(object):
                 try:
                     await self.proc_single_room(room_id, g_type)
                 except Exception as e:
-                    logging.error(f"Error when proc_single_room of {g_type}, e: {str(e)}", exc_info=True)
+                    tb = traceback.format_exc()
+                    logging.error(f"Error when proc_single_room of {g_type}, e: {str(e)}\n{tb}")
             await asyncio.sleep(0.5)
 
 
