@@ -261,11 +261,7 @@ class PrizeProcessor(object):
                 key = self.__room_id_pool.pop()
                 g_type, room_id = key.split("$", 1)
                 room_id = int(room_id)
-                try:
-                    await self.proc_single_room(room_id, g_type)
-                except Exception as e:
-                    tb = traceback.format_exc()
-                    logging.error(f"Error when proc_single_room of {g_type}, e: {str(e)}\n{tb}")
+                await self.proc_single_room(room_id, g_type)
             await asyncio.sleep(0.5)
 
 
