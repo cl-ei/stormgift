@@ -135,7 +135,7 @@ class PrizeProcessor(object):
 
     @staticmethod
     def send_prize_info(msg):
-        logging.info(f"Push gift info key: {msg}")
+        logging.info(f"Listener: Send gift info key to server: {msg}")
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.sendto(msg.encode("utf-8"), PRIZE_SOURCE_PUSH_ADDR)
         s.close()

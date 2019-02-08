@@ -87,9 +87,8 @@ async def main():
     a = Acceptor()
 
     async def on_price_message(key):
-        logging.info(f"Prize message received: {key}")
+        logging.info(f"Acceptor: Prize message key received from server: {key}")
         await a.add_task(key)
-    print(f"PRIZE_HANDLER_SERVE_ADDR: {PRIZE_HANDLER_SERVE_ADDR}")
     c = ReConnectingWsClient(uri="ws://%s:%s" % PRIZE_HANDLER_SERVE_ADDR, on_message=on_price_message)
     await c.start()
     await a.run_forever()
