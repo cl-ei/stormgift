@@ -107,10 +107,10 @@ class TvScanner(object):
                     status_logger.info(msg)
 
             room_id = getattr(client, "room_id", None)
-            result, status = await BiliApi.check_live_status(room_id, area_id)
-            if not result:
+            flag, status = await BiliApi.check_live_status(room_id, area_id)
+            if not flag:
                 logging.warning(f"Request error when check live room status. "
-                                f"room_id: {room_id}, area: {self.AREA_MAP[area_id]}")
+                                f"room_id: {self.AREA_MAP[area_id]} -> {room_id}, e: {status}")
                 continue
 
             if not status:
