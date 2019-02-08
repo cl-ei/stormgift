@@ -3,8 +3,7 @@ let log4js = require("log4js");
 let bilisocket = require("./bilisocket");
 let path = require('path');
 
-DEBUG = true;
-let loggerFilePath = DEBUG ? "./log" : "/home/wwwroot/log/lyy";
+let loggerFilePath = "/home/wwwroot/log/lyy";
 let config = {
     appenders: {
         gold: {

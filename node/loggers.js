@@ -2,7 +2,7 @@ let path = require('path');
 let proj_config = require("../config/proj_config");
 let env = proj_config.env;
 
-let loggerFilePath = env === "server" ? "/home/wwwroot/log/" : "../log/";
+let loggerFilePath = env === "server" ? "/home/wwwroot/log/hansy" : "../log/";
 
 let config = {
     appenders: {
