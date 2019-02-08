@@ -50,8 +50,7 @@ let chat = log4js.getLogger("chat"),
     gold = log4js.getLogger("gold"),
     sliver = log4js.getLogger("sliver");
 
-chat.info("________Start Lyy recorder proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
-
+chat.info("________Start Lyy recorder.");
 let MONITOR_ROOM_ID = 92450;
 
 let procMessage = (msg, room_id) => {
