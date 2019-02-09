@@ -4,8 +4,9 @@ let logging = require("../node/loggers").heartbeat;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 let fs = require("fs");
 let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
-let RAW_COOKIES_LIST = JSON.parse(fs.readFileSync(COOKIE_FILE_PATH, "utf-8")).RAW_COOKIE_LIST;
-
+let cookies = JSON.parse(fs.readFileSync(COOKIE_FILE_PATH, "utf-8"));
+let RAW_COOKIES_LIST = cookies.RAW_COOKIE_LIST;
+let VIP_LIST = cookies.VIP_LIST;
 
 function heartbeat_90s(cookie){
     let reqParam = {
@@ -91,8 +92,9 @@ function heartbeat_5m(cookie, index){
 
 (() => {
     logging.info("Start send heartbeat proc.");
-    for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
-        let c = RAW_COOKIES_LIST[i];
-        setTimeout(() => {heartbeat_5m(c, i)}, 2000*i);
+    for (let i = 0; i < VIP_LIST.length; i++){
+        let cookie_index = VIP_LIST[i];
+        let cookie = RAW_COOKIES_LIST[cookie_index];
+        setTimeout(() => {heartbeat_5m(cookie, cookie_index)}, 2000*i);
     }
 })();
