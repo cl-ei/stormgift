@@ -1,4 +1,5 @@
 let loggerFilePath = "/home/wwwroot/log/hansy";
+let path = require('path');
 let config = {
     appenders: {
         gold: {

@@ -1,3 +1,4 @@
+let path = require('path');
 let loggerFilePath = "/home/wwwroot/log/";
 let log_config = {
     appenders: {
