@@ -49,13 +49,10 @@ class TvScanner(object):
                 await self.message_putter("T", real_room_id)
 
     async def force_change_room(self, old_room_id, area):
-        if area == 0:
-            new_room_id = 4424139
-        else:
-            flag, new_room_id = await BiliApi.search_live_room(area=area, old_room_id=old_room_id)
-            if not flag:
-                logging.error(f"Force change room error, search_live_room_error: {new_room_id}")
-                return
+        flag, new_room_id = await BiliApi.search_live_room(area=area, old_room_id=old_room_id)
+        if not flag:
+            logging.error(f"Force change room error, search_live_room_error: {new_room_id}")
+            return
 
         if new_room_id:
             await self.update_clients_of_single_area(room_id=new_room_id, area=area)
@@ -109,8 +106,8 @@ class TvScanner(object):
             room_id = getattr(client, "room_id", None)
             flag, status = await BiliApi.check_live_status(room_id, area_id)
             if not flag:
-                logging.warning(f"Request error when check live room status. "
-                                f"room_id: {self.AREA_MAP[area_id]} -> {room_id}, e: {status}")
+                logging.error(f"Request error when check live room status. "
+                              f"room_id: {self.AREA_MAP[area_id]} -> {room_id}, e: {status}")
                 continue
 
             if not status:
