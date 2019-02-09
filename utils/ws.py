@@ -113,7 +113,6 @@ class ReConnectingWsClient(object):
                         await self.on_message(data)
                 except Exception as e:
                     await self.on_error(e, "Error in receiving msg.")
-                    break
             if heart_beat_task:
                 heart_beat_task.cancel()
 
