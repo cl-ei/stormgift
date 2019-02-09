@@ -45,7 +45,8 @@ class TvScanner(object):
 
             if matched_notice_area:
                 real_room_id = message.get("real_roomid", 0)
-                logging.info(f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}")
+                logging.info(f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}. "
+                             f"source: {area}-{room_id}")
                 await self.message_putter("T", real_room_id)
 
     async def force_change_room(self, old_room_id, area):
