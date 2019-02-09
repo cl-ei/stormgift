@@ -75,9 +75,13 @@ class TvScanner(object):
         async def on_shut_down():
             logging.warning(f"Client shutdown! room_id: {room_id}, area: {self.AREA_MAP[area]}")
 
+        async def on_error(e, msg):
+            logging.error(f"Listener CATCH ERROR: {msg}. e: {e}")
+
         new_client = ReConnectingWsClient(
             uri=WsApi.BILI_WS_URI,
             on_message=on_message,
+            on_error=on_error,
             on_connect=on_connect,
             on_shut_down=on_shut_down,
             heart_beat_pkg=WsApi.gen_heart_beat_pkg(),

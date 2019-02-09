@@ -9,7 +9,7 @@ class ReConnectingWsClient(object):
                  on_shut_down=None,
                  on_error=None,
                  heart_beat_pkg="heart beat",
-                 heart_beat_interval=10,
+                 heart_beat_interval=0,
                  ):
         self.retry_times = 0
         self.server_uri = uri
@@ -94,15 +94,16 @@ class ReConnectingWsClient(object):
             if self.on_connect:
                 await self.on_connect(ws)
 
-            async def send_heart_beat():
-                while not ws.closed:
-                    await asyncio.sleep(self.heart_beat_interval)
-                    try:
-                        await ws.send(self.heart_beat_package)
-                    except Exception as e:
-                        await self.on_error(e, "Error in send heart beat.")
-                        return
-            heart_beat_task = asyncio.create_task(send_heart_beat())
+            heart_beat_task = None
+            if self.heart_beat_interval > 0:
+                async def send_heart_beat():
+                    while not ws.closed:
+                        await asyncio.sleep(self.heart_beat_interval)
+                        try:
+                            await ws.send(self.heart_beat_package)
+                        except Exception as e:
+                            await self.on_error(e, "Error in send heart beat.")
+                heart_beat_task = asyncio.create_task(send_heart_beat())
 
             while not ws.closed:
                 try:
@@ -112,7 +113,8 @@ class ReConnectingWsClient(object):
                 except Exception as e:
                     await self.on_error(e, "Error in receiving msg.")
                     break
-            heart_beat_task.cancel()
+            if heart_beat_task:
+                heart_beat_task.cancel()
 
         if self.status not in ("stopping", "stopped"):
             self.status = "reconnecting"

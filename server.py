@@ -1,4 +1,3 @@
-import time
 import asyncio
 import websockets
 
@@ -16,34 +15,11 @@ class NoticeHandler(object):
 
     async def handler(self, ws, path):
         self.__clients.add(ws)
-        print("New client connected: (%s, %s), path: %s" % (ws.host, ws.port, path))
-        print("Current connections: %s" % len(self.__clients))
-        ws.last_active_time = time.time()
-
-        async def wait_timeout():
-            while not ws.closed:
-                await asyncio.sleep(10)
-                time_delta = time.time() - getattr(ws, "last_active_time", 0)
-                if time_delta > 25:
-                    print("Heart beat time out: %s. close it!" % time_delta)
-                    await ws.close()
-
-        task = asyncio.create_task(wait_timeout())
+        print(f"New client connected: ({ws.host}, {ws.port}), path: {path}, current conn: {len(self.__clients)}")
 
         while not ws.closed:
-            try:
-                m = await ws.recv()
-            except Exception as e:
-                print("Exception on receiving: %s. close it." % e)
-                break
+            await asyncio.sleep(10)
 
-            if type(m) == bytes:
-                m = m.decode()
-            if m == "heart beat":
-                ws.last_active_time = time.time()
-
-        if not task.cancelled():
-            task.cancel()
         if ws in self.__clients:
             self.__clients.remove(ws)
             print("Client leave: %s, current connections: %s" % (ws, len(self.__clients)))
@@ -55,7 +31,10 @@ class NoticeHandler(object):
         lived_clients = [c for c in self.__clients if not c.closed]
         print(f"Notice to all, msg: [{msg}], Lived clients: {len(lived_clients)}")
         for c in lived_clients:
-            await c.send(msg)
+            try:
+                await c.send(msg)
+            except Exception as e:
+                print(f"Exception at send notice: {e}")
 
 
 class PrizeInfoReceiver:
