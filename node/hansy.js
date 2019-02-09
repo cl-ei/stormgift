@@ -1,14 +1,57 @@
+let loggerFilePath = "/home/wwwroot/log/hansy";
+let config = {
+    appenders: {
+        gold: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "gold.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        silver: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "silver.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        gift: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "gift.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        mix: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "mix.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        chat: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "chat.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        console: {type: 'console'}
+    },
+    categories: {
+        chat: { appenders: ['console', "chat", "mix"], level: 'ALL'},
+        gold: { appenders: ['console', "gold", "mix", "gift"], level: 'ALL'},
+        silver: { appenders: ['console', "silver", "mix", "gift"], level: 'ALL'},
+        default: { appenders: ['console'], level: 'ALL'}
+    }
+};
+let log4js = require("log4js");
+log4js.configure(config);
+let chat = log4js.getLogger("chat");
+let gold = log4js.getLogger("gold");
+let silver = log4js.getLogger("silver");
+chat.info("________Start Hansy recorder proc. -> env: Server.");
+
+
 let W3CWebSocket = require('websocket').w3cwebsocket;
 let bilisocket = require("./bilisocket");
-let env = require("../config/proj_config").env;
-let DEBUG = !(env === "server");
+let damakusender = require("./danmakusender");
 
-let loggers = require("./loggers");
-let chat = loggers.chat;
-let gold = loggers.gold;
-let sliver = loggers.sliver;
-
-chat.info("________Start Hansy recorder proc -> env: " + (DEBUG ? "DEBUG" : "SERVER"));
 let USER_ID_TO_NAME = {
     20932326: "我自己",
     22218720: "寞寞",
@@ -22,8 +65,9 @@ let USER_ID_TO_NAME = {
 };
 
 let HANSY_ROOM_ID = 2516117;
-let getCurrentTimest = () => {return parseInt((new Date()).valueOf().toString().slice(0, 10))};
-let damakusender = require("./danmakusender");
+let getCurrentTimest = () => {
+    return parseInt((new Date()).valueOf().toString().slice(0, 10))
+};
 let sendDanmakuToHansyRoomId = (msg) => {
     damakusender.sendDanmaku(msg, HANSY_ROOM_ID, undefined, 0, undefined);
 };
@@ -45,9 +89,6 @@ let intervalSendHansyDCallMsg = () => {
     HANSY_MSG_LIST_INDEX = (HANSY_MSG_LIST_INDEX + 1) % HANSY_MSG_LIST.length;
     sendDanmakuToHansyRoomId(HANSY_MSG_LIST[HANSY_MSG_LIST_INDEX])
 };
-if (!DEBUG){
-    setInterval(intervalSendHansyDCallMsg, 120*1000);
-}
 let randomChoice = (l) => {
     l = l || [];
     return l[parseInt(Math.random()*l.length)];
@@ -97,7 +138,7 @@ let procMessage = (msg, room_id) => {
             total_coin = msg.data.total_coin,
             gift_name = msg.data.giftName,
             num = msg.data.num;
-        (coin_type === "gold" ? gold : sliver).info(
+        (coin_type === "gold" ? gold : silver).info(
             "[%d][%s] -> %s - %s * %s (%s)",
             uid, uname, coin_type, gift_name, num, total_coin
         );
@@ -183,4 +224,5 @@ let procMessage = (msg, room_id) => {
     client.onmessage = function(e) {
         bilisocket.parseMessage(e.data, HANSY_ROOM_ID, procMessage);
     };
+    setInterval(intervalSendHansyDCallMsg, 120*1000);
 })();

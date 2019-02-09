@@ -1,5 +1,25 @@
+let loggerFilePath = "/home/wwwroot/log/";
+let log_config = {
+    appenders: {
+        dosign: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "dosign.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        console: {type: 'console'}
+    },
+    categories: {
+        dosign: { appenders: ['console', "dosign"], level: 'ALL'},
+        default: { appenders: ['console'], level: 'ALL'}
+    }
+};
+let log4js = require("log4js");
+log4js.configure(log_config);
+let logging = log4js.getLogger("dosign");
+
+
 let request = require("request");
-let logging = require("../node/loggers").dosign;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 let fs = require("fs");
 let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';

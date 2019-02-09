@@ -1,6 +1,46 @@
+let loggerFilePath = "/home/wwwroot/log/";
+let log_config = {
+    appenders: {
+        heartbeat: {
+            type: 'file',
+            filename: path.join(loggerFilePath, "heartbeat.log"),
+            maxLogSize: 1024*1024*50,
+            backups: 2,
+        },
+        console: {type: 'console'}
+    },
+    categories: {
+        heartbeat: { appenders: ['console', "heartbeat"], level: 'ALL'},
+        default: { appenders: ['console'], level: 'ALL'}
+    }
+};
+let log4js = require("log4js");
+log4js.configure(log_config);
+let logging = log4js.getLogger("heartbeat");
+
+
+let nodemailer = require("nodemailer");
+let proj_config = require("../config/proj_config");
+let sendMail = (subject, text, cb) => {
+    let transporter = nodemailer.createTransport({
+        service: "qq",
+        port: 465,
+        secureConnection: true,
+        auth: {
+            user: "luaguy@qq.com",
+            pass: proj_config.mail_auth_pass,
+        }
+    });
+    transporter.sendMail({
+        from: "辣条挂<luaguy@qq.com>",
+        to: "luaguy@qq.com, calom@qq.com",
+        subject: subject,
+        text: text,
+    }, cb);
+};
+
+
 let request = require("request");
-// let sendMail = require("../utils/mail").sendMail;
-let logging = require("../node/loggers").heartbeat;
 let UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 let fs = require("fs");
 let COOKIE_FILE_PATH = '/home/wwwroot/stormgift/data/cookie.json';
@@ -48,12 +88,12 @@ function postLatestTime(cookie, index){
             }
         }
 
-        // if(err_msg.length > 0){
-        //     let text = "postLatestTime -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
-        //     sendMail("挂辣条异常", text, (e, info) => {
-        //         if (e){logging.error("postLatestTime send mail error! %s", e.toString())}
-        //     })
-        // }
+        if(err_msg.length > 0){
+            let text = "postLatestTime -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
+            sendMail("挂辣条异常", text, (e, info) => {
+                if (e){logging.error("postLatestTime send mail error! %s", e.toString())}
+            })
+        }
     });
 }
 function heartbeat_5m(cookie, index){
@@ -80,12 +120,12 @@ function heartbeat_5m(cookie, index){
                 logging.error("Error happened in 5m, index: %d, r: %s", index, body.toString());
             }
         }
-        // if(err_msg.length > 0){
-        //     let text = "heartbeat_5m -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
-        //     sendMail("挂辣条异常", text, (e, info) => {
-        //         if (e){logging.error("heartbeat_5m send mail error! %s", e.toString())}
-        //     })
-        // }
+        if(err_msg.length > 0){
+            let text = "heartbeat_5m -> 挂辣条异常：index: " + index + ", err_msg: " + err_msg;
+            sendMail("挂辣条异常", text, (e, info) => {
+                if (e){logging.error("heartbeat_5m send mail error! %s", e.toString())}
+            })
+        }
         postLatestTime(cookie, index);
     });
 }
