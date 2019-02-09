@@ -1,6 +1,7 @@
 import re
 import json
 import asyncio
+import time
 from utils.ws import ReConnectingWsClient
 from utils.biliapi import BiliApi
 from config.log4 import acceptor_logger as logging
@@ -12,6 +13,7 @@ class Acceptor(object):
     def __init__(self):
         self.q = asyncio.Queue(maxsize=2000)
         self.cookie_file = "data/cookie.json"
+        self.__black_list = {}
 
     async def add_task(self, key):
         await self.q.put(key)
@@ -20,19 +22,32 @@ class Acceptor(object):
         try:
             with open(self.cookie_file, "r") as f:
                 c = json.load(f)
-            result = []
-            for k in ("RAW_COOKIE_LIST", "BLACK_LIST"):
-                li = c[k]
-                if not isinstance(li, (list, tuple)):
-                    raise ValueError(f"Bad cookie: {li}")
-                result.append(li)
-            return result
+            cookie_list = c["RAW_COOKIE_LIST"]
         except Exception as e:
             logging.error(f"Bad cookie, e: {str(e)}.", exc_info=True)
             return [], []
 
-    @staticmethod
-    async def accept_tv(i, room_id, gift_id, cookie):
+        blacklist = []
+        for index in range(0, len(cookie_list)):
+            cookie = cookie_list[index]
+            bt = self.__black_list.get(cookie)
+            if isinstance(bt, (int, float)) and int(time.time()) - bt < 3600*12:
+                blacklist.append(index)
+
+        if len(self.__black_list) > len(cookie_list):
+            new_black_list = {}
+            for cookie in self.__black_list:
+                if cookie in cookie_list:
+                    new_black_list[cookie] = self.__black_list[cookie]
+            self.__black_list = new_black_list
+            logging.critical("SELF BLACK LIST GC DONE!")
+        return cookie_list, blacklist
+
+    async def add_black_list(self, cookie):
+        self.__black_list[cookie] = time.time()
+        logging.critical(f"Black list updated. current black list: {len(self.__black_list)}")
+
+    async def accept_tv(self, i, room_id, gift_id, cookie):
         uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
         user_id = uid_list[0] if uid_list else "Unknown-uid"
 
@@ -41,9 +56,10 @@ class Acceptor(object):
             logging.info(f"TV AC SUCCESS! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
         else:
             logging.critical(f"TV AC FAILED! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+            if "访问被拒绝" in msg:
+                await self.add_black_list(cookie)
 
-    @staticmethod
-    async def accept_guard(i, room_id, gift_id, cookie):
+    async def accept_guard(self, i, room_id, gift_id, cookie):
         uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
         user_id = uid_list[0] if uid_list else "Unknown-uid"
 
@@ -52,6 +68,8 @@ class Acceptor(object):
             logging.info(f"GUARD AC SUCCESS! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
         else:
             logging.critical(f"GUARD AC FAILED! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+            if "访问被拒绝" in msg:
+                await self.add_black_list(cookie)
 
     async def accept_prize(self, key):
         if not isinstance(key, str):
