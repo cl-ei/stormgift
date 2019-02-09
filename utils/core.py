@@ -1,18 +1,24 @@
+import re
+import os
+import time
+import sys
 import datetime
 import socket
 import json
 import asyncio
+import logging
 import traceback
-
 from utils.ws import ReConnectingWsClient, State
 from utils.biliapi import BiliApi, WsApi
-from utils.dao import GiftRedisCache
 
-from config.log4 import listener_logger as logging
-from config.log4 import status_logger
-from config import config
-PRIZE_SOURCE_PUSH_ADDR = tuple(config["PRIZE_SOURCE_PUSH_ADDR"])
-REDIS_CONFIG = config["redis"]
+
+log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
+console = logging.StreamHandler(sys.stdout)
+console.setFormatter(log_format)
+logger = logging.getLogger("stormgift")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(console)
+logging = logger
 
 
 class TvScanner(object):
@@ -90,7 +96,7 @@ class TvScanner(object):
         for area_id in [1, 2, 3, 4, 5, 6]:
             client = self.__rws_clients.get(area_id)
             if client is None:
-                logging.error(f"None client for area: {self.AREA_MAP[area_id]}!")
+                pass
             else:
                 status = await client.get_inner_status()
                 if status != State.OPEN:
@@ -101,7 +107,6 @@ class TvScanner(object):
                         f"state: {status}, outer_statues: {outer_status}."
                     )
                     logging.error(msg)
-                    status_logger.info(msg)
 
             room_id = getattr(client, "room_id", None)
             flag, status = await BiliApi.check_live_status(room_id, area_id)
@@ -121,108 +126,24 @@ class TvScanner(object):
 
 
 class PrizeProcessor(object):
-    def __init__(self):
+    def __init__(self, send_raffle_key):
         self.__room_id_pool = set()
-        self.__info_setter = GiftRedisCache(
-            REDIS_CONFIG["host"],
-            REDIS_CONFIG["port"],
-            db=REDIS_CONFIG["db"],
-            password=REDIS_CONFIG["auth_pass"]
-        )
+        self.send_raffle_key = send_raffle_key
 
-    @staticmethod
-    def send_prize_info(msg):
-        logging.info(f"Listener: Send gift info key to server: {msg}")
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.sendto(msg.encode("utf-8"), PRIZE_SOURCE_PUSH_ADDR)
-        s.close()
-
-    async def proc_single_gift_of_guard(self, room_id, gift_info):
-        info = {
-            "uid": gift_info.get("sender").get("uid"),
-            "name": gift_info.get("sender").get("uname"),
-            "face": gift_info.get("sender").get("face"),
-            "room_id": room_id,
-            "gift_id": gift_info.get("id", 0),
-            "gift_name": "guard",
-            "gift_type": "G%s" % gift_info.get("privilege_type"),
-            "sender_type": None,
-            "created_time": str(datetime.datetime.now())[:19],
-            "status": gift_info.get("status")
-        }
-        key = f"NG{room_id}${gift_info.get('id', 0)}"
-        result = await self.__info_setter.non_repeated_save(key, info)
-        if result:
-            self.send_prize_info(key)
-
-    async def get_uid_by_name(self, user_name, cookie, retry_times=3):
-        for retry_time in range(retry_times):
-            r, uid = await BiliApi.get_user_id_by_search_way(user_name)
-            if r:
-                return True, uid
-
-            logging.warning(f"Cannot get uid by search, try other way. "
-                            f"retry times: {retry_time}, search result: {uid}")
-
-            flag, r = await BiliApi.add_admin(user_name, cookie)
-            if not flag:
-                logging.error(f"Ignored error when add_admin: {r}")
-
-            flag, admin_list = await BiliApi.get_admin_list(cookie)
-            if not flag:
-                logging.error(f"Cannot get admin list: {admin_list}, retry time: {retry_time}")
-                continue
-
-            uid = None
-            for admin in admin_list:
-                if admin.get("uname") == user_name:
-                    uid = admin.get("uid")
-                    break
-            if uid:
-                flag, r = await BiliApi.remove_admin(uid, cookie)
-                if not flag:
-                    logging.error(f"Ignored error in remove_admin: {r}")
-                return True, uid
-        return False, None
+    async def send_prize_info(self, msg):
+        await self.send_raffle_key(msg)
 
     async def proc_tv_gifts_by_single_user(self, user_name, gift_list):
-        try:
-            with open("data/cookie.json", "r") as f:
-                cookies = json.load(f)
-            cookie = cookies.get("RAW_COOKIE_LIST", [""])[0]
-        except Exception as e:
-            logging.error(
-                f"Error when read cookies: {str(e)}. Do not search uid for user {user_name}. "
-                f"gift_list length: {len(gift_list)}", exc_info=True)
-            uid = None
-        else:
-            flag, uid = await self.get_uid_by_name(user_name, cookie, retry_times=3)
-            if flag:
-                logging.info(f"Get user info: {user_name}: {uid}. gift_list length: {len(gift_list)}.")
-            else:
-                logging.error(f"Cannot get uid for user: {user_name}")
-                uid = None
-
+        uid = None
         for info in gift_list:
             info["uid"] = uid
             room_id = info["room_id"]
             gift_id = info["gift_id"]
             key = f"_T{room_id}${gift_id}"
-            result = await self.__info_setter.non_repeated_save(key, info)
-            if result:
-                self.send_prize_info(key)
+            await self.send_prize_info(key)
 
     async def proc_single_room(self, room_id, g_type):
-        if g_type == "G":
-            flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
-            if not flag:
-                logging.error(f"Guard proc_single_room, room_id: {room_id}, e: {gift_info_list}")
-                return
-
-            for gift_info in gift_info_list:
-                await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
-
-        elif g_type == "T":
+        if g_type == "T":
             flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
             if not flag:
                 logging.error(f"TV proc_single_room, room_id: {room_id}, e: {gift_info_list}")
@@ -262,46 +183,119 @@ class PrizeProcessor(object):
             await asyncio.sleep(0.5)
 
 
-class GuardScanner(object):
-    def __init__(self, message_putter):
-        self.message_putter = message_putter
+class Acceptor(object):
+    def __init__(self):
+        self.q = asyncio.Queue(maxsize=2000)
+        self.cookie_file = "data/cookie.json"
+        self.__black_list = {}
 
-    async def search(self):
-        flag, r = await BiliApi.get_guard_room_list()
-        if not flag:
-            logging.error(f"Cannot find guard room. r: {r}")
+    async def add_task(self, key):
+        await self.q.put(key)
+
+    async def load_cookie(self):
+        try:
+            with open(self.cookie_file, "r") as f:
+                c = json.load(f)
+            cookie_list = c["RAW_COOKIE_LIST"]
+        except Exception as e:
+            logging.error(f"Bad cookie, e: {str(e)}.", exc_info=True)
+            return [], []
+
+        blacklist = []
+        for index in range(0, len(cookie_list)):
+            cookie = cookie_list[index]
+            bt = self.__black_list.get(cookie)
+            if isinstance(bt, (int, float)) and int(time.time()) - bt < 3600*12:
+                blacklist.append(index)
+
+        if len(self.__black_list) > len(cookie_list):
+            new_black_list = {}
+            for cookie in self.__black_list:
+                if cookie in cookie_list:
+                    new_black_list[cookie] = self.__black_list[cookie]
+            self.__black_list = new_black_list
+            logging.critical("SELF BLACK LIST GC DONE!")
+        return cookie_list, blacklist
+
+    async def add_black_list(self, cookie):
+        self.__black_list[cookie] = time.time()
+        user_ids = re.findall(r"DedeUserID=(\d+)", "".join(self.__black_list.keys()))
+        logging.critical(f"Black list updated. current {len(user_ids)}: [{', '.join(user_ids)}].")
+
+    async def accept_tv(self, i, room_id, gift_id, cookie):
+        uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
+        user_id = uid_list[0] if uid_list else "Unknown-uid"
+
+        r, msg = await BiliApi.join_tv(room_id, gift_id, cookie)
+        if r:
+            logging.info(f"成功参与抽奖! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+        else:
+            logging.critical(f"参与抽奖失败! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+            if "访问被拒绝" in msg:
+                await self.add_black_list(cookie)
+
+    async def accept_guard(self, i, room_id, gift_id, cookie):
+        uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
+        user_id = uid_list[0] if uid_list else "Unknown-uid"
+
+        r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
+        if r:
+            logging.info(f"成功参与抽奖! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+        else:
+            logging.critical(f"参与抽奖失败! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+            if "访问被拒绝" in msg:
+                await self.add_black_list(cookie)
+
+    async def accept_prize(self, key):
+        if not isinstance(key, str):
+            key = key.decode("utf-8")
+
+        if key.startswith("_T"):
+            process_fn = self.accept_tv
+        elif key.startswith("NG"):
+            process_fn = self.accept_guard
+        else:
+            logging.error(f"invalid key: {key}. skip it.")
+            return
+        try:
+            room_id, gift_id = map(int, key[2:].split("$"))
+        except Exception as e:
+            logging.error(f"Bad prize key {key}, e: {str(e)}")
             return
 
-        for room_id in r:
-            await self.message_putter("G", room_id)
+        cookies, black_list = await self.load_cookie()
+        for i in range(len(cookies)):
+            if i in black_list:
+                uid_list = re.findall(r"DedeUserID=(\d+)", cookies[i])
+                user_id = uid_list[0] if uid_list else "Unknown-uid"
+                logging.warning(f"User {i}-{user_id} in black list, skip it.")
+            else:
+                await process_fn(i, room_id, gift_id, cookies[i])
 
     async def run_forever(self):
-        await asyncio.sleep(10)
         while True:
-            await self.search()
-            await asyncio.sleep(60*5)
+            r = await self.q.get()
+            await self.accept_prize(r)
 
 
-async def main():
-    logging.info("Start listener proc...")
+async def run_forever():
+    logging.info("Start...")
 
     def on_task_done(s):
-        logging.error(f"Task unexpected done! {s}")
+        err_msg = f"Task unexpected done! {s}"
+        logging.error(err_msg)
+        raise RuntimeError(err_msg)
 
-    p = PrizeProcessor()
+    acceptor = Acceptor()
+    accept_task = asyncio.create_task(acceptor.run_forever())
+    accept_task.add_done_callback(on_task_done)
 
-    guard_scanner = GuardScanner(message_putter=p.add_gift)
-    guard_task = asyncio.create_task(guard_scanner.run_forever())
-    guard_task.add_done_callback(on_task_done)
+    prize_processor = PrizeProcessor(send_raffle_key=acceptor.add_task)
 
-    tv_scanner = TvScanner(message_putter=p.add_gift)
-    tv_task = asyncio.create_task(tv_scanner.run_forever())
-    tv_task.add_done_callback(on_task_done)
+    scanner = TvScanner(message_putter=prize_processor.add_gift)
+    task_scan = asyncio.create_task(scanner.run_forever())
+    task_scan.add_done_callback(on_task_done)
 
-    await p.run_forever()
-    await guard_task
-    await tv_task
-
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+    await prize_processor.run_forever()
+    await task_scan
+    await accept_task
