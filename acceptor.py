@@ -112,7 +112,7 @@ async def main():
         await a.add_task(key)
 
     async def on_error(e, msg):
-        logging.error(f"{msg}. e: {e}")
+        logging.error(f"AC CATCH ERROR: {msg}. e: {e}")
 
     c = ReConnectingWsClient(uri="ws://%s:%s" % PRIZE_HANDLER_SERVE_ADDR, on_message=on_message, on_error=on_error)
     await c.start()
