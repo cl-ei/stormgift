@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+from websockets.protocol import State
 
 
 class ReConnectingWsClient(object):
