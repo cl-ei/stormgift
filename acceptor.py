@@ -45,7 +45,8 @@ class Acceptor(object):
 
     async def add_black_list(self, cookie):
         self.__black_list[cookie] = time.time()
-        logging.critical(f"Black list updated. current black list: {len(self.__black_list)}")
+        user_ids = ", ".join(re.findall(r"DedeUserID=(\d+)", "".join(self.__black_list.keys())))
+        logging.critical(f"Black list updated. current: {user_ids}.")
 
     async def accept_tv(self, i, room_id, gift_id, cookie):
         uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
@@ -91,7 +92,9 @@ class Acceptor(object):
         cookies, black_list = await self.load_cookie()
         for i in range(len(cookies)):
             if i in black_list:
-                logging.warning(f"User {i} in black list, skip it.")
+                uid_list = re.findall(r"DedeUserID=(\d+)", cookies[i])
+                user_id = uid_list[0] if uid_list else "Unknown-uid"
+                logging.warning(f"User {i}-{user_id} in black list, skip it.")
             else:
                 await process_fn(i, room_id, gift_id, cookies[i])
 
