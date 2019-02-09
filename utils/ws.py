@@ -1,6 +1,5 @@
 import asyncio
 import websockets
-from websockets.protocol import State
 
 
 class ReConnectingWsClient(object):
@@ -8,6 +7,7 @@ class ReConnectingWsClient(object):
                  on_message=None,
                  on_connect=None,
                  on_shut_down=None,
+                 on_error=None,
                  heart_beat_pkg="heart beat",
                  heart_beat_interval=10,
                  ):
@@ -21,6 +21,19 @@ class ReConnectingWsClient(object):
         self.on_message = on_message
         self.on_connect = on_connect
         self.on_shut_down = on_shut_down
+
+        if on_error:
+            async def _on_error(e, msg):
+                try:
+                    await on_error(e, msg)
+                except Exception:
+                    pass
+            self.on_error = _on_error
+        else:
+            async def _on_error(*args, **kw):
+                pass
+            self.on_error = _on_error
+
         self.heart_beat_package = heart_beat_pkg
         self.heart_beat_interval = heart_beat_interval
 
@@ -49,8 +62,7 @@ class ReConnectingWsClient(object):
             try:
                 await self.connect()
             except Exception as e:
-                # print("Error happened: %s" % e)
-                pass
+                await self.on_error(e, "in catch_connect_error")
 
         task = asyncio.create_task(catch_connect_error())
         task.add_done_callback(self._reconnect_cb)
@@ -88,7 +100,7 @@ class ReConnectingWsClient(object):
                     try:
                         await ws.send(self.heart_beat_package)
                     except Exception as e:
-                        # print("Error in send heart beat e: %s" % e)
+                        await self.on_error(e, "Error in send heart beat.")
                         return
             heart_beat_task = asyncio.create_task(send_heart_beat())
 
@@ -98,7 +110,7 @@ class ReConnectingWsClient(object):
                     if self.on_message:
                         await self.on_message(data)
                 except Exception as e:
-                    # print("Error in receiving msg: %s" % e)
+                    await self.on_error(e, "Error in receiving msg.")
                     break
             heart_beat_task.cancel()
 
