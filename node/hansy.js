@@ -73,7 +73,7 @@ let sendDanmakuToHansyRoomId = (msg) => {
     damakusender.sendDanmaku(msg, HANSY_ROOM_ID, undefined, 0, undefined);
 };
 let HANSY_MSG_LIST = [
-    "📢 主播千万个，泡泡就一只~  听歌不关注，下播两行泪( •̣̣̣̣̣̥́௰•̣̣̣̣̣̥̀ )",
+    "📢 主播千万个，泡泡就一只~  听歌不关注，下播两行泪(‘；ω；´) ",
     "📢 喜欢泡泡的小伙伴，加粉丝群436496941来玩耍呀~",
     "📢 更多好听的原创歌和翻唱作品，网易云音乐搜索「管珩心」~",
     "📢 有能力的伙伴上船支持一下主播鸭~还能获赠纪念礼品OvO",
