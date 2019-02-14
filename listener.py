@@ -62,8 +62,16 @@ class TvScanner(object):
         logging.info(f"Create_client, room_id: {room_id}, area: {self.AREA_MAP[area]}")
 
         client = self.__rws_clients.get(area)
-        if client and client.status not in ("stopping", "stopped"):
-            await client.kill()
+        if client:
+            if client.status not in ("stopping", "stopped"):
+                await client.kill()
+            else:
+                logging.error(
+                    f"CLDBG_ client status is not stopping or stopped when try to close it."
+                    f"area: {self.AREA_MAP[area]}, update_room_id: {room_id}, "
+                    f"client_room_id: {getattr(client, 'room_id', '--')}, client_status: {client.status}, "
+                    f"inner status: {await client.get_inner_status()}"
+                )
 
         async def on_message(message):
             for msg in WsApi.parse_msg(message):
