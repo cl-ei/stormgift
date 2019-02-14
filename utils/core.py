@@ -142,6 +142,10 @@ class PrizeProcessor(object):
             key = f"_T{room_id}${gift_id}"
             await self.send_prize_info(key)
 
+    async def proc_single_gift_of_guard(self, room_id, gift_info):
+        key = f"NG{room_id}${gift_info.get('id', 0)}"
+        await self.send_prize_info(key)
+
     async def proc_single_room(self, room_id, g_type):
         if g_type == "T":
             flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
@@ -166,6 +170,11 @@ class PrizeProcessor(object):
                 result.setdefault(user_name, []).append(i)
             for user_name, gift_list in result.items():
                 await self.proc_tv_gifts_by_single_user(user_name, gift_list)
+        elif g_type == "G":
+            flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
+            if flag:
+                for gift_info in gift_info_list:
+                    await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
 
     async def add_gift(self, g_type, room_id):
         g_type = g_type.upper()
@@ -278,6 +287,23 @@ class Acceptor(object):
             await self.accept_prize(r)
 
 
+class GuardScanner(object):
+    def __init__(self, message_putter):
+        self.message_putter = message_putter
+
+    async def search(self):
+        flag, r = await BiliApi.get_guard_room_list()
+        if flag:
+            for room_id in r:
+                await self.message_putter("G", room_id)
+
+    async def run_forever(self):
+        await asyncio.sleep(2)
+        while True:
+            await self.search()
+            await asyncio.sleep(60*5)
+
+
 async def run_forever():
     logging.info("Start...")
 
@@ -296,6 +322,11 @@ async def run_forever():
     task_scan = asyncio.create_task(scanner.run_forever())
     task_scan.add_done_callback(on_task_done)
 
+    guard_scanner = GuardScanner(message_putter=prize_processor.add_gift)
+    task_guard_scan = asyncio.create_task(guard_scanner.run_forever())
+    task_guard_scan.add_done_callback(on_task_done)
+
     await prize_processor.run_forever()
+    await task_guard_scan
     await task_scan
     await accept_task
