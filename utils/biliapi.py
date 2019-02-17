@@ -1,5 +1,6 @@
 import re
 import json
+import time
 import asyncio
 import requests
 from random import random
@@ -349,6 +350,34 @@ class BiliApi:
             return True, f"{data.get('message')}, from {data.get('from')}"
         else:
             return False, r.get("msg", "-")
+
+    @classmethod
+    async def send_danmaku(cls, message, room_id, cookie, color=0xffffff, timeout=5):
+        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
+        if not csrf_token_list:
+            return False, f"Cannot get csrf_token!"
+
+        csrf_token = csrf_token_list[0]
+        req_url = "https://live.bilibili.com/msg/send"
+        headers = {"Cookie": cookie}
+        data = {
+            "color": color,
+            "fontsize": 25,
+            "mode": 1,
+            "msg": message,
+            "rnd": int(time.time()),
+            "roomid": room_id,
+            "csrf_token": csrf_token,
+        }
+        flag, r = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+        if not flag:
+            return False, r
+
+        result = r.get("code") == 0
+        if result:
+            return True, r.get("message", "")
+        else:
+            return False, r.get("message", "-")
 
 
 async def test():
