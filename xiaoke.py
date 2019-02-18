@@ -14,7 +14,7 @@ LOG_PATH = config["LOG_PATH"]
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
 console.setFormatter(log_format)
-xk_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "stormgift.log"))
+xk_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "xiaoke.log"))
 xk_file_handler.setFormatter(log_format)
 
 logger = logging.getLogger("xk")
