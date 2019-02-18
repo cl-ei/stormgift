@@ -1,9 +1,27 @@
 import re
+import os
+import sys
 import asyncio
 import requests
 import json
 from utils.ws import ReConnectingWsClient
 from utils.biliapi import WsApi, BiliApi
+import logging
+
+from config import config
+LOG_PATH = config["LOG_PATH"]
+
+log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
+console = logging.StreamHandler(sys.stdout)
+console.setFormatter(log_format)
+xk_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "stormgift.log"))
+xk_file_handler.setFormatter(log_format)
+
+logger = logging.getLogger("xk")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(console)
+logger.addHandler(xk_file_handler)
+logging = logger
 
 
 MONITOR_ROOM_ID = 11472492
@@ -56,7 +74,7 @@ async def proc_message(message):
         ul = info[4][0]
         dl = info[3][0]
         deco = info[3][1]
-        print(f"[{uid}] [{user_name}][{ul}] [{deco} {dl}]-> {msg}")
+        logging.info(f"[{uid}] [{user_name}][{ul}] [{deco} {dl}]-> {msg}")
 
         flag, cuid, cookie = await load_cookie()
         if not flag or uid == cuid:
@@ -70,17 +88,17 @@ async def proc_message(message):
 
 async def main():
     async def on_connect():
-        print("Connected!")
+        logging.info("Connected!")
 
     async def on_shut_down(*args):
-        print("dfasfasf")
+        logging.error("dfasfasf")
 
     async def on_connect(ws):
-        print("on_connect")
+        logging.info("on_connect")
         await ws.send(WsApi.gen_join_room_pkg(MONITOR_ROOM_ID))
 
     async def on_shut_down():
-        print("shut done!")
+        logging.error("shut done!")
 
     async def on_message(message):
         for msg in WsApi.parse_msg(message):
@@ -96,7 +114,7 @@ async def main():
     )
 
     await new_client.start()
-    print("Stated")
+    logging.info("Stated")
     while True:
         await asyncio.sleep(5)
 
