@@ -196,6 +196,9 @@ let procMessage = (msg, room_id) => {
 
         if (uid === 65981801 && (message.indexOf("心") > -1 || message.indexOf("美") > -1 || message.indexOf("好") > -1)){
             sendDanmakuToHansyRoomId(randomChoice([
+                "🤖 大连 你来推荐一个炸鸡套餐呗？",
+                "🤖 大连你竟然连童子鸡🐔都不放过！",
+                "🤖 大连，祝你梦里有等身抱枕~",
                 "🤖 大连你是个大居蹄子！",
                 "🤖 大连给我把你的舌头吞回去！",
                 "🤖 大连啊大连，你在东北玩泥巴，我在大连木有家呀(￣△￣)~",
