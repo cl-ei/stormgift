@@ -83,10 +83,11 @@ let HANSY_MSG_LIST = [
     // "📢 赠送1个B坷垃，就可以领取珩心专属「电磁泡」粉丝勋章啦~",
     // "📢 有能力的伙伴上船支持一下主播鸭~还能获赠纪念礼品OvO",
 ];
-let lastActiveUseTimeInHansysRoom = getCurrentTimest() - 120*HANSY_MSG_LIST.length;
+let HANSY_MSG_SEND_INTERVAL = 70;
 let HANSY_MSG_LIST_INDEX = 0;
+let lastActiveUseTimeInHansysRoom = getCurrentTimest() - HANSY_MSG_SEND_INTERVAL*HANSY_MSG_LIST.length;
 let intervalSendHansyDCallMsg = () => {
-    if ((getCurrentTimest() - lastActiveUseTimeInHansysRoom) >= 120*HANSY_MSG_LIST.length){
+    if ((getCurrentTimest() - lastActiveUseTimeInHansysRoom) >= HANSY_MSG_SEND_INTERVAL*HANSY_MSG_LIST.length){
         return;
     }
     HANSY_MSG_LIST_INDEX = (HANSY_MSG_LIST_INDEX + 1) % HANSY_MSG_LIST.length;
@@ -230,5 +231,5 @@ let procMessage = (msg, room_id) => {
     client.onmessage = function(e) {
         bilisocket.parseMessage(e.data, HANSY_ROOM_ID, procMessage);
     };
-    setInterval(intervalSendHansyDCallMsg, 120*1000);
+    setInterval(intervalSendHansyDCallMsg, HANSY_MSG_SEND_INTERVAL*1000);
 })();
