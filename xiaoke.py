@@ -9,7 +9,7 @@ from utils.biliapi import WsApi, BiliApi
 import logging
 
 from config import config
-LOG_PATH = "./log"  # config["LOG_PATH"]
+LOG_PATH = config["LOG_PATH"]
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
