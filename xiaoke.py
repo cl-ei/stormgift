@@ -26,7 +26,7 @@ logging = logger
 
 MONITOR_ROOM_ID = 11472492
 SILVER_GIFT_LIST = []
-ROBOT_ON = True
+ROBOT_ON = False
 
 
 async def load_cookie(index=0):
