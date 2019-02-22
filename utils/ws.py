@@ -71,17 +71,18 @@ class ReConnectingWsClient(object):
 
     async def kill(self):
         self.status = "stopping"
+        if self.__task.cancelled():
+            raise RuntimeError("Task has been cancelled when cancel it!")
+
+        self.__task.remove_done_callback(self._reconnect_cb)
+        self.__task.cancel()
         if self.__client:
             await self.__client.close()
-        if not self.__task.cancelled():
-            self.__task.remove_done_callback(self._reconnect_cb)
+        await self.__task
 
-            def call_back(t):
-                self.status = "stopped"
-                if self.on_shut_down:
-                    asyncio.gather(self.on_shut_down())
-            self.__task.add_done_callback(call_back)
-            self.__task.cancel()
+        self.status = "stopped"
+        if self.on_shut_down:
+            await self.on_shut_down()
 
     async def get_inner_status(self):
         return getattr(self.__client, "state", None)
@@ -115,6 +116,7 @@ class ReConnectingWsClient(object):
                     await self.on_error(e, "Error in receiving msg.")
             if heart_beat_task:
                 heart_beat_task.cancel()
+                await heart_beat_task
 
         if self.status not in ("stopping", "stopped"):
             self.status = "reconnecting"
