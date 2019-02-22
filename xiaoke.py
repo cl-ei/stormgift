@@ -104,6 +104,7 @@ async def proc_message(message):
                         msg = msg[30:55] + "..."
                     else:
                         msg = msg[30:60]
+                    await asyncio.sleep(0.5)
                     await BiliApi.send_danmaku(msg, room_id=MONITOR_ROOM_ID, cookie=cookie)
         else:
             if is_admin and msg == "开启聊天":
