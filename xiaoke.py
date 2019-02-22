@@ -97,8 +97,10 @@ async def proc_message(message):
 
             flag, msg = await get_tuling_response(msg)
             if flag:
-                msg = f"{user_name}　{msg}"[:30]
-                await BiliApi.send_danmaku(msg, room_id=MONITOR_ROOM_ID, cookie=cookie)
+                msg = f"{user_name}　{msg}"
+                await BiliApi.send_danmaku(msg[:30], room_id=MONITOR_ROOM_ID, cookie=cookie)
+                if len(msg) > 30:
+                    await BiliApi.send_danmaku(msg[30:55] + "...", room_id=MONITOR_ROOM_ID, cookie=cookie)
         else:
             if is_admin and msg == "开启聊天":
                 print("聊天开启")
