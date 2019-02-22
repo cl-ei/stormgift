@@ -89,7 +89,7 @@ async def proc_message(message):
             if is_admin and msg == "关闭聊天":
                 print("聊天关闭")
                 ROBOT_ON = False
-                await BiliApi.send_danmaku("聊天功能已关闭", room_id=MONITOR_ROOM_ID, cookie=cookie)
+                await BiliApi.send_danmaku("聊天功能已关闭。房管发送「开启聊天」可以再次打开。", room_id=MONITOR_ROOM_ID, cookie=cookie)
                 return
 
             if uid == cuid:
@@ -113,7 +113,7 @@ async def proc_message(message):
                 flag, cuid, cookie = await load_cookie()
                 if not flag:
                     return
-                await BiliApi.send_danmaku("聊天功能已开启", room_id=MONITOR_ROOM_ID, cookie=cookie)
+                await BiliApi.send_danmaku("聊天功能已开启。房管发送「关闭聊天」即可关闭。", room_id=MONITOR_ROOM_ID, cookie=cookie)
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")
