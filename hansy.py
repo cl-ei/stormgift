@@ -2,14 +2,16 @@ import re
 import os
 import sys
 import asyncio
+import time
+from random import choice, random
 import requests
 import json
 from utils.ws import ReConnectingWsClient
 from utils.biliapi import WsApi, BiliApi
 import logging
 
-from config import config
 if "linux" in sys.platform:
+    from config import config
     LOG_PATH = config["LOG_PATH"]
 else:
     LOG_PATH = "./log"
@@ -17,18 +19,38 @@ else:
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
 console.setFormatter(log_format)
-xk_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "xiaoke.log"))
-xk_file_handler.setFormatter(log_format)
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "hansy.log"), encoding="utf-8")
+file_handler.setFormatter(log_format)
 
-logger = logging.getLogger("xk")
+logger = logging.getLogger("hansy")
 logger.setLevel(logging.DEBUG)
 logger.addHandler(console)
-logger.addHandler(xk_file_handler)
+logger.addHandler(file_handler)
 logging = logger
 
 
-MONITOR_ROOM_ID = 280446
-SILVER_GIFT_LIST = []
+MONITOR_ROOM_ID = 2516117
+
+RECORDER_UID = 39748080
+DADUN_UID = 20932326
+HANSY_MSG_INTERVAL = 70
+HANSY_MSG_LIST = [
+    # "📢 主播千万个，泡泡就一个~  听歌不关注，下播两行泪(‘；ω；´) ",
+    # "📢 赠送1个B坷垃，就可以领取珩心专属「电磁泡」粉丝勋章啦~",
+    # "📢 有能力的伙伴上船支持一下主播鸭~还能获赠纪念礼品OvO",
+    "📢 一定要来网易云关注「管珩心」哦，超多高质量单曲等你来听~",
+    "📢 喜欢泡泡的小伙伴，加粉丝群436496941来玩耍呀~",
+    "📢 送「变身话筒」可以帮主播参加活动哦，请大家多多支持鸭谢谢(´｡✪ω✪｡｀)",
+    "📢 更多好听的原创歌和翻唱作品，网易云音乐搜索「管珩心」~",
+    "📢 你的关注和弹幕是直播的动力，小伙伴们多粗来聊天掰头哇~",
+    "📢 小礼物请尽量送「变身话筒」哦，感谢支持~一起冲鸭(ง •_•)ง",
+]
+LAST_ACTIVE_TIME = time.time() - HANSY_MSG_INTERVAL*len(HANSY_MSG_LIST) - 1
+
+
+def master_is_active():
+    result = time.time() - LAST_ACTIVE_TIME < len(HANSY_MSG_LIST)*HANSY_MSG_INTERVAL + HANSY_MSG_INTERVAL/3
+    return result
 
 
 async def load_cookie(index=0):
@@ -46,9 +68,27 @@ async def load_cookie(index=0):
     return True, uid, cookie
 
 
+async def send_hansy_danmaku(msg):
+    flag, cuid, cookie = await load_cookie()
+    if not flag:
+        logging.error("Bad cookie!")
+        return
+    await BiliApi.send_danmaku(msg, room_id=MONITOR_ROOM_ID, cookie=cookie)
+
+
+async def send_recorder_group_danmaku():
+    flag, cuid, cookie = await load_cookie(12)
+    if not flag:
+        logging.error("Bad cookie!")
+        return
+    await BiliApi.enter_room(MONITOR_ROOM_ID, cookie)
+
+    if master_is_active():
+        await BiliApi.send_danmaku("📢 想要观看直播回放的小伙伴，记得关注我哦~", room_id=MONITOR_ROOM_ID, cookie=cookie)
+
+
 async def proc_message(message):
     cmd = message.get("cmd")
-    print(f"{json.dumps(message, ensure_ascii=False)}")
     if cmd == "DANMU_MSG":
         info = message.get("info", {})
         msg = info[1]
@@ -57,82 +97,79 @@ async def proc_message(message):
         is_admin = info[2][2]
         ul = info[4][0]
         d = info[3]
-        dl = d[0] if d else "0"
-        deco = d[1] if d else "^^"
-        logging.info(f"{'[管]' if is_admin else ''}[{uid}] [{user_name}][{ul}] [{deco} {dl}]-> {msg}")
-    #
-    # elif cmd == "SEND_GIFT":
-    #     data = message.get("data")
-    #     uid = data.get("uid", "--")
-    #     face = data.get("face", "")
-    #     uname = data.get("uname", "")
-    #     gift_name = data.get("giftName", "")
-    #     coin_type = data.get("coin_type", "")
-    #     total_coin = data.get("total_coin", 0)
-    #     num = data.get("num", "")
-    #     if coin_type != "gold":
-    #         SILVER_GIFT_LIST.append(f"{uname}${gift_name}${num}")
-    #
-    # elif cmd == "COMBO_END":
-    #     data = message.get("data")
-    #     uname = data.get("uname", "")
-    #     gift_name = data.get("gift_name", "")
-    #     price = data.get("price")
-    #     count = data.get("combo_num", 0)
-    #     flag, cuid, cookie = await load_cookie()
-    #     if not flag:
-    #         return
-    #     await BiliApi.send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~", room_id=MONITOR_ROOM_ID, cookie=cookie)
-    #
-    # elif cmd == "GUARD_BUY":
-    #     data = message.get("data")
-    #     uid = data.get("uid")
-    #     uname = data.get("username", "")
-    #     gift_name = data.get("gift_name", "GUARD")
-    #     price = data.get("price")
-    #     num = data.get("num", 0)
-    #
-    #     flag, cuid, cookie = await load_cookie()
-    #     if not flag:
-    #         return
-    #     await BiliApi.send_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~", room_id=MONITOR_ROOM_ID, cookie=cookie)
+        dl = d[0] if d else "-"
+        deco = d[1] if d else "undefined"
+        logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
 
+        if msg in HANSY_MSG_LIST or uid == RECORDER_UID:
+            return
 
-async def thank_silver_gift():
-    gift_list = {}
-    while SILVER_GIFT_LIST:
-        gift = SILVER_GIFT_LIST.pop()
-        uname, gift_name, num = gift.split("$")
-        key = f"{uname}${gift_name}"
-        if key in gift_list:
-            gift_list[key] += int(num)
+        global LAST_ACTIVE_TIME
+        LAST_ACTIVE_TIME = time.time()
+
+        if uid == DADUN_UID:
+            return
+
+        elif uid == 65981801:  # 大连
+            if "心" in msg or "美" in msg or "好" in msg:
+                await send_hansy_danmaku(choice([
+                    "🤖 大连 你来推荐一个炸鸡套餐呗？",
+                    "🤖 大连你竟然连童子鸡🐔都不放过！",
+                    "🤖 大连，祝你梦里有等身抱枕~",
+                    "🤖 大连你是个大居蹄子！",
+                    "🤖 大连给我把你的舌头吞回去！",
+                    "🤖 大连啊大连，你在东北玩泥巴，我在大连木有家呀(￣△￣)~",
+                ]))
         else:
-            gift_list[key] = int(num)
+            if "好听" in msg and random() > 0.5:
+                await send_hansy_danmaku(choice([
+                    "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
+                    "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
+                    "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
+                ]))
 
-    if gift_list:
-        for key, num in gift_list.items():
-            flag, cuid, cookie = await load_cookie()
-            if not flag:
-                return
-            uname, gift_name = key.split("$")
-            await BiliApi.send_danmaku(
-                f"感谢{uname}赠送的{num}个{gift_name}! 大气大气~",
-                room_id=MONITOR_ROOM_ID,
-                cookie=cookie
-            )
+    elif cmd == "SEND_GIFT":
+        data = message.get("data")
+        uid = data.get("uid", "--")
+        face = data.get("face", "")
+        uname = data.get("uname", "")
+        gift_name = data.get("giftName", "")
+        coin_type = data.get("coin_type", "")
+        total_coin = data.get("total_coin", 0)
+        num = data.get("num", "")
+        if coin_type != "gold":
+            logging.info(f"SEND_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})")
+
+    elif cmd == "COMBO_END":
+        data = message.get("data")
+        uname = data.get("uname", "")
+        gift_name = data.get("gift_name", "")
+        price = data.get("price")
+        count = data.get("combo_num", 0)
+        logging.info(f"GOLD_GIFT: [ ----- ] [{uname}] -> {gift_name}*{count} (price: {price})")
+
+    elif cmd == "GUARD_BUY":
+        data = message.get("data")
+        uid = data.get("uid")
+        uname = data.get("username", "")
+        gift_name = data.get("gift_name", "GUARD")
+        price = data.get("price")
+        num = data.get("num", 0)
+        logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
 
 
 async def main():
     async def on_connect(ws):
-        logging.info("on_connect")
+        logging.info("connected.")
         await ws.send(WsApi.gen_join_room_pkg(MONITOR_ROOM_ID))
 
     async def on_shut_down():
-        logging.error("shut done!")
+        logging.error("shutdown!")
+        raise RuntimeError("Connection broken!")
 
     async def on_message(message):
-        for msg in WsApi.parse_msg(message):
-            await proc_message(msg)
+        for m in WsApi.parse_msg(message):
+            await proc_message(m)
 
     new_client = ReConnectingWsClient(
         uri=WsApi.BILI_WS_URI,  # "ws://localhost:22222",
@@ -145,10 +182,26 @@ async def main():
 
     await new_client.start()
     logging.info("Hansy ws stated.")
-    while True:
-        # await thank_silver_gift()
-        await asyncio.sleep(8)
 
+    counter = 0
+    hansy_msg_index = 0
+    while True:
+        await asyncio.sleep(1)
+        counter += 1
+        if counter > 1000:
+            counter = 0
+
+        if counter % int(HANSY_MSG_INTERVAL) == 0:
+            if master_is_active():
+                msg = HANSY_MSG_LIST[hansy_msg_index]
+                await send_hansy_danmaku(msg)
+
+                hansy_msg_index += 1
+                if hansy_msg_index == len(HANSY_MSG_LIST):
+                    hansy_msg_index = 0
+
+        if counter % (60*5) == 0:
+            await send_recorder_group_danmaku()
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

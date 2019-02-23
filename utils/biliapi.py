@@ -379,6 +379,27 @@ class BiliApi:
         else:
             return False, r.get("message", "-")
 
+    @classmethod
+    async def enter_room(cls, room_id, cookie, timeout=5):
+        headers = {"Cookie": cookie}
+
+        req_url = f"https://api.live.bilibili.com/live_user/v1/UserInfo/get_info_in_room?roomid={room_id}"
+        await cls.get(req_url, headers=headers, timeout=timeout, check_response_json=True)
+
+        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
+        if not csrf_token_list:
+            return False, f"Cannot get csrf_token!"
+        csrf_token = csrf_token_list[0]
+        req_url = "https://api.live.bilibili.com/room/v1/Room/room_entry_action"
+        data = {
+            "room_id": room_id,
+            "platform": "pc",
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "visit_id": "",
+        }
+        await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+
 
 async def test():
     print("Running test.")
