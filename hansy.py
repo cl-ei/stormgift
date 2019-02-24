@@ -33,7 +33,7 @@ MONITOR_ROOM_ID = 2516117
 
 RECORDER_UID = 39748080
 DADUN_UID = 20932326
-HANSY_MSG_INTERVAL = 70
+HANSY_MSG_INTERVAL = 120
 HANSY_MSG_LIST = [
     # "📢 一定要来网易云关注「管珩心」哦，超多高质量单曲等你来听~",
     "📢 主播千万个，泡泡就一个~  听歌不关注，下播两行泪(‘；ω；´) ",
