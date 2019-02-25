@@ -47,7 +47,7 @@ LAST_ACTIVE_TIME = time.time() - HANSY_MSG_INTERVAL*len(HANSY_MSG_LIST) - 1
 
 
 def master_is_active():
-    result = time.time() - LAST_ACTIVE_TIME < len(HANSY_MSG_LIST)*HANSY_MSG_INTERVAL + HANSY_MSG_INTERVAL/3
+    result = time.time() - LAST_ACTIVE_TIME < len(HANSY_MSG_LIST)*HANSY_MSG_INTERVAL
     return result
 
 
@@ -99,7 +99,7 @@ async def proc_message(message):
         deco = d[1] if d else "undefined"
         logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
 
-        if msg in HANSY_MSG_LIST or uid == RECORDER_UID:
+        if str(msg).startswith("📢"):
             return
 
         global LAST_ACTIVE_TIME
@@ -170,7 +170,7 @@ async def main():
             await proc_message(m)
 
     new_client = ReConnectingWsClient(
-        uri=WsApi.BILI_WS_URI,  # "ws://localhost:22222",
+        uri=WsApi.BILI_WS_URI,
         on_message=on_message,
         on_connect=on_connect,
         on_shut_down=on_shut_down,
