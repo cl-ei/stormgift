@@ -138,23 +138,23 @@ async def proc_message(message):
             return
 
         elif uid == 65981801:  # 大连
-            if "心" in msg or "美" in msg or "好" in msg or random() > 0.6:
+            if "心" in msg or "美" in msg or "好" in msg or random() > 0.8:
                 await send_hansy_danmaku(choice([
-                    "🤖 大连 你来推荐一个炸鸡套餐呗？",
                     "🤖 大连你竟然连童子鸡🐔都不放过！",
-                    "🤖 大连，祝你梦里有等身抱枕~",
-                    "🤖 大连你是个大居蹄子！",
-                    "🤖 大连给我把你的舌头吞回去！",
-                    "🤖 大连，你的手机铃是\"吸溜、吸溜\"？",
+                    "🤖 大连，等身抱枕只会在你的梦里~快去睡吧晚安安~",
+                    "🤖 大连你个大居蹄子！",
+                    "🤖 大连，你的舌头没救了……切了吧",
+                    "🤖 没想到你是这样的大连！（￣へ￣）",
                 ]))
         else:
-            if "好听" in msg and random() > 0.5:
+            if "好听" in msg and random() > 0.7:
                 await send_hansy_danmaku(choice([
                     "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
                     "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
                     "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
-                    "🤖 网易云有更多好听的歌哦，请搜索「管珩心」φ(≧ω≦*)♪",
+                    "🤖 觉得好听的话，就按个关注别走好吗…(๑˘ ˘๑) ♥",
                 ]))
+
             if "点歌" in msg and "吗" in msg:
                 await send_hansy_danmaku("🤖 可以点歌哦，等这首唱完直接发歌名就行啦╰(*°▽°*)╯")
 
