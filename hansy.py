@@ -94,7 +94,7 @@ async def send_recorder_group_danmaku():
 
 
 def save_gift(uid, name, face, gift_name, count):
-    logging.info(f"Saved new gift, user: {uid}-{name} -> {gift_name}*{count}.")
+    logging.info(f"Saving new gift, user: {uid}-{name} -> {gift_name}*{count}.")
 
     faces = map(lambda x: x.split(".")[0], os.listdir("/home/wwwroot/bubble-site/statics/face"))
     if str(uid) in faces:
@@ -117,6 +117,7 @@ def save_gift(uid, name, face, gift_name, count):
     }
     with open("/home/wwwroot/bubble-site/data/gift_list.txt", "a+") as f:
         f.write(json.dumps(data, ensure_ascii=False) + "\n")
+    logging.info(f"New gift saved, user: {uid}-{name} -> {gift_name}*{count}.")
 
 
 async def proc_message(message):
