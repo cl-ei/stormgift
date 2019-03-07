@@ -3,6 +3,7 @@ import os
 import sys
 import asyncio
 import time
+import datetime
 from random import choice, random
 import requests
 import json
@@ -44,6 +45,8 @@ HANSY_MSG_LIST = [
     "📢 有能力的伙伴上船支持一下主播鸭~还能获赠纪念礼品OvO",
 ]
 LAST_ACTIVE_TIME = time.time() - HANSY_MSG_INTERVAL*len(HANSY_MSG_LIST) - 1
+USER_NAME_TO_ID_MAP = {}
+THRESHOLD = 0
 
 
 def master_is_active():
@@ -83,6 +86,32 @@ async def send_recorder_group_danmaku():
 
     if master_is_active():
         await BiliApi.send_danmaku("📢 想要观看直播回放的小伙伴，记得关注我哦~", room_id=MONITOR_ROOM_ID, cookie=cookie)
+
+
+def save_gift(uid, name, face, gift_name, count):
+    logging.info(f"Saved new gift, user: {uid}-{name} -> {gift_name}*{count}.")
+
+    faces = map(lambda x: x.split(".")[0], os.listdir("/home/wwwroot/bubble-site/statics/face"))
+    if str(uid) in faces:
+        return
+    try:
+        r = requests.get(face, timeout=10)
+        if r.status_code != 200:
+            raise Exception("Request error when get face!")
+        with open(f"/home/wwwroot/bubble-site/statics/face/{uid}", "wb") as f:
+            f.write(r.content)
+    except Exception as e:
+        logging.error(f"Cannot save face, e: {e}, {uid} -> {face}")
+
+    data = {
+        "created_time": str(datetime.datetime.now()),
+        "uid": uid,
+        "sender": name,
+        "gift_name": gift_name,
+        "count": count,
+    }
+    with open("/home/wwwroot/bubble-site/data/gift_list.txt", "a+") as f:
+        f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
 
 async def proc_message(message):
@@ -140,6 +169,9 @@ async def proc_message(message):
         num = data.get("num", "")
         if coin_type != "gold":
             logging.info(f"SEND_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})")
+        elif coin_type == "gold" and uname not in USER_NAME_TO_ID_MAP:
+            USER_NAME_TO_ID_MAP[uname] = {"uid": uid, "face": face}
+            logging.info(f"USER_NAME_TO_ID_MAP Length: {len(USER_NAME_TO_ID_MAP)}")
 
     elif cmd == "COMBO_END":
         data = message.get("data")
@@ -149,6 +181,12 @@ async def proc_message(message):
         count = data.get("combo_num", 0)
         logging.info(f"GOLD_GIFT: [ ----- ] [{uname}] -> {gift_name}*{count} (price: {price})")
 
+        cached_user = USER_NAME_TO_ID_MAP.get(uname, {})
+        uid = cached_user.get("uid")
+        face = cached_user.get("face")
+        if uid and price * count > THRESHOLD:
+            save_gift(uid, uname, face, gift_name, count)
+
     elif cmd == "GUARD_BUY":
         data = message.get("data")
         uid = data.get("uid")
@@ -157,6 +195,9 @@ async def proc_message(message):
         price = data.get("price")
         num = data.get("num", 0)
         logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
+
+        face = USER_NAME_TO_ID_MAP.get(uname, {}).get("face")
+        save_gift(uid, uname, face, gift_name, num)
 
 
 async def main():
@@ -170,7 +211,10 @@ async def main():
 
     async def on_message(message):
         for m in WsApi.parse_msg(message):
-            await proc_message(m)
+            try:
+                await proc_message(m)
+            except Exception as e:
+                logging.error(f"Error happened when proc_message: {e}", exc_info=True)
 
     new_client = ReConnectingWsClient(
         uri=WsApi.BILI_WS_URI,
