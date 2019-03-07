@@ -46,7 +46,7 @@ HANSY_MSG_LIST = [
 ]
 LAST_ACTIVE_TIME = time.time() - HANSY_MSG_INTERVAL*len(HANSY_MSG_LIST) - 1
 USER_NAME_TO_ID_MAP = {}
-THRESHOLD = 0
+THRESHOLD = 79000
 
 
 def master_is_active():
