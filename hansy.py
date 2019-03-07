@@ -49,6 +49,11 @@ USER_NAME_TO_ID_MAP = {}
 THRESHOLD = 79000
 
 
+class DanmakuSetting(object):
+    thank_on = False
+    silver_gift_list = []
+
+
 def master_is_active():
     result = time.time() - LAST_ACTIVE_TIME < len(HANSY_MSG_LIST)*HANSY_MSG_INTERVAL
     return result
@@ -134,7 +139,15 @@ async def proc_message(message):
         global LAST_ACTIVE_TIME
         LAST_ACTIVE_TIME = time.time()
 
-        if uid == DADUN_UID:
+        if is_admin:
+            if msg == "开启答谢" and not DanmakuSetting.thank_on:
+                DanmakuSetting.thank_on = True
+                await send_hansy_danmaku("🤖 弹幕答谢已开启。房管发送「关闭答谢」即可关闭。")
+            elif msg == "关闭答谢" and DanmakuSetting.thank_on:
+                DanmakuSetting.thank_on = False
+                await send_hansy_danmaku("🤖 弹幕答谢已关闭。房管发送「开启答谢」即可再次打开。")
+
+        elif uid == DADUN_UID:
             return
 
         elif uid == 65981801:  # 大连
@@ -169,6 +182,8 @@ async def proc_message(message):
         total_coin = data.get("total_coin", 0)
         num = data.get("num", "")
         if coin_type != "gold":
+            if DanmakuSetting.thank_on:
+                DanmakuSetting.silver_gift_list.append(f"{uname}${gift_name}${num}")
             logging.info(f"SEND_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})")
         elif coin_type == "gold" and uname not in USER_NAME_TO_ID_MAP:
             USER_NAME_TO_ID_MAP[uname] = {"uid": uid, "face": face}
@@ -185,6 +200,8 @@ async def proc_message(message):
         cached_user = USER_NAME_TO_ID_MAP.get(uname, {})
         uid = cached_user.get("uid")
         face = cached_user.get("face")
+        if DanmakuSetting.thank_on:
+            await send_hansy_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
         if uid and price * count > THRESHOLD:
             save_gift(uid, uname, face, gift_name, count)
 
@@ -196,6 +213,8 @@ async def proc_message(message):
         price = data.get("price")
         num = data.get("num", 0)
         logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
+        if DanmakuSetting.thank_on:
+            await send_hansy_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
 
         face = USER_NAME_TO_ID_MAP.get(uname, {}).get("face")
         save_gift(uid, uname, face, gift_name, num)
@@ -236,6 +255,28 @@ async def main():
         counter += 1
         if counter > 10000*len(HANSY_MSG_LIST):
             counter = 0
+
+        if counter % 8 == 0 and DanmakuSetting.thank_on:
+            gift_list = {}
+            while DanmakuSetting.silver_gift_list:
+                gift = DanmakuSetting.silver_gift_list.pop()
+                uname, gift_name, num = gift.split("$")
+                key = f"{uname}${gift_name}"
+                if key in gift_list:
+                    gift_list[key] += int(num)
+                else:
+                    gift_list[key] = int(num)
+
+            if gift_list:
+                flag, cuid, cookie = await load_cookie()
+                if flag:
+                    for key, num in gift_list.items():
+                        uname, gift_name = key.split("$")
+                        await BiliApi.send_danmaku(
+                            message=f"感谢{uname}赠送的{num}个{gift_name}! 大气大气~",
+                            room_id=MONITOR_ROOM_ID,
+                            cookie=cookie
+                        )
 
         if counter % int(HANSY_MSG_INTERVAL) == 0:
             if master_is_active():
