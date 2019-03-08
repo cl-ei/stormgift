@@ -89,7 +89,7 @@ async def send_recorder_group_danmaku():
         return
     await BiliApi.enter_room(MONITOR_ROOM_ID, cookie)
 
-    if master_is_active():
+    if master_is_active() and datetime.datetime.now().minute % 10 < 5:
         await BiliApi.send_danmaku("📢 想要观看直播回放的小伙伴，记得关注我哦~", room_id=MONITOR_ROOM_ID, cookie=cookie)
 
 
