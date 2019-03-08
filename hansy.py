@@ -97,16 +97,17 @@ def save_gift(uid, name, face, gift_name, count):
     logging.info(f"Saving new gift, user: {uid}-{name} -> {gift_name}*{count}.")
 
     faces = map(lambda x: x.split(".")[0], os.listdir("/home/wwwroot/bubble-site/statics/face"))
-    if str(uid) in faces:
-        return
-    try:
-        r = requests.get(face, timeout=10)
-        if r.status_code != 200:
-            raise Exception("Request error when get face!")
-        with open(f"/home/wwwroot/bubble-site/statics/face/{uid}", "wb") as f:
-            f.write(r.content)
-    except Exception as e:
-        logging.error(f"Cannot save face, e: {e}, {uid} -> {face}")
+    if str(uid) not in faces:
+        try:
+            r = requests.get(face, timeout=20)
+            if r.status_code != 200:
+                raise Exception("Request error when get face!")
+            with open(f"/home/wwwroot/bubble-site/statics/face/{uid}", "wb") as f:
+                f.write(r.content)
+        except Exception as e:
+            logging.error(f"Cannot save face, e: {e}, {uid} -> {face}")
+        else:
+            logging.info(f"User face saved, {uid} -> {face}")
 
     data = {
         "created_time": str(datetime.datetime.now()),
