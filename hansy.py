@@ -221,6 +221,11 @@ async def proc_message(message):
         face = USER_NAME_TO_ID_MAP.get(uname, {}).get("face")
         save_gift(uid, uname, face, gift_name, num)
 
+    elif cmd == "LIVE":
+        await send_hansy_danmaku("关闭答谢")
+    elif cmd == "PREPARING":
+        await send_hansy_danmaku("开启答谢")
+
 
 async def main():
     async def on_connect(ws):
@@ -258,7 +263,7 @@ async def main():
         if counter > 10000*len(HANSY_MSG_LIST):
             counter = 0
 
-        if counter % 8 == 0 and DanmakuSetting.thank_on:
+        if counter % 13 == 0 and DanmakuSetting.thank_on:
             gift_list = {}
             while DanmakuSetting.silver_gift_list:
                 gift = DanmakuSetting.silver_gift_list.pop()
