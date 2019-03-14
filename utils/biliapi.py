@@ -409,10 +409,30 @@ class BiliApi:
         else:
             return data.get("data", {}).get("face", "") or ""
 
+    @classmethod
+    async def get_uid_by_live_room_id(cls, room_id, timeout=10):
+        req_url = f"https://api.live.bilibili.com/live_user/v1/UserInfo/get_anchor_in_room?roomid={room_id}"
+        flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        if not flag:
+            return -1
+        else:
+            return data.get("data", {}).get("info", {}).get("uid", -1) or -1
+
+    @classmethod
+    async def get_fans_list(cls, uid, timeout=10):
+        req_url = f"https://api.bilibili.com/x/relation/followers?vmid={uid}&pn=1&ps=20&order=desc&jsonp=jsonp"
+        flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        result = []
+        if not flag:
+            return result
+        for d in data.get("data", {}).get("list", []):
+            result.append({"mid": d.get("mid"), "uname": d.get("uname")})
+        return result
+
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_user_face(731556)
+    r = await BiliApi.get_fans_list(65568410)
     print(r)
 
 if __name__ == "__main__":
