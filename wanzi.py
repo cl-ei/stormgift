@@ -120,12 +120,12 @@ async def proc_message(message):
                 await send_danmaku(f"答谢:金瓜子-{'开启' if DanmakuSetting.GIFT_THANK_GOLD else '关闭'},"
                                    f"辣条-{'开启' if DanmakuSetting.GIFT_THANK_SILVER else '关闭'},"
                                    f"关注-{'开启' if DanmakuSetting.FOLLOWER_THANK else '关闭'},"
-                                   f"{len(TempData.fans_list)}")
+                                   f"{len(TempData.fans_list) if TempData.fans_list else -1}")
 
             elif msg == "指令":
                 await send_danmaku(
-                    f"可用指令：{'关闭' if DanmakuSetting.GIFT_THANK_SILVER else '开启'}答谢辣条、"
-                    f"{'关闭答谢（关闭所有答谢）' if DanmakuSetting.GIFT_THANK_GOLD else '开启答谢（仅开启答谢金瓜子）'}、"
+                    f"{'关闭' if DanmakuSetting.GIFT_THANK_SILVER else '开启'}答谢辣条、"
+                    f"{'关闭答谢' if DanmakuSetting.GIFT_THANK_GOLD else '开启答谢（仅开启答谢金瓜子）'}、"
                     f"{'关闭' if DanmakuSetting.FOLLOWER_THANK else '开启'}答谢关注"
                 )
 
