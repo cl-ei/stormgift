@@ -28,7 +28,7 @@ class DanmakuSetting:
     LOG_NAME = f"wanzi_{proc_num}-{MONITOR_ROOM_ID}"
     LOG_FILE_NAME = os.path.join(LOG_PATH, f"{LOG_NAME}.log")
 
-    GIFT_THANK = True
+    GIFT_THANK = False
     FOLLOWER_THANK = True
 
     COOKIE = (
