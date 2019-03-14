@@ -100,7 +100,7 @@ async def proc_message(message):
         deco = d[1] if d else "^^"
         logging.info(f"{'[管]' if is_admin else ''}[{uid}] [{user_name}][{ul}] [{deco} {dl}]-> {msg}")
 
-        if is_admin or uid == 20932326:
+        if uid in [DanmakuSetting.MONITOR_UID, DanmakuSetting.UID, 20932326]:
             if msg == "关闭答谢":
                 DanmakuSetting.GIFT_THANK = False
                 await send_danmaku("礼物答谢已关闭。房管发送「开启答谢」可以再次打开。")
