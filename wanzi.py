@@ -28,7 +28,8 @@ class DanmakuSetting:
     LOG_NAME = f"wanzi_{proc_num}-{MONITOR_ROOM_ID}"
     LOG_FILE_NAME = os.path.join(LOG_PATH, f"{LOG_NAME}.log")
 
-    GIFT_THANK = False
+    GIFT_THANK_SILVER = False
+    GIFT_THANK_GOLD = False
     FOLLOWER_THANK = True
 
     COOKIE = (
@@ -90,23 +91,43 @@ async def proc_message(message):
 
         if uid in [DanmakuSetting.MONITOR_UID, DanmakuSetting.UID, 20932326]:
             if msg == "关闭答谢":
-                DanmakuSetting.GIFT_THANK = False
+                DanmakuSetting.GIFT_THANK_SILVER = False
+                DanmakuSetting.GIFT_THANK_GOLD = False
                 await send_danmaku("礼物答谢已关闭。房管发送「开启答谢」可以再次打开。")
+
             elif msg == "开启答谢":
-                DanmakuSetting.GIFT_THANK = True
-                await send_danmaku("礼物答谢已开启。房管发送「关闭答谢」即可关闭。")
+                DanmakuSetting.GIFT_THANK_GOLD = True
+                await send_danmaku("金瓜子礼物答谢已开启。房管发送「关闭答谢」即可关闭。")
+
+            if msg == "关闭辣条答谢":
+                DanmakuSetting.GIFT_THANK_SILVER = False
+                await send_danmaku("辣条答谢已关闭。房管发送「开启答谢辣条」可以再次打开。")
+
+            elif msg == "开启辣条答谢":
+                DanmakuSetting.GIFT_THANK_SILVER = True
+                await send_danmaku("辣条答谢已开启。房管发送「关闭答谢辣条」即可关闭。")
 
             if msg == "关闭答谢关注":
                 DanmakuSetting.FOLLOWER_THANK = False
                 TempData.fans_list = None
                 await send_danmaku("答谢关注者功能已关闭。房管发送「开启答谢关注」可以再次打开。")
+
             elif msg == "开启答谢关注":
                 DanmakuSetting.FOLLOWER_THANK = True
                 await send_danmaku("答谢关注者功能已开启。房管发送「关闭答谢关注」即可关闭。")
 
             elif msg == "答谢姬设置" or msg == "状态":
-                await send_danmaku(f"答谢礼物已{'开启' if DanmakuSetting.GIFT_THANK else '关闭'}, "
-                                   f"答谢关注已{'开启' if DanmakuSetting.FOLLOWER_THANK else '关闭'}")
+                await send_danmaku(f"金瓜子答谢已{'开启' if DanmakuSetting.GIFT_THANK_GOLD else '关闭'}, "
+                                   f"辣条答谢已{'开启' if DanmakuSetting.GIFT_THANK_SILVER else '关闭'}, "
+                                   f"答谢关注已{'开启' if DanmakuSetting.FOLLOWER_THANK else '关闭'},"
+                                   f"运行状态0x{len(TempData.fans_list)}F")
+
+            elif msg == "指令":
+                await send_danmaku(
+                    f"可用指令：{'关闭' if DanmakuSetting.GIFT_THANK_SILVER else '开启'}答谢辣条、"
+                    f"{'关闭答谢（关闭所有答谢）' if DanmakuSetting.GIFT_THANK_GOLD else '开启答谢（仅开启答谢金瓜子）'}、"
+                    f"{'关闭' if DanmakuSetting.FOLLOWER_THANK else '开启'}答谢关注"
+                )
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")
@@ -117,7 +138,7 @@ async def proc_message(message):
         coin_type = data.get("coin_type", "")
         total_coin = data.get("total_coin", 0)
         num = data.get("num", "")
-        if coin_type != "gold" and DanmakuSetting.GIFT_THANK:
+        if coin_type != "gold" and DanmakuSetting.GIFT_THANK_SILVER:
             TempData.silver_gift_list.append(f"{uname}${gift_name}${num}")
 
     elif cmd == "COMBO_END":
@@ -126,7 +147,7 @@ async def proc_message(message):
         gift_name = data.get("gift_name", "")
         price = data.get("price")
         count = data.get("combo_num", 0)
-        if DanmakuSetting.GIFT_THANK:
+        if DanmakuSetting.GIFT_THANK_GOLD:
             await send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
 
     elif cmd == "GUARD_BUY":
@@ -136,7 +157,7 @@ async def proc_message(message):
         gift_name = data.get("gift_name", "GUARD")
         price = data.get("price")
         num = data.get("num", 0)
-        if DanmakuSetting.GIFT_THANK:
+        if DanmakuSetting.GIFT_THANK_GOLD:
             await send_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
 
     elif cmd == "LIVE":
@@ -217,7 +238,7 @@ async def main():
     logging.info("Stated.")
 
     while True:
-        if DanmakuSetting.GIFT_THANK:
+        if DanmakuSetting.GIFT_THANK_SILVER:
             try:
                 await thank_gift()
             except Exception as e:
