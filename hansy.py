@@ -93,7 +93,7 @@ async def send_recorder_group_danmaku():
         await BiliApi.send_danmaku("📢 想要观看直播回放的小伙伴，记得关注我哦~", room_id=MONITOR_ROOM_ID, cookie=cookie)
 
 
-def save_gift(uid, name, face, gift_name, count):
+async def save_gift(uid, name, face, gift_name, count):
     logging.info(f"Saving new gift, user: {uid}-{name} -> {gift_name}*{count}.")
     if not face:
         face = await BiliApi.get_user_face(uid)
@@ -207,7 +207,7 @@ async def proc_message(message):
         if DanmakuSetting.thank_on:
             await send_hansy_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
         if uid and price * count > THRESHOLD:
-            save_gift(uid, uname, face, gift_name, count)
+            await save_gift(uid, uname, face, gift_name, count)
 
     elif cmd == "GUARD_BUY":
         data = message.get("data")
@@ -221,7 +221,7 @@ async def proc_message(message):
             await send_hansy_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
 
         face = USER_NAME_TO_ID_MAP.get(uname, {}).get("face")
-        save_gift(uid, uname, face, gift_name, num)
+        await save_gift(uid, uname, face, gift_name, num)
 
     elif cmd == "LIVE":
         await send_hansy_danmaku("关闭答谢")
