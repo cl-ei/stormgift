@@ -420,7 +420,7 @@ class BiliApi:
 
     @classmethod
     async def get_fans_list(cls, uid, timeout=10):
-        req_url = f"https://api.bilibili.com/x/relation/followers?vmid={uid}&pn=1&ps=20&order=desc&jsonp=jsonp"
+        req_url = f"https://api.bilibili.com/x/relation/followers?vmid={uid}&pn=1&ps=50&order=desc&jsonp=jsonp"
         flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
         result = []
         if not flag:

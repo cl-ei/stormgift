@@ -61,18 +61,6 @@ async def get_fans_list():
     return result[::-1]
 
 
-def get_inner_new_fans_uid_list(old, new):
-    new_str = "$".join([str(x) for x in new])
-    temp = [str(_) for _ in old]
-    while temp:
-        comp = "$".join(temp) + "$"
-        if new_str.startswith(comp):
-            return [int(_) for _ in new_str[len(comp):].split("$") if _]
-        else:
-            temp.pop(0)
-    return []
-
-
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
 console.setFormatter(log_format)
@@ -183,12 +171,16 @@ async def thank_follower():
     else:
         new_fans_list = await get_fans_list()
         if new_fans_list:
-            new_fans_uid_list = [_["mid"] for _ in new_fans_list]
-            thank_uid_list = get_inner_new_fans_uid_list(TempData.fans_list, new_fans_uid_list)
+            new_fans_uid_list = {_["mid"] for _ in new_fans_list}
+            thank_uid_list = list(new_fans_uid_list - set(TempData.fans_list))
             if len(thank_uid_list) < 5:
                 while thank_uid_list:
-                    uname = [_["uname"] for _ in new_fans_list if _["mid"] == thank_uid_list[0]][0]
-                    await send_danmaku(f"谢谢{uname}的关注~爱了就别走了好吗(✪ω✪)")
+                    try:
+                        uname = [_["uname"] for _ in new_fans_list if _["mid"] == thank_uid_list[0]][0]
+                    except Exception:
+                        pass
+                    else:
+                        await send_danmaku(f"谢谢{uname}的关注~爱了就别走了好吗(✪ω✪)")
                     thank_uid_list.pop(0)
                     await asyncio.sleep(0.4)
             TempData.fans_list = new_fans_uid_list
