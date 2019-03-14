@@ -400,16 +400,20 @@ class BiliApi:
         }
         await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
 
+    @classmethod
+    async def get_user_face(cls, uid, timeout=10):
+        req_url = f"https://api.bilibili.com/x/space/acc/info?jsonp=jsonp&mid={uid}"
+        flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        if not flag:
+            return ""
+        else:
+            return data.get("data", {}).get("face", "") or ""
+
 
 async def test():
     print("Running test.")
-    r = await BiliApi.join_guard(
-        20932326,
-        3232,
-        "LIVE_BUVID="
-    )
-    print(f"r: {r}")
-
+    r = await BiliApi.get_user_face(731556)
+    print(r)
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

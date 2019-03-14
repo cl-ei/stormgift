@@ -95,6 +95,8 @@ async def send_recorder_group_danmaku():
 
 def save_gift(uid, name, face, gift_name, count):
     logging.info(f"Saving new gift, user: {uid}-{name} -> {gift_name}*{count}.")
+    if not face:
+        face = await BiliApi.get_user_face(uid)
 
     faces = map(lambda x: x.split(".")[0], os.listdir("/home/wwwroot/bubble-site/statics/face"))
     if str(uid) not in faces:
