@@ -184,7 +184,7 @@ async def thank_follower():
                     thank_uid_list.pop(0)
                     await asyncio.sleep(0.4)
             if len(TempData.fans_list) < 2000:
-                TempData.fans_list = list(set(TempData.fans_list + new_fans_uid_list))
+                TempData.fans_list = list(set(TempData.fans_list) | new_fans_uid_list)
             else:
                 TempData.fans_list = new_fans_uid_list
 
