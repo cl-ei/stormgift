@@ -195,6 +195,9 @@ async def thank_follower():
 
 
 async def main():
+    if not DanmakuSetting.MONITOR_UID:
+        DanmakuSetting.MONITOR_UID = await BiliApi.get_uid_by_live_room_id(DanmakuSetting.MONITOR_ROOM_ID)
+
     async def on_connect(ws):
         logging.info("on_connect")
         await ws.send(WsApi.gen_join_room_pkg(DanmakuSetting.MONITOR_ROOM_ID))
