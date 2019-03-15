@@ -199,10 +199,10 @@ async def proc_message(message):
         elif "点歌" in msg and "吗" in msg:
             await send_hansy_danmaku("🤖 可以点歌哦，等这首唱完直接发歌名就行啦╰(*°▽°*)╯")
 
-        elif msg.startswith("#粉丝数"):
+        elif msg[:4] == "#粉丝数":
             query = "".join(msg[4:].split())
             if not query:
-                return
+                return await send_hansy_danmaku(f"🤖 指令错误。示例： #粉丝数 2516117。")
 
             if query.isdigit():
                 live_room_id = query
