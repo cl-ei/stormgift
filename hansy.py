@@ -178,7 +178,7 @@ async def proc_message(message):
                     f"{'-1' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
                 )
 
-        elif uid == 65981801:  # 大连
+        if uid == 65981801:  # 大连
             if "心" in msg or "美" in msg or "好" in msg or random() > 0.8:
                 await send_hansy_danmaku(choice([
                     "🤖 大连你竟然连童子鸡🐔都不放过！",
@@ -213,8 +213,8 @@ async def proc_message(message):
                 await send_hansy_danmaku(f"🤖 {live_room_id}直播间有{fans_count}个粉丝。")
             else:
                 user_name = query
-                user_id = await BiliApi.get_user_id_by_search_way(user_name)
-                if user_id <= 0:
+                flag, user_id = await BiliApi.get_user_id_by_search_way(user_name)
+                if not flag or not user_id or user_id <= 0:
                     return await send_hansy_danmaku(f"🤖 查询失败，错误的up主名字{user_name}")
                 fans_count = await BiliApi.get_fans_count_by_uid(user_id)
                 await send_hansy_danmaku(f"🤖 {user_name}有{fans_count}个粉丝。")
