@@ -133,7 +133,7 @@ async def proc_message(message):
     cmd = message.get("cmd")
     if cmd == "DANMU_MSG":
         info = message.get("info", {})
-        msg = info[1]
+        msg = str(info[1])
         uid = info[2][0]
         user_name = info[2][1]
         is_admin = info[2][2]
@@ -143,7 +143,7 @@ async def proc_message(message):
         deco = d[1] if d else "undefined"
         logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
 
-        if str(msg).startswith("📢"):
+        if msg.startswith("📢") or msg.startswith("🤖"):
             return
 
         DanmakuSetting.flush_last_active_time()
@@ -157,7 +157,7 @@ async def proc_message(message):
                 DanmakuSetting.THANK_GIFT = False
                 await send_hansy_danmaku("🤖 弹幕答谢已关闭。房管发送「开启答谢」即可再次打开。")
 
-            if msg == "开启答谢关注":
+            elif msg == "开启答谢关注":
                 DanmakuSetting.THANK_FOLLOWER = True
                 await send_hansy_danmaku("🤖 答谢关注已开启。房管发送「关闭答谢关注」即可关闭。")
 
@@ -171,13 +171,12 @@ async def proc_message(message):
                 await send_hansy_danmaku("🤖 完成。")
 
             elif msg == "状态":
-                await send_hansy_danmaku(f"🤖 礼物答谢已{'开启' if DanmakuSetting.THANK_GIFT else '关闭'}，"
-                                         f"关注答谢已{'开启' if DanmakuSetting.THANK_FOLLOWER else '关闭'}，"
-                                         f"缓存个数{len(TempData.user_name_to_uid_map)}%"
-                                         f"{'-1' if TempData.fans_id_set is None else len(TempData.fans_id_set)}")
-
-        elif uid == DanmakuSetting.UID_DD:
-            return
+                await send_hansy_danmaku(
+                    f"🤖 礼物答谢已{'开启' if DanmakuSetting.THANK_GIFT else '关闭'}，"
+                    f"关注答谢已{'开启' if DanmakuSetting.THANK_FOLLOWER else '关闭'}，"
+                    f"缓存个数{len(TempData.user_name_to_uid_map)}%"
+                    f"{'-1' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
+                )
 
         elif uid == 65981801:  # 大连
             if "心" in msg or "美" in msg or "好" in msg or random() > 0.8:
@@ -189,17 +188,36 @@ async def proc_message(message):
                     "🤖 没想到你是这样的大连！（￣へ￣）",
                     "🤖 大连，你的媳妇呢？",
                 ]))
-        else:
-            if "好听" in msg and random() > 0.7:
-                await send_hansy_danmaku(choice([
-                    "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
-                    "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
-                    "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
-                    "🤖 觉得好听的话，就按个关注别走好吗…(๑˘ ˘๑) ♥",
-                ]))
+        elif "好听" in msg and random() > 0.7:
+            await send_hansy_danmaku(choice([
+                "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
+                "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
+                "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
+                "🤖 觉得好听的话，就按个关注别走好吗…(๑˘ ˘๑) ♥",
+            ]))
 
-            if "点歌" in msg and "吗" in msg:
-                await send_hansy_danmaku("🤖 可以点歌哦，等这首唱完直接发歌名就行啦╰(*°▽°*)╯")
+        elif "点歌" in msg and "吗" in msg:
+            await send_hansy_danmaku("🤖 可以点歌哦，等这首唱完直接发歌名就行啦╰(*°▽°*)╯")
+
+        elif msg.startswith("#粉丝数"):
+            query = "".join(msg[4:].split())
+            if not query:
+                return
+
+            if query.isdigit():
+                live_room_id = query
+                user_id = await BiliApi.get_uid_by_live_room_id(live_room_id)
+                if user_id <= 0:
+                    return await send_hansy_danmaku(f"🤖 查询失败，错误的直播间号{live_room_id}")
+                fans_count = await BiliApi.get_fans_count_by_uid(user_id)
+                await send_hansy_danmaku(f"🤖 {live_room_id}直播间有{fans_count}个粉丝。")
+            else:
+                user_name = query
+                user_id = await BiliApi.get_user_id_by_search_way(user_name)
+                if user_id <= 0:
+                    return await send_hansy_danmaku(f"🤖 查询失败，错误的up主名字{user_name}")
+                fans_count = await BiliApi.get_fans_count_by_uid(user_id)
+                await send_hansy_danmaku(f"🤖 {user_name}有{fans_count}个粉丝。")
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")

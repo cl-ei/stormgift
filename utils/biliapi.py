@@ -411,12 +411,20 @@ class BiliApi:
 
     @classmethod
     async def get_uid_by_live_room_id(cls, room_id, timeout=10):
-        req_url = f"https://api.live.bilibili.com/live_user/v1/UserInfo/get_anchor_in_room?roomid={room_id}"
-        flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        req_url = f"https://live.bilibili.com/{room_id}"
+        headers = {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        }
+        flag, data = await cls.get(req_url, headers=headers, timeout=timeout)
         if not flag:
             return -1
-        else:
-            return data.get("data", {}).get("info", {}).get("uid", -1) or -1
+
+        try:
+            uid = int(re.search(r"\"uid\"\:(\d+)", data).groups()[0])
+        except Exception:
+            uid = -1
+        return uid
 
     @classmethod
     async def get_fans_list(cls, uid, timeout=10):
@@ -429,10 +437,20 @@ class BiliApi:
             result.append({"mid": d.get("mid"), "uname": d.get("uname")})
         return result
 
+    @classmethod
+    async def get_fans_count_by_uid(cls, uid, timeout=10):
+        req_url = f"https://api.bilibili.com/x/relation/followers?vmid={uid}&pn=1&ps=50&order=desc&jsonp=jsonp"
+        flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        result = 0
+        if not flag:
+            return result
+        count = data.get("data", {}).get("total", 0)
+        return int(count)
+
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_fans_list(65568410)
+    r = await BiliApi.get_fans_count_by_uid(731556)
     print(r)
 
 if __name__ == "__main__":
