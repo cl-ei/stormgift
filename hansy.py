@@ -343,7 +343,12 @@ async def thank_follower():
             except Exception as e:
                 logging.error(f"Cannot get uname in thank_follower: {e}, thank_uid: {thank_uid}.", exc_info=True)
             else:
-                await send_hansy_danmaku(f"谢谢{uname}的关注~相遇是缘，愿常相伴╭❤")
+                await send_hansy_danmaku(random.choice([
+                    f"谢谢{uname}的关注~相遇是缘，愿常相伴╭❤",
+                    f"感谢{uname}的关注~♪（＾∀＾●）",
+                    f"感谢{uname}的关注，爱了就别走了好吗ノ♥",
+                    f"谢谢{uname}的关注，mua~(˙ε˙)",
+                ]))
             await asyncio.sleep(0.3)
 
     if len(TempData.fans_id_set) < 5000:
