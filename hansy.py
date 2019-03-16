@@ -71,7 +71,7 @@ class DanmakuSetting(object):
     LAST_ACTIVE_TIME = time.time() - 3600
     THRESHOLD = 79000
 
-    THANK_GIFT = True
+    THANK_GIFT = False
     THANK_FOLLOWER = True
 
     @classmethod
@@ -343,7 +343,7 @@ async def thank_follower():
             except Exception as e:
                 logging.error(f"Cannot get uname in thank_follower: {e}, thank_uid: {thank_uid}.", exc_info=True)
             else:
-                await send_hansy_danmaku(random.choice([
+                await send_hansy_danmaku(choice([
                     f"谢谢{uname}的关注~相遇是缘，愿常相伴╭❤",
                     f"感谢{uname}的关注~♪（＾∀＾●）",
                     f"感谢{uname}的关注，爱了就别走了好吗ノ♥",
