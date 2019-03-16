@@ -398,7 +398,8 @@ class BiliApi:
             "csrf": csrf_token,
             "visit_id": "",
         }
-        await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+        r = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+        return r
 
     @classmethod
     async def get_user_face(cls, uid, timeout=10):
@@ -447,10 +448,44 @@ class BiliApi:
         count = data.get("data", {}).get("total", 0)
         return int(count)
 
+    @classmethod
+    async def get_guard_live_room_id_list(cls, cookie, page=1, timeout=10):
+        if page >= 5:
+            return []
+
+        result = []
+        req_url = f"https://api.live.bilibili.com/i/api/guard?page={page}&pageSize=10"
+        flag, r = await cls.get(req_url, headers={"Cookie": cookie}, timeout=timeout, check_error_code=True)
+        if not flag:
+            return result
+
+        data = r.get("data", {})
+        for g in data.get("list", []):
+            if "201" in g.get("expired_date", ""):
+                result.append(int(g.get("ruid")))
+
+        page_info = data.get("pageinfo", {}) or {}
+        total = page_info.get("totalPage", 1)
+        current = page_info.get("curPage", 1)
+        if total <= current:
+            return list(set(result))
+
+        others = await cls.get_guard_live_room_id_list(cookie, page + 1)
+        result.extend(others)
+        return list(set(result))
+
+    @classmethod
+    async def get_live_room_id_by_uid(cls, uid, timeout=10):
+        req_url = f"http://api.live.bilibili.com/room/v1/Room/getRoomInfoOld?mid={uid}"
+        flag, r = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        if flag:
+            return r.get("data", {}).get("roomid", -1) or -1
+        return -1
+
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_fans_count_by_uid(731556)
+    r = await BiliApi.get_live_room_id_by_uid(731556)
     print(r)
 
 if __name__ == "__main__":
