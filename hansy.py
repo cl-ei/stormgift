@@ -92,6 +92,9 @@ class TempData:
 
 
 async def send_hansy_danmaku(msg):
+    # TODO
+    return
+
     await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
@@ -104,13 +107,13 @@ async def save_gift(uid, name, face, gift_name, count):
     if not face:
         face = await BiliApi.get_user_face(uid)
 
-    faces = map(lambda x: x.split(".")[0], os.listdir("/home/wwwroot/bubble-site/statics/face"))
+    faces = map(lambda x: x.split(".")[0], os.listdir("/home/wwwroot/statics/static/face"))
     if str(uid) not in faces:
         try:
             r = requests.get(face, timeout=20)
             if r.status_code != 200:
                 raise Exception("Request error when get face!")
-            with open(f"/home/wwwroot/bubble-site/statics/face/{uid}", "wb") as f:
+            with open(f"/home/wwwroot/statics/static/face/{uid}", "wb") as f:
                 f.write(r.content)
         except Exception as e:
             logging.error(f"Cannot save face, e: {e}, {uid} -> {face}")
@@ -124,7 +127,7 @@ async def save_gift(uid, name, face, gift_name, count):
         "gift_name": gift_name,
         "count": count,
     }
-    with open("/home/wwwroot/bubble-site/data/gift_list.txt", "a+") as f:
+    with open("/home/wwwroot/async.madliar/temp_data/gift_list.txt", "a+") as f:
         f.write(json.dumps(data, ensure_ascii=False) + "\n")
     logging.info(f"New gift saved, user: {uid}-{name} -> {gift_name}*{count}.")
 
@@ -290,6 +293,9 @@ async def send_carousel_msg():
 
 
 async def send_recorder_group_danmaku():
+    # TODO
+    return
+
     await BiliApi.enter_room(DanmakuSetting.MONITOR_ROOM_ID, DanmakuSetting.COOKIE_LP)
     if DanmakuSetting.get_if_master_is_active() and datetime.datetime.now().minute % 10 < 5:
         await BiliApi.send_danmaku(
