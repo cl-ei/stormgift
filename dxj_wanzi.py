@@ -211,9 +211,11 @@ async def proc_message(message):
 
     elif cmd == "LIVE":
         DanmakuSetting.FOLLOWER_THANK = True
+        DanmakuSetting.set_thank_follower(True)
 
     elif cmd == "PREPARING":
         DanmakuSetting.FOLLOWER_THANK = False
+        DanmakuSetting.set_thank_follower(False)
         TempData.fans_list = None
 
 
