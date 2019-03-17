@@ -1,4 +1,3 @@
-import re
 import os
 import sys
 import asyncio
@@ -6,7 +5,6 @@ from utils.ws import ReConnectingWsClient
 from utils.biliapi import WsApi, BiliApi
 import logging
 
-import sys
 try:
     proc_num = int(sys.argv[1])
 except Exception:
@@ -28,18 +26,54 @@ class DanmakuSetting:
     LOG_NAME = f"wanzi_{proc_num}-{MONITOR_ROOM_ID}"
     LOG_FILE_NAME = os.path.join(LOG_PATH, f"{LOG_NAME}.log")
 
-    GIFT_THANK_SILVER = False
-    GIFT_THANK_GOLD = False
-    FOLLOWER_THANK = True
+    @classmethod
+    def load_config(cls, config_name):
+        config_file_name = f"dxj_wanzi{proc_num}-{cls.MONITOR_ROOM_ID}.{config_name}"
+        config_file_path = "/home/wwwroot/stormgift/data" if "linux" in sys.platform else "./data/"
+        return os.path.exists(os.path.join(config_file_path, config_file_name))
 
-    COOKIE = (
-        "LIVE_BUVID=AUTO2915525477376318; Hm_lvt_8a6e55dbd2870f0f5bc9194cddf32a02=1552547740; "
-        "buvid3=5ABE20B7-E0F7-433F-BD87-DC4B802219CE48998infoc; sid=hwxvkj5b; DedeUserID=12298306; "
-        "DedeUserID__ckMd5=6e87c65fbbf2bce4; SESSDATA=5bc18b0b%2C1555139823%2C9c8c8231; "
-        "bili_jct=b34dfcb49f64622146e26c42f75d055b; _dfcaptcha=e3950f0491d3f476d96228a39ba45482; "
-        "Hm_lpvt_8a6e55dbd2870f0f5bc9194cddf32a02=1552547828"
-    )
-    UID = int(re.findall(r"DedeUserID=(\d+)", COOKIE)[0])
+    @classmethod
+    def set_config(cls, config_name, r):
+        config_file_name = f"dxj_wanzi{proc_num}-{cls.MONITOR_ROOM_ID}.{config_name}"
+        config_file_path = "/home/wwwroot/stormgift/data" if "linux" in sys.platform else "./data/"
+        config_file = os.path.join(config_file_path, config_file_name)
+        if r:
+            if not os.path.exists(config_file):
+                with open(config_file, "w"):
+                    pass
+        else:
+            if os.path.exists(config_file):
+                os.remove(config_file)
+        return True
+
+    @classmethod
+    def get_if_thank_silver(cls):
+        return cls.load_config("thank_silver")
+
+    @classmethod
+    def get_if_thank_gold(cls):
+        return cls.load_config("thank_gold")
+
+    @classmethod
+    def get_if_thank_follower(cls):
+        return cls.load_config("thank_follower")
+
+    @classmethod
+    def set_thank_silver(cls, r):
+        return cls.set_config("thank_silver", r)
+
+    @classmethod
+    def set_thank_gold(cls, r):
+        return cls.set_config("thank_gold", r)
+
+    @classmethod
+    def set_thank_follower(cls, r):
+        return cls.set_config("thank_follower", r)
+
+
+DanmakuSetting.GIFT_THANK_SILVER = DanmakuSetting.load_config("thank_silver")
+DanmakuSetting.GIFT_THANK_GOLD = DanmakuSetting.load_config("thank_gold")
+DanmakuSetting.FOLLOWER_THANK = DanmakuSetting.load_config("thank_follower")
 
 
 class TempData:
@@ -48,10 +82,15 @@ class TempData:
 
 
 async def send_danmaku(msg):
+    try:
+        from data import COOKIE_WANZI
+    except Exception as e:
+        return logging.error(f"Cannot get COOKIE_WANZI: {e}.", exc_info=True)
+
     await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
-        cookie=DanmakuSetting.COOKIE
+        cookie=COOKIE_WANZI
     )
 
 
@@ -89,31 +128,41 @@ async def proc_message(message):
         deco = d[1] if d else "^^"
         logging.info(f"{'[管]' if is_admin else ''}[{uid}] [{user_name}][{ul}] [{deco} {dl}]-> {msg}")
 
-        if uid in [DanmakuSetting.MONITOR_UID, DanmakuSetting.UID, 20932326]:
+        if uid in [DanmakuSetting.MONITOR_UID, 12298306, 20932326]:
             if msg == "关闭答谢":
                 DanmakuSetting.GIFT_THANK_SILVER = False
+                DanmakuSetting.set_thank_silver(False)
+
                 DanmakuSetting.GIFT_THANK_GOLD = False
+                DanmakuSetting.set_thank_gold(False)
+
                 await send_danmaku("礼物答谢已关闭。房管发送「开启答谢」可以再次打开。")
 
             elif msg == "开启答谢":
                 DanmakuSetting.GIFT_THANK_GOLD = True
+                DanmakuSetting.set_thank_gold(True)
                 await send_danmaku("金瓜子礼物答谢已开启。房管发送「关闭答谢」即可关闭。")
 
             if msg == "关闭辣条答谢":
                 DanmakuSetting.GIFT_THANK_SILVER = False
+                DanmakuSetting.set_thank_silver(False)
                 await send_danmaku("辣条答谢已关闭。房管发送「开启答谢辣条」可以再次打开。")
 
             elif msg == "开启辣条答谢":
                 DanmakuSetting.GIFT_THANK_SILVER = True
+                DanmakuSetting.set_thank_silver(True)
                 await send_danmaku("辣条答谢已开启。房管发送「关闭答谢辣条」即可关闭。")
 
             if msg == "关闭答谢关注":
                 DanmakuSetting.FOLLOWER_THANK = False
+                DanmakuSetting.set_thank_follower(False)
+
                 TempData.fans_list = None
                 await send_danmaku("答谢关注者功能已关闭。房管发送「开启答谢关注」可以再次打开。")
 
             elif msg == "开启答谢关注":
                 DanmakuSetting.FOLLOWER_THANK = True
+                DanmakuSetting.set_thank_follower(True)
                 await send_danmaku("答谢关注者功能已开启。房管发送「关闭答谢关注」即可关闭。")
 
             elif msg == "答谢姬设置" or msg == "状态":

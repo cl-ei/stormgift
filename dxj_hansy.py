@@ -34,28 +34,6 @@ class DanmakuSetting(object):
     MONITOR_ROOM_ID = 2516117
     MONITOR_UID = 65568410
 
-    COOKIE_DD = (
-        "buvid3=42002F31-5258-4AA4-A02A-14CD162C446A48758infoc; LIVE_BUVID=AUTO4415504889417038; "
-        "Hm_lvt_8a6e55dbd2870f0f5bc9194cddf32a02=1550488943; sid=5auubve3; DedeUserID=20932326; "
-        "DedeUserID__ckMd5=65761b2ed76c89e1; SESSDATA=7f0aef9b%2C1553080961%2Cc69bc821; "
-        "bili_jct=78c0b492d171f8ac65f46788eded2485; Hm_lpvt_8a6e55dbd2870f0f5bc9194cddf32a02=1550488967; "
-        "_dfcaptcha=09512c3e0c267d15aec2a8601ad28d08"
-    )
-    UID_DD = int(re.findall(r"DedeUserID=(\d+)", COOKIE_DD)[0])
-
-    COOKIE_LP = (
-        "buvid3=5EBDFF0F-6B5B-466C-90CD-86CC443666B348757infoc; sid=9aqoqih4; finger=edc6ecda; "
-        "im_notify_type_39748080=0; fts=1550894142; im_local_unread_39748080=0; im_seqno_39748080=85; "
-        "UM_distinctid=169187ef5ae3d7-0d9aea8f8eaad2-5701631-384000-169187ef5afa68; "
-        "LIVE_BUVID=996d3abfe1ff55a98ac5bafe0e8643a9; LIVE_BUVID__ckMd5=cc1653071006a4be; "
-        "_cnt_dyn=undefined; _cnt_pm=0; _cnt_notify=0; uTZ=-480; pgv_pvi=8962329600; DedeUserID=39748080; "
-        "DedeUserID__ckMd5=962b367c7e4178c0; SESSDATA=e9c0305f%2C1553489294%2C2e37a721; "
-        "bili_jct=d1f9312a6ee29d8954f010d16d47ab8d; _dfcaptcha=a6bc8d0ec9c377d6d21ca94af5fbbb06; "
-        "stardustvideo=1; CURRENT_FNVAL=16; Hm_lvt_8a6e55dbd2870f0f5bc9194cddf32a02=1550901665,1550904115,1550904797; "
-        "Hm_lpvt_8a6e55dbd2870f0f5bc9194cddf32a02=1550904797"
-    )
-    UID_LP = int(re.findall(r"DedeUserID=(\d+)", COOKIE_LP)[0])
-
     MSG_INTERVAL = 120
     MSG_LIST = [
         # "📢 一定要来网易云关注「管珩心」哦，超多高质量单曲等你来听~",
@@ -92,13 +70,16 @@ class TempData:
 
 
 async def send_hansy_danmaku(msg):
-    # TODO
-    return
+    try:
+        from data import COOKIE_DD
+    except Exception as e:
+        logging.error(f"Cannot load cookie, e: {e}.", exc_info=True)
+        return
 
     await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
-        cookie=DanmakuSetting.COOKIE_DD
+        cookie=COOKIE_DD
     )
 
 
@@ -293,15 +274,18 @@ async def send_carousel_msg():
 
 
 async def send_recorder_group_danmaku():
-    # TODO
-    return
+    try:
+        from data import COOKIE_LP
+    except Exception as e:
+        logging.error(f"Cannot load COOKIE_LP cookie, e: {e}.", exc_info=True)
+        return
 
-    await BiliApi.enter_room(DanmakuSetting.MONITOR_ROOM_ID, DanmakuSetting.COOKIE_LP)
+    await BiliApi.enter_room(DanmakuSetting.MONITOR_ROOM_ID, COOKIE_LP)
     if DanmakuSetting.get_if_master_is_active() and datetime.datetime.now().minute % 10 < 5:
         await BiliApi.send_danmaku(
             message="📢 想要观看直播回放的小伙伴，记得关注我哦~",
             room_id=DanmakuSetting.MONITOR_ROOM_ID,
-            cookie=DanmakuSetting.COOKIE_LP
+            cookie=COOKIE_LP
         )
 
 

@@ -8,8 +8,10 @@ from utils.ws import ReConnectingWsClient
 from utils.biliapi import WsApi, BiliApi
 import logging
 
-from config import config
-LOG_PATH = config["LOG_PATH"]
+if "linux" in sys.platform:
+    LOG_PATH = "/home/wwwroot/log"
+else:
+    LOG_PATH = "./log"
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
@@ -24,24 +26,13 @@ logger.addHandler(xk_file_handler)
 logging = logger
 
 
-MONITOR_ROOM_ID = 11472492
-SILVER_GIFT_LIST = []
-ROBOT_ON = False
+class DanmakuSetting:
+    MONITOR_ROOM_ID = 11472492
+    ROBOT_ON = False
 
 
-async def load_cookie(index=0):
-    try:
-        with open("data/cookie.json", "r") as f:
-            cookies = json.load(f)
-        cookie = cookies.get("RAW_COOKIE_LIST")[index]
-    except Exception as e:
-        cookie = ""
-    user_ids = re.findall(r"DedeUserID=(\d+)", cookie)
-    if not user_ids:
-        return False, None, None
-
-    uid = int(user_ids[0])
-    return True, uid, cookie
+class TempData:
+    silver_gift_list = []
 
 
 async def get_tuling_response(msg):
@@ -66,6 +57,20 @@ async def get_tuling_response(msg):
     return bool(msg), msg
 
 
+async def send_danmaku(msg):
+    try:
+        from data import COOKIE_DD
+    except Exception as e:
+        logging.error(f"Cannot load cookie, e: {e}.", exc_info=True)
+        return
+
+    await BiliApi.send_danmaku(
+        message=msg,
+        room_id=DanmakuSetting.MONITOR_ROOM_ID,
+        cookie=COOKIE_DD
+    )
+
+
 async def proc_message(message):
     cmd = message.get("cmd")
     if cmd == "DANMU_MSG":
@@ -80,40 +85,30 @@ async def proc_message(message):
         deco = d[1] if d else "^^"
         logging.info(f"{'[管]' if is_admin else ''}[{uid}] [{user_name}][{ul}] [{deco} {dl}]-> {msg}")
 
-        global ROBOT_ON
-        if ROBOT_ON:
-            flag, cuid, cookie = await load_cookie()
-            if not flag:
-                return
-
+        if DanmakuSetting.ROBOT_ON:
             if is_admin and msg == "关闭聊天":
-                print("聊天关闭")
-                ROBOT_ON = False
-                await BiliApi.send_danmaku("聊天功能已关闭。房管发送「开启聊天」可以再次打开。", room_id=MONITOR_ROOM_ID, cookie=cookie)
-                return
+                DanmakuSetting.ROBOT_ON = False
+                return await send_danmaku("聊天功能已关闭。房管发送「开启聊天」可以再次打开。")
 
-            if uid == cuid:
+            from data import UID_DD
+            if uid == UID_DD:
                 return
 
             flag, msg = await get_tuling_response(msg)
             if flag:
                 msg = f"{user_name}　{msg}"
-                await BiliApi.send_danmaku(msg[:30], room_id=MONITOR_ROOM_ID, cookie=cookie)
+                await send_danmaku(msg[:30])
                 if len(msg) > 30:
                     if len(msg) > 60:
                         msg = msg[30:55] + "..."
                     else:
                         msg = msg[30:60]
-                    await asyncio.sleep(0.5)
-                    await BiliApi.send_danmaku(msg, room_id=MONITOR_ROOM_ID, cookie=cookie)
+                    await asyncio.sleep(0.4)
+                    await send_danmaku(msg)
         else:
             if is_admin and msg == "开启聊天":
-                print("聊天开启")
-                ROBOT_ON = True
-                flag, cuid, cookie = await load_cookie()
-                if not flag:
-                    return
-                await BiliApi.send_danmaku("聊天功能已开启。房管发送「关闭聊天」即可关闭。", room_id=MONITOR_ROOM_ID, cookie=cookie)
+                DanmakuSetting.ROBOT_ON = True
+                return await send_danmaku("聊天功能已开启。房管发送「关闭聊天」即可关闭。")
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")
@@ -125,7 +120,7 @@ async def proc_message(message):
         total_coin = data.get("total_coin", 0)
         num = data.get("num", "")
         if coin_type != "gold":
-            SILVER_GIFT_LIST.append(f"{uname}${gift_name}${num}")
+            TempData.silver_gift_list.append(f"{uname}${gift_name}${num}")
 
     elif cmd == "COMBO_END":
         data = message.get("data")
@@ -133,10 +128,7 @@ async def proc_message(message):
         gift_name = data.get("gift_name", "")
         price = data.get("price")
         count = data.get("combo_num", 0)
-        flag, cuid, cookie = await load_cookie()
-        if not flag:
-            return
-        await BiliApi.send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~", room_id=MONITOR_ROOM_ID, cookie=cookie)
+        await send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
 
     elif cmd == "GUARD_BUY":
         data = message.get("data")
@@ -145,17 +137,13 @@ async def proc_message(message):
         gift_name = data.get("gift_name", "GUARD")
         price = data.get("price")
         num = data.get("num", 0)
-
-        flag, cuid, cookie = await load_cookie()
-        if not flag:
-            return
-        await BiliApi.send_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~", room_id=MONITOR_ROOM_ID, cookie=cookie)
+        await send_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
 
 
 async def main():
     async def on_connect(ws):
         logging.info("on_connect")
-        await ws.send(WsApi.gen_join_room_pkg(MONITOR_ROOM_ID))
+        await ws.send(WsApi.gen_join_room_pkg(DanmakuSetting.MONITOR_ROOM_ID))
 
     async def on_shut_down():
         logging.error("shut done!")
@@ -174,11 +162,11 @@ async def main():
     )
 
     await new_client.start()
-    logging.info("Stated")
+    logging.info("Stated.")
     while True:
         gift_list = {}
-        while SILVER_GIFT_LIST:
-            gift = SILVER_GIFT_LIST.pop()
+        while TempData.silver_gift_list:
+            gift = TempData.silver_gift_list.pop()
             uname, gift_name, num = gift.split("$")
             key = f"{uname}${gift_name}"
             if key in gift_list:
@@ -188,14 +176,9 @@ async def main():
 
         if gift_list:
             for key, num in gift_list.items():
-                flag, cuid, cookie = await load_cookie()
-                if not flag:
-                    return
                 uname, gift_name = key.split("$")
-                await BiliApi.send_danmaku(
-                    f"感谢{uname}赠送的{num}个{gift_name}! 大气大气~", room_id=MONITOR_ROOM_ID, cookie=cookie)
-
-        await asyncio.sleep(8)
+                await send_danmaku(f"感谢{uname}赠送的{num}个{gift_name}! 大气大气~")
+        await asyncio.sleep(10)
 
 
 loop = asyncio.get_event_loop()
