@@ -7,16 +7,14 @@ import aioredis
 import datetime
 import asyncio
 from utils.biliapi import BiliApi
+from data import COOKIE_DD as COOKIE
 
 
 if sys.platform == "linux":
     LOG_PATH = "/home/wwwroot/log"
-    with open("/home/wwwroot/stormgift/data/cookie.json") as f:
-        COOKIE = json.load(f)["RAW_COOKIE_LIST"][0]
 else:
     LOG_PATH = "./log"
-    with open("data/cookie.json") as f:
-        COOKIE = json.load(f)["RAW_COOKIE_LIST"][0]
+
 
 logger_name = "flush_guard"
 fh = logging.FileHandler(os.path.join(LOG_PATH, logger_name + ".log"), encoding="utf-8")
@@ -36,15 +34,21 @@ class Core(object):
             logging.info("Running proc.")
             start_time = time.time()
             guard_lr_uid_list = await BiliApi.get_guard_live_room_id_list(COOKIE)
+            execute_live_room = []
             for uid in guard_lr_uid_list:
                 live_room_id = await BiliApi.get_live_room_id_by_uid(uid)
-                print(live_room_id)
-                r = await BiliApi.enter_room(live_room_id, COOKIE)
-                print(r)
+                flag, data = await BiliApi.enter_room(live_room_id, COOKIE)
+                if not flag:
+                    logging.error(f"Enter failed, room_id: {live_room_id}, r: {data}")
+                else:
+                    execute_live_room.append(live_room_id)
                 await asyncio.sleep(20)
-            logging.info("Execute finished, cost: %s.\n\n" % (time.time() - start_time))
 
-            await asyncio.sleep(120)
+            cost_time = int(time.time() - start_time)
+            sleep_time = max(0, 60*5 - cost_time)
+            logging.info(f"Execute finished, cost: {cost_time}s, sleep: {sleep_time}s. "
+                         f"execute_live_room: {execute_live_room}\n\n")
+            await asyncio.sleep(sleep_time)
 
 
 loop = asyncio.get_event_loop()
