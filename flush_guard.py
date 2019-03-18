@@ -4,7 +4,6 @@ import sys
 import logging
 import asyncio
 from utils.biliapi import BiliApi
-from data import COOKIE_DD as COOKIE
 
 
 if sys.platform == "linux":
@@ -30,6 +29,13 @@ class Core(object):
         while True:
             logging.info("Running proc.")
             start_time = time.time()
+
+            try:
+                from data import COOKIE_DD as COOKIE
+            except Exception as e:
+                logging.error(f"Exception in load cookie: {e}.", exc_info=True)
+                COOKIE = ""
+
             guard_lr_uid_list = await BiliApi.get_guard_live_room_id_list(COOKIE)
             execute_live_room = []
             for uid in guard_lr_uid_list:
