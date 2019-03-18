@@ -2,9 +2,6 @@ import time
 import os
 import sys
 import logging
-import json
-import aioredis
-import datetime
 import asyncio
 from utils.biliapi import BiliApi
 from data import COOKIE_DD as COOKIE
