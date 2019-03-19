@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 import asyncio
+import datetime
 from utils.biliapi import BiliApi
 
 
@@ -26,6 +27,9 @@ class Core(object):
 
     @classmethod
     async def run(cls):
+        guard_update_date = None
+        guard_lr_uid_list = []
+
         while True:
             logging.info("Running proc.")
             start_time = time.time()
@@ -36,7 +40,10 @@ class Core(object):
                 logging.error(f"Exception in load cookie: {e}.", exc_info=True)
                 COOKIE = ""
 
-            guard_lr_uid_list = await BiliApi.get_guard_live_room_id_list(COOKIE)
+            if not guard_lr_uid_list or guard_update_date != datetime.date.today():
+                guard_lr_uid_list = await BiliApi.get_guard_live_room_id_list(COOKIE)
+                guard_update_date = datetime.date.today()
+
             execute_live_room = []
             for uid in guard_lr_uid_list:
                 live_room_id = await BiliApi.get_live_room_id_by_uid(uid)
