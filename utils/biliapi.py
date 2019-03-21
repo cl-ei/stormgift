@@ -482,6 +482,64 @@ class BiliApi:
             return r.get("data", {}).get("roomid", -1) or -1
         return -1
 
+    @classmethod
+    async def get_medal_info_list(cls, cookie, timeout=10):
+        req_url = f"https://api.live.bilibili.com/i/api/medal?page=1&pageSize=30"
+        flag, r = await cls.get(req_url, headers={"Cookie": cookie}, timeout=timeout, check_error_code=True)
+        if flag:
+            return r.get("data", {}).get("fansMedalList", []) or []
+        return []
+
+    @classmethod
+    async def get_bag_list(cls, cookie, timeout=10):
+        req_url = "https://api.live.bilibili.com/gift/v2/gift/bag_list"
+        flag, r = await cls.get(req_url, headers={"Cookie": cookie}, timeout=timeout, check_error_code=True)
+        if flag:
+            return r.get("data", {}).get("list", []) or []
+        return []
+
+    @classmethod
+    async def get_wallet(cls, cookie, timeout=10):
+        req_url = "https://api.live.bilibili.com/pay/v2/Pay/myWallet?need_bp=1&need_metal=1&platform=pc"
+        flag, r = await cls.get(req_url, headers={"Cookie": cookie}, timeout=timeout, check_error_code=True)
+        if flag:
+            return r.get("data", {}) or {}
+        return {}
+
+    @classmethod
+    async def send_gift(cls, gift_id, gift_num, coin_type, bag_id, ruid, live_room_id, cookie, timeout=10):
+        req_url = "https://api.live.bilibili.com/gift/v2/live/bag_send"
+        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
+        if not csrf_token_list:
+            return False, f"Cannot get csrf_token!"
+        csrf_token = csrf_token_list[0]
+
+        uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
+        if not uid_list:
+            return False, f"Bad cookie, cannot get uid."
+        uid = int(uid_list[0])
+
+        headers = {"Cookie": cookie}
+        data = {
+            "uid": uid,
+            "gift_id": gift_id,
+            "ruid": ruid,
+            "gift_num": gift_num,
+            "coin_type": coin_type,
+            "bag_id": bag_id,
+            "platform": "pc",
+            "biz_code": "live",
+            "biz_id": live_room_id,
+            "rnd": int(time.time()),
+            "storm_beat_id": 0,
+            "metadata": "",
+            "price": 0,
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "visit_id": ""
+        }
+        return await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+
 
 async def test():
     print("Running test.")
