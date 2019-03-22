@@ -3,13 +3,13 @@ import asyncio
 from utils.biliapi import BiliApi
 from data import COOKIE_LP, COOKIE_DD
 SEND_CONFIG = {
-    39748080: ["电磁泡", COOKIE_LP],
-    20932326: ["电磁泡", COOKIE_DD],
+    39748080: "电磁泡",
+    20932326: "电磁泡",
 }
 
 
-async def main():
-    r = await BiliApi.get_medal_info_list(COOKIE_LP)
+async def send_gift(cookie):
+    r = await BiliApi.get_medal_info_list(cookie)
     if not r:
         return
     uid = r[0]["uid"]
@@ -17,7 +17,8 @@ async def main():
     if not target_model:
         return
     target_model = target_model[0]
-    print(target_model)
+    print(target_model["medal_name"])
+
     live_room_id = target_model["roomid"]
     ruid = target_model["anchorInfo"]["uid"]
 
@@ -26,7 +27,7 @@ async def main():
     left_intimacy = day_limit - today_feed
     print(f"left_intimacy: {left_intimacy}")
 
-    bag_list = await BiliApi.get_bag_list(COOKIE_LP)
+    bag_list = await BiliApi.get_bag_list(cookie)
     gift_today = []
     gift_lt = []
     gift_bkl = []
@@ -63,7 +64,7 @@ async def main():
             break
 
     if left_intimacy > 0:
-        wallet_info = await BiliApi.get_wallet(COOKIE_LP)
+        wallet_info = await BiliApi.get_wallet(cookie)
         silver = wallet_info.get("silver", 0)
         supplement_lt_num = min(silver // 100, left_intimacy)
         if supplement_lt_num > 0:
@@ -76,10 +77,13 @@ async def main():
 
     for gift in send_list:
         r = await BiliApi.send_gift(
-            gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, COOKIE_LP
+            gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
         )
         print(f"Send gift: {gift}\n\tr: {r}")
 
+
+async def main():
+    await send_gift(COOKIE_LP)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
