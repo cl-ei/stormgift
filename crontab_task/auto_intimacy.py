@@ -80,6 +80,7 @@ async def send_gift(cookie):
             gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
         )
         print(f"Send gift: {gift}\n\tr: {r}")
+    print(f"Final left intimacy: {left_intimacy}")
 
 
 async def main():
