@@ -387,7 +387,7 @@ async def main():
     await new_client.start()
     logging.info("Hansy ws stated.")
 
-    counter = 0
+    counter = -1
     while True:
         await asyncio.sleep(1)
         counter = (counter + 1) % 10000000000
