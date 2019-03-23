@@ -347,6 +347,18 @@ async def thank_follower():
         TempData.fans_list = new_fans_uid_set
 
 
+async def update_hansy_guard_list():
+    guard_list = await BiliApi.get_guard_list(uid=65568410)
+    if not guard_list:
+        return
+    text = "\n".join([
+        "".join([" ❤ " + _["name"] for _ in guard_list if _["level"] < 3]),
+        "".join([" ❤ " + _["name"] for _ in guard_list if _["level"] == 3])
+    ])
+    with open("/home/wwwroot/async.madliar/temp_data/guard_list.txt", "wb") as f:
+        f.write(text.encode("utf-8"))
+
+
 async def main():
     async def on_connect(ws):
         logging.info("connected.")
@@ -378,7 +390,7 @@ async def main():
     counter = 0
     while True:
         await asyncio.sleep(1)
-        counter = (counter + 1) % 100000000
+        counter = (counter + 1) % 10000000000
 
         if counter % 10 == 0 and DanmakuSetting.THANK_FOLLOWER:
             await thank_follower()
@@ -391,6 +403,9 @@ async def main():
 
         if counter % (60*5) == 0:
             await send_recorder_group_danmaku()
+
+        if counter % (3600*12) == 0:
+            await update_hansy_guard_list()
 
 
 loop = asyncio.get_event_loop()
