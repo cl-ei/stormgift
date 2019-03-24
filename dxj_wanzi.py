@@ -175,7 +175,7 @@ async def proc_message(message):
 
             elif msg == "答谢姬设置" or msg == "状态":
                 fans_list_len = len(TempData.fans_list) if TempData.fans_list else "X"
-                cache_count = f"{fans_list_len}-{len(TempData.silver_gift_list)}-{TempData.uname_to_id_map}"
+                cache_count = f"{fans_list_len}-{len(TempData.silver_gift_list)}-{len(TempData.uname_to_id_map)}"
                 await send_danmaku(
                     f"答谢:金瓜子{'开启' if DanmakuSetting.GIFT_THANK_GOLD else '关闭'}-"
                     f"辣条{'开启' if DanmakuSetting.GIFT_THANK_SILVER else '关闭'}-"
