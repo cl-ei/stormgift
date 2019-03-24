@@ -26,6 +26,13 @@ class DanmakuSetting:
     LOG_NAME = f"wanzi_{proc_num}-{MONITOR_ROOM_ID}"
     LOG_FILE_NAME = os.path.join(LOG_PATH, f"{LOG_NAME}.log")
 
+    THANK_BLACK_UID_LIST = {
+        37895079,  # もやしパワー
+        6654473,  # 书香软萌甜
+        867742,  # 衣见倾心
+        37105922,  # 虎白白_
+    }
+
     @classmethod
     def load_config(cls, config_name):
         config_file_name = f"dxj_wanzi{proc_num}-{cls.MONITOR_ROOM_ID}.{config_name}"
@@ -77,6 +84,7 @@ DanmakuSetting.FOLLOWER_THANK = DanmakuSetting.load_config("thank_follower")
 
 
 class TempData:
+    uname_to_id_map = {}
     silver_gift_list = []
     fans_list = None
 
@@ -166,10 +174,13 @@ async def proc_message(message):
                 await send_danmaku("答谢关注者功能已开启。房管发送「关闭答谢关注」即可关闭。")
 
             elif msg == "答谢姬设置" or msg == "状态":
-                await send_danmaku(f"答谢:金瓜子-{'开启' if DanmakuSetting.GIFT_THANK_GOLD else '关闭'},"
-                                   f"辣条-{'开启' if DanmakuSetting.GIFT_THANK_SILVER else '关闭'},"
-                                   f"关注-{'开启' if DanmakuSetting.FOLLOWER_THANK else '关闭'},"
-                                   f"{len(TempData.fans_list) if TempData.fans_list else -1}")
+                fans_list_len = len(TempData.fans_list) if TempData.fans_list else "X"
+                cache_count = f"{fans_list_len}-{len(TempData.silver_gift_list)}-{TempData.uname_to_id_map}"
+                await send_danmaku(
+                    f"答谢:金瓜子{'开启' if DanmakuSetting.GIFT_THANK_GOLD else '关闭'}-"
+                    f"辣条{'开启' if DanmakuSetting.GIFT_THANK_SILVER else '关闭'}-"
+                    f"关注{'开启' if DanmakuSetting.FOLLOWER_THANK else '关闭'}-{cache_count}"
+                )
 
             elif msg == "指令":
                 await send_danmaku(
@@ -187,8 +198,13 @@ async def proc_message(message):
         coin_type = data.get("coin_type", "")
         total_coin = data.get("total_coin", 0)
         num = data.get("num", "")
-        if coin_type != "gold" and DanmakuSetting.GIFT_THANK_SILVER:
+        if coin_type != "gold" and DanmakuSetting.GIFT_THANK_SILVER and uid not in DanmakuSetting.THANK_BLACK_UID_LIST:
             TempData.silver_gift_list.append(f"{uname}${gift_name}${num}")
+        else:
+            if len(TempData.uname_to_id_map) < 10000:
+                TempData.uname_to_id_map[uname] = uid
+            else:
+                TempData.uname_to_id_map = {uname: uid}
 
     elif cmd == "COMBO_END":
         data = message.get("data")
@@ -197,7 +213,8 @@ async def proc_message(message):
         price = data.get("price")
         count = data.get("combo_num", 0)
         if DanmakuSetting.GIFT_THANK_GOLD:
-            await send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
+            if TempData.uname_to_id_map.get(uname) not in DanmakuSetting.THANK_BLACK_UID_LIST:
+                await send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
 
     elif cmd == "GUARD_BUY":
         data = message.get("data")
@@ -207,7 +224,8 @@ async def proc_message(message):
         price = data.get("price")
         num = data.get("num", 0)
         if DanmakuSetting.GIFT_THANK_GOLD:
-            await send_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
+            if uid not in DanmakuSetting.THANK_BLACK_UID_LIST:
+                await send_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
 
     elif cmd == "LIVE":
         DanmakuSetting.FOLLOWER_THANK = True
