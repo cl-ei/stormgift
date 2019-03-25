@@ -33,7 +33,7 @@ async def send_gift(cookie):
     if not target_model:
         return
     target_model = target_model[0]
-    logging.info(target_model["medal_name"])
+    logging.info(f"{uid} -> {target_model['medal_name']}")
 
     live_room_id = target_model["roomid"]
     ruid = target_model["anchorInfo"]["uid"]
@@ -106,7 +106,8 @@ async def main():
     sys.path.append('../')
 
     from data import COOKIE_LP, COOKIE_DD
-    await send_gift(COOKIE_LP)
+    for c in (COOKIE_LP, COOKIE_DD):
+        await send_gift(c)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
