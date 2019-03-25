@@ -103,7 +103,10 @@ async def send_gift(cookie):
 
 
 async def main():
-    sys.path.append('../')
+    if "linux" in sys.platform:
+        sys.path.append('/home/wwwroot/stormgift/')
+    else:
+        sys.path.append('../')
 
     from data import COOKIE_LP, COOKIE_DD
     for c in (COOKIE_LP, COOKIE_DD):
