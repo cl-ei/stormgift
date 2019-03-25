@@ -540,11 +540,47 @@ class BiliApi:
         }
         return await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
 
+    @classmethod
+    async def get_guard_list(cls, uid, room_id=None, timeout=10):
+        if not room_id:
+            room_id = await cls.get_live_room_id_by_uid(uid)
+            if room_id <= 0:
+                return []
+
+        result = {}
+        page = 1
+        for _ in range(20):
+            req_url = f"https://api.live.bilibili.com/guard/topList?roomid={room_id}&page={page}&ruid={uid}"
+            flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+
+            if not flag:
+                await asyncio.sleep(1)
+                continue
+
+            data = data.get("data", {}) or {}
+            guard_list = data.get("list", []) + data.get("top3", [])
+            for g in guard_list:
+                if g["uid"] in result:
+                    continue
+                result[g["uid"]] = {
+                    "uid": g["uid"],
+                    "name": g["username"],
+                    "level": g["guard_level"]
+                }
+
+            current_page = data.get("info", {}).get("page", 0)
+            if page >= current_page:
+                break
+            else:
+                page += 1
+        return sorted(result.values(), key=lambda x: x["level"])
+
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_live_room_id_by_uid(731556)
+    r = await BiliApi.get_guard_list(65568410)
     print(r)
+
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
