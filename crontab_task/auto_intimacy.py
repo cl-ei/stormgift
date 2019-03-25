@@ -1,11 +1,6 @@
 import sys
 import logging
 import asyncio
-SEND_CONFIG = {
-    39748080: "电磁泡",
-    20932326: "电磁泡",
-}
-
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
@@ -22,14 +17,15 @@ if "linux" in sys.platform:
 logging = logger
 
 
-async def send_gift(cookie):
+async def send_gift(cookie, medal):
     from utils.biliapi import BiliApi
 
     r = await BiliApi.get_medal_info_list(cookie)
     if not r:
+
         return
     uid = r[0]["uid"]
-    target_model = [_ for _ in r if _["medal_name"] == SEND_CONFIG[uid]]
+    target_model = [_ for _ in r if _["medal_name"] == medal]
     if not target_model:
         return
     target_model = target_model[0]
@@ -109,8 +105,13 @@ async def main():
         sys.path.append('../')
 
     from data import COOKIE_LP, COOKIE_DD
-    for c in (COOKIE_LP, COOKIE_DD):
-        await send_gift(c)
+
+    users = (
+        (COOKIE_LP, "电磁泡"),
+        (COOKIE_DD, "电磁泡"),
+    )
+    for args in users:
+        await send_gift(*args)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

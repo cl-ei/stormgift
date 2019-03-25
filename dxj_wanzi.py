@@ -11,7 +11,7 @@ except Exception:
     proc_num = 0
 
 ROOM_ID_MAP = {
-    0: 1895953,  # 甜味阿陌
+    0: 24541,  # 甜味阿陌
     1: 360972,  # 咖喱
     2: 9591764,  # 荔枝
     3: 373150,  # 继父
@@ -270,7 +270,7 @@ async def thank_follower():
                     except Exception:
                         pass
                     else:
-                        await send_danmaku(f"谢谢{uname}的关注~爱了就别走了好吗(✪ω✪)")
+                        await send_danmaku(f"谢谢{uname}的关注~啾咪(•̀ω•́)✧")
                     thank_uid_list.pop(0)
                     await asyncio.sleep(0.4)
             if len(TempData.fans_list) < 2000:
