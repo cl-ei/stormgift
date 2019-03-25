@@ -1,14 +1,30 @@
-import sys; sys.path.append('../')
+import sys
+import logging
 import asyncio
-from utils.biliapi import BiliApi
-from data import COOKIE_LP, COOKIE_DD
 SEND_CONFIG = {
     39748080: "电磁泡",
     20932326: "电磁泡",
 }
 
 
+log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
+console = logging.StreamHandler(sys.stdout)
+console.setFormatter(log_format)
+logger = logging.getLogger("auto_intimacy")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(console)
+
+if "linux" in sys.platform:
+    file_handler = logging.FileHandler("/home/wwwroot/log/auto_intimacy.log")
+    file_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+
+logging = logger
+
+
 async def send_gift(cookie):
+    from utils.biliapi import BiliApi
+
     r = await BiliApi.get_medal_info_list(cookie)
     if not r:
         return
@@ -17,7 +33,7 @@ async def send_gift(cookie):
     if not target_model:
         return
     target_model = target_model[0]
-    print(target_model["medal_name"])
+    logging.info(target_model["medal_name"])
 
     live_room_id = target_model["roomid"]
     ruid = target_model["anchorInfo"]["uid"]
@@ -25,7 +41,7 @@ async def send_gift(cookie):
     today_feed = target_model["todayFeed"]
     day_limit = target_model["dayLimit"]
     left_intimacy = day_limit - today_feed
-    print(f"left_intimacy: {left_intimacy}")
+    logging.info(f"left_intimacy: {left_intimacy}")
 
     bag_list = await BiliApi.get_bag_list(cookie)
     gift_today = []
@@ -41,7 +57,6 @@ async def send_gift(cookie):
     gift_lt.sort(key=lambda x: x["expire_at"])
     gift_bkl.sort(key=lambda x: x["expire_at"])
     can_send_bag = gift_today + gift_bkl + gift_lt
-    print(can_send_bag)
 
     send_list = []
     for gift in can_send_bag:
@@ -53,13 +68,15 @@ async def send_gift(cookie):
             continue
 
         need_send_gift_num = min(left_intimacy // intimacy_single, gift["gift_num"])
-        send_list.append({
-            "coin_type": None,
-            "gift_num": need_send_gift_num,
-            "bag_id": gift["bag_id"],
-            "gift_id": gift["gift_id"],
-        })
-        left_intimacy -= intimacy_single*need_send_gift_num
+        if need_send_gift_num > 0:
+            send_list.append({
+                "coin_type": None,
+                "gift_num": need_send_gift_num,
+                "bag_id": gift["bag_id"],
+                "gift_id": gift["gift_id"],
+            })
+            left_intimacy -= intimacy_single*need_send_gift_num
+
         if left_intimacy <= 0:
             break
 
@@ -75,15 +92,20 @@ async def send_gift(cookie):
                 "gift_id": 1,
             })
 
+    logging.info(f"send_list: {send_list}")
     for gift in send_list:
-        r = await BiliApi.send_gift(
+        flag, data = await BiliApi.send_gift(
             gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
         )
-        print(f"Send gift: {gift}\n\tr: {r}")
-    print(f"Final left intimacy: {left_intimacy}")
+        if not flag:
+            logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
+    logging.info(f"Final left intimacy: {left_intimacy}")
 
 
 async def main():
+    sys.path.append('../')
+
+    from data import COOKIE_LP, COOKIE_DD
     await send_gift(COOKIE_LP)
 
 loop = asyncio.get_event_loop()
