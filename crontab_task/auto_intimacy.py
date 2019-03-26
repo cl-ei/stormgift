@@ -87,6 +87,7 @@ async def send_gift(cookie, medal):
                 "bag_id": 0,
                 "gift_id": 1,
             })
+            left_intimacy -= supplement_lt_num
 
     logging.info(f"send_list: {send_list}")
     for gift in send_list:
@@ -104,11 +105,12 @@ async def main():
     else:
         sys.path.append('../')
 
-    from data import COOKIE_LP, COOKIE_DD
+    from data import COOKIE_LP, COOKIE_DD, COOKIE_TZ
 
     users = (
         (COOKIE_LP, "电磁泡"),
         (COOKIE_DD, "电磁泡"),
+        (COOKIE_TZ, "小夭精"),
     )
     for args in users:
         await send_gift(*args)
