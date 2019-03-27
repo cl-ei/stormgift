@@ -1,74 +1,117 @@
-import re
 import os
 import sys
 import asyncio
-import requests
-import json
 from utils.ws import ReConnectingWsClient
 from utils.biliapi import WsApi, BiliApi
 import logging
 
-if "linux" in sys.platform:
-    LOG_PATH = "/home/wwwroot/log"
-else:
-    LOG_PATH = "./log"
+try:
+    proc_num = int(sys.argv[1])
+except Exception:
+    proc_num = 0
 
-log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
-console = logging.StreamHandler(sys.stdout)
-console.setFormatter(log_format)
-xk_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "xiaoke.log"))
-xk_file_handler.setFormatter(log_format)
-
-logger = logging.getLogger("xk")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(console)
-logger.addHandler(xk_file_handler)
-logging = logger
+ROOM_ID_MAP = {
+    0: 11472492,
+}
 
 
 class DanmakuSetting:
-    MONITOR_ROOM_ID = 11472492
-    ROBOT_ON = False
+    MONITOR_ROOM_ID = ROOM_ID_MAP[proc_num]
+    MONITOR_UID = None
+
+    LOG_PATH = "log" if sys.platform != "linux" else "/home/wwwroot/log"
+    LOG_NAME = f"xiaoke_{proc_num}-{MONITOR_ROOM_ID}"
+    LOG_FILE_NAME = os.path.join(LOG_PATH, f"{LOG_NAME}.log")
+
+    THANK_BLACK_UID_LIST = set()
+
+    @classmethod
+    def load_config(cls, config_name):
+        config_file_name = f"dxj_xiaoke-{proc_num}-{cls.MONITOR_ROOM_ID}.{config_name}"
+        config_file_path = "/home/wwwroot/stormgift/data" if "linux" in sys.platform else "./data/"
+        return os.path.exists(os.path.join(config_file_path, config_file_name))
+
+    @classmethod
+    def set_config(cls, config_name, r):
+        config_file_name = f"dxj_xiaoke-{proc_num}-{cls.MONITOR_ROOM_ID}.{config_name}"
+        config_file_path = "/home/wwwroot/stormgift/data" if "linux" in sys.platform else "./data/"
+        config_file = os.path.join(config_file_path, config_file_name)
+        if r:
+            if not os.path.exists(config_file):
+                with open(config_file, "w"):
+                    pass
+        else:
+            if os.path.exists(config_file):
+                os.remove(config_file)
+        return True
+
+    @classmethod
+    def get_if_thank_silver(cls):
+        return cls.load_config("thank_silver")
+
+    @classmethod
+    def get_if_thank_gold(cls):
+        return cls.load_config("thank_gold")
+
+    @classmethod
+    def get_if_thank_follower(cls):
+        return cls.load_config("thank_follower")
+
+    @classmethod
+    def set_thank_silver(cls, r):
+        return cls.set_config("thank_silver", r)
+
+    @classmethod
+    def set_thank_gold(cls, r):
+        return cls.set_config("thank_gold", r)
+
+    @classmethod
+    def set_thank_follower(cls, r):
+        return cls.set_config("thank_follower", r)
+
+
+DanmakuSetting.GIFT_THANK_SILVER = DanmakuSetting.load_config("thank_silver")
+DanmakuSetting.GIFT_THANK_GOLD = DanmakuSetting.load_config("thank_gold")
+DanmakuSetting.FOLLOWER_THANK = DanmakuSetting.load_config("thank_follower")
 
 
 class TempData:
+    uname_to_id_map = {}
     silver_gift_list = []
-
-
-async def get_tuling_response(msg):
-    api_key = "c83e8c03c71d43b6b0ce271d485896d8"
-    url = "http://openapi.tuling123.com/openapi/api/v2"
-    req_json = {
-        "reqType": 0,
-        "perception": {"inputText": {"text": msg}},
-        "userInfo": {
-            "apiKey": api_key,
-            "userId": 248138,
-        }
-    }
-    try:
-        r = requests.post(url=url, json=req_json)
-        if r.status_code != 200:
-            raise Exception(f"Bad status code: {r.status_code}")
-        r = json.loads(r.text)
-        msg = r.get("results", [])[0].get("values", {}).get("text", "")
-    except Exception as e:
-        return False, ""
-    return bool(msg), msg
+    fans_list = None
 
 
 async def send_danmaku(msg):
     try:
         from data import COOKIE_DD
     except Exception as e:
-        logging.error(f"Cannot load cookie, e: {e}.", exc_info=True)
-        return
+        return logging.error(f"Cannot get cookie: {e}.", exc_info=True)
 
     await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
         cookie=COOKIE_DD
     )
+
+
+async def get_fans_list():
+    if not DanmakuSetting.MONITOR_UID:
+        DanmakuSetting.MONITOR_UID = await BiliApi.get_uid_by_live_room_id(DanmakuSetting.MONITOR_ROOM_ID)
+    result = await BiliApi.get_fans_list(DanmakuSetting.MONITOR_UID)
+    return result[::-1]
+
+
+log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
+console = logging.StreamHandler(sys.stdout)
+console.setFormatter(log_format)
+file_handler = logging.FileHandler(DanmakuSetting.LOG_FILE_NAME)
+file_handler.setFormatter(log_format)
+
+logger = logging.getLogger(DanmakuSetting.LOG_NAME)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(console)
+logger.addHandler(file_handler)
+logging = logger
 
 
 async def proc_message(message):
@@ -85,30 +128,58 @@ async def proc_message(message):
         deco = d[1] if d else "^^"
         logging.info(f"{'[管]' if is_admin else ''}[{uid}] [{user_name}][{ul}] [{deco} {dl}]-> {msg}")
 
-        if DanmakuSetting.ROBOT_ON:
-            if is_admin and msg == "关闭聊天":
-                DanmakuSetting.ROBOT_ON = False
-                return await send_danmaku("聊天功能已关闭。房管发送「开启聊天」可以再次打开。")
+        if uid in [DanmakuSetting.MONITOR_UID, 12298306, 20932326]:
+            if msg == "关闭答谢":
+                DanmakuSetting.GIFT_THANK_SILVER = False
+                DanmakuSetting.set_thank_silver(False)
 
-            from data import UID_DD
-            if uid == UID_DD:
-                return
+                DanmakuSetting.GIFT_THANK_GOLD = False
+                DanmakuSetting.set_thank_gold(False)
 
-            flag, msg = await get_tuling_response(msg)
-            if flag:
-                msg = f"{user_name}　{msg}"
-                await send_danmaku(msg[:30])
-                if len(msg) > 30:
-                    if len(msg) > 60:
-                        msg = msg[30:55] + "..."
-                    else:
-                        msg = msg[30:60]
-                    await asyncio.sleep(0.4)
-                    await send_danmaku(msg)
-        else:
-            if is_admin and msg == "开启聊天":
-                DanmakuSetting.ROBOT_ON = True
-                return await send_danmaku("聊天功能已开启。房管发送「关闭聊天」即可关闭。")
+                await send_danmaku("礼物答谢已关闭。房管发送「开启答谢」可以再次打开。")
+
+            elif msg == "开启答谢":
+                DanmakuSetting.GIFT_THANK_GOLD = True
+                DanmakuSetting.set_thank_gold(True)
+                await send_danmaku("金瓜子礼物答谢已开启。房管发送「关闭答谢」即可关闭。")
+
+            if msg == "关闭答谢辣条":
+                DanmakuSetting.GIFT_THANK_SILVER = False
+                DanmakuSetting.set_thank_silver(False)
+                await send_danmaku("辣条答谢已关闭。房管发送「开启答谢辣条」可以再次打开。")
+
+            elif msg == "开启答谢辣条":
+                DanmakuSetting.GIFT_THANK_SILVER = True
+                DanmakuSetting.set_thank_silver(True)
+                await send_danmaku("辣条答谢已开启。房管发送「关闭答谢辣条」即可关闭。")
+
+            if msg == "关闭答谢关注":
+                DanmakuSetting.FOLLOWER_THANK = False
+                DanmakuSetting.set_thank_follower(False)
+
+                TempData.fans_list = None
+                await send_danmaku("答谢关注者功能已关闭。房管发送「开启答谢关注」可以再次打开。")
+
+            elif msg == "开启答谢关注":
+                DanmakuSetting.FOLLOWER_THANK = True
+                DanmakuSetting.set_thank_follower(True)
+                await send_danmaku("答谢关注者功能已开启。房管发送「关闭答谢关注」即可关闭。")
+
+            elif msg == "答谢姬设置" or msg == "状态":
+                fans_list_len = len(TempData.fans_list) if TempData.fans_list else "X"
+                cache_count = f"{fans_list_len}-{len(TempData.silver_gift_list)}-{len(TempData.uname_to_id_map)}"
+                await send_danmaku(
+                    f"答谢:金瓜子{'开启' if DanmakuSetting.GIFT_THANK_GOLD else '关闭'}-"
+                    f"辣条{'开启' if DanmakuSetting.GIFT_THANK_SILVER else '关闭'}-"
+                    f"关注{'开启' if DanmakuSetting.FOLLOWER_THANK else '关闭'}-{cache_count}"
+                )
+
+            elif msg == "指令":
+                await send_danmaku(
+                    f"{'关闭' if DanmakuSetting.GIFT_THANK_SILVER else '开启'}答谢辣条、"
+                    f"{'关闭答谢' if DanmakuSetting.GIFT_THANK_GOLD else '开启答谢（仅开启答谢金瓜子）'}、"
+                    f"{'关闭' if DanmakuSetting.FOLLOWER_THANK else '开启'}答谢关注"
+                )
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")
@@ -119,8 +190,13 @@ async def proc_message(message):
         coin_type = data.get("coin_type", "")
         total_coin = data.get("total_coin", 0)
         num = data.get("num", "")
-        if coin_type != "gold":
+        if coin_type != "gold" and DanmakuSetting.GIFT_THANK_SILVER and uid not in DanmakuSetting.THANK_BLACK_UID_LIST:
             TempData.silver_gift_list.append(f"{uname}${gift_name}${num}")
+        else:
+            if len(TempData.uname_to_id_map) < 10000:
+                TempData.uname_to_id_map[uname] = uid
+            else:
+                TempData.uname_to_id_map = {uname: uid}
 
     elif cmd == "COMBO_END":
         data = message.get("data")
@@ -128,7 +204,9 @@ async def proc_message(message):
         gift_name = data.get("gift_name", "")
         price = data.get("price")
         count = data.get("combo_num", 0)
-        await send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
+        if DanmakuSetting.GIFT_THANK_GOLD:
+            if TempData.uname_to_id_map.get(uname) not in DanmakuSetting.THANK_BLACK_UID_LIST:
+                await send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
 
     elif cmd == "GUARD_BUY":
         data = message.get("data")
@@ -137,23 +215,79 @@ async def proc_message(message):
         gift_name = data.get("gift_name", "GUARD")
         price = data.get("price")
         num = data.get("num", 0)
-        await send_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
+        if DanmakuSetting.GIFT_THANK_GOLD:
+            if uid not in DanmakuSetting.THANK_BLACK_UID_LIST:
+                await send_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
+
+    elif cmd == "LIVE":
+        DanmakuSetting.FOLLOWER_THANK = True
+        DanmakuSetting.set_thank_follower(True)
+
+    elif cmd == "PREPARING":
+        DanmakuSetting.FOLLOWER_THANK = False
+        DanmakuSetting.set_thank_follower(False)
+        TempData.fans_list = None
+
+
+async def thank_gift():
+    gift_list = {}
+    while TempData.silver_gift_list:
+        gift = TempData.silver_gift_list.pop()
+        uname, gift_name, num = gift.split("$")
+        key = f"{uname}${gift_name}"
+        if key in gift_list:
+            gift_list[key] += int(num)
+        else:
+            gift_list[key] = int(num)
+
+    for key, num in gift_list.items():
+        uname, gift_name = key.split("$")
+        await send_danmaku(f"感谢{uname}赠送的{num}个{gift_name}! 大气大气~")
+
+
+async def thank_follower():
+    if TempData.fans_list is None:
+        fl = await get_fans_list()
+        if fl:
+            TempData.fans_list = [x["mid"] for x in fl]
+    else:
+        new_fans_list = await get_fans_list()
+        if new_fans_list:
+            new_fans_uid_list = {_["mid"] for _ in new_fans_list}
+            thank_uid_list = list(new_fans_uid_list - set(TempData.fans_list))
+            if len(thank_uid_list) < 5:
+                while thank_uid_list:
+                    try:
+                        uname = [_["uname"] for _ in new_fans_list if _["mid"] == thank_uid_list[0]][0]
+                    except Exception:
+                        pass
+                    else:
+                        await send_danmaku(f"谢谢{uname}的关注~啾咪(•̀ω•́)✧")
+                    thank_uid_list.pop(0)
+                    await asyncio.sleep(0.4)
+            if len(TempData.fans_list) < 2000:
+                TempData.fans_list = list(set(TempData.fans_list) | new_fans_uid_list)
+            else:
+                TempData.fans_list = new_fans_uid_list
 
 
 async def main():
+    if not DanmakuSetting.MONITOR_UID:
+        DanmakuSetting.MONITOR_UID = await BiliApi.get_uid_by_live_room_id(DanmakuSetting.MONITOR_ROOM_ID)
+
     async def on_connect(ws):
-        logging.info("on_connect")
+        logging.info("On connected...")
         await ws.send(WsApi.gen_join_room_pkg(DanmakuSetting.MONITOR_ROOM_ID))
 
     async def on_shut_down():
-        logging.error("shut done!")
+        logging.error("shutdown!")
 
     async def on_message(message):
         for msg in WsApi.parse_msg(message):
             await proc_message(msg)
 
     new_client = ReConnectingWsClient(
-        uri=WsApi.BILI_WS_URI,  # "ws://localhost:22222",
+        uri=WsApi.BILI_WS_URI,
         on_message=on_message,
         on_connect=on_connect,
         on_shut_down=on_shut_down,
@@ -163,21 +297,19 @@ async def main():
 
     await new_client.start()
     logging.info("Stated.")
-    while True:
-        gift_list = {}
-        while TempData.silver_gift_list:
-            gift = TempData.silver_gift_list.pop()
-            uname, gift_name, num = gift.split("$")
-            key = f"{uname}${gift_name}"
-            if key in gift_list:
-                gift_list[key] += int(num)
-            else:
-                gift_list[key] = int(num)
 
-        if gift_list:
-            for key, num in gift_list.items():
-                uname, gift_name = key.split("$")
-                await send_danmaku(f"感谢{uname}赠送的{num}个{gift_name}! 大气大气~")
+    while True:
+        if DanmakuSetting.GIFT_THANK_SILVER:
+            try:
+                await thank_gift()
+            except Exception as e:
+                logging.error(f"Error in thank_gift: {e}", exc_info=True)
+
+        if DanmakuSetting.FOLLOWER_THANK:
+            try:
+                await thank_follower()
+            except Exception as e:
+                logging.error(f"Error in thank_follower: {e}", exc_info=True)
         await asyncio.sleep(10)
 
 
