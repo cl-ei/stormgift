@@ -151,12 +151,12 @@ async def proc_message(message):
                 DanmakuSetting.set_thank_gold(True)
                 await send_danmaku("金瓜子礼物答谢已开启。房管发送「关闭答谢」即可关闭。")
 
-            if msg == "关闭辣条答谢":
+            if msg == "关闭答谢辣条":
                 DanmakuSetting.GIFT_THANK_SILVER = False
                 DanmakuSetting.set_thank_silver(False)
                 await send_danmaku("辣条答谢已关闭。房管发送「开启答谢辣条」可以再次打开。")
 
-            elif msg == "开启辣条答谢":
+            elif msg == "开启答谢辣条":
                 DanmakuSetting.GIFT_THANK_SILVER = True
                 DanmakuSetting.set_thank_silver(True)
                 await send_danmaku("辣条答谢已开启。房管发送「关闭答谢辣条」即可关闭。")
