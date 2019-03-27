@@ -49,20 +49,7 @@ let cookies = JSON.parse(fs.readFileSync(COOKIE_FILE_PATH, "utf-8"));
 let RAW_COOKIES_LIST = cookies.RAW_COOKIE_LIST;
 let VIP_LIST = cookies.VIP_LIST;
 
-function heartbeat_90s(cookie){
-    let reqParam = {
-        url: "https://api.live.bilibili.com/relation/v1/Feed/heartBeat",
-        headers: {"User-Agent": UA, "Cookie": cookie},
-        timeout: 5000,
-    };
-    request.get(reqParam, function (err, res, body) {
-        if (err) {
-            logging.error("90s Heartbeat send error! ", err.toString());
-        }else{
-            logging.info("Heartbeat 90s: " + body.toString());
-        }
-    });
-}
+
 function postLatestTime(cookie, index){
     let timest = (new Date()).valueOf();
     request.get({
@@ -131,11 +118,25 @@ function heartbeat_5m(cookie, index){
     });
 }
 
+
+VIP_LIST = [
+    "DedeUserID=20932326",
+    "DedeUserID=312186483",
+    "DedeUserID=49279889",
+    "DedeUserID=87301592",
+    "DedeUserID=48386500",
+    "DedeUserID=95284802",
+    "DedeUserID=39748080",
+    "DedeUserID=359496014",
+];
+
+
 (() => {
     logging.info("Start send heartbeat proc.");
-    for (let i = 0; i < VIP_LIST.length; i++){
-        let cookie_index = VIP_LIST[i];
-        let cookie = RAW_COOKIES_LIST[cookie_index];
-        setTimeout(() => {heartbeat_5m(cookie, cookie_index)}, 2000*i);
+    for (let i = 0; i < RAW_COOKIES_LIST.length; i++){
+        let cookie = RAW_COOKIES_LIST[i];
+        if (VIP_LIST.indexOf(cookie.split(";")[0]) > -1){
+            setTimeout(() => {heartbeat_5m(cookie, i)}, 2000*i);
+        }
     }
 })();
