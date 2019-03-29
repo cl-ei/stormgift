@@ -261,6 +261,8 @@ async def proc_message(message):
         DanmakuSetting.THANK_GIFT = True
         DanmakuSetting.THANK_FOLLOWER = False
         await send_hansy_danmaku("状态")
+        await asyncio.sleep(0.5)
+        await send_hansy_danmaku("仙女别忘了发送【已唱歌单】啊~")
 
 
 async def send_carousel_msg():
