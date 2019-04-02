@@ -575,6 +575,23 @@ class BiliApi:
                 page += 1
         return sorted(result.values(), key=lambda x: x["level"])
 
+    @classmethod
+    async def post_heartbeat_5m(cls, cookie, timeout=10):
+        req_url = "https://api.live.bilibili.com/User/userOnlineHeart"
+        headers = {"Cookie": cookie}
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+        data = {"csrf_token": csrf_token, "csrf": csrf_token}
+        return await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_error_code=True)
+
+    @classmethod
+    async def post_heartbeat_last_timest(cls, cookie, timeout=10):
+        req_url = f"https://api.live.bilibili.com/relation/v1/feed/heartBeat?_={int(1000 * time.time())}"
+        headers = {"Cookie": cookie}
+        return await cls.get(req_url, headers=headers, timeout=timeout, check_error_code=True)
+
 
 async def test():
     print("Running test.")
