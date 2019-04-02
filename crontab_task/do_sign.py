@@ -62,7 +62,7 @@ async def main():
     for index, cookie in enumerate(cookies):
         r, data = await BiliApi.do_sign(cookie)
         if not r and "登录" in data:
-            need_login += f"{index}-{cookie.split(';')[0]}, <br/>"
+            need_login += f"{index}-{cookie.split(';')[0]}, \n"
 
         r, data = await BiliApi.do_sign_group(cookie)
         if not r:
@@ -73,7 +73,7 @@ async def main():
         if "20932326" in cookie:
             await BiliApi.silver_to_coin(cookie)
     if need_login:
-        send_mail_notice("挂辣条异常<br/>" + need_login)
+        send_mail_notice("挂辣条异常\n" + need_login)
     logging.info(f"Do sign task done. cost: {int((time.time() - start_time) *1000)} ms.\n\n")
 
 
