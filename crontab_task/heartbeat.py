@@ -65,6 +65,7 @@ async def main():
         if is_vip:
             await post_heartbeat(c)
             await asyncio.sleep(5)
+    logging.info("Post heart beat task done.\n\n")
 
 
 loop = asyncio.get_event_loop()
