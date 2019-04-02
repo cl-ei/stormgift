@@ -592,6 +592,71 @@ class BiliApi:
         headers = {"Cookie": cookie}
         return await cls.get(req_url, headers=headers, timeout=timeout, check_error_code=True)
 
+    @classmethod
+    async def do_sign(cls, cookie, timeout=10):
+        req_url = f"https://api.live.bilibili.com/sign/doSign"
+        headers = {"Cookie": cookie}
+        return await cls.get(req_url, headers=headers, timeout=timeout, check_error_code=True)
+
+    @classmethod
+    async def _sing_single_group(cls, group_id, owner_id, cookie, timeout=10):
+        req_url = "https://api.live.bilibili.com/link_setting/v1/link_setting/sign_in"
+        headers = {"Cookie": cookie}
+        data = {
+            "group_id": group_id,
+            "owner_id": owner_id,
+        }
+        r, data = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_error_code=True)
+        return r, data
+
+    @classmethod
+    async def do_sign_group(cls, cookie, timeout=10):
+        req_url = "https://api.live.bilibili.com/link_group/v1/member/my_groups"
+        headers = {"Cookie": cookie}
+        r, data = await cls.get(req_url, headers=headers, timeout=timeout, check_error_code=True)
+        if not r:
+            return r, data
+
+        groups = data.get("data", {}).get("list", []) or []
+        failed_info = ""
+        for g in groups:
+            r, data = await cls._sing_single_group(g.get("group_id", 0), owner_id=g.get("owner_uid", 0), cookie=cookie)
+            if not r:
+                failed_info += f"group sign faild: {g.get('group_name', '--')}, msg: {data}.\n"
+        return True, failed_info
+
+    @classmethod
+    async def do_sign_double_watch(cls, cookie, timeout=10):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        req_url = "https://api.live.bilibili.com/activity/v1/task/receive_award"
+        headers = {"Cookie": cookie}
+        data = {
+            "task_id": "double_watch_task",
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+        }
+        r, data = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_error_code=True)
+        return r, data
+
+    @classmethod
+    async def silver_to_coin(cls, cookie, timeout=10):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        req_url = "https://api.live.bilibili.com/pay/v1/Exchange/silver2coin"
+        headers = {"Cookie": cookie}
+        data = {
+            "platform": "pc",
+            "csrf_token": csrf_token
+        }
+        return await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_error_code=True)
+
 
 async def test():
     print("Running test.")
