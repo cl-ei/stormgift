@@ -36,8 +36,7 @@ class DanmakuSetting(object):
 
     MSG_INTERVAL = 120
     MSG_LIST = [
-        # "📢 一定要来网易云关注「管珩心」哦，超多高质量单曲等你来听~",
-        "📢 主播千万个，泡泡就一个~  听歌不关注，下播两行泪(‘；ω；´) ",
+        "📢 想要观看直播回放的小伙伴，记得关注我哦~",
         "📢 喜欢泡泡的小伙伴，加粉丝群436496941来玩耍呀~",
         "📢 更多好听的原创歌和翻唱作品，网易云音乐搜索「管珩心」~",
         "📢 你的关注和弹幕是直播的动力，小伙伴们多粗来聊天掰头哇~",
@@ -71,7 +70,7 @@ class TempData:
 
 async def send_hansy_danmaku(msg):
     try:
-        from data import COOKIE_DD
+        from data import COOKIE_LP
     except Exception as e:
         logging.error(f"Cannot load cookie, e: {e}.", exc_info=True)
         return
@@ -79,7 +78,7 @@ async def send_hansy_danmaku(msg):
     await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
-        cookie=COOKIE_DD
+        cookie=COOKIE_LP
     )
 
 
@@ -162,17 +161,7 @@ async def proc_message(message):
                     f"{'-1' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
                 )
 
-        if uid == 65981801:  # 大连
-            if "心" in msg or "美" in msg or "好" in msg or random() > 0.8:
-                await send_hansy_danmaku(choice([
-                    "🤖 大连你竟然连童子鸡🐔都不放过！",
-                    "🤖 大连，等身抱枕只会在你的梦里~快去睡吧晚安安~",
-                    "🤖 大连你个大居蹄子！",
-                    "🤖 大连，你的舌头没救了……切了吧",
-                    "🤖 没想到你是这样的大连！（￣へ￣）",
-                    "🤖 大连，你的媳妇呢？",
-                ]))
-        elif "好听" in msg and random() > 0.7:
+        if "好听" in msg and random() > 0.7:
             await send_hansy_danmaku(choice([
                 "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
                 "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
@@ -283,12 +272,6 @@ async def send_recorder_group_danmaku():
         return
 
     await BiliApi.enter_room(DanmakuSetting.MONITOR_ROOM_ID, COOKIE_LP)
-    if DanmakuSetting.get_if_master_is_active() and datetime.datetime.now().minute % 10 < 5:
-        await BiliApi.send_danmaku(
-            message="📢 想要观看直播回放的小伙伴，记得关注我哦~",
-            room_id=DanmakuSetting.MONITOR_ROOM_ID,
-            cookie=COOKIE_LP
-        )
 
 
 async def thank_gift():
@@ -335,13 +318,13 @@ async def thank_follower():
             except Exception as e:
                 logging.error(f"Cannot get uname in thank_follower: {e}, thank_uid: {thank_uid}.", exc_info=True)
             else:
+                await asyncio.sleep(0.3)
                 await send_hansy_danmaku(choice([
                     f"谢谢{uname}的关注~相遇是缘，愿常相伴╭❤",
                     f"感谢{uname}的关注~♪（＾∀＾●）",
-                    f"感谢{uname}的关注，爱了就别走了好吗ノ♥",
+                    f"感谢{uname}的关注，爱了就别走好吗ノ♥",
                     f"谢谢{uname}的关注，mua~(˙ε˙)",
                 ]))
-            await asyncio.sleep(0.3)
 
     if len(TempData.fans_id_set) < 5000:
         TempData.fans_id_set |= new_fans_uid_set
