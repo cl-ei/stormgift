@@ -131,7 +131,7 @@ async def proc_message(message):
 
         DanmakuSetting.flush_last_active_time()
 
-        if is_admin:
+        if is_admin or uid == 39748080:
             if msg == "开启答谢":
                 DanmakuSetting.THANK_GIFT = True
                 await send_hansy_danmaku("🤖 弹幕答谢已开启。房管发送「关闭答谢」即可关闭。")
@@ -154,11 +154,15 @@ async def proc_message(message):
                 await send_hansy_danmaku("🤖 完成。")
 
             elif msg == "状态":
+                cache_count = (
+                    f"f{'-' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
+                    f"nti{len(TempData.user_name_to_uid_map)}"
+                    f"si{len(TempData.silver_gift_list)}"
+                )
                 await send_hansy_danmaku(
-                    f"🤖 礼物答谢已{'开启' if DanmakuSetting.THANK_GIFT else '关闭'}，"
-                    f"关注答谢已{'开启' if DanmakuSetting.THANK_FOLLOWER else '关闭'}，"
-                    f"缓存个数{len(TempData.user_name_to_uid_map)}%"
-                    f"{'-1' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
+                    f"🤖 答谢:礼物{'开启' if DanmakuSetting.THANK_GIFT else '关闭'}-"
+                    f"关注{'开启' if DanmakuSetting.THANK_FOLLOWER else '关闭'}-"
+                    f"{cache_count}"
                 )
 
         if "好听" in msg and random() > 0.7:
@@ -249,9 +253,9 @@ async def proc_message(message):
     elif cmd == "PREPARING":
         DanmakuSetting.THANK_GIFT = True
         DanmakuSetting.THANK_FOLLOWER = False
-        await send_hansy_danmaku("状态")
-        await asyncio.sleep(0.5)
         await send_hansy_danmaku("仙女别忘了发送【已唱歌单】啊~")
+        await asyncio.sleep(0.5)
+        await send_hansy_danmaku("状态")
 
 
 async def send_carousel_msg():
