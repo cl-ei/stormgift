@@ -48,8 +48,8 @@ class DanmakuSetting(object):
     LAST_ACTIVE_TIME = time.time() - 3600
     THRESHOLD = 79000
 
-    THANK_GIFT = False
-    THANK_FOLLOWER = True
+    THANK_GIFT = True
+    THANK_FOLLOWER = False
 
     @classmethod
     def get_if_master_is_active(cls):
@@ -156,12 +156,12 @@ async def proc_message(message):
             elif msg == "状态":
                 cache_count = (
                     f"f{'-' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
-                    f"nti{len(TempData.user_name_to_uid_map)}"
-                    f"si{len(TempData.silver_gift_list)}"
+                    f"n{len(TempData.user_name_to_uid_map)}"
+                    f"s{len(TempData.silver_gift_list)}"
                 )
                 await send_hansy_danmaku(
-                    f"🤖 答谢:礼物{'开启' if DanmakuSetting.THANK_GIFT else '关闭'}-"
-                    f"关注{'开启' if DanmakuSetting.THANK_FOLLOWER else '关闭'}-"
+                    f"答谢:礼物{'开' if DanmakuSetting.THANK_GIFT else '关'}-"
+                    f"关注{'开' if DanmakuSetting.THANK_FOLLOWER else '关'}-"
                     f"{cache_count}"
                 )
 
