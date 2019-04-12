@@ -53,18 +53,12 @@ async def main():
     else:
         sys.path.append('../')
 
-    with open("/home/wwwroot/stormgift/data/cookie.json") as f:
+    with open("/home/wwwroot/stormgift/data/heartbeat_cookies.json") as f:
         cookies = json.load(f).get("RAW_COOKIE_LIST", []) or []
 
     for c in cookies:
-        is_vip = False
-        for v in VIP_LIST:
-            if c.startswith(v):
-                is_vip = True
-                break
-        if is_vip:
-            await post_heartbeat(c)
-            await asyncio.sleep(5)
+        await post_heartbeat(c)
+        await asyncio.sleep(5)
     logging.info("Post heart beat task done.\n\n")
 
 

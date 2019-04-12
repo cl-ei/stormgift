@@ -59,21 +59,36 @@ async def main():
         cookies = json.load(f).get("RAW_COOKIE_LIST", []) or []
 
     need_login = ""
+    vip_list = []
     for index, cookie in enumerate(cookies):
+        await asyncio.sleep(0.5)
+        r, data = await BiliApi.get_if_user_is_live_vip(cookie)
+        if r and data:
+            vip_list.append(cookie)
+
+        await asyncio.sleep(0.5)
         r, data = await BiliApi.do_sign(cookie)
         if not r and "登录" in data:
             need_login += f"{index}-{cookie.split(';')[0]}, \n"
 
+        await asyncio.sleep(0.5)
         r, data = await BiliApi.do_sign_group(cookie)
         if not r:
             logging.error(f"Sign group failed, {index}-{cookie.split(';')[0]}: {data}")
 
+        await asyncio.sleep(0.5)
         await BiliApi.do_sign_double_watch(cookie)
 
         if "20932326" in cookie:
+            await asyncio.sleep(0.5)
             await BiliApi.silver_to_coin(cookie)
+
     if need_login:
         send_mail_notice("挂辣条异常\n" + need_login)
+
+    with open("/home/wwwroot/stormgift/data/heartbeat_cookies.json", "wb") as f:
+        f.write(json.dumps({"RAW_COOKIE_LIST": vip_list}, ensure_ascii=False).encode("utf-8"))
+
     logging.info(f"Do sign task done. cost: {int((time.time() - start_time) *1000)} ms.\n\n")
 
 
