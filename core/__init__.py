@@ -182,7 +182,6 @@ class Core(object):
 
     async def send_danmaku(self, msg):
         print(f"Send: {msg}")
-        return
         await BiliApi.send_danmaku(
             message=msg,
             room_id=self.setting.MONITOR_ROOM_ID,
