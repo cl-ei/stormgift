@@ -96,8 +96,10 @@ class DanmakuSetting(object):
     }
 
     def __init__(self):
-        with open("./配置.txt") as f:
-            config = f.readlines()
+        with open("./配置.txt", "rb") as f:
+            content = f.read().decode("utf-8")
+
+        config = content.split("\n")
         config = [_.strip() for _ in config if "=" in _ and not _.startswith("#")]
 
         def parse_config(config_list, key):
