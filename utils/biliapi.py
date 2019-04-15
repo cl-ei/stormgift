@@ -662,15 +662,33 @@ class BiliApi:
         req_url = "https://api.live.bilibili.com/xlive/web-ucenter/user/get_user_info"
         headers = {"Cookie": cookie}
         r, data = await cls.get(req_url, headers=headers, timeout=timeout, check_error_code=True)
+        print(data)
         if not r:
             return r, data
         result = data.get("data", {}).get("vip") == 1
         return True, result
 
+    @classmethod
+    async def get_user_info(cls, cookie, timeout=10):
+        req_url = "https://api.live.bilibili.com/xlive/web-ucenter/user/get_user_info"
+        headers = {"Cookie": cookie}
+        r, data = await cls.get(req_url, headers=headers, timeout=timeout, check_error_code=True)
+        if not r:
+            return r, data
+        return True, data.get("data", {}) or {}
+
+    @classmethod
+    async def get_live_room_info(cls, room_id, timeout=10):
+        req_url = f"https://api.live.bilibili.com/room/v1/Room/room_init?id={room_id}"
+        r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        if not r:
+            return r, data
+        return True, data.get("data", {}) or {}
+
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_guard_list(65568410)
+    r = await BiliApi.get_live_room_info(2516117)
     print(r)
 
 
