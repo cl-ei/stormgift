@@ -3,5 +3,6 @@ data
 node_modules
 .idea
 .DS_Store
+*.pyc
 package-lock.json
 config/proj_config.json
