@@ -22,13 +22,16 @@ if "linux" in sys.platform:
 logging = logger
 
 
-def send_mail_notice(subject):
+def send_mail_notice(subject, to=""):
     with open("/home/wwwroot/stormgift/config/proj_config.json") as f:
         pass_word = json.load(f).get("mail_auth_pass", "") or ""
 
     user = "80873436@qq.com"
     from_addr = user
-    to_addrs = "80873436@qq.com, calom@qq.com"
+
+    if to not in ("80873436@qq.com", "calom@qq.com"):
+        send_mail_notice(subject=subject, to="80873436@qq.com")
+    to_addrs = to
 
     msg = MIMEText("挂辣条异常")
     msg['Subject'] = subject or "-"
@@ -69,7 +72,12 @@ async def main():
         await asyncio.sleep(0.5)
         r, data = await BiliApi.do_sign(cookie)
         if not r and "登录" in data:
-            need_login += f"{index}-{cookie.split(';')[0]}, \n"
+            email_addr = ""
+            for c in cookie.split(';'):
+                if "notice_email" in c:
+                    email_addr = c.split("=")[-1].strip()
+                    break
+            send_mail_notice(f"挂辣条-登录信息已过期：\n{cookie.split(';')[0]}", email_addr)
 
         await asyncio.sleep(0.5)
         r, data = await BiliApi.do_sign_group(cookie)
@@ -82,9 +90,6 @@ async def main():
         if "20932326" in cookie:
             await asyncio.sleep(0.5)
             await BiliApi.silver_to_coin(cookie)
-
-    if need_login:
-        send_mail_notice("挂辣条异常\n" + need_login)
 
     with open("/home/wwwroot/stormgift/data/heartbeat_cookies.json", "wb") as f:
         f.write(json.dumps({"RAW_COOKIE_LIST": vip_list}, ensure_ascii=False).encode("utf-8"))

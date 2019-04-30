@@ -1,0 +1,124 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <title>CL's 辣条挂</title>
+    <meta name="author" content="CL" />
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="MobileOptimized" content="320" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="https://statics.madliar.com/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://statics.madliar.com/static/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://statics.madliar.com/static/css/jstree.min.css">
+    <link rel="stylesheet" href="https://statics.madliar.com/static/notebook/jstree.custom.css">
+    <link rel="stylesheet" href="https://statics.madliar.com/static/notebook/main.css">
+    <script>window.CDN_URL = "https://statics.madliar.com";</script>
+</head>
+
+<body>
+<div>
+    <div>
+        <label>USER ID=<input class="redinput" type="number" name="uid" placeholder="如：10244096">;</label>
+        <label>SESSDATA=<input class="redinput" type="text" name="SESSDATA" placeholder="如：7b613%2C55... 885">;</label>
+        <label>bili_jct=<input class="redinput" type="text" name="bili_jct" placeholder="如：be25b9... dfd9">;</label>
+        <label>邮箱=<input class="redinput" type="text" name="email" placeholder="如：2560768@qq.com">;</label>
+        <button class="button center" id="submit-cookie">确定</button>
+        <button class="button center" id="submit-query">查询状态</button>
+    </div>
+</div>
+<div>
+    <hr>
+    <h3>使用说明</h3>
+    <p>
+        1.想要挂辣条，需要把你的账号相关的USER ID、SESSDATA和bili_jct配置到这里。具体方法是: <br />
+        用chrome浏览器（或者百度浏览器、360浏览器都可以），登录到破站，然后右键选择“检查”或者“审查元素”，然后按照图中提示，将对应的值填到这里，然后点击「确定」按钮。（图片看不清可以放大看）：
+    </p>
+    <p>
+        邮箱可以不填。但建议填上，这样如果登录过期了会给你发送通知邮件。</p>
+    <p>
+        2.如果只是想查看自己的账号挂辣条是否正常，只需要输入USER ID即可，然后点击「查询状态」
+    </p>
+<img src="https://statics.madliar.com/static/img/使用说明.png" style="width:100%">
+
+
+
+</div>
+<div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="input-modal-title"></h4>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div id="prompt-modal-body"></div>
+                <button class="button center" id="modal-confirm-btn">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="https://statics.madliar.com/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="https://statics.madliar.com/static/js/bootstrap.min.js"></script>
+<script>
+$(function () {
+    function warning(msg){
+        $("#prompt-modal-body").html(msg);
+        $("#prompt-modal").modal("show");
+    }
+    function query(){
+        let uid = parseInt($("input[name=uid]").val());
+        if (uid){
+            console.log("uid")
+        }else{
+            warning("错误的USER ID！")
+        }
+        $.ajax({
+            url: "/",
+            type: "post",
+            data: {
+                action: "query",
+                uid: uid
+            },
+            success: function (data){warning(data)},
+            error: function (data) {warning("网络错误!")}
+        });
+    }
+    function submit(){
+        let uid = $("input[name=uid]").val();
+        let SESSDATA = $("input[name=SESSDATA]").val();
+        let bili_jct = $("input[name=bili_jct]").val();
+        let email = $("input[name=email]").val();
+        if (uid){
+            warning("错误的USER ID！")
+        }
+        if (!SESSDATA){
+            warning("错误的SESSDATA！")
+        }
+        if (!bili_jct){
+            warning("错误的bili_jct！")
+        }
+        $.ajax({
+            url: "/",
+            type: "post",
+            data: {
+                action: "submit",
+                uid: uid,
+                SESSDATA: SESSDATA,
+                bili_jct: bili_jct,
+                email: email,
+            },
+            success: function (data){warning(data)},
+            error: function (data) {warning("网络错误!")}
+        });
+    }
+    $("#modal-confirm-btn").click(function () {
+        $("#prompt-modal").modal("hide");
+    });
+    $("#submit-cookie").click(submit);
+    $("#submit-query").click(query);
+});
+</script>
+</body>
+</html>
