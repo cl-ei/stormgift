@@ -35,6 +35,9 @@ async def query(request):
     except Exception:
         return web.Response(text=f"错误的uid： {raw_uid}，重新输入！".format())
 
+    if uid not in BLACK_LIST:
+        return web.Response(text=f"USER ID {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
+
     try:
         with open("./data/cookie.json", "r") as f:
             c = json.load(f)
