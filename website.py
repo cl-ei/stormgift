@@ -55,6 +55,7 @@ async def query(request):
         return web.Response(text=f"用户（USER ID: {uid}）已过期！请重新配置！！！")
 
     message_list = []
+    uid = str(uid)
     try:
         with open("/home/wwwroot/log/acceptor_stormgift.log", "rb") as f:
             # with open("./log/hansy.log", "rb") as f:
