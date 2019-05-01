@@ -81,9 +81,11 @@ async def api(request):
     uid = data['uid']
     try:
         uid = int("".join(uid.split()))
-        assert uid in BLACK_LIST
     except Exception:
         return web.Response(text="错误的USER ID!")
+
+    if uid not in BLACK_LIST:
+        return web.Response(text=f"USER ID {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
 
     if action == "query":
         try:
