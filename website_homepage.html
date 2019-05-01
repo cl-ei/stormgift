@@ -75,16 +75,17 @@ $(function () {
         }else{
             warning("错误的USER ID！")
         }
-        $.ajax({
-            url: "/",
-            type: "post",
-            data: {
-                action: "query",
-                uid: uid
-            },
-            success: function (data){warning(data)},
-            error: function (data) {warning("网络错误!")}
-        });
+        window.open("/" + uid);
+        // $.ajax({
+        //     url: "/",
+        //     type: "post",
+        //     data: {
+        //         action: "query",
+        //         uid: uid
+        //     },
+        //     success: function (data){warning(data)},
+        //     error: function (data) {warning("网络错误!")}
+        // });
     }
     function submit(){
         let uid = $("input[name=uid]").val();

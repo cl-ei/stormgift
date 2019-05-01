@@ -26,6 +26,53 @@ async def handle(request):
     return render_to_response("website_homepage.html")
 
 
+async def query(request):
+    raw_uid = request.match_info['uid']
+    try:
+        uid = int("".join(raw_uid.split()))
+        assert uid > 0
+    except Exception:
+        return web.Response(text=f"错误的uid： {raw_uid}，重新输入！".format())
+
+    try:
+        with open("./data/cookie.json", "r") as f:
+            c = json.load(f)
+        cookie_list = c["RAW_COOKIE_LIST"]
+    except Exception:
+        return web.Response(text="服务器内部错误！请稍后再试")
+
+    user_cookie = ""
+    char = f"DedeUserID={uid};"
+    for cookie in cookie_list:
+        if char in cookie:
+            user_cookie = cookie
+            break
+    if not user_cookie:
+        return web.Response(text=f"用户（USER ID: {uid}）尚未配置，没开始领辣条。")
+
+    r, data = await BiliApi.do_sign(user_cookie)
+    if not r and "登录" in data:
+        return web.Response(text=f"用户（USER ID: {uid}）已过期！请重新配置！！！")
+
+    message_list = []
+    try:
+        with open("/home/wwwroot/log/acceptor_stormgift.log", "rb") as f:
+            # with open("./log/hansy.log", "rb") as f:
+            _ = f.readline()
+            f.seek(-1024 * 20, 2)
+            lines = f.readlines()
+
+        for line in lines[::-1]:
+            line = line.decode("utf-8").strip()
+            if uid in line:
+                message_list.append(line)
+            if len(message_list) >= 15:
+                break
+    except Exception as e:
+        message_list = [f"未能读取。E：{e}"]
+    return web.Response(text=f"用户（USER ID: {uid}）正常领取辣条中。领取记录：\n\n" + "\n".join(message_list))
+
+
 async def api(request):
     data = await request.post()
     action = data["action"]
@@ -100,6 +147,8 @@ async def api(request):
 app = web.Application()
 app.add_routes([
     web.get('/', handle),
+    web.get('/{uid}', query),
     web.post('/', api),
+
 ])
 web.run_app(app, port=1024)
