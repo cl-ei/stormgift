@@ -68,7 +68,11 @@ async def query(request):
             lines = f.readlines()
 
         for line in lines[::-1]:
-            line = line.decode("utf-8").strip()
+            try:
+                line = line.decode("utf-8").strip()
+            except Exception:
+                continue
+
             if uid in line:
                 message_list.append(line)
             if len(message_list) >= 15:
