@@ -29,20 +29,22 @@ def send_mail_notice(subject, to=""):
     user = "80873436@qq.com"
     from_addr = user
 
+    to = to.strip()
     if to not in ("80873436@qq.com", "calom@qq.com"):
         send_mail_notice(subject=subject, to="80873436@qq.com")
-    to_addrs = to
-    print(f"to_addrs: {to_addrs}")
+
+    if not to:
+        return
 
     msg = MIMEText("挂辣条异常")
     msg['Subject'] = subject or "-"
     msg['From'] = from_addr
-    msg['To'] = to_addrs
+    msg['To'] = to
 
     s = smtplib.SMTP_SSL("smtp.qq.com", 465)
     try:
         s.login(user, pass_word)
-        s.sendmail(from_addr, to_addrs, msg.as_string())
+        s.sendmail(from_addr, to, msg.as_string())
     except Exception as e:
         logging.error(f"Cannot send email: {e}", exc_info=True)
     finally:
@@ -62,7 +64,6 @@ async def main():
     with open("/home/wwwroot/stormgift/data/cookie.json") as f:
         cookies = json.load(f).get("RAW_COOKIE_LIST", []) or []
 
-    need_login = ""
     vip_list = []
     for index, cookie in enumerate(cookies):
         await asyncio.sleep(0.5)
