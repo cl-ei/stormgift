@@ -32,6 +32,7 @@ def send_mail_notice(subject, to=""):
     if to not in ("80873436@qq.com", "calom@qq.com"):
         send_mail_notice(subject=subject, to="80873436@qq.com")
     to_addrs = to
+    print(f"to_addrs: {to_addrs}")
 
     msg = MIMEText("挂辣条异常")
     msg['Subject'] = subject or "-"
