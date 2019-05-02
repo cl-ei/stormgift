@@ -1,3 +1,4 @@
+import datetime
 import time
 import smtplib
 import sys
@@ -65,6 +66,8 @@ async def main():
         cookies = json.load(f).get("RAW_COOKIE_LIST", []) or []
 
     vip_list = []
+    available_cookies = []
+    invalid_cookies = []
     for index, cookie in enumerate(cookies):
         await asyncio.sleep(0.5)
         r, data = await BiliApi.get_if_user_is_live_vip(cookie)
@@ -81,6 +84,10 @@ async def main():
                     break
             send_mail_notice(f"挂辣条-登录信息已过期：\n{cookie.split(';')[0]}", email_addr)
 
+            invalid_cookies.append(cookie)
+        else:
+            available_cookies.append(cookie)
+
         await asyncio.sleep(0.5)
         r, data = await BiliApi.do_sign_group(cookie)
         if not r:
@@ -95,6 +102,10 @@ async def main():
 
     with open("/home/wwwroot/stormgift/data/heartbeat_cookies.json", "wb") as f:
         f.write(json.dumps({"RAW_COOKIE_LIST": vip_list}, ensure_ascii=False).encode("utf-8"))
+
+    if invalid_cookies and datetime.datetime.now().hour > 18:
+        with open("/home/wwwroot/stormgift/data/cookies.json", "wb") as f:
+            f.write(json.dumps({"RAW_COOKIE_LIST": available_cookies}, ensure_ascii=False, indent=2).encode("utf-8"))
 
     logging.info(f"Do sign task done. cost: {int((time.time() - start_time) *1000)} ms.\n\n")
 
