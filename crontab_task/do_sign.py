@@ -101,7 +101,7 @@ async def main():
     with open("/home/wwwroot/stormgift/data/heartbeat_cookies.json", "wb") as f:
         f.write(json.dumps({"RAW_COOKIE_LIST": vip_list}, ensure_ascii=False).encode("utf-8"))
 
-    if invalid_cookies and datetime.datetime.now().hour > 18:
+    if invalid_cookies:
         with open("/home/wwwroot/stormgift/data/cookie.json", "wb") as f:
             f.write(json.dumps({"RAW_COOKIE_LIST": available_cookies}, ensure_ascii=False, indent=2).encode("utf-8"))
         logging.info(f"RAW_COOKIE_LIST updated!")
