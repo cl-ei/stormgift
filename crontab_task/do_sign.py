@@ -24,18 +24,15 @@ logging = logger
 
 
 def send_mail_notice(subject, to=""):
+    to = to.strip()
+    if not to:
+        return
+
     with open("/home/wwwroot/stormgift/config/proj_config.json") as f:
         pass_word = json.load(f).get("mail_auth_pass", "") or ""
 
     user = "80873436@qq.com"
     from_addr = user
-
-    to = to.strip()
-    if to not in ("80873436@qq.com", "calom@qq.com"):
-        send_mail_notice(subject=subject, to="80873436@qq.com")
-
-    if not to:
-        return
 
     msg = MIMEText("挂辣条异常")
     msg['Subject'] = subject or "-"
