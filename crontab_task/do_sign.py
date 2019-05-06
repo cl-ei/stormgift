@@ -77,6 +77,8 @@ async def main():
         await asyncio.sleep(0.5)
         r, data = await BiliApi.do_sign(cookie)
         if not r and "登录" in data:
+            invalid_cookies.append(cookie)
+
             email_addr = ""
             for c in cookie.split(';'):
                 if "notice_email" in c:
@@ -84,7 +86,6 @@ async def main():
                     break
             send_mail_notice(f"挂辣条-登录信息已过期：\n{cookie.split(';')[0]}", email_addr)
 
-            invalid_cookies.append(cookie)
         else:
             available_cookies.append(cookie)
 
@@ -106,6 +107,7 @@ async def main():
     if invalid_cookies and datetime.datetime.now().hour > 18:
         with open("/home/wwwroot/stormgift/data/cookies.json", "wb") as f:
             f.write(json.dumps({"RAW_COOKIE_LIST": available_cookies}, ensure_ascii=False, indent=2).encode("utf-8"))
+        logging.info(f"RAW_COOKIE_LIST updated!")
 
     logging.info(f"Do sign task done. cost: {int((time.time() - start_time) *1000)} ms.\n\n")
 
