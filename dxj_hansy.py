@@ -68,9 +68,12 @@ class TempData:
     fans_id_set = None
 
 
-async def send_hansy_danmaku(msg):
+async def send_hansy_danmaku(msg, user=""):
     try:
-        from data import COOKIE_LP
+        if user == "DD":
+            from data import COOKIE_DD as COOKIE
+        else:
+            from data import COOKIE_LP as COOKIE
     except Exception as e:
         logging.error(f"Cannot load cookie, e: {e}.", exc_info=True)
         return
@@ -78,7 +81,7 @@ async def send_hansy_danmaku(msg):
     await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
-        cookie=COOKIE_LP
+        cookie=COOKIE
     )
 
 
@@ -254,8 +257,6 @@ async def proc_message(message):
         DanmakuSetting.THANK_GIFT = True
         DanmakuSetting.THANK_FOLLOWER = False
         await send_hansy_danmaku("仙女别忘了发送【已唱歌单】啊~")
-        await asyncio.sleep(0.5)
-        await send_hansy_danmaku("状态")
 
 
 async def send_carousel_msg():
@@ -263,7 +264,7 @@ async def send_carousel_msg():
         return
 
     msg = DanmakuSetting.MSG_LIST[DanmakuSetting.MSG_INDEX]
-    await send_hansy_danmaku(msg)
+    await send_hansy_danmaku(msg, user="DD")
 
     DanmakuSetting.MSG_INDEX = (DanmakuSetting.MSG_INDEX + 1) % len(DanmakuSetting.MSG_LIST)
 
@@ -328,7 +329,7 @@ async def thank_follower():
                     f"感谢{uname}的关注~♪（＾∀＾●）",
                     f"感谢{uname}的关注，爱了就别走好吗ノ♥",
                     f"谢谢{uname}的关注，mua~(˙ε˙)",
-                ]))
+                ]), user="DD")
 
     if len(TempData.fans_id_set) < 5000:
         TempData.fans_id_set |= new_fans_uid_set
