@@ -69,7 +69,6 @@ class TempData:
 
 
 async def send_hansy_danmaku(msg, user=""):
-    logging.info(f"{msg} --- {user} ")
     try:
         if user == "DD":
             from data import COOKIE_DD as COOKIE
@@ -161,12 +160,12 @@ async def proc_message(message):
 
             elif msg == "状态":
                 cache_count = (
-                    f"f{'-' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
+                    f"f{'0' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
                     f"n{len(TempData.user_name_to_uid_map)}"
                     f"s{len(TempData.silver_gift_list)}"
                 )
                 await send_hansy_danmaku(
-                    f"答谢:礼物{'开' if DanmakuSetting.THANK_GIFT else '关'}-"
+                    f"礼物{'开' if DanmakuSetting.THANK_GIFT else '关'}-"
                     f"关注{'开' if DanmakuSetting.THANK_FOLLOWER else '关'}-"
                     f"{cache_count}"
                 )
