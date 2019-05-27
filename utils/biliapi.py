@@ -202,7 +202,7 @@ class BiliApi:
 
     @classmethod
     async def get_guard_room_list(cls, timeout=5):
-        req_url = "https://dmagent.chinanorth.cloudapp.chinacloudapi.cn:23333/Governors/View"
+        req_url = "https://dmagentbilibili.koreasouth.cloudapp.azure.com:23333/Governors/View"
         flag, r = await cls.get(req_url, timeout=timeout)
         if not flag:
             return False, r
