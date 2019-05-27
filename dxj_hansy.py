@@ -159,15 +159,9 @@ async def proc_message(message):
                 await send_hansy_danmaku("🤖 完成。")
 
             elif msg == "状态":
-                cache_count = (
-                    f"f{'0' if TempData.fans_id_set is None else len(TempData.fans_id_set)}"
-                    f"n{len(TempData.user_name_to_uid_map)}"
-                    f"s{len(TempData.silver_gift_list)}"
-                )
                 await send_hansy_danmaku(
                     f"礼物{'开' if DanmakuSetting.THANK_GIFT else '关'}-"
                     f"关注{'开' if DanmakuSetting.THANK_FOLLOWER else '关'}-"
-                    f"{cache_count}"
                 )
 
         if "好听" in msg and random() > 0.7:
