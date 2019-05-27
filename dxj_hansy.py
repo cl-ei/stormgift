@@ -137,6 +137,7 @@ async def proc_message(message):
         DanmakuSetting.flush_last_active_time()
 
         if is_admin or uid == 39748080:
+            logging.info(f"isadmin {is_admin}, uid: {uid}, msg: {msg}")
             if msg == "开启答谢":
                 DanmakuSetting.THANK_GIFT = True
                 await send_hansy_danmaku("🤖 弹幕答谢已开启。房管发送「关闭答谢」即可关闭。")
