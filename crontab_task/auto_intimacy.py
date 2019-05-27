@@ -105,12 +105,11 @@ async def main():
     else:
         sys.path.append('../')
 
-    from data import COOKIE_LP, COOKIE_DD, COOKIE_TZ
+    from data import COOKIE_LP, COOKIE_DD
 
     users = (
         (COOKIE_LP, "电磁泡"),
         (COOKIE_DD, "电磁泡"),
-        (COOKIE_TZ, "小夭精"),
     )
     for args in users:
         await send_gift(*args)
