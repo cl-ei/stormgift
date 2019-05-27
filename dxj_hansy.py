@@ -69,6 +69,7 @@ class TempData:
 
 
 async def send_hansy_danmaku(msg, user=""):
+    await asyncio.sleep(2)
     try:
         if user == "DD":
             from data import COOKIE_DD as COOKIE
