@@ -69,7 +69,7 @@ class TempData:
 
 
 async def send_hansy_danmaku(msg, user=""):
-    await asyncio.sleep(2)
+    logging.info(f"{msg} --- {user} ")
     try:
         if user == "DD":
             from data import COOKIE_DD as COOKIE
@@ -84,7 +84,6 @@ async def send_hansy_danmaku(msg, user=""):
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
         cookie=COOKIE
     )
-    logging.info(f"{msg} --- {user} %{flag} % {msg}")
     if not flag:
         logging.error(f"Danmaku [{msg}] send failed, msg: {msg}, user: {user}.")
 
