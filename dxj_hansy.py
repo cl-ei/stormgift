@@ -83,6 +83,7 @@ async def send_hansy_danmaku(msg, user=""):
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
         cookie=COOKIE
     )
+    logging.info(f"{msg} --- {user} %{flag} % {msg}")
     if not flag:
         logging.error(f"Danmaku [{msg}] send failed, msg: {msg}, user: {user}.")
 
@@ -164,13 +165,11 @@ async def proc_message(message):
                     f"n{len(TempData.user_name_to_uid_map)}"
                     f"s{len(TempData.silver_gift_list)}"
                 )
-                logging.info(f"cache_count: {cache_count} isadmin {is_admin}, uid: {uid}, msg: {msg}")
                 await send_hansy_danmaku(
                     f"答谢:礼物{'开' if DanmakuSetting.THANK_GIFT else '关'}-"
                     f"关注{'开' if DanmakuSetting.THANK_FOLLOWER else '关'}-"
                     f"{cache_count}"
                 )
-                logging.info(f"111cache_count: {cache_count} isadmin {is_admin}, uid: {uid}, msg: {msg}")
 
         if "好听" in msg and random() > 0.7:
             await send_hansy_danmaku(choice([
