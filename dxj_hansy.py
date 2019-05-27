@@ -137,7 +137,6 @@ async def proc_message(message):
         DanmakuSetting.flush_last_active_time()
 
         if is_admin or uid == 39748080:
-            logging.info(f"isadmin {is_admin}, uid: {uid}, msg: {msg}")
             if msg == "开启答谢":
                 DanmakuSetting.THANK_GIFT = True
                 await send_hansy_danmaku("🤖 弹幕答谢已开启。房管发送「关闭答谢」即可关闭。")
@@ -165,11 +164,13 @@ async def proc_message(message):
                     f"n{len(TempData.user_name_to_uid_map)}"
                     f"s{len(TempData.silver_gift_list)}"
                 )
+                logging.info(f"cache_count: {cache_count} isadmin {is_admin}, uid: {uid}, msg: {msg}")
                 await send_hansy_danmaku(
                     f"答谢:礼物{'开' if DanmakuSetting.THANK_GIFT else '关'}-"
                     f"关注{'开' if DanmakuSetting.THANK_FOLLOWER else '关'}-"
                     f"{cache_count}"
                 )
+                logging.info(f"111cache_count: {cache_count} isadmin {is_admin}, uid: {uid}, msg: {msg}")
 
         if "好听" in msg and random() > 0.7:
             await send_hansy_danmaku(choice([
