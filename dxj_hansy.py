@@ -78,11 +78,13 @@ async def send_hansy_danmaku(msg, user=""):
         logging.error(f"Cannot load cookie, e: {e}.", exc_info=True)
         return
 
-    await BiliApi.send_danmaku(
+    flag, msg = await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
         cookie=COOKIE
     )
+    if not flag:
+        logging.error(f"Danmaku [{msg}] send failed, msg: {msg}, user: {user}.")
 
 
 async def save_gift(uid, name, face, gift_name, count):
