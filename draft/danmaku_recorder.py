@@ -7,7 +7,7 @@ from utils.biliapi import WsApi
 import logging
 
 
-MONITOR_ROOM_ID = int(sys.argv[1])
+MONITOR_ROOM_ID = 2516117  # int(sys.argv[1])
 LOG_NAME = f"recorder-{MONITOR_ROOM_ID}"
 
 if "linux" in sys.platform:
@@ -20,12 +20,12 @@ else:
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
 console.setFormatter(log_format)
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, LOG_NAME + ".log"), encoding="utf-8")
-file_handler.setFormatter(log_format)
+# file_handler = logging.FileHandler(os.path.join(LOG_PATH, LOG_NAME + ".log"), encoding="utf-8")
+# file_handler.setFormatter(log_format)
 logger = logging.getLogger(LOG_NAME)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(console)
-logger.addHandler(file_handler)
+# logger.addHandler(file_handler)
 logging = logger
 
 

@@ -119,7 +119,7 @@ async def save_gift(uid, name, face, gift_name, count):
 
 async def proc_message(message):
     cmd = message.get("cmd")
-    if cmd == "DANMU_MSG":
+    if cmd.startswith("DANMU_MSG"):
         info = message.get("info", {})
         msg = str(info[1])
         uid = info[2][0]
