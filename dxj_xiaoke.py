@@ -116,7 +116,7 @@ logging = logger
 
 async def proc_message(message):
     cmd = message.get("cmd")
-    if cmd == "DANMU_MSG":
+    if cmd.startswith("DANMU_MSG"):
         info = message.get("info", {})
         msg = info[1]
         uid = info[2][0]
