@@ -2,8 +2,7 @@ import os
 import sys
 import asyncio
 import time
-import datetime
-from random import choice, random
+from random import random
 import requests
 import json
 from utils.ws import ReConnectingWsClient
@@ -198,10 +197,12 @@ Thread(target=monitor_danmaku, daemon=True).start()
 @bot.on_message()
 def handle_msg(context):
     if context["message_type"] == "group":
-        user_id = context["sender"]["user_id"]
-        user_nickname = context["sender"]["nickname"]
-        title = context["sender"]["title"]
-        card = context["sender"]["card"]
+        sender = context["sender"]
+        user_id = sender["user_id"]
+        user_nickname = sender["nickname"]
+        title = sender.get("title", "--")
+        card = sender.get("card",  "--")
+
         group_id = context["group_id"]
         msg = context["raw_message"]
 
