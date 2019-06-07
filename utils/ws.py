@@ -65,7 +65,10 @@ class ReConnectingWsClient(object):
             except Exception as e:
                 await self.on_error(e, "in catch_connect_error")
 
-        task = asyncio.create_task(catch_connect_error())
+        if getattr(asyncio, "create_task", None):
+            task = asyncio.create_task(catch_connect_error())
+        else:
+            task = asyncio.ensure_future(catch_connect_error())
         task.add_done_callback(self._reconnect_cb)
         self.__task = task
 
@@ -105,7 +108,11 @@ class ReConnectingWsClient(object):
                             await ws.send(self.heart_beat_package)
                         except Exception as e:
                             await self.on_error(e, "Error in send heart beat.")
-                heart_beat_task = asyncio.create_task(send_heart_beat())
+
+                if getattr(asyncio, "create_task", None):
+                    heart_beat_task = asyncio.create_task(send_heart_beat())
+                else:
+                    heart_beat_task = asyncio.ensure_future(send_heart_beat())
 
             while not ws.closed:
                 try:
