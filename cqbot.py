@@ -130,7 +130,7 @@ async def __start_ws():
             )
             bot.send(context={"message_type": "group", "group_id": group_id}, message=message)
 
-            message = "[CQ:at,qq=all] 珩心助手提醒您：%s" % title
+            message = "[CQ:at,qq=all] \n直播啦！！快来听泡泡唱歌咯，本次直播主题：\n%s" % title
             bot.send(context={"message_type": "group", "group_id": group_id}, message=message)
 
     async def on_connect(ws):
@@ -197,14 +197,16 @@ Thread(target=monitor_danmaku, daemon=True).start()
 
 @bot.on_message()
 def handle_msg(context):
-    print(context)
-
     if context["message_type"] == "group":
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
+        title = context["sender"]["title"]
+        card = context["sender"]["card"]
         group_id = context["group_id"]
         msg = context["raw_message"]
-        logging.info("Group message received: group_%s %s(qq: %s) -> %s" % (group_id, user_nickname, user_id, msg))
+
+        logging.info("Group message received: group_%s [%s][%s](%s qq: %s) -> %s"
+                     % (group_id, title, card, user_nickname, user_id, msg))
 
         msg = msg.replace("！", "!").replace(" ", "").replace("　", "")
         if msg.startswith("!"):
@@ -280,8 +282,8 @@ def handle_group_increase(context):
         bot.set_group_card(group_id=436496941, user_id=user_id, card="✿泡泡┊" + nickname)
 
         message = (
-            "欢迎[CQ:at,qq=%s] 进入泡泡小黄鸡养殖场，群名片格式；✿泡泡┊ +你的昵称，"
-            "稽气人已经自动为你修改~ "
+            "欢迎[CQ:at,qq=%s] 进入泡泡小黄鸡养殖场！\n\n"
+            "群名片格式；✿泡泡┊ +你的昵称，稽气人已经自动为你修改~ \n\n"
             "进群记得发个言哦，否则有可能会被当机器人清理掉，很可怕的哦~ "
             "从今天开始一起跟泡泡守护小黄鸡呀！叽叽叽~"
         ) % user_id
