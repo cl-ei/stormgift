@@ -225,6 +225,18 @@ def handle_msg(context):
 
             bot.set_group_ban(group_id=group_id, user_id=user_id, duration=duration)
 
+        elif msg == "一言":
+            try:
+                r = requests.get("https://v1.hitokoto.cn/", timeout=10)
+                if r.status_code != 200:
+                    return {}
+                data = r.content.decode("utf-8")
+                response = json.loads(data).get("hitokoto")
+
+                bot.send_group_msg(group_id=group_id, message=response)
+            except Exception:
+                pass
+
     elif context["message_type"] == "private":
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
