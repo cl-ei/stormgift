@@ -1,3 +1,4 @@
+import re
 import os
 import sys
 import asyncio
@@ -206,39 +207,140 @@ def handle_msg(context):
         group_id = context["group_id"]
         msg = context["raw_message"]
 
-        logging.info("Group message received: group_%s [%s][%s](%s qq: %s) -> %s"
-                     % (group_id, title, card, user_nickname, user_id, msg))
+        logging.info(
+            "Group message received: group_%s [%s][%s](%s qq: %s) -> %s"
+            % (group_id, title, card, user_nickname, user_id, msg)
+        )
 
-        msg = msg.replace("！", "!").replace(" ", "").replace("　", "")
-        if msg.startswith("!"):
-            postfix = msg.split("睡觉")[-1].lower()
-            if postfix[-1] not in ("s", "m", "h"):
-                return {}
+        msg = msg.replace("＃", "#")
+        if msg.startswith("#"):
 
-            try:
-                duration = abs(int(postfix[:-1]))
-                assert duration > 0
-            except Exception:
-                return {}
+            if msg == "#一言":
+                try:
+                    r = requests.get("https://v1.hitokoto.cn/", timeout=10)
+                    if r.status_code != 200:
+                        return {}
+                    data = r.content.decode("utf-8")
+                    response = json.loads(data).get("hitokoto")
 
-            if postfix[-1] == "m":
-                duration *= 60
-            elif postfix[-1] == "h":
-                duration *= 3600
+                    bot.send_group_msg(group_id=group_id, message=response)
+                except Exception:
+                    pass
 
-            bot.set_group_ban(group_id=group_id, user_id=user_id, duration=duration)
-
-        elif msg == "一言":
-            try:
-                r = requests.get("https://v1.hitokoto.cn/", timeout=10)
-                if r.status_code != 200:
+            elif msg.startswith("#睡觉"):
+                postfix = msg.replace(" ", "").replace("　", "").split("睡觉")[-1].lower()
+                if postfix[-1] not in ("s", "m", "h"):
                     return {}
-                data = r.content.decode("utf-8")
-                response = json.loads(data).get("hitokoto")
 
-                bot.send_group_msg(group_id=group_id, message=response)
-            except Exception:
-                pass
+                try:
+                    duration = abs(int(postfix[:-1]))
+                    assert duration > 0
+                except Exception:
+                    return {}
+
+                if postfix[-1] == "m":
+                    duration *= 60
+                elif postfix[-1] == "h":
+                    duration *= 3600
+
+                bot.set_group_ban(group_id=group_id, user_id=user_id, duration=duration)
+
+            elif msg.endswith("天气"):
+                if "西雅图" in msg or "seattle" in msg.lower():
+                    url = "http://www.weather.com.cn/weather/401100101.shtml"
+                    try:
+                        r = requests.get(url)
+                        if r.status_code != 200:
+                            return {}
+                        p = r.content.decode("utf-8")
+                        start = p.find("今天")
+                        end = p.find("后天")
+                        content = p[start: end]
+                    except Exception:
+                        content = ""
+
+                    today = re.findall("hidden_title\".*value=\"(.*)\"", content)
+                    if not today:
+                        return {}
+                    today = today[0]
+                    if today:
+                        bot.send_group_msg(group_id=group_id, message="西雅图天气：" + today)
+
+                else:
+                    city = msg.split("天气")[0].replace("#", "").replace("#", " ")
+                    url = "http://apis.juhe.cn/simpleWeather/query?key=9228fc70b4ae29bc4f1e0ed6fc57dd04&city=" + city
+                    try:
+                        r = requests.get(url)
+                        if r.status_code != 200:
+                            return {}
+
+                        r = json.loads(r.content.decode("utf-8"))
+                        result = r.get("result", {})
+
+                        realtime = result.get("realtime", {})
+                        info1 = "%s今日%s, %s%s, %s ℃；" % (
+                            city,
+                            realtime.get("info"),
+                            realtime.get("power"), realtime.get("direct"),
+                            realtime.get("temperature"),
+                        )
+
+                        future = result.get("future", [{}])[0]
+                        info2 = "明日%s, %s, %s。" % (
+                            future.get("weather"), future.get("direct"), future.get("temperature"),
+                        )
+                        bot.send_group_msg(group_id=group_id, message=info1 + info2)
+                    except Exception as e:
+                        logging.exception("Error when handle weather: %s" % e, exc_info=True)
+
+            elif msg.endswith("运势"):
+                constellation = ""
+                for c in ("白羊座", "金牛座", "双子座", "巨蟹座",
+                          "狮子座", "处女座", "天秤座", "天蝎座",
+                          "射手座", "摩羯座", "水瓶座", "双鱼座"):
+                    if c in msg:
+                        constellation = c
+                        break
+                if not constellation:
+                    bot.send_group_msg(group_id=group_id, message="请输入正确的星座， 比如 #狮子座今日运势")
+
+                try:
+                    url = (
+                        "http://web.juhe.cn:8080/constellation/getAll"
+                        "?consName=%s"
+                        "&type=today&key=5dcf5e7412cb140c57421a54445de177"
+                    ) % constellation
+                    r = requests.get(url)
+                    if r.status_code != 200:
+                        return {}
+
+                    result = json.loads(r.content.decode("utf-8")).get("summary")
+
+                except Exception as e:
+                    logging.exception("Error: %s" % e, exc_info=True)
+                    return {}
+
+                bot.send_group_msg(group_id=group_id, message="%s: %s" % (constellation, result))
+
+            elif msg.startswith("#点歌"):
+                song_name = msg.split("点歌")[-1].strip()
+                if not song_name:
+                    return {}
+
+                song_name += " 管珩心"
+                try:
+                    url = "http://music.163.com/api/search/pc"
+                    r = requests.post(url, data={"s": song_name, "type": 1, "limit": 10, "offset": 0})
+                    if r.status_code != 200:
+                        return {}
+                    r = json.loads(r.content.decode("utf-8"))
+                    songs = r.get("result", {}).get("songs", [])
+                    if songs:
+                        song_id = songs[0].get("id")
+                        bot.send_group_msg(group_id=group_id, message="[CQ:music,type=163,id=%s]" % song_id)
+
+                except Exception as e:
+                    logging.exception("Error: %s" % e, exc_info=True)
 
     elif context["message_type"] == "private":
         user_id = context["sender"]["user_id"]
@@ -294,3 +396,5 @@ def handle_group_increase(context):
 
 
 bot.run(host='127.0.0.1', port=8080)
+
+requests.post()
