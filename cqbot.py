@@ -183,8 +183,9 @@ async def __start_ws():
                 info = m.get("info", {})
                 msg = str(info[1])
                 uid = info[2][0]
+                user_name = info[2][1]
 
-                logging.debug("Danmaku received: %s -> %s" % (uid, msg))
+                logging.debug("Danmaku received: %s (%s) -> %s" % (user_name, uid, msg))
 
                 if uid == 20932326:
                     if msg == "测试通知":
