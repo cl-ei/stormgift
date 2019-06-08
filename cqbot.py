@@ -174,6 +174,10 @@ async def __start_ws():
 
             elif cmd == "PREPARING":
                 Settings.prepare()
+                bot.send_private_msg(
+                    user_id=291020256,
+                    message="小仙女记得把歌单发给小盹哥哥鸭~ 加油哦他最胖！\n [CQ:image,file=1.gif]"
+                )
 
             elif cmd.startswith("DANMU_MSG"):
                 info = m.get("info", {})
