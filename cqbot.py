@@ -3,7 +3,8 @@ import os
 import sys
 import asyncio
 import time
-from random import random
+import datetime
+from random import random, choice
 import requests
 import json
 from utils.ws import ReConnectingWsClient
@@ -253,6 +254,25 @@ def handle_msg(context):
                 except Exception:
                     pass
 
+            if msg == "#历史上的今天":
+                today = datetime.datetime.today()
+                url = "http://api.juheapi.com/japi/toh?v=1.0&month=%s&day=%s&key=776630c7f437ddf719eecbb960a24713" % (
+                   today.month, today.day
+                )
+                try:
+                    r = requests.get(url, timeout=10)
+                    if r.status_code != 200:
+                        return {}
+                    data = r.content.decode("utf-8")
+                    result = json.loads(data).get("result", []) or []
+                    if not result:
+                        return {}
+
+                    msg = choice(result).get("des", "") or ""
+                    bot.send_group_msg(group_id=group_id, message=msg)
+                except Exception:
+                    pass
+
             elif msg.startswith("#睡觉"):
                 postfix = msg.replace(" ", "").replace("　", "").split("睡觉")[-1].lower()
                 if postfix[-1] not in ("s", "m", "h"):
@@ -368,6 +388,20 @@ def handle_msg(context):
                 except Exception as e:
                     logging.exception("Error: %s" % e, exc_info=True)
 
+            else:
+                msg = msg.replace(" ", "").replace("　", "").lower()
+                if msg in ("#help", "#h", "#帮助", "#指令"):
+                    message = (
+                        "珩心初号机支持的指令：\n\n"
+                        "1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床%s``。)\n"
+                        "2.#点歌 北上 管珩心\n"
+                        "3.#一言\n"
+                        "4.#北京天气\n"
+                        "5.#狮子座运势\n"
+                        "6.#历史上的今天"
+                    ) % group_id
+                    bot.send_group_msg(group_id=group_id, message=message)
+
     elif context["message_type"] == "private":
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
@@ -384,6 +418,17 @@ def handle_msg(context):
                 bot.send_private_msg(user_id=user_id, message="您输入的口令有误。若要解除禁言，请输入“起床+群号”， 如：“起床436496941”")
             else:
                 bot.set_group_ban(group_id=group_id, user_id=user_id, duration=0)
+        else:
+            message = (
+                "珩心初号机支持的指令：(QQ群内可用)\n\n"
+                "1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床436496941``。)\n"
+                "2.#点歌 北上 管珩心\n"
+                "3.#一言\n"
+                "4.#北京天气\n"
+                "5.#狮子座运势\n"
+                "6.#历史上的今天"
+            )
+            bot.send_private_msg(user_id=user_id, message=message)
         return {}
 
 
