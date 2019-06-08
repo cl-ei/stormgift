@@ -25,14 +25,38 @@ logger.addHandler(log_file_handler)
 logging = logger
 
 
-HANSY_LIVE_ROOM_ID = 2516117
-LAST_NOTICE_ALL_TIME = time.time() - 7200
-hansy_group_id_list = [
-    159855203,  # test
-    883237694,  # guard
-    436496941,
-    591691708,
-]
+class Settings:
+    LIVE_ROOM_ID = 2516117
+
+    last_notice_time = time.time() - 7200
+    last_prepare_time = time.time() - 7200
+
+    TEST_GROUP_ID_LIST = [159855203, ]
+    NOTICE_GROUP_ID_LIST = [
+        159855203,  # test
+        883237694,  # guard
+        436496941,
+        591691708,
+    ]
+
+    @classmethod
+    def notice(cls, f):
+        if (
+            time.time() - cls.last_notice_time > 60*30
+            and time.time() - cls.last_prepare_time > 60*10
+        ):
+            cls.last_notice_time = time.time()
+            return f()
+
+    @classmethod
+    def prepare(cls):
+        cls.last_prepare_time = time.time()
+
+    @classmethod
+    def clear_time(cls):
+        cls.last_notice_time = time.time() - 7200
+
+
 bot = CQHttp(api_root='http://127.0.0.1:5700/', access_token='123456', secret='654321')
 
 
@@ -123,7 +147,7 @@ async def __start_ws():
 
         content = "这里是一只易燃易咆哮的小狮子，宝物是糖果锤！嗷呜(っ*´□`)っ~不关注我的通通都要被一！口！吃！掉！"
 
-        groups = hansy_group_id_list[:1] if test else hansy_group_id_list
+        groups = Settings.TEST_GROUP_ID_LIST if test else Settings.NOTICE_GROUP_ID_LIST
         for group_id in groups:
             message = "[CQ:share,url=https://live.bilibili.com/2516117,title=%s,content=%s,image=%s]" % (
                 title, content, image
@@ -135,25 +159,21 @@ async def __start_ws():
 
     async def on_connect(ws):
         logging.info("connected.")
-        await ws.send(WsApi.gen_join_room_pkg(HANSY_LIVE_ROOM_ID))
+        await ws.send(WsApi.gen_join_room_pkg(Settings.LIVE_ROOM_ID))
 
     async def on_shut_down():
         logging.error("shutdown!")
         raise RuntimeError("Connection broken!")
 
     async def on_message(message):
-        global LAST_NOTICE_ALL_TIME
 
         for m in WsApi.parse_msg(message):
             cmd = m.get("cmd")
             if cmd == "LIVE":
+                Settings.notice(at_all_for_hansy)
 
-                if time.time() - LAST_NOTICE_ALL_TIME > 1800:
-                    at_all_for_hansy()
-                else:
-                    logging.error("Notice to freq!")
-
-                LAST_NOTICE_ALL_TIME = time.time()
+            elif cmd == "PREPARING":
+                Settings.prepare()
 
             elif cmd.startswith("DANMU_MSG"):
                 info = m.get("info", {})
@@ -164,13 +184,13 @@ async def __start_ws():
 
                 if uid == 20932326:
                     if msg == "测试通知":
-                        if time.time() - LAST_NOTICE_ALL_TIME > 1800:
+                        def f():
                             at_all_for_hansy(test=True)
-                        else:
-                            logging.error("Notice to freq! test.")
-                        LAST_NOTICE_ALL_TIME = time.time()
+
+                        Settings.notice(f)
+
                     if msg == "重置通知":
-                        LAST_NOTICE_ALL_TIME = time.time() - 7200
+                        Settings.clear_time()
 
     new_client = ReConnectingWsClient(
         uri=WsApi.BILI_WS_URI,
@@ -183,6 +203,7 @@ async def __start_ws():
 
     await new_client.start()
     logging.info("Hansy ws stated.")
+
     while True:
         await asyncio.sleep(10)
 
@@ -354,7 +375,7 @@ def handle_msg(context):
             except Exception:
                 group_id = 0
 
-            if group_id not in hansy_group_id_list:
+            if group_id not in Settings.NOTICE_GROUP_ID_LIST:
                 bot.send_private_msg(user_id=user_id, message="您输入的口令有误。若要解除禁言，请输入“起床+群号”， 如：“起床436496941”")
             else:
                 bot.set_group_ban(group_id=group_id, user_id=user_id, duration=0)
@@ -386,7 +407,7 @@ def handle_group_increase(context):
 
         message = (
             "欢迎[CQ:at,qq=%s] 进入泡泡小黄鸡养殖场！\n\n"
-            "群名片格式；✿泡泡┊ +你的昵称，稽气人已经自动为你修改~ \n\n"
+            "群名片格式；`✿泡泡┊` + 你的昵称，初号机已经自动为你修改~ \n\n"
             "进群记得发个言哦，否则有可能会被当机器人清理掉，很可怕的哦~ "
             "从今天开始一起跟泡泡守护小黄鸡呀！叽叽叽~"
         ) % user_id
@@ -396,5 +417,3 @@ def handle_group_increase(context):
 
 
 bot.run(host='127.0.0.1', port=8080)
-
-requests.post()
