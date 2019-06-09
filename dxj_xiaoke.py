@@ -246,6 +246,10 @@ async def thank_gift():
 
 
 async def thank_follower():
+
+    # block
+    return True
+
     if TempData.fans_list is None:
         fl = await get_fans_list()
         if fl:
