@@ -378,7 +378,7 @@ async def main():
         await asyncio.sleep(1)
         counter = (counter + 1) % 10000000000
 
-        if counter % 10 == 0 and DanmakuSetting.THANK_FOLLOWER:
+        if counter % 15 == 0 and DanmakuSetting.THANK_FOLLOWER:
             await thank_follower()
 
         if counter % 13 == 0 and DanmakuSetting.THANK_GIFT:
