@@ -299,6 +299,8 @@ async def get_fans_list():
 
 
 async def thank_follower():
+    return True
+
     if not isinstance(TempData.fans_id_set, set):
         fl = await get_fans_list()
         if fl:
