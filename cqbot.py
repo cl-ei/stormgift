@@ -223,6 +223,10 @@ def monitor_danmaku():
 Thread(target=monitor_danmaku, daemon=True).start()
 
 
+cq_image_pattern = re.compile(r"\[CQ:image,file=([^\]]*)\]")
+cq_record_pattern = re.compile(r"\[CQ:record,file=([^\]]*)\]")
+
+
 @bot.on_message()
 def handle_msg(context):
     if context["message_type"] == "group":
@@ -239,6 +243,15 @@ def handle_msg(context):
             "Group message received: group_%s [%s][%s](%s qq: %s) -> %s"
             % (group_id, title, card, user_nickname, user_id, msg)
         )
+
+        image_files = cq_image_pattern.findall(msg)
+        for image_file in image_files:
+            print("image_file: ", image_file)
+            bot.get_image(file=image_file)
+
+        record_files = cq_record_pattern.findall(msg)
+        for record_file in record_files:
+            bot.get_record(file=record_file, out_format="mp3")
 
         msg = msg.replace("＃", "#")
         if msg.startswith("#"):
@@ -434,7 +447,7 @@ def handle_msg(context):
 
 
 @bot.on_notice()
-def handle_group_increase(context):
+def handle_notice(context):
     """
     {
         'notice_type': 'group_increase',
@@ -447,7 +460,7 @@ def handle_group_increase(context):
         'operator_id': 310300788
     }
     """
-    print("handle_group_increase", context)
+    logging.info("notice: %s" % context)
 
     if context["notice_type"] == 'group_increase' and context["group_id"] == 436496941:
         user_id = context["user_id"]
