@@ -275,7 +275,7 @@ def handle_msg(context):
 
             elif msg.startswith("#睡觉"):
                 postfix = msg.replace(" ", "").replace("　", "").split("睡觉")[-1].lower()
-                if postfix[-1] not in ("s", "m", "h"):
+                if not postfix or postfix[-1] not in ("s", "m", "h"):
                     return {}
 
                 try:
