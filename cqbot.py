@@ -510,4 +510,16 @@ def handle_request(context):
     return {'approve': True}
 
 
+@bot.on_event()
+def handle_event(context):
+    print(f"event: {context}")
+    return
+
+
+@bot.on_meta_event()
+def handle_meta_event(context):
+    print(f"meta event: {context}")
+    return
+
+
 bot.run(host='127.0.0.1', port=8080)
