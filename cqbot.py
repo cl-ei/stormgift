@@ -3,10 +3,12 @@ import os
 import sys
 import json
 import time
+import uuid
 import logging
 import asyncio
 import requests
 import datetime
+import hashlib
 import traceback
 from math import floor
 from threading import Thread
@@ -259,6 +261,74 @@ class BotUtils:
         else:
             bot.send_group_msg(group_id=group_id, message=f"[CQ:record,file={word}.mp3,magic=false]")
 
+    @classmethod
+    def post_word_meaning(cls, word, group_id):
+        YOUDAO_URL = "http://openapi.youdao.com/api"
+        APP_KEY = "679aa6a74516f7c7"
+        APP_SECRET = "mUJXnipoSAV8wzUs6yxUgnSZi6M2Ulbd"
+
+        def encrypt(sign_str):
+            hash_algorithm = hashlib.sha256()
+            hash_algorithm.update(sign_str.encode('utf-8'))
+            return hash_algorithm.hexdigest()
+
+        def truncate(q):
+            if q is None:
+                return None
+            size = len(q)
+            return q if size <= 20 else q[0:10] + str(size) + q[size - 10:size]
+
+        q = word
+        data = {}
+        data['from'] = 'EN'
+        data['to'] = 'zh-CHS'
+        data['signType'] = 'v3'
+        curtime = str(int(time.time()))
+        data['curtime'] = curtime
+        salt = str(uuid.uuid1())
+        signStr = APP_KEY + truncate(q) + salt + curtime + APP_SECRET
+        sign = encrypt(signStr)
+        data['appKey'] = APP_KEY
+        data['q'] = q
+        data['salt'] = salt
+        data['sign'] = sign
+
+        try:
+            r = requests.post(
+                YOUDAO_URL,
+                data=data,
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            )
+            assert r.status_code
+            r = json.loads(r.content.decode("utf-8"))
+            assert isinstance(r, dict)
+
+            translation = r.get("translation", "")
+            if len(word) > 20:
+                word = word[:19] + "..."
+
+            if not translation:
+                bot.send_group_msg(group_id=group_id, message=f"未找到“{word}”的释义 。")
+            message = f"{word}：{translation}"
+
+            explains = r.get("basic", {}).get("explains", []) or []
+            if explains:
+                message += "\n---------\n"
+                message += "\n".join(explains)
+
+            more = ""
+            web = r.get("web", []) or []
+            for w in web:
+                if isinstance(w, dict):
+                    more += f"\n{w['key']}：{w['values'][0]}"
+            if more:
+                message += f"\n更多:\n{more}"
+
+            bot.send_group_msg(group_id=group_id, message=message)
+
+        except Exception as e:
+            logging.exception(f"Error: {e}")
+
 
 cq_image_pattern = re.compile(r"\[CQ:image,file=([^\]]*)\]")
 cq_record_pattern = re.compile(r"\[CQ:record,file=([^\]]*)\]")
@@ -437,6 +507,9 @@ def handle_msg(context):
 
                 except Exception as e:
                     logging.exception("Error: %s" % e, exc_info=True)
+
+            elif msg.startswith("#翻译"):
+                BotUtils.post_word_meaning(group_id=group_id, word=msg[3:])
 
             else:
                 msg = msg.replace(" ", "").replace("　", "").lower()
