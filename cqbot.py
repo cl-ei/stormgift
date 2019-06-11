@@ -7,6 +7,7 @@ import logging
 import asyncio
 import requests
 import datetime
+import traceback
 from math import floor
 from threading import Thread
 from random import random, choice
@@ -234,6 +235,29 @@ def monitor_danmaku():
 
 
 Thread(target=monitor_danmaku, daemon=True).start()
+
+
+class BotUtils:
+
+    @classmethod
+    def post_word_audio(cls, word, group_id):
+        url = f"http://media.shanbay.com/audio/us/{word}.mp3"
+        try:
+            r = requests.get(url)
+            assert r.status_code == 200
+            file = f"C:\\backup\\programfiles\\酷Q Pro\\data\\record\\{word}.mp3"
+            with open(file, "wb") as f:
+                f.write(r.content)
+
+        except Exception as e:
+            tb = traceback.format_exc()
+            error_msg = f"Error happened in post_word_audio: {e}.\n{tb}"
+
+            logging.exception(error_msg, exc_info=True)
+            bot.send_group_msg(group_id=group_id, message=error_msg)
+
+        else:
+            bot.send_group_msg(group_id=group_id, message=f"[CQ:record,file={word}.mp3,magic=false]")
 
 
 cq_image_pattern = re.compile(r"\[CQ:image,file=([^\]]*)\]")
