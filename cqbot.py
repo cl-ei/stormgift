@@ -443,14 +443,17 @@ def handle_msg(context):
                 if msg in ("#help", "#h", "#帮助", "#指令"):
                     message = (
                         "珩心初号机支持的指令：\n\n"
-                        "1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床%s``。)\n"
+                        f"1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床{group_id}``。)\n"
                         "2.#点歌 北上 管珩心\n"
                         "3.#一言\n"
                         "4.#北京天气\n"
                         "5.#狮子座运势\n"
                         "6.#历史上的今天"
-                    ) % group_id
-                    bot.send_group_msg(group_id=group_id, message=message)
+                    )
+                    return bot.send_group_msg(group_id=group_id, message=message)
+
+                elif re.match(r"^[a-z]+$", msg[1:]):
+                    BotUtils.post_word_audio(word=msg[1:], group_id=group_id)
 
     elif context["message_type"] == "private":
         user_id = context["sender"]["user_id"]
