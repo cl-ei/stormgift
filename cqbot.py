@@ -428,11 +428,15 @@ def handle_msg(context):
             except Exception:
                 group_id = 0
 
-            if group_id not in Settings.NOTICE_GROUP_ID_LIST:
-                bot.send_private_msg(user_id=user_id, message="您输入的口令有误。若要解除禁言，请输入“起床+群号”， 如：“起床436496941”")
-            else:
+            if group_id in Settings.NOTICE_GROUP_ID_LIST:
                 bot.set_group_ban(group_id=group_id, user_id=user_id, duration=0)
-        else:
+            else:
+                bot.send_private_msg(
+                    user_id=user_id,
+                    message="您输入的口令有误。若要解除禁言，请输入“起床+群号”， 如：“起床436496941”"
+                )
+
+        elif msg.lower() in ("#help", "#h", "#帮助"):
             message = (
                 "珩心初号机支持的指令：(QQ群内可用)\n\n"
                 "1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床436496941``。)\n"
@@ -443,6 +447,10 @@ def handle_msg(context):
                 "6.#历史上的今天"
             )
             bot.send_private_msg(user_id=user_id, message=message)
+
+        elif user_id not in (80873436, 310300788):
+            bot.send_private_msg(user_id=80873436, message=f"来自{user_nickname}(QQ: {user_id}) -> {msg}")
+
         return {}
 
 
