@@ -320,7 +320,7 @@ class BotUtils:
             web = r.get("web", []) or []
             for w in web:
                 if isinstance(w, dict):
-                    more += f"\n{w['key']}：{w['values'][0]}"
+                    more += f"\n{w['key']}：{w['value'][0]}"
             if more:
                 message += f"\n更多:\n{more}"
 
