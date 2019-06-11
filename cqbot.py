@@ -305,7 +305,7 @@ class BotUtils:
 
             translation = r.get("translation", "")
             if not translation:
-                bot.send_group_msg(group_id=group_id, message=f"未找到“{word}”的释义 。")
+                raise Exception("No translation.")
 
             if len(word) > 20:
                 word = word[:19] + "..."
@@ -331,6 +331,7 @@ class BotUtils:
 
         except Exception as e:
             logging.exception(f"Error: {e}")
+            bot.send_group_msg(group_id=group_id, message=f"未找到“{word}”的释义 。")
 
 
 cq_image_pattern = re.compile(r"\[CQ:image,file=([^\]]*)\]")
