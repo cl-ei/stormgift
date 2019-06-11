@@ -304,12 +304,15 @@ class BotUtils:
             assert isinstance(r, dict)
 
             translation = r.get("translation", "")
-            if len(word) > 20:
-                word = word[:19] + "..."
-
             if not translation:
                 bot.send_group_msg(group_id=group_id, message=f"未找到“{word}”的释义 。")
-            message = f"{word}：{translation}"
+
+            if len(word) > 20:
+                word = word[:19] + "..."
+                br = "\n"
+                message = f"{word}：\n{br.join(translation)}"
+            else:
+                message = f"{word}：{', '.join(translation)}"
 
             explains = r.get("basic", {}).get("explains", []) or []
             if explains:
@@ -322,7 +325,7 @@ class BotUtils:
                 if isinstance(w, dict):
                     more += f"\n{w['key']}：{w['value'][0]}"
             if more:
-                message += f"\n更多:\n{more}"
+                message += f"\n\n更多:{more}"
 
             bot.send_group_msg(group_id=group_id, message=message)
 
