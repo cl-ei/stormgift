@@ -41,6 +41,8 @@ class Settings:
         591691708,
     ]
 
+    BLACK_LIST_FILE = "./data/cq_bot_black_list.txt"
+
     @classmethod
     def notice(cls, f):
         if (
@@ -57,6 +59,17 @@ class Settings:
     @classmethod
     def clear_time(cls):
         cls.last_notice_time = time.time() - 7200
+
+    @classmethod
+    def add_user_to_black_list(cls, user_id):
+        with open(cls.BLACK_LIST_FILE, "ab") as f:
+            f.write(f"<{user_id}\n".encode("utf-8"))
+
+    @classmethod
+    def get_if_user_in_black_list(cls, user_id):
+        with open(cls.BLACK_LIST_FILE, "rb") as f:
+            content = f.read().decode("utf-8")
+        return f"<{user_id}\n" in content
 
 
 bot = CQHttp(api_root='http://127.0.0.1:5700/', access_token='123456', secret='654321')
@@ -246,7 +259,6 @@ def handle_msg(context):
 
         image_files = cq_image_pattern.findall(msg)
         for image_file in image_files:
-            print("image_file: ", image_file)
             bot.get_image(file=image_file)
 
         record_files = cq_record_pattern.findall(msg)
@@ -486,6 +498,16 @@ def handle_notice(context):
         bot.send_group_msg(group_id=436496941, message=message)
 
     return {}
+
+
+@bot.on_request()
+def handle_request(context):
+    print(f"context: {context}")
+    return
+
+    if context['comment'] != 'some-secret':
+        return {'approve': False, 'reason': '你填写的验证信息有误'}
+    return {'approve': True}
 
 
 bot.run(host='127.0.0.1', port=8080)
