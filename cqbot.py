@@ -490,11 +490,11 @@ def handle_notice(context):
         bot.set_group_card(group_id=436496941, user_id=user_id, card="✿泡泡┊" + nickname)
 
         message = (
-            "欢迎[CQ:at,qq=%s] 进入泡泡小黄鸡养殖场！\n\n"
+            f"欢迎[CQ:at,qq={user_id}] 进入泡泡小黄鸡养殖场！\n\n"
             "群名片格式：✿泡泡┊ + 你的昵称，初号机已经自动为你修改~ \n\n"
             "进群记得发个言哦，否则有可能会被当机器人清理掉，很可怕的哦~ "
             "从今天开始一起跟泡泡守护小黄鸡呀！叽叽叽~"
-        ) % user_id
+        )
         bot.send_group_msg(group_id=436496941, message=message)
 
     return {}
@@ -502,23 +502,33 @@ def handle_notice(context):
 
 @bot.on_request()
 def handle_request(context):
-    print(f"context: {context}")
-    return
+    logging.info(f"request context: {context}")
 
-    if context['comment'] != 'some-secret':
-        return {'approve': False, 'reason': '你填写的验证信息有误'}
-    return {'approve': True}
+    if context["request_type"] == "friend":
+        pass
+
+    elif context["request_type"] == "group":
+        user_id = context["user_id"]
+        comment = context["comment"]
+        group_id = context["group_id"]
+
+        logging.info(f"Add group request: user_id: {user_id}, comment: {comment}, group_id: {group_id}")
+
+        if group_id in Settings.NOTICE_GROUP_ID_LIST and group_id != 883237694:
+            return {'approve': True}
+
+    return
 
 
 @bot.on_event()
 def handle_event(context):
-    print(f"event: {context}")
+    logging.info(f"event context: {context}")
     return
 
 
 @bot.on_meta_event()
 def handle_meta_event(context):
-    print(f"meta event: {context}")
+    logging.info(f"meta_event context: {context}")
     return
 
 
