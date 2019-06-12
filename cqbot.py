@@ -333,6 +333,51 @@ class BotUtils:
             logging.exception(f"Error: {e}")
             bot.send_group_msg(group_id=group_id, message=f"未找到“{word}”的释义 。")
 
+    @staticmethod
+    def get_song_id(song_name):
+
+        songs = []
+        no_salt_songs = []
+        try:
+            url = "http://music.163.com/api/search/pc"
+            r = requests.post(url, data={"s": song_name, "type": 1, "limit": 50, "offset": 0})
+            if r.status_code == 200:
+                r = json.loads(r.content.decode("utf-8")).get("result", {}).get("songs", []) or []
+                if isinstance(r, list):
+                    no_salt_songs = r
+                    songs.extend(r)
+
+            time.sleep(0.3)
+            r = requests.post(url, data={"s": song_name + " 管珩心", "type": 1, "limit": 50, "offset": 0})
+            if r.status_code == 200:
+                r = json.loads(r.content.decode("utf-8")).get("result", {}).get("songs", [])
+                if isinstance(r, list):
+                    songs.extend(r)
+
+            assert songs
+
+        except Exception:
+            return None
+
+        song_name = song_name.lower().strip()
+        name_matched = []
+        for song in songs:
+            name = song.get("name").lower().strip()
+            if (
+                    name == song_name
+                    or (len(name) < len(song_name) and name in song_name)
+                    or (len(song_name) < len(name) and song_name in name)
+            ):
+                name_matched.append(song)
+
+        filtered_songs = name_matched or no_salt_songs
+        for song in filtered_songs:
+            artist_names = "".join([artist.get("name").lower().strip() for artist in song.get("artists", [])])
+            if "管珩心" in artist_names or "hansy" in artist_names or "泡泡" in artist_names:
+                return song.get("id")
+
+        return filtered_songs[0].get("id") if filtered_songs else None
+
 
 cq_image_pattern = re.compile(r"\[CQ:image,file=([^\]]*)\]")
 cq_record_pattern = re.compile(r"\[CQ:record,file=([^\]]*)\]")
@@ -497,20 +542,17 @@ def handle_msg(context):
                 if not song_name:
                     return {}
 
-                song_name += " 管珩心"
                 try:
-                    url = "http://music.163.com/api/search/pc"
-                    r = requests.post(url, data={"s": song_name, "type": 1, "limit": 10, "offset": 0})
-                    if r.status_code != 200:
-                        return {}
-                    r = json.loads(r.content.decode("utf-8"))
-                    songs = r.get("result", {}).get("songs", [])
-                    if songs:
-                        song_id = songs[0].get("id")
-                        bot.send_group_msg(group_id=group_id, message="[CQ:music,type=163,id=%s]" % song_id)
-
+                    song_id = BotUtils.get_song_id(song_name)
                 except Exception as e:
-                    logging.exception("Error: %s" % e, exc_info=True)
+                    tb = traceback.format_exc()
+                    error_msg = f"Error happened in BotUtils.get_song_id: {e}\n{tb}"
+                    logging.error(error_msg)
+                    bot.send_group_msg(group_id=group_id, message=error_msg)
+                    return
+
+                message = f"[CQ:music,type=163,id={song_id}]" if song_id else f"未找到歌曲「{song_name}」"
+                bot.send_group_msg(group_id=group_id, message=message)
 
             elif msg.startswith("#翻译"):
                 BotUtils.post_word_meaning(group_id=group_id, word=msg[3:])
