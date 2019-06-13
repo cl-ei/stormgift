@@ -607,7 +607,11 @@ def handle_msg(context):
             bot.send_private_msg(user_id=user_id, message=message)
 
         elif user_id not in (80873436, 310300788):
-            bot.send_private_msg(user_id=80873436, message=f"来自{user_nickname}(QQ: {user_id}) -> {msg}")
+            bot.send_private_msg(
+                user_id=80873436,
+                message=f"来自{user_nickname}(QQ: {user_id}) -> {msg}",
+                auto_escape=True,
+            )
 
         return {}
 
