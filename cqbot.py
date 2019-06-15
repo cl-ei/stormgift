@@ -79,7 +79,7 @@ class Settings:
         return f"<{user_id}\n" in content
 
 
-bot = CQHttp(api_root='http://127.0.0.1:5700/', access_token='123456', secret='654321')
+bot = CQHttp(api_root='http://127.0.0.1:5700/', access_token=access_token, secret=access_token)
 
 
 class BotUtils:
