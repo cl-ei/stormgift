@@ -259,7 +259,7 @@ async def proc_message(message):
 
             time_interval = time.time() - DanmakuSetting.LAST_LIVE_TIME
             message = (
-                f"通知间隔太短：上次开播{time_interval / 60}分钟前，"
+                f"上次开播{time_interval / 60}分钟前，"
                 f"刷新时间{DanmakuSetting.LAST_LIVE_STATUS_UPDATE_TIME}."
             )
             bot.send_private_msg(user_id=80873436, message=message)
@@ -315,21 +315,21 @@ async def proc_message(message):
         await save_gift(uid, uname, face, gift_name, num)
 
     elif cmd == "LIVE":
-        DanmakuSetting.THANK_GIFT = False
-        DanmakuSetting.THANK_FOLLOWER = True
-        await send_hansy_danmaku("状态")
-
         time_interval = time.time() - DanmakuSetting.LAST_LIVE_TIME
         if time_interval > 60 * 40:
             DanmakuSetting.LAST_LIVE_TIME = time.time()
             send_qq_notice_message()
 
+        DanmakuSetting.THANK_GIFT = False
+        DanmakuSetting.THANK_FOLLOWER = True
+        await send_hansy_danmaku("状态")
+
     elif cmd == "PREPARING":
+        bot.send_private_msg(user_id=291020256, message="小仙女记得把歌单发我昂~\n [CQ:image,file=1.gif]")
+
         DanmakuSetting.THANK_GIFT = True
         DanmakuSetting.THANK_FOLLOWER = False
         await send_hansy_danmaku("状态")
-
-        bot.send_private_msg(user_id=291020256, message="小仙女记得把歌单发我昂~\n [CQ:image,file=1.gif]")
 
 
 async def send_carousel_msg():
