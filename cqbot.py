@@ -239,13 +239,15 @@ def handle_msg(context):
             % (group_id, title, card, user_nickname, user_id, msg)
         )
 
-        image_files = cq_image_pattern.findall(msg)
-        for image_file in image_files:
-            bot.get_image(file=image_file)
-
-        record_files = cq_record_pattern.findall(msg)
-        for record_file in record_files:
-            bot.get_record(file=record_file, out_format="mp3")
+        # not available in docker
+        #
+        # image_files = cq_image_pattern.findall(msg)
+        # for image_file in image_files:
+        #     bot.get_image(file=image_file)
+        #
+        # record_files = cq_record_pattern.findall(msg)
+        # for record_file in record_files:
+        #     bot.get_record(file=record_file, out_format="mp3")
 
         msg = msg.replace("＃", "#")
         if msg.startswith("#"):
@@ -381,6 +383,9 @@ def handle_msg(context):
                 if not song_name:
                     return {}
 
+                strip_name = song_name.replace("管珩心", "").replace("泡泡", "").lower().replace("hansy", "").strip()
+                song_name = strip_name if strip_name else song_name
+
                 try:
                     song_id = BotUtils.get_song_id(song_name)
                 except Exception as e:
@@ -409,9 +414,10 @@ def handle_msg(context):
                         "6.#历史上的今天"
                     )
                     return bot.send_group_msg(group_id=group_id, message=message)
-
-                elif re.match(r"^[a-z]+$", msg[1:]):
-                    BotUtils.post_word_audio(word=msg[1:], group_id=group_id)
+                # not available in docker
+                #
+                # elif re.match(r"^[a-z]+$", msg[1:]):
+                #     BotUtils.post_word_audio(word=msg[1:], group_id=group_id)
 
     elif context["message_type"] == "private":
         user_id = context["sender"]["user_id"]
@@ -521,4 +527,4 @@ def handle_meta_event(context):
     return
 
 
-bot.run(host='127.0.0.1', port=60000)
+bot.run(host='0.0.0.0', port=60000)
