@@ -14,8 +14,12 @@ from cqhttp import CQHttp
 
 if "linux" in sys.platform:
     LOG_FILE = "/home/wwwroot/log/cqbot.log"
+    access_token, secret = sys.argv[1], sys.argv[2]
+    print(f"cqbot start: access_token: {access_token}, secret: {secret}")
 else:
     LOG_FILE = os.path.join("./log", "cqbot.log")
+    access_token = ''
+    secret = ''
 
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
