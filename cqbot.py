@@ -429,7 +429,12 @@ def handle_msg(context):
         msg = context["raw_message"]
         logging.info("Private message received: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))
 
-        if msg.startswith("起床"):
+        if user_id == 80873436 and msg.startswith("转发"):
+            msg = msg[2:]
+            relay_user_id, raw_msg = msg.split("-", 1)
+            bot.send_private_msg(user_id=relay_user_id, message=raw_msg)
+
+        elif msg.startswith("起床"):
             try:
                 group_id = int(msg[2:])
             except Exception:
