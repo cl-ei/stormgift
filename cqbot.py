@@ -432,7 +432,11 @@ def handle_msg(context):
         if user_id == 80873436 and msg.startswith("转发"):
             msg = msg[2:]
             relay_user_id, raw_msg = msg.split("-", 1)
-            bot.send_private_msg(user_id=int(relay_user_id), message=raw_msg)
+            try:
+                r = bot.send_private_msg(user_id=int(relay_user_id), message=raw_msg)
+            except Exception as e:
+                r = f"E: {e}"
+            bot.send_private_msg(user_id=80873436, message=f"Result: {r}")
 
         elif msg.startswith("起床"):
             try:
