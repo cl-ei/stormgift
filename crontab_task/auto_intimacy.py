@@ -1,23 +1,9 @@
 import sys
-import logging
+from config.log4 import crontab_task_logger as logging
 import asyncio
 
-log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
-console = logging.StreamHandler(sys.stdout)
-console.setFormatter(log_format)
-logger = logging.getLogger("auto_intimacy")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(console)
 
-if "linux" in sys.platform:
-    file_handler = logging.FileHandler("/home/wwwroot/log/auto_intimacy.log")
-    file_handler.setFormatter(log_format)
-    logger.addHandler(file_handler)
-
-logging = logger
-
-
-async def send_gift(cookie, medal):
+async def send_gift(cookie, medal, user_name=""):
     from utils.biliapi import BiliApi
 
     r = await BiliApi.get_medal_info_list(cookie)
@@ -29,7 +15,7 @@ async def send_gift(cookie, medal):
     if not target_model:
         return
     target_model = target_model[0]
-    logging.info(f"{uid} -> {target_model['medal_name']}")
+    logging.info(f"{uid} {user_name} -> {target_model['medal_name']}")
 
     live_room_id = target_model["roomid"]
     ruid = target_model["anchorInfo"]["uid"]
@@ -96,23 +82,20 @@ async def send_gift(cookie, medal):
         )
         if not flag:
             logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
-    logging.info(f"Final left intimacy: {left_intimacy}")
+    logging.info(f"{user_name} final left intimacy: {left_intimacy}")
 
 
 async def main():
-    if "linux" in sys.platform:
-        sys.path.append('/home/wwwroot/stormgift/')
-    else:
-        sys.path.append('../')
+    with open("data/valid_cookies.txt", "r") as f:
+        cookies = f.readlines()
 
-    from data import COOKIE_LP, COOKIE_DD
+    for c in cookies:
+        if "20932326" in c:
+            await send_gift(cookie=c.strip(), medal="电磁泡", user_name="打盹")
 
-    users = (
-        (COOKIE_LP, "电磁泡"),
-        (COOKIE_DD, "电磁泡"),
-    )
-    for args in users:
-        await send_gift(*args)
+        if "39748080" in c:
+            await send_gift(cookie=c.strip(), medal="电磁泡", user_name="录屏")
+
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

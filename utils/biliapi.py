@@ -658,12 +658,16 @@ class BiliApi:
         return await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_error_code=True)
 
     @classmethod
-    async def get_if_user_is_live_vip(cls, cookie, timeout=10):
+    async def get_if_user_is_live_vip(cls, cookie, user_id=None, timeout=10):
         req_url = "https://api.live.bilibili.com/xlive/web-ucenter/user/get_user_info"
         headers = {"Cookie": cookie}
         r, data = await cls.get(req_url, headers=headers, timeout=timeout, check_error_code=True)
         if not r:
             return r, data
+
+        if isinstance(user_id, int) and user_id != data.get("data", {}).get("uid"):
+            return False, "User id not match."
+
         result = data.get("data", {}).get("vip") == 1
         return True, result
 

@@ -1,33 +1,7 @@
 import sys
 import json
-import logging
+from config.log4 import crontab_task_logger as logging
 import asyncio
-
-VIP_LIST = [
-    "DedeUserID=20932326",
-    "DedeUserID=312186483",
-    "DedeUserID=49279889",
-    "DedeUserID=87301592",
-    "DedeUserID=48386500",
-    "DedeUserID=95284802",
-    "DedeUserID=39748080",
-    "DedeUserID=359496014",
-]
-
-
-log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
-console = logging.StreamHandler(sys.stdout)
-console.setFormatter(log_format)
-logger = logging.getLogger("heartbeat")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(console)
-
-if "linux" in sys.platform:
-    file_handler = logging.FileHandler("/home/wwwroot/log/heartbeat.log")
-    file_handler.setFormatter(log_format)
-    logger.addHandler(file_handler)
-
-logging = logger
 
 
 async def post_heartbeat(cookie):
@@ -47,14 +21,8 @@ async def post_heartbeat(cookie):
 
 
 async def main():
-    if "linux" in sys.platform:
-        sys.path.append('/home/wwwroot/stormgift/')
-
-    else:
-        sys.path.append('../')
-
-    with open("/home/wwwroot/stormgift/data/heartbeat_cookies.json") as f:
-        cookies = json.load(f).get("RAW_COOKIE_LIST", []) or []
+    with open("data/vip_cookies.txt") as f:
+        cookies = [c.strip() for c in f.readlines()]
 
     for c in cookies:
         await post_heartbeat(c)

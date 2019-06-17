@@ -53,8 +53,19 @@ status_logger.setLevel(logging.DEBUG)
 status_logger.addHandler(console)
 status_logger.addHandler(status_file_handler)
 status_logger.addHandler(stormgift_file_handler)
+
+
+
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "crontab_task.log"))
+file_handler.setFormatter(log_format)
+crontab_task_logger = logging.getLogger("crontab_task")
+crontab_task_logger.setLevel(logging.DEBUG)
+crontab_task_logger.addHandler(console)
+crontab_task_logger.addHandler(file_handler)
+
 __all__ = (
     "listener_logger",
     "acceptor_logger",
     "status_logger",
+    "crontab_task_logger",
 )
