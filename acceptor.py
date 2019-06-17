@@ -19,6 +19,7 @@ class Acceptor(object):
         self.q = asyncio.Queue(maxsize=2000)
         self.cookie_file = "data/valid_cookies.txt"
         self.__black_list = {}
+        self.__busy_time = 0
 
     async def add_task(self, key):
         await self.q.put(key)
@@ -85,6 +86,9 @@ class Acceptor(object):
             if "访问被拒绝" in msg:
                 await self.add_to_black_list(cookie)
 
+            elif "412" in msg:
+                self.__busy_time = time.time()
+
     async def accept_guard(self, i, user_id, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
         if r:
@@ -93,6 +97,9 @@ class Acceptor(object):
             logging.critical(f"GUARD AC FAILED! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
                 await self.add_to_black_list(cookie)
+
+            elif "412" in msg:
+                self.__busy_time = time.time()
 
     async def accept_prize(self, key):
         if not isinstance(key, str):
@@ -121,15 +128,17 @@ class Acceptor(object):
 
         now_hour = datetime.datetime.now().hour
         busy_time = bool(now_hour < 2 or now_hour > 18)
+        busy_412 = bool(time.time() - self.__busy_time < 60*20)
+        chance = 0.4 if busy_412 else 0.8
         for user_id, cookie in white_cookies:
             display_index += 1
 
-            if busy_time:
-                if random() < 0.70:
-                    logging.info(f"Too busy, user {user_id} skip.")
-                    continue
-                else:
+            if busy_time or busy_412:
+                if random() < chance:
                     await asyncio.sleep(random())
+                else:
+                    logging.info(f"Too busy, user {user_id} skip. reason: {'412' if busy_412 else 'time'}.")
+                    continue
 
             await process_fn(display_index, user_id, room_id, gift_id, cookie)
 
