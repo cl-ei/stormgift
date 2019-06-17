@@ -46,7 +46,7 @@ async def check_single_cookie(c):
 
 async def main():
     with open("data/cookies.txt", "r") as f:
-        cookies = f.readlines()
+        cookies = [c.strip() for c in f.readlines()]
 
     valid_cookies = []
     vip_cookies = []
