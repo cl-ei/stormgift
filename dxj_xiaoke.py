@@ -7,21 +7,19 @@ import logging
 
 try:
     proc_num = int(sys.argv[1])
-except Exception:
+except (IndexError, ValueError):
     proc_num = 0
 
 ROOM_ID_MAP = {
     0: 11472492,
 }
 
+from config.log4 import dxj_xiaoke_logger as logging
+
 
 class DanmakuSetting:
     MONITOR_ROOM_ID = ROOM_ID_MAP[proc_num]
     MONITOR_UID = None
-
-    LOG_PATH = "log" if sys.platform != "linux" else "/home/wwwroot/log"
-    LOG_NAME = f"xiaoke_{proc_num}-{MONITOR_ROOM_ID}"
-    LOG_FILE_NAME = os.path.join(LOG_PATH, f"{LOG_NAME}.log")
 
     THANK_BLACK_UID_LIST = set()
 
@@ -81,16 +79,24 @@ class TempData:
     fans_list = None
 
 
+async def get_cookie():
+    uid = "20932326;"  # DD
+    with open("data/valid_cookies.txt") as f:
+        for c in f.readlines():
+            if uid in c:
+                return c.strip()
+    return ""
+
+
 async def send_danmaku(msg):
-    try:
-        from data import COOKIE_DD
-    except Exception as e:
-        return logging.error(f"Cannot get cookie: {e}.", exc_info=True)
+    cookie = await get_cookie()
+    if not cookie:
+        return
 
     await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
-        cookie=COOKIE_DD
+        cookie=cookie
     )
 
 
@@ -99,19 +105,6 @@ async def get_fans_list():
         DanmakuSetting.MONITOR_UID = await BiliApi.get_uid_by_live_room_id(DanmakuSetting.MONITOR_ROOM_ID)
     result = await BiliApi.get_fans_list(DanmakuSetting.MONITOR_UID)
     return result[::-1]
-
-
-log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
-console = logging.StreamHandler(sys.stdout)
-console.setFormatter(log_format)
-file_handler = logging.FileHandler(DanmakuSetting.LOG_FILE_NAME)
-file_handler.setFormatter(log_format)
-
-logger = logging.getLogger(DanmakuSetting.LOG_NAME)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(console)
-logger.addHandler(file_handler)
-logging = logger
 
 
 async def proc_message(message):

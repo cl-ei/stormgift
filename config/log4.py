@@ -70,12 +70,27 @@ crontab_task_logger.setLevel(logging.DEBUG)
 crontab_task_logger.addHandler(console)
 crontab_task_logger.addHandler(file_handler)
 
+
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_hansy.log"))
 file_handler.setFormatter(log_format)
 dxj_hansy_logger = logging.getLogger("dxj_hansy")
 dxj_hansy_logger.setLevel(logging.DEBUG)
 dxj_hansy_logger.addHandler(console)
 dxj_hansy_logger.addHandler(file_handler)
+
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_xiaoke.log"))
+file_handler.setFormatter(log_format)
+dxj_xiaoke_logger = logging.getLogger("dxj_xiaoke")
+dxj_xiaoke_logger.setLevel(logging.DEBUG)
+dxj_xiaoke_logger.addHandler(console)
+dxj_xiaoke_logger.addHandler(file_handler)
+
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_wanzi.log"))
+file_handler.setFormatter(log_format)
+dxj_wanzi_logger = logging.getLogger("dxj_wanzi")
+dxj_wanzi_logger.setLevel(logging.DEBUG)
+dxj_wanzi_logger.addHandler(console)
+dxj_wanzi_logger.addHandler(file_handler)
 
 
 __all__ = (
@@ -85,4 +100,6 @@ __all__ = (
     "server_logger",
     "crontab_task_logger",
     "dxj_hansy_logger",
+    "dxj_xiaoke_logger",
+    "dxj_wanzi_logger",
 )

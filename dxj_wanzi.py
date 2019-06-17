@@ -3,11 +3,11 @@ import sys
 import asyncio
 from utils.ws import ReConnectingWsClient
 from utils.biliapi import WsApi, BiliApi
-import logging
+from config.log4 import dxj_wanzi_logger as logging
 
 try:
     proc_num = int(sys.argv[1])
-except Exception:
+except (ValueError, IndexError):
     proc_num = 0
 
 ROOM_ID_MAP = {
@@ -89,16 +89,24 @@ class TempData:
     fans_list = None
 
 
+async def get_cookie():
+    uid = "12298306;"  # WZ
+    with open("data/valid_cookies.txt") as f:
+        for c in f.readlines():
+            if uid in c:
+                return c.strip()
+    return ""
+
+
 async def send_danmaku(msg):
-    try:
-        from data import COOKIE_WANZI
-    except Exception as e:
-        return logging.error(f"Cannot get COOKIE_WANZI: {e}.", exc_info=True)
+    cookie = await get_cookie()
+    if not cookie:
+        return
 
     await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
-        cookie=COOKIE_WANZI
+        cookie=cookie
     )
 
 
@@ -107,19 +115,6 @@ async def get_fans_list():
         DanmakuSetting.MONITOR_UID = await BiliApi.get_uid_by_live_room_id(DanmakuSetting.MONITOR_ROOM_ID)
     result = await BiliApi.get_fans_list(DanmakuSetting.MONITOR_UID)
     return result[::-1]
-
-
-log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
-console = logging.StreamHandler(sys.stdout)
-console.setFormatter(log_format)
-xk_file_handler = logging.FileHandler(DanmakuSetting.LOG_FILE_NAME)
-xk_file_handler.setFormatter(log_format)
-
-logger = logging.getLogger(DanmakuSetting.LOG_NAME)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(console)
-logger.addHandler(xk_file_handler)
-logging = logger
 
 
 async def proc_message(message):
@@ -212,6 +207,7 @@ async def proc_message(message):
         gift_name = data.get("gift_name", "")
         price = data.get("price")
         count = data.get("combo_num", 0)
+
         if DanmakuSetting.GIFT_THANK_GOLD:
             if TempData.uname_to_id_map.get(uname) not in DanmakuSetting.THANK_BLACK_UID_LIST:
                 await send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
@@ -298,7 +294,7 @@ async def main():
             await proc_message(msg)
 
     new_client = ReConnectingWsClient(
-        uri=WsApi.BILI_WS_URI,  # "ws://localhost:22222",
+        uri=WsApi.BILI_WS_URI,
         on_message=on_message,
         on_connect=on_connect,
         on_shut_down=on_shut_down,
