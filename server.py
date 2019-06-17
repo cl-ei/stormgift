@@ -1,7 +1,7 @@
 import asyncio
 import websockets
 
-from config import PRIZE_HANDLER_SERVE_ADDR
+from config import PRIZE_HANDLER_SERVE_ADDR, PRIZE_SOURCE_PUSH_ADDR
 from config.log4 import server_logger as logging
 
 
@@ -45,13 +45,13 @@ class PrizeInfoReceiver:
         self.transport = transport
 
     def datagram_received(self, message, addr):
-        logging.info(f"Message received from udp server: [{message}]")
+        logging.info(f"Message received from {addr}: [{message}]")
         if self.__class__.notice_handler:
             asyncio.gather(self.__class__.notice_handler(message))
 
     @classmethod
-    async def start_server(cls):
-        listen = loop.create_datagram_endpoint(cls, local_addr=('127.0.0.1', 11111))
+    async def start_server(cls, addr):
+        listen = loop.create_datagram_endpoint(cls, local_addr=addr)
         await asyncio.ensure_future(listen)
 
 
@@ -59,7 +59,7 @@ async def main():
     h = NoticeHandler(*PRIZE_HANDLER_SERVE_ADDR)
 
     PrizeInfoReceiver.notice_handler = h.notice_all
-    await PrizeInfoReceiver.start_server()
+    await PrizeInfoReceiver.start_server(PRIZE_SOURCE_PUSH_ADDR)
     await h.start_server()
     logging.info(f"Server started.")
 
