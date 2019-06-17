@@ -10,14 +10,9 @@ import asyncio
 import peewee
 from peewee_async import Manager, PooledMySQLDatabase
 from config.log4 import crontab_task_logger as logging
+from config import MYSQL_CONFIG, REDIS_CONFIG
 
-
-
-with open(CONFIG_FILE, "rb") as f:
-    config = json.loads(f.read().decode("utf-8"))
-    mysql_config = config.get("mysql")
-    redis_config = config.get("redis")
-mysql_db = PooledMySQLDatabase(**mysql_config)
+mysql_db = PooledMySQLDatabase(**MYSQL_CONFIG)
 
 
 class User(peewee.Model):
@@ -143,9 +138,9 @@ class SyncTool(object):
         start_time = time.time()
         await objects.connect()
         redis = await aioredis.create_connection(
-            address='redis://%s:%s' % (redis_config["host"], redis_config["port"]),
-            db=redis_config["db"],
-            password=redis_config["auth_pass"],
+            address='redis://%s:%s' % (REDIS_CONFIG["host"], REDIS_CONFIG["port"]),
+            db=REDIS_CONFIG["db"],
+            password=REDIS_CONFIG["password"],
             loop=loop
         )
         await cls.sync_rec(redis)
