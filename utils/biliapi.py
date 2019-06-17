@@ -667,10 +667,19 @@ class BiliApi:
         result = data.get("data", {}).get("vip") == 1
         return True, result
 
+    @classmethod
+    async def get_live_status(cls, room_id, timeout=10):
+        req_url = F"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
+        r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        if not r:
+            return r, data
+        result = data.get("data", {}).get("status") == "LIVE"
+        return True, result
+
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_guard_list(65568410)
+    r = await BiliApi.get_live_status(2516117)
     print(r)
 
 

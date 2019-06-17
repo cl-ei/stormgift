@@ -1,28 +1,38 @@
 import re
 import os
 import sys
-import asyncio
 import time
-import datetime
-from random import choice, random
-import requests
 import json
-from utils.ws import ReConnectingWsClient
-from utils.biliapi import WsApi, BiliApi
 import logging
+import asyncio
+import datetime
+import requests
+from cqhttp import CQHttp
+from random import choice, random
+
+from utils.biliapi import WsApi, BiliApi
+from utils.ws import ReConnectingWsClient
+
 
 if "linux" in sys.platform:
     from config import config
     LOG_PATH = config["LOG_PATH"]
+
+    access_token = config["cq_access_token"]
+    secret = config["cq_secret"]
+
+    bot = CQHttp(api_root='http://49.234.17.23:5700/', access_token=access_token, secret=access_token)
 else:
     LOG_PATH = "./log"
+    access_token = ""
+    bot = CQHttp(api_root='http://127.0.0.1:5700/')
+
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
 console.setFormatter(log_format)
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "hansy.log"), encoding="utf-8")
 file_handler.setFormatter(log_format)
-
 logger = logging.getLogger("hansy")
 logger.setLevel(logging.DEBUG)
 logger.addHandler(console)
@@ -61,11 +71,60 @@ class DanmakuSetting(object):
     def flush_last_active_time(cls):
         cls.LAST_ACTIVE_TIME = time.time()
 
+    # notice
+    TEST_GROUP_ID_LIST = [159855203, ]
+    NOTICE_GROUP_ID_LIST = [
+        159855203,  # test
+        883237694,  # guard
+        436496941,
+        591691708,
+    ]
+    LAST_LIVE_TIME = time.time() - 3600
+    LAST_LIVE_STATUS_UPDATE_TIME = ""
+
 
 class TempData:
     user_name_to_uid_map = {}
     silver_gift_list = []
     fans_id_set = None
+
+
+def send_qq_notice_message(test=False):
+    url = "https://api.live.bilibili.com/AppRoom/index?platform=android&room_id=2516117"
+    headers = {
+        "Accept": (
+            "text/html,application/xhtml+xml,application/xml;"
+            "q=0.9,image/webp,image/apng,*/*;q=0.8"
+        ),
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/70.0.3538.110 Safari/537.36"
+        ),
+    }
+    try:
+        r = requests.get(url=url, headers=headers)
+        if r.status_code != 200:
+            raise Exception("Error status code!")
+        result = json.loads(r.content.decode("utf-8"))
+        title = result.get("data", {}).get("title")
+        image = result.get("data", {}).get("cover")
+    except Exception as e:
+        logging.exception("Error when get live room info: %s" % e, exc_info=True)
+        title = "珩心小姐姐开播啦！快来围观"
+        image = "https://i1.hdslb.com/bfs/archive/a6a3d6f3d3582fd5172f6f829c0fe5522705e399.jpg"
+
+    content = "这里是一只易燃易咆哮的小狮子，宝物是糖果锤！嗷呜(っ*´□`)っ~不关注我的通通都要被一！口！吃！掉！"
+
+    groups = DanmakuSetting.TEST_GROUP_ID_LIST if test else DanmakuSetting.NOTICE_GROUP_ID_LIST
+    for group_id in groups:
+        message = "[CQ:share,url=https://live.bilibili.com/2516117,title=%s,content=%s,image=%s]" % (
+            title, content, image
+        )
+        bot.send(context={"message_type": "group", "group_id": group_id}, message=message)
+
+        message = "[CQ:at,qq=all] \n直播啦！！快来听泡泡唱歌咯，本次直播主题：\n%s" % title
+        bot.send(context={"message_type": "group", "group_id": group_id}, message=message)
 
 
 async def send_hansy_danmaku(msg, user=""):
@@ -195,6 +254,16 @@ async def proc_message(message):
                 fans_count = await BiliApi.get_fans_count_by_uid(user_id)
                 await send_hansy_danmaku(f"🤖 {user_name}有{fans_count}个粉丝。")
 
+        if uid == 20932326 and msg == "测试通知":
+            send_qq_notice_message(test=True)
+
+            time_interval = time.time() - DanmakuSetting.LAST_LIVE_TIME
+            message = (
+                f"上次开播{time_interval / 60}分钟前，"
+                f"刷新时间{DanmakuSetting.LAST_LIVE_STATUS_UPDATE_TIME}."
+            )
+            bot.send_private_msg(user_id=80873436, message=message)
+
     elif cmd == "SEND_GIFT":
         data = message.get("data")
         uid = data.get("uid", "--")
@@ -246,13 +315,21 @@ async def proc_message(message):
         await save_gift(uid, uname, face, gift_name, num)
 
     elif cmd == "LIVE":
+        time_interval = time.time() - DanmakuSetting.LAST_LIVE_TIME
+        if time_interval > 60 * 40:
+            DanmakuSetting.LAST_LIVE_TIME = time.time()
+            send_qq_notice_message()
+
         DanmakuSetting.THANK_GIFT = False
         DanmakuSetting.THANK_FOLLOWER = True
         await send_hansy_danmaku("状态")
+
     elif cmd == "PREPARING":
+        bot.send_private_msg(user_id=291020256, message="小仙女记得把歌单发我昂~\n [CQ:image,file=1.gif]")
+
         DanmakuSetting.THANK_GIFT = True
         DanmakuSetting.THANK_FOLLOWER = False
-        await send_hansy_danmaku("仙女别忘了发送【已唱歌单】啊~")
+        await send_hansy_danmaku("状态")
 
 
 async def send_carousel_msg():
@@ -299,7 +376,6 @@ async def get_fans_list():
 
 
 async def thank_follower():
-    return True
 
     if not isinstance(TempData.fans_id_set, set):
         fl = await get_fans_list()
@@ -347,6 +423,16 @@ async def update_hansy_guard_list():
         f.write(text.encode("utf-8"))
 
 
+async def update_hansy_live_status():
+    if time.time() - DanmakuSetting.LAST_LIVE_TIME > 60*60:
+        return
+
+    flag, r = await BiliApi.get_live_status(room_id=DanmakuSetting.MONITOR_ROOM_ID)
+    DanmakuSetting.LAST_LIVE_STATUS_UPDATE_TIME = f"{datetime.datetime.now()}"
+    if flag and r:
+        DanmakuSetting.LAST_LIVE_TIME = time.time()
+
+
 async def main():
     async def on_connect(ws):
         logging.info("connected.")
@@ -391,6 +477,9 @@ async def main():
 
         if counter % (60*5) == 0:
             await send_recorder_group_danmaku()
+
+        if counter % (60*6) == 0:
+            await update_hansy_live_status()
 
         if counter % (3600*12) == 0:
             await update_hansy_guard_list()
