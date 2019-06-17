@@ -9,21 +9,8 @@ import asyncio
 
 import peewee
 from peewee_async import Manager, PooledMySQLDatabase
+from config.log4 import crontab_task_logger as logging
 
-
-if sys.platform == "linux":
-    CONFIG_FILE = "/home/wwwroot/stormgift/config/proj_config.json"
-    LOG_PATH = "/home/wwwroot/log"
-else:
-    CONFIG_FILE = "../config/proj_config.json"
-    LOG_PATH = "../log"
-fh = logging.FileHandler(os.path.join(LOG_PATH, "sync_database.log"), encoding="utf-8")
-fh.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
-logger = logging.getLogger("sync_database")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(fh)
-logger.addHandler(logging.StreamHandler(sys.stdout))
-logging = logger
 
 
 with open(CONFIG_FILE, "rb") as f:

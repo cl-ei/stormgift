@@ -29,6 +29,21 @@ except KeyError:
     REDIS_CONFIG["password"] = ""
     REDIS_CONFIG["db"] = 2
 
+MYSQL_CONFIG = {}
+try:
+    MYSQL_CONFIG["user"] = config["mysql"]["user"]
+    MYSQL_CONFIG["host"] = config["mysql"]["host"]
+    MYSQL_CONFIG["port"] = int(config["mysql"]["port"])
+    MYSQL_CONFIG["password"] = config["mysql"]["password"]
+    MYSQL_CONFIG["database"] = int(config["mysql"]["stormgift_database"])
+except KeyError:
+    MYSQL_CONFIG["user"] = "mysql"
+    MYSQL_CONFIG["host"] = "localhost"
+    MYSQL_CONFIG["port"] = 44444
+    MYSQL_CONFIG["password"] = ""
+    MYSQL_CONFIG["database"] = "bilibili"
+
+
 try:
     PRIZE_HANDLER_SERVE_ADDR = (
         config["stormgift"]["PRIZE_SOURCE_PUSH_HOST"],
