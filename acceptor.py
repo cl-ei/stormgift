@@ -137,7 +137,7 @@ class Acceptor(object):
                 if random() < chance:
                     await asyncio.sleep(random())
                 else:
-                    logging.info(f"Too busy, user {user_id} skip. reason: {'412' if busy_412 else 'time'}.")
+                    logging.info(f"Too busy, user {display_index}-{user_id} skip. reason: {'412' if busy_412 else 'time'}.")
                     continue
 
             await process_fn(display_index, user_id, room_id, gift_id, cookie)
