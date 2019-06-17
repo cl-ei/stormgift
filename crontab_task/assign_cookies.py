@@ -33,6 +33,11 @@ async def check_single_cookie(c):
 
     cookie = f"DedeUserID={DedeUserID}; SESSDATA={SESSDATA}; bili_jct={bili_jct}"
     r, data = await BiliApi.get_if_user_is_live_vip(cookie, user_id=DedeUserID)
+    if not r:
+        await asyncio.sleep(3)
+        r, data = await BiliApi.get_if_user_is_live_vip(cookie, user_id=DedeUserID)
+        logging.error(f"Error in get_if_user_is_live_vip. try twice, r: {r}, data(is_vip): {data}")
+
     if r:
         return True, data, cookie
     else:
@@ -56,7 +61,7 @@ async def main():
             if is_vip:
                 vip_cookies.append(cookie)
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(2)
 
     with open("data/cookies.txt", "w") as f:
         f.write("\n".join(valid_raw_cookies))
