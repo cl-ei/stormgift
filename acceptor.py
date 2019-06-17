@@ -1,18 +1,16 @@
 import re
-import json
-import asyncio
 import time
-from utils.ws import ReConnectingWsClient
+import asyncio
 from utils.biliapi import BiliApi
+from utils.ws import ReConnectingWsClient
+from config import PRIZE_HANDLER_SERVE_ADDR
 from config.log4 import acceptor_logger as logging
-from config import config
-PRIZE_HANDLER_SERVE_ADDR = tuple(config["PRIZE_HANDLER_SERVE_ADDR"])
 
 
 class Acceptor(object):
     def __init__(self):
         self.q = asyncio.Queue(maxsize=2000)
-        self.cookie_file = "data/cookie.json"
+        self.cookie_file = "data/valid_cookies.txt"
         self.__black_list = {}
 
     async def add_task(self, key):
@@ -21,8 +19,7 @@ class Acceptor(object):
     async def load_cookie(self):
         try:
             with open(self.cookie_file, "r") as f:
-                c = json.load(f)
-            cookie_list = c["RAW_COOKIE_LIST"]
+                cookie_list = [c.strip() for c in f.readlines()]
         except Exception as e:
             logging.error(f"Bad cookie, e: {str(e)}.", exc_info=True)
             return [], []
@@ -114,7 +111,11 @@ async def main():
     async def on_error(e, msg):
         logging.error(f"AC CATCH ERROR: {msg}. e: {e}")
 
-    c = ReConnectingWsClient(uri="ws://%s:%s" % PRIZE_HANDLER_SERVE_ADDR, on_message=on_message, on_error=on_error)
+    c = ReConnectingWsClient(
+        uri="ws://%s:%s" % PRIZE_HANDLER_SERVE_ADDR,
+        on_message=on_message,
+        on_error=on_error,
+    )
     await c.start()
     await a.run_forever()
 
