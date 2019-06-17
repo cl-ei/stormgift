@@ -2,8 +2,8 @@ import os
 import sys
 import logging
 
-from config import config
-LOG_PATH = config["LOG_PATH"]
+from config import LOG_PATH
+
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 

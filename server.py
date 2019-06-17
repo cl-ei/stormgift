@@ -1,10 +1,7 @@
 import asyncio
 import websockets
 
-from config import config
-
-PRIZE_HANDLER_SERVE_ADDR = tuple(config["PRIZE_HANDLER_SERVE_ADDR"])
-PRIZE_SOURCE_PUSH_ADDR = tuple(config["PRIZE_SOURCE_PUSH_ADDR"])
+from config import PRIZE_HANDLER_SERVE_ADDR
 
 
 class NoticeHandler(object):
@@ -65,4 +62,4 @@ async def main():
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
-loop.run_forever()
+
