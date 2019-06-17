@@ -35,7 +35,7 @@ try:
     MYSQL_CONFIG["host"] = config["mysql"]["host"]
     MYSQL_CONFIG["port"] = int(config["mysql"]["port"])
     MYSQL_CONFIG["password"] = config["mysql"]["password"]
-    MYSQL_CONFIG["database"] = int(config["mysql"]["stormgift_database"])
+    MYSQL_CONFIG["database"] = config["mysql"]["stormgift_database"]
 except KeyError:
     MYSQL_CONFIG["user"] = "mysql"
     MYSQL_CONFIG["host"] = "localhost"
