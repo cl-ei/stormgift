@@ -1,9 +1,8 @@
-import json
 from jinja2 import Template
 from aiohttp import web
 from utils.biliapi import BiliApi
 
-BLACK_LIST = {
+WHITE_LIST = {
     65568410, 20932326, 312186483, 9556961, 49279889,
     51965232, 35535038, 87301592, 48386500,
     171175717, 39748080, 359496014, 3359387,
@@ -35,17 +34,13 @@ async def query(request):
         uid = int("".join(raw_uid.split()))
         assert uid > 0
     except Exception:
-        return web.Response(text=f"错误的uid： {raw_uid}，重新输入！".format())
+        return web.Response(text=f"错误的uid: {raw_uid}, 重新输入!".format())
 
-    if uid not in BLACK_LIST:
+    if uid not in WHITE_LIST:
         return web.Response(text=f"USER ID {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
 
-    try:
-        with open("./data/cookie.json", "r") as f:
-            c = json.load(f)
-        cookie_list = c["RAW_COOKIE_LIST"]
-    except Exception:
-        return web.Response(text="服务器内部错误！请稍后再试")
+    with open("data/valid_cookies.txt", "r") as f:
+        cookie_list = [c.strip() for c in f.readlines()]
 
     user_cookie = ""
     char = f"DedeUserID={uid};"
@@ -93,33 +88,10 @@ async def api(request):
     except Exception:
         return web.Response(text="错误的USER ID!")
 
-    if uid not in BLACK_LIST:
+    if uid not in WHITE_LIST:
         return web.Response(text=f"USER ID {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
 
-    if action == "query":
-        try:
-            with open("./data/cookie.json", "r") as f:
-                c = json.load(f)
-            cookie_list = c["RAW_COOKIE_LIST"]
-        except Exception:
-            return web.Response(text="服务器内部错误!")
-
-        user_cookie = ""
-        char = f"DedeUserID={uid};"
-        for cookie in cookie_list:
-            if char in cookie:
-                user_cookie = cookie
-                break
-        if not user_cookie:
-            return web.Response(text=f"用户（USER ID: {uid}）尚未配置，没开始领辣条。")
-
-        r, data = await BiliApi.do_sign(user_cookie)
-        if not r and "登录" in data:
-            return web.Response(text=f"用户（USER ID: {uid}）已过期！请重新配置！！！")
-        else:
-            return web.Response(text=f"用户（USER ID: {uid}）正常领取辣条中。")
-
-    elif action == "submit":
+    if action == "submit":
         SESSDATA = data['SESSDATA']
         bili_jct = data['bili_jct']
         email = data["email"]
@@ -129,30 +101,46 @@ async def api(request):
             return web.Response(text="数据配置错误！请仔细阅读说明！")
 
         user_cookie = f"DedeUserID={uid}; SESSDATA={SESSDATA}; bili_jct={bili_jct}; notice_email={email};"
-        r, data = await BiliApi.do_sign(user_cookie)
-        if not r and "登录" in data:
+        r, is_vip = await BiliApi.get_if_user_is_live_vip(user_cookie, user_id=uid)
+        if not r:
             return web.Response(text=f"用户（USER ID: {uid}）你输入的数据不正确！！请检查后重新配置！！！")
 
-        try:
-            with open("./data/cookie.json", "r") as f:
-                c = json.load(f)
-            cookie_list = c["RAW_COOKIE_LIST"]
-        except Exception:
-            return web.Response(text="服务器内部错误!")
+        if is_vip:
+            with open("data/vip_cookies.txt") as f:
+                cookies = [c.strip for c in f.readlines()]
 
-        new_cookie_list = [user_cookie]
-        char = f"DedeUserID={uid};"
-        for cookie in cookie_list:
-            if char not in cookie:
-                new_cookie_list.append(cookie)
+            new_vip_list = [user_cookie]
+            for c in cookies:
+                if f"{uid};" not in c:
+                    new_vip_list.append(c)
 
-        with open("./data/cookie.json", "wb") as f:
-            f.write(json.dumps(
-                {"RAW_COOKIE_LIST": new_cookie_list},
-                ensure_ascii=False,
-                indent=2
-            ).encode("utf-8"))
+            with open("data/vip_cookies.txt", "w") as f:
+                f.write("\n".join(new_vip_list))
+
+        # 刷新RAW
+        with open("data/cookies.txt") as f:
+            cookies = [c.strip for c in f.readlines()]
+        raw_cookies = [user_cookie]
+        for c in cookies:
+            if f"{uid};" not in c:
+                raw_cookies.append(c)
+        with open("data/cookies.txt", "w") as f:
+            f.write("\n".join(raw_cookies))
+
+        # 刷新vaild
+        with open("data/valid_cookies.txt") as f:
+            cookies = [c.strip for c in f.readlines()]
+
+        valid_cookies = [user_cookie]
+        for c in cookies:
+            if f"{uid};" not in c:
+                valid_cookies.append(c)
+
+        with open("data/valid_cookies.txt", "w") as f:
+            f.write("\n".join(valid_cookies))
+
         return web.Response(text=f"用户（USER ID: {uid}）配置成功！")
+
     else:
         return web.Response(text="错误的请求")
 
