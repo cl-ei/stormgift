@@ -129,7 +129,7 @@ class Acceptor(object):
         now_hour = datetime.datetime.now().hour
         busy_time = bool(now_hour < 2 or now_hour > 18)
         busy_412 = bool(time.time() - self.__busy_time < 60*20)
-        chance = 0.4 if busy_412 else 0.8
+        chance = 0.4 if busy_412 else 0.95
         for user_id, cookie in white_cookies:
             display_index += 1
 
