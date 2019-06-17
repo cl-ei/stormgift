@@ -1,13 +1,13 @@
 import time
 import os
 import sys
-import logging
 import json
+import peewee
+import logging
+import asyncio
 import aioredis
 import datetime
-import asyncio
 
-import peewee
 from peewee_async import Manager, PooledMySQLDatabase
 from config.log4 import crontab_task_logger as logging
 from config import MYSQL_CONFIG, REDIS_CONFIG
