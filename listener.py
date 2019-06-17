@@ -141,7 +141,7 @@ class PrizeProcessor(object):
             REDIS_CONFIG["host"],
             REDIS_CONFIG["port"],
             db=REDIS_CONFIG["db"],
-            password=REDIS_CONFIG["auth_pass"]
+            password=REDIS_CONFIG["password"]
         )
 
     @staticmethod
