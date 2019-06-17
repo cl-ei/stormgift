@@ -201,9 +201,9 @@ class PrizeProcessor(object):
 
     async def proc_tv_gifts_by_single_user(self, user_name, gift_list):
         try:
-            with open("data/cookie.json", "r") as f:
-                cookies = json.load(f)
-            cookie = cookies.get("RAW_COOKIE_LIST", [""])[0]
+            with open("data/cookies.txt", "r") as f:
+                cookies = [c.strip() for c in f.readlines()]
+            cookie = cookies[0]
         except Exception as e:
             logging.error(
                 f"Error when read cookies: {str(e)}. Do not search uid for user {user_name}. "
