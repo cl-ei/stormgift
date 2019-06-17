@@ -2,6 +2,7 @@ import asyncio
 import websockets
 
 from config import PRIZE_HANDLER_SERVE_ADDR
+from config.log4 import server_logger as logging
 
 
 class NoticeHandler(object):
@@ -12,21 +13,24 @@ class NoticeHandler(object):
 
     async def handler(self, ws, path):
         self.__clients.add(ws)
-        print(f"New client connected: ({ws.host}, {ws.port}), path: {path}, current conn: {len(self.__clients)}")
+        logging.info(
+            f"New client connected: ({ws.host}, {ws.port}), "
+            f"path: {path}, current conn: {len(self.__clients)}"
+        )
 
         while not ws.closed:
             await asyncio.sleep(10)
 
         if ws in self.__clients:
             self.__clients.remove(ws)
-            print("Client leave: %s, current connections: %s" % (ws, len(self.__clients)))
+            logging.info("Client leave: %s, current connections: %s" % (ws, len(self.__clients)))
 
     def start_server(self):
         return websockets.serve(self.handler, self.host, self.port)
 
     async def notice_all(self, msg):
         lived_clients = [c for c in self.__clients if not c.closed]
-        print(f"Notice to all, msg: [{msg}], Lived clients: {len(lived_clients)}")
+        logging.info(f"Notice to all, msg: [{msg}], Lived clients: {len(lived_clients)}")
         for c in lived_clients:
             try:
                 await c.send(msg)
@@ -41,7 +45,7 @@ class PrizeInfoReceiver:
         self.transport = transport
 
     def datagram_received(self, message, addr):
-        print(f"Message received from udp server: [{message}]")
+        logging.info(f"Message received from udp server: [{message}]")
         if self.__class__.notice_handler:
             asyncio.gather(self.__class__.notice_handler(message))
 
@@ -57,7 +61,7 @@ async def main():
     PrizeInfoReceiver.notice_handler = h.notice_all
     await PrizeInfoReceiver.start_server()
     await h.start_server()
-    print(f"Server started.")
+    logging.info(f"Server started.")
 
 
 loop = asyncio.get_event_loop()
