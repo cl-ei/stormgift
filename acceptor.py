@@ -1,10 +1,17 @@
 import re
 import time
 import asyncio
+import datetime
+from random import random
 from utils.biliapi import BiliApi
 from utils.ws import ReConnectingWsClient
 from config import PRIZE_HANDLER_SERVE_ADDR
 from config.log4 import acceptor_logger as logging
+
+NON_SKIP_USER_ID = [
+    20932326,  # DD
+    39748080,  # LP
+]
 
 
 class Acceptor(object):
@@ -16,58 +23,76 @@ class Acceptor(object):
     async def add_task(self, key):
         await self.q.put(key)
 
-    async def load_cookie(self):
+    async def load_uid_and_cookie(self):
+        """
+
+        :return: [  # non_skip
+            (uid, cookie),
+            ...
+        ],
+
+        [       # normal
+
+            (uid, cookie),
+            ...
+        ]
+        """
         try:
             with open(self.cookie_file, "r") as f:
-                cookie_list = [c.strip() for c in f.readlines()]
+                cookies = [c.strip() for c in f.readlines()]
         except Exception as e:
-            logging.error(f"Bad cookie, e: {str(e)}.", exc_info=True)
-            return [], []
+            logging.exception(f"Cannot load cookie, e: {str(e)}.", exc_info=True)
+            return []
 
-        blacklist = []
-        for index in range(0, len(cookie_list)):
-            cookie = cookie_list[index]
-            bt = self.__black_list.get(cookie)
-            if isinstance(bt, (int, float)) and int(time.time()) - bt < 3600*12:
-                blacklist.append(index)
+        non_skip_cookies = []
+        white_cookies = []
 
-        if len(self.__black_list) > len(cookie_list):
+        now = time.time()
+        t_12_hours = 3600*12
+        for cookie in cookies:
+            user_id = int(re.findall(r"DedeUserID=(\d+)", cookie)[0])
+            block_time = self.__black_list.get(cookie)
+            if isinstance(block_time, (int, float)) and now - block_time < t_12_hours:
+                logging.info(f"User {user_id} in black list, skip it.")
+                continue
+
+            if user_id in NON_SKIP_USER_ID:
+                non_skip_cookies.append((user_id, cookie))
+            else:
+                white_cookies.append((user_id, cookie))
+
+        # GC
+        if len(self.__black_list) > len(cookies):
             new_black_list = {}
             for cookie in self.__black_list:
-                if cookie in cookie_list:
+                if cookie in cookies:
                     new_black_list[cookie] = self.__black_list[cookie]
             self.__black_list = new_black_list
-            logging.critical("SELF BLACK LIST GC DONE!")
-        return cookie_list, blacklist
 
-    async def add_black_list(self, cookie):
+        return non_skip_cookies, white_cookies
+
+    async def add_to_black_list(self, cookie):
         self.__black_list[cookie] = time.time()
         user_ids = re.findall(r"DedeUserID=(\d+)", "".join(self.__black_list.keys()))
         logging.critical(f"Black list updated. current {len(user_ids)}: [{', '.join(user_ids)}].")
 
-    async def accept_tv(self, i, room_id, gift_id, cookie):
-        uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
-        user_id = uid_list[0] if uid_list else "Unknown-uid"
-
+    async def accept_tv(self, i, user_id, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_tv(room_id, gift_id, cookie)
         if r:
             logging.info(f"TV AC SUCCESS! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
         else:
             logging.critical(f"TV AC FAILED! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
-                await self.add_black_list(cookie)
+                await self.add_to_black_list(cookie)
 
-    async def accept_guard(self, i, room_id, gift_id, cookie):
-        uid_list = re.findall(r"DedeUserID=(\d+)", cookie)
-        user_id = uid_list[0] if uid_list else "Unknown-uid"
-
+    async def accept_guard(self, i, user_id, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
         if r:
             logging.info(f"GUARD AC SUCCESS! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
         else:
             logging.critical(f"GUARD AC FAILED! {i}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
-                await self.add_black_list(cookie)
+                await self.add_to_black_list(cookie)
 
     async def accept_prize(self, key):
         if not isinstance(key, str):
@@ -80,20 +105,33 @@ class Acceptor(object):
         else:
             logging.error(f"invalid key: {key}. skip it.")
             return
+
         try:
             room_id, gift_id = map(int, key[2:].split("$"))
         except Exception as e:
             logging.error(f"Bad prize key {key}, e: {str(e)}")
             return
 
-        cookies, black_list = await self.load_cookie()
-        for i in range(len(cookies)):
-            if i in black_list:
-                uid_list = re.findall(r"DedeUserID=(\d+)", cookies[i])
-                user_id = uid_list[0] if uid_list else "Unknown-uid"
-                logging.warning(f"User {i}-{user_id} in black list, skip it.")
-            else:
-                await process_fn(i, room_id, gift_id, cookies[i])
+        non_skip_cookies, white_cookies = await self.load_uid_and_cookie()
+
+        display_index = -1
+        for user_id, cookie in non_skip_cookies:
+            display_index += 1
+            await process_fn(display_index, user_id, room_id, gift_id, cookie)
+
+        now_hour = datetime.datetime.now().hour
+        busy_time = bool(now_hour < 2 or now_hour > 18)
+        for user_id, cookie in white_cookies:
+            display_index += 1
+
+            if busy_time:
+                if random() < 0.70:
+                    logging.info(f"Too busy, user {user_id} skip.")
+                    continue
+                else:
+                    await asyncio.sleep(random())
+
+            await process_fn(display_index, user_id, room_id, gift_id, cookie)
 
     async def run_forever(self):
         while True:
