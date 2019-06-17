@@ -1,6 +1,4 @@
-import re
 import os
-import sys
 import time
 import json
 import logging
@@ -10,34 +8,13 @@ import requests
 from cqhttp import CQHttp
 from random import choice, random
 
+from config import CQBOT
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import ReConnectingWsClient
+from config.log4 import dxj_hansy_logger as logging
 
 
-if "linux" in sys.platform:
-    from config import config
-    LOG_PATH = config["LOG_PATH"]
-
-    access_token = config["cq_access_token"]
-    secret = config["cq_secret"]
-
-    bot = CQHttp(api_root='http://49.234.17.23:5700/', access_token=access_token, secret=access_token)
-else:
-    LOG_PATH = "./log"
-    access_token = ""
-    bot = CQHttp(api_root='http://127.0.0.1:5700/')
-
-
-log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
-console = logging.StreamHandler(sys.stdout)
-console.setFormatter(log_format)
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "hansy.log"), encoding="utf-8")
-file_handler.setFormatter(log_format)
-logger = logging.getLogger("hansy")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(console)
-logger.addHandler(file_handler)
-logging = logger
+bot = CQHttp(**CQBOT)
 
 
 class DanmakuSetting(object):
@@ -127,20 +104,26 @@ def send_qq_notice_message(test=False):
         bot.send(context={"message_type": "group", "group_id": group_id}, message=message)
 
 
+async def get_cookie(user="LP"):
+    uid = "20932326;" if user == "DD" else "39748080;"
+    with open("data/valid_cookies.txt") as f:
+        for c in f.readlines():
+            if uid in c:
+                return c.strip()
+    return ""
+
+
 async def send_hansy_danmaku(msg, user=""):
-    try:
-        if user == "DD":
-            from data import COOKIE_DD as COOKIE
-        else:
-            from data import COOKIE_LP as COOKIE
-    except Exception as e:
-        logging.error(f"Cannot load cookie, e: {e}.", exc_info=True)
+    cookie = await get_cookie(user)
+
+    if not cookie:
+        logging.error(f"Cannot get cookie for user: {user}.")
         return
 
     flag, msg = await BiliApi.send_danmaku(
         message=msg,
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
-        cookie=COOKIE
+        cookie=cookie
     )
     if not flag:
         logging.error(f"Danmaku [{msg}] send failed, msg: {msg}, user: {user}.")
@@ -171,7 +154,7 @@ async def save_gift(uid, name, face, gift_name, count):
         "gift_name": gift_name,
         "count": count,
     }
-    with open("/home/wwwroot/async.madliar/temp_data/gift_list.txt", "a+") as f:
+    with open("data/hansy_gift_list.txt", "a+") as f:
         f.write(json.dumps(data, ensure_ascii=False) + "\n")
     logging.info(f"New gift saved, user: {uid}-{name} -> {gift_name}*{count}.")
 
@@ -343,13 +326,9 @@ async def send_carousel_msg():
 
 
 async def send_recorder_group_danmaku():
-    try:
-        from data import COOKIE_LP
-    except Exception as e:
-        logging.error(f"Cannot load COOKIE_LP cookie, e: {e}.", exc_info=True)
-        return
-
-    await BiliApi.enter_room(DanmakuSetting.MONITOR_ROOM_ID, COOKIE_LP)
+    cookie_lp = await get_cookie("LP")
+    if cookie_lp:
+        await BiliApi.enter_room(DanmakuSetting.MONITOR_ROOM_ID, cookie_lp)
 
 
 async def thank_gift():
@@ -411,18 +390,6 @@ async def thank_follower():
         TempData.fans_list = new_fans_uid_set
 
 
-async def update_hansy_guard_list():
-    guard_list = await BiliApi.get_guard_list(uid=65568410)
-    if not guard_list:
-        return
-    text = "\n".join([
-        "".join([" ❤ " + _["name"] for _ in guard_list if _["level"] < 3]),
-        "".join([" ❤ " + _["name"] for _ in guard_list if _["level"] == 3])
-    ])
-    with open("/home/wwwroot/async.madliar/temp_data/guard_list.txt", "wb") as f:
-        f.write(text.encode("utf-8"))
-
-
 async def update_hansy_live_status():
     if time.time() - DanmakuSetting.LAST_LIVE_TIME > 60*60:
         return
@@ -480,9 +447,6 @@ async def main():
 
         if counter % (60*6) == 0:
             await update_hansy_live_status()
-
-        if counter % (3600*12) == 0:
-            await update_hansy_guard_list()
 
 
 loop = asyncio.get_event_loop()

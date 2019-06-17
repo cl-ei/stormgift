@@ -70,10 +70,19 @@ crontab_task_logger.setLevel(logging.DEBUG)
 crontab_task_logger.addHandler(console)
 crontab_task_logger.addHandler(file_handler)
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_hansy.log"))
+file_handler.setFormatter(log_format)
+dxj_hansy_logger = logging.getLogger("dxj_hansy")
+dxj_hansy_logger.setLevel(logging.DEBUG)
+dxj_hansy_logger.addHandler(console)
+dxj_hansy_logger.addHandler(file_handler)
+
+
 __all__ = (
     "listener_logger",
     "acceptor_logger",
     "status_logger",
     "server_logger",
     "crontab_task_logger",
+    "dxj_hansy_logger",
 )

@@ -59,13 +59,24 @@ except KeyError:
     PRIZE_SOURCE_PUSH_ADDR = ("localhost", 11112)
 
 
+CQBOT = {}
+try:
+    CQBOT["api_root"] = config["cqbot"]["api_root"]
+    CQBOT["access_token"] = config["cqbot"]["access_token"]
+    CQBOT["secret"] = config["cqbot"]["secret"]
+except KeyError:
+    CQBOT["api_root"] = "http://localhost:5700/"
+    CQBOT["access_token"] = ""
+    CQBOT["secret"] = ""
+
 print(
     "\n"
     "CONFIG: \n"
     f"PROJECT_ROOT: {PROJECT_ROOT}\n"
     f"LOG_PATH: {LOG_PATH}\n"
     f"REDIS_CONFIG: {REDIS_CONFIG}\n"
-    f"MYSQL_CONFIG: {MYSQL_CONFIG}\n"    
+    f"MYSQL_CONFIG: {MYSQL_CONFIG}\n"
+    f"CQBOT: {CQBOT}\n"
     "\n"
     f"PRIZE_HANDLER_SERVE_ADDR: {PRIZE_HANDLER_SERVE_ADDR}\n"
     f"PRIZE_SOURCE_PUSH_ADDR: {PRIZE_SOURCE_PUSH_ADDR}\n"
