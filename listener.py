@@ -1,7 +1,7 @@
-import datetime
-import socket
 import json
+import socket
 import asyncio
+import datetime
 import traceback
 
 from utils.ws import ReConnectingWsClient, State
@@ -10,9 +10,7 @@ from utils.dao import GiftRedisCache
 
 from config.log4 import listener_logger as logging
 from config.log4 import status_logger
-from config import config
-PRIZE_SOURCE_PUSH_ADDR = tuple(config["PRIZE_SOURCE_PUSH_ADDR"])
-REDIS_CONFIG = config["redis"]
+from config import PRIZE_SOURCE_PUSH_ADDR, REDIS_CONFIG
 
 
 class TvScanner(object):
@@ -35,6 +33,7 @@ class TvScanner(object):
         if cmd == "PREPARING":
             logging.warning(f"Room {room_id} from area {self.AREA_MAP[area]} closed! now search new.")
             await self.force_change_room(old_room_id=room_id, area=area)
+
         elif cmd == "NOTICE_MSG":
             msg_self = message.get("msg_self", "")
             matched_notice_area = False
@@ -45,8 +44,10 @@ class TvScanner(object):
 
             if matched_notice_area:
                 real_room_id = message.get("real_roomid", 0)
-                logging.info(f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}. "
-                             f"source: {area}-{room_id}")
+                logging.info(
+                    f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}. "
+                    f"source: {area}-{room_id}"
+                )
                 await self.message_putter("T", real_room_id)
 
     async def force_change_room(self, old_room_id, area):
