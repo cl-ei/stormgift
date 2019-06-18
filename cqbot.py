@@ -1,3 +1,36 @@
+"""
+
+3641474
+11816325
+49279889
+383823638
+65568410
+3359387
+21222683
+171175717
+19765414
+51965232
+108539825
+35535038
+95284802
+12298306
+48386500
+147357893
+294020041
+359496014
+57111889
+87301592
+315973598
+373569502
+9556961
+20932326
+383155055
+39748080
+312186483
+242134263
+397730683
+
+"""
 import re
 import json
 import time
@@ -393,14 +426,42 @@ def handle_msg(context):
         msg = context["raw_message"]
         logging.info("Private message received: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))
 
-        if user_id == 80873436 and msg.startswith("转发"):
-            msg = msg[2:]
-            relay_user_id, raw_msg = msg.split("-", 1)
-            try:
-                r = bot.send_private_msg(user_id=int(relay_user_id), message=raw_msg)
-            except Exception as e:
-                r = f"E: {e}"
-            bot.send_private_msg(user_id=80873436, message=f"Result: {r}")
+        if user_id == 80873436:
+            if msg.startswith("r"):
+                msg = msg[1:]
+                relay_user_id, raw_msg = msg.split("-", 1)
+                try:
+                    r = bot.send_private_msg(user_id=int(relay_user_id), message=raw_msg)
+                except Exception as e:
+                    r = f"E: {e}"
+                bot.send_private_msg(user_id=80873436, message=f"Result: {r}")
+
+            elif msg.startswith("add") or msg.startswith("del"):
+                uid = int(msg[3:])
+                if not uid > 0:
+                    bot.send_private_msg(user_id=80873436, message=f"E! {uid}")
+
+                with open("data/lt_white_uid_list.txt") as f:
+                    uid_list = [_.strip() for _ in f.readlines()]
+                    uid_list = [int(_) for _ in uid_list if _]
+
+                if msg.startswith("add"):
+                    if uid in uid_list:
+                        bot.send_private_msg(user_id=80873436, message=f"Already in! ({len(uid_list)})")
+                        return
+                    else:
+                        uid_list.append(uid)
+                else:
+                    if uid not in uid_list:
+                        bot.send_private_msg(user_id=80873436, message=f"Already deleted! ({len(uid_list)})")
+                        return
+                    else:
+                        uid_list = [_ for _ in uid_list if _ != uid]
+
+                with open("data/lt_white_uid_list.txt", "w") as f:
+                    f.write("\n".join([str(_) for _ in uid_list]))
+
+                bot.send_private_msg(user_id=80873436, message=f"Done! ({len(uid_list)})")
 
         elif msg.startswith("起床"):
             try:
