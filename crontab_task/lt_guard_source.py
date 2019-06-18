@@ -21,7 +21,7 @@ class GuardScanner(object):
             assert "OK" in r.content.decode("utf-8")
         except Exception as e:
             error_message = F"Prize room post failed. room_id: {room_id}, e: {e}"
-            logging.error(error_message)
+            logging.error(error_message, exc_info=True)
             return
 
         logging.info(f"Guard Prize key post success: {room_id}")
