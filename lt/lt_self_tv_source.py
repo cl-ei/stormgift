@@ -21,6 +21,7 @@ class TvScanner(object):
     def __init__(self):
         self.__rws_clients = {}
         self.post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
+        logging.info(f"post_prize_url: {self.post_prize_url}")
 
     def post_prize_info(self, room_id):
         data = {
