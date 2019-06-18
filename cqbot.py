@@ -28,36 +28,6 @@ class Settings:
         591691708,
     ]
 
-    BLACK_LIST_FILE = "./data/cq_bot_black_list.txt"
-
-    @classmethod
-    def notice(cls, f):
-        if (
-            time.time() - cls.last_notice_time > 60*30
-            and time.time() - cls.last_prepare_time > 60*10
-        ):
-            cls.last_notice_time = time.time()
-            return f()
-
-    @classmethod
-    def prepare(cls):
-        cls.last_prepare_time = time.time()
-
-    @classmethod
-    def clear_time(cls):
-        cls.last_notice_time = time.time() - 7200
-
-    @classmethod
-    def add_user_to_black_list(cls, user_id):
-        with open(cls.BLACK_LIST_FILE, "ab") as f:
-            f.write(f"<{user_id}\n".encode("utf-8"))
-
-    @classmethod
-    def get_if_user_in_black_list(cls, user_id):
-        with open(cls.BLACK_LIST_FILE, "rb") as f:
-            content = f.read().decode("utf-8")
-        return f"<{user_id}\n" in content
-
 
 bot = CQHttp(*CQBOT)
 
@@ -85,7 +55,8 @@ class BotUtils:
             bot.send_group_msg(group_id=group_id, message=f"[CQ:record,file={word}.mp3,magic=false]")
 
     @classmethod
-    def post_word_meaning(cls, word, group_id):
+    def proc_translation(cls, msg, group_id):
+        word = msg[3:]
         YOUDAO_URL = "http://openapi.youdao.com/api"
         APP_KEY = "679aa6a74516f7c7"
         APP_SECRET = "mUJXnipoSAV8wzUs6yxUgnSZi6M2Ulbd"
@@ -201,11 +172,181 @@ class BotUtils:
 
         return filtered_songs[0].get("id") if filtered_songs else None
 
+    @classmethod
+    def proc_one_sentence(cls, msg, group_id):
+        try:
+            r = requests.get("https://v1.hitokoto.cn/", timeout=10)
+            if r.status_code != 200:
+                return {}
+            data = r.content.decode("utf-8")
+            response = json.loads(data).get("hitokoto")
+
+            bot.send_group_msg(group_id=group_id, message=response)
+        except Exception as e:
+            message = f"Error happened: {e}, {traceback.format_exc()}"
+            bot.send_group_msg(group_id=group_id, message=message)
+
+    @classmethod
+    def proc_history(cls, msg, group_id):
+
+        today = datetime.datetime.today()
+        url = "http://api.juheapi.com/japi/toh?v=1.0&month=%s&day=%s&key=776630c7f437ddf719eecbb960a24713" % (
+            today.month, today.day
+        )
+        try:
+            r = requests.get(url, timeout=10)
+            if r.status_code != 200:
+                return {}
+            data = r.content.decode("utf-8")
+            result = json.loads(data).get("result", []) or []
+            if not result:
+                return {}
+
+            msg = choice(result).get("des", "") or ""
+            bot.send_group_msg(group_id=group_id, message=msg)
+        except Exception as e:
+            message = f"Error happened: {e}, {traceback.format_exc()}"
+            bot.send_group_msg(group_id=group_id, message=message)
+
+    @classmethod
+    def proc_sleep(cls, msg, group_id, user_id):
+        postfix = msg.replace(" ", "").replace("　", "").split("睡觉")[-1].lower()
+        if not postfix or postfix[-1] not in ("s", "m", "h"):
+            return {}
+
+        try:
+            duration = abs(int(postfix[:-1]))
+            assert duration > 0
+        except Exception:
+            return {}
+
+        if postfix[-1] == "m":
+            duration *= 60
+        elif postfix[-1] == "h":
+            duration *= 3600
+
+        bot.set_group_ban(group_id=group_id, user_id=user_id, duration=duration)
+
+    @classmethod
+    def proc_whether(cls, msg, group_id):
+        if "西雅图" in msg or "seattle" in msg.lower():
+            url = "http://www.weather.com.cn/weather/401100101.shtml"
+            try:
+                r = requests.get(url)
+                if r.status_code != 200:
+                    return {}
+                p = r.content.decode("utf-8")
+                start = p.find("今天")
+                end = p.find("后天")
+                content = p[start: end]
+            except Exception:
+                content = ""
+
+            today = re.findall("hidden_title\".*value=\"(.*)\"", content)
+            if not today:
+                return {}
+            today = today[0]
+            if today:
+                bot.send_group_msg(group_id=group_id, message="西雅图天气：" + today)
+            return
+
+        city = msg.split("天气")[0].replace("#", "").replace("#", " ")
+        url = "http://apis.juhe.cn/simpleWeather/query?key=9228fc70b4ae29bc4f1e0ed6fc57dd04&city=" + city
+        try:
+            r = requests.get(url)
+            if r.status_code != 200:
+                return {}
+
+            r = json.loads(r.content.decode("utf-8"))
+            result = r.get("result", {})
+
+            realtime = result.get("realtime", {})
+            info1 = "%s今日%s, %s%s, %s ℃；" % (
+                city,
+                realtime.get("info"),
+                realtime.get("power"), realtime.get("direct"),
+                realtime.get("temperature"),
+            )
+
+            future = result.get("future", [{}])[0]
+            info2 = "明日%s, %s, %s。" % (
+                future.get("weather"), future.get("direct"), future.get("temperature"),
+            )
+            bot.send_group_msg(group_id=group_id, message=info1 + info2)
+        except Exception as e:
+            logging.exception("Error when handle weather: %s" % e, exc_info=True)
+
+    @classmethod
+    def proc_lucky(cls, msg, group_id):
+        constellation = ""
+        for c in ("白羊座", "金牛座", "双子座", "巨蟹座",
+                  "狮子座", "处女座", "天秤座", "天蝎座",
+                  "射手座", "摩羯座", "水瓶座", "双鱼座"):
+            if c in msg:
+                constellation = c
+                break
+        if not constellation:
+            bot.send_group_msg(group_id=group_id, message="请输入正确的星座， 比如 #狮子座今日运势")
+
+        try:
+            url = (
+                      "http://web.juhe.cn:8080/constellation/getAll"
+                      "?consName=%s"
+                      "&type=today&key=5dcf5e7412cb140c57421a54445de177"
+                  ) % constellation
+            r = requests.get(url)
+            if r.status_code != 200:
+                return {}
+
+            result = json.loads(r.content.decode("utf-8")).get("summary")
+
+        except Exception as e:
+            message = f"Error happened: {e}, {traceback.format_exc()}"
+            bot.send_group_msg(group_id=group_id, message=message)
+            return
+
+        bot.send_group_msg(group_id=group_id, message="%s: %s" % (constellation, result))
+
+    @classmethod
+    def proc_song(cls, msg, group_id):
+        song_name = msg.split("点歌")[-1].strip()
+        if not song_name:
+            return {}
+
+        strip_name = song_name.replace("管珩心", "").replace("泡泡", "").lower().replace("hansy", "").strip()
+        song_name = strip_name if strip_name else song_name
+
+        try:
+            song_id = BotUtils.get_song_id(song_name)
+        except Exception as e:
+            tb = traceback.format_exc()
+            error_msg = f"Error happened in BotUtils.get_song_id: {e}\n{tb}"
+            logging.error(error_msg)
+            bot.send_group_msg(group_id=group_id, message=error_msg)
+            return
+
+        message = f"[CQ:music,type=163,id={song_id}]" if song_id else f"未找到歌曲「{song_name}」"
+        bot.send_group_msg(group_id=group_id, message=message)
+
+    @classmethod
+    def proc_help(cls, msg, group_id):
+        message = (
+            "珩心初号机支持的指令：\n\n"
+            f"1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床{group_id}``。)\n"
+            "2.#点歌 北上 管珩心\n"
+            "3.#一言\n"
+            "4.#北京天气\n"
+            "5.#狮子座运势\n"
+            "6.#历史上的今天"
+        )
+        return bot.send_group_msg(group_id=group_id, message=message)
+
 
 @bot.on_message()
 def handle_msg(context):
     if context["message_type"] == "group":
         sender = context["sender"]
+
         user_id = sender["user_id"]
         user_nickname = sender["nickname"]
         title = sender.get("title", "--")
@@ -223,171 +364,28 @@ def handle_msg(context):
         if msg.startswith("#"):
 
             if msg == "#一言":
-                try:
-                    r = requests.get("https://v1.hitokoto.cn/", timeout=10)
-                    if r.status_code != 200:
-                        return {}
-                    data = r.content.decode("utf-8")
-                    response = json.loads(data).get("hitokoto")
-
-                    bot.send_group_msg(group_id=group_id, message=response)
-                except Exception:
-                    pass
+                return BotUtils.proc_one_sentence(msg, group_id)
 
             if msg == "#历史上的今天":
-                today = datetime.datetime.today()
-                url = "http://api.juheapi.com/japi/toh?v=1.0&month=%s&day=%s&key=776630c7f437ddf719eecbb960a24713" % (
-                   today.month, today.day
-                )
-                try:
-                    r = requests.get(url, timeout=10)
-                    if r.status_code != 200:
-                        return {}
-                    data = r.content.decode("utf-8")
-                    result = json.loads(data).get("result", []) or []
-                    if not result:
-                        return {}
-
-                    msg = choice(result).get("des", "") or ""
-                    bot.send_group_msg(group_id=group_id, message=msg)
-                except Exception:
-                    pass
+                return BotUtils.proc_history(msg, group_id)
 
             elif msg.startswith("#睡觉"):
-                postfix = msg.replace(" ", "").replace("　", "").split("睡觉")[-1].lower()
-                if not postfix or postfix[-1] not in ("s", "m", "h"):
-                    return {}
-
-                try:
-                    duration = abs(int(postfix[:-1]))
-                    assert duration > 0
-                except Exception:
-                    return {}
-
-                if postfix[-1] == "m":
-                    duration *= 60
-                elif postfix[-1] == "h":
-                    duration *= 3600
-
-                bot.set_group_ban(group_id=group_id, user_id=user_id, duration=duration)
+                return BotUtils.proc_sleep(msg, group_id, user_id)
 
             elif msg.endswith("天气"):
-                if "西雅图" in msg or "seattle" in msg.lower():
-                    url = "http://www.weather.com.cn/weather/401100101.shtml"
-                    try:
-                        r = requests.get(url)
-                        if r.status_code != 200:
-                            return {}
-                        p = r.content.decode("utf-8")
-                        start = p.find("今天")
-                        end = p.find("后天")
-                        content = p[start: end]
-                    except Exception:
-                        content = ""
-
-                    today = re.findall("hidden_title\".*value=\"(.*)\"", content)
-                    if not today:
-                        return {}
-                    today = today[0]
-                    if today:
-                        bot.send_group_msg(group_id=group_id, message="西雅图天气：" + today)
-
-                else:
-                    city = msg.split("天气")[0].replace("#", "").replace("#", " ")
-                    url = "http://apis.juhe.cn/simpleWeather/query?key=9228fc70b4ae29bc4f1e0ed6fc57dd04&city=" + city
-                    try:
-                        r = requests.get(url)
-                        if r.status_code != 200:
-                            return {}
-
-                        r = json.loads(r.content.decode("utf-8"))
-                        result = r.get("result", {})
-
-                        realtime = result.get("realtime", {})
-                        info1 = "%s今日%s, %s%s, %s ℃；" % (
-                            city,
-                            realtime.get("info"),
-                            realtime.get("power"), realtime.get("direct"),
-                            realtime.get("temperature"),
-                        )
-
-                        future = result.get("future", [{}])[0]
-                        info2 = "明日%s, %s, %s。" % (
-                            future.get("weather"), future.get("direct"), future.get("temperature"),
-                        )
-                        bot.send_group_msg(group_id=group_id, message=info1 + info2)
-                    except Exception as e:
-                        logging.exception("Error when handle weather: %s" % e, exc_info=True)
+                return BotUtils.proc_whether(msg, group_id)
 
             elif msg.endswith("运势"):
-                constellation = ""
-                for c in ("白羊座", "金牛座", "双子座", "巨蟹座",
-                          "狮子座", "处女座", "天秤座", "天蝎座",
-                          "射手座", "摩羯座", "水瓶座", "双鱼座"):
-                    if c in msg:
-                        constellation = c
-                        break
-                if not constellation:
-                    bot.send_group_msg(group_id=group_id, message="请输入正确的星座， 比如 #狮子座今日运势")
-
-                try:
-                    url = (
-                        "http://web.juhe.cn:8080/constellation/getAll"
-                        "?consName=%s"
-                        "&type=today&key=5dcf5e7412cb140c57421a54445de177"
-                    ) % constellation
-                    r = requests.get(url)
-                    if r.status_code != 200:
-                        return {}
-
-                    result = json.loads(r.content.decode("utf-8")).get("summary")
-
-                except Exception as e:
-                    logging.exception("Error: %s" % e, exc_info=True)
-                    return {}
-
-                bot.send_group_msg(group_id=group_id, message="%s: %s" % (constellation, result))
+                return BotUtils.proc_lucky(msg, group_id)
 
             elif msg.startswith("#点歌"):
-                song_name = msg.split("点歌")[-1].strip()
-                if not song_name:
-                    return {}
-
-                strip_name = song_name.replace("管珩心", "").replace("泡泡", "").lower().replace("hansy", "").strip()
-                song_name = strip_name if strip_name else song_name
-
-                try:
-                    song_id = BotUtils.get_song_id(song_name)
-                except Exception as e:
-                    tb = traceback.format_exc()
-                    error_msg = f"Error happened in BotUtils.get_song_id: {e}\n{tb}"
-                    logging.error(error_msg)
-                    bot.send_group_msg(group_id=group_id, message=error_msg)
-                    return
-
-                message = f"[CQ:music,type=163,id={song_id}]" if song_id else f"未找到歌曲「{song_name}」"
-                bot.send_group_msg(group_id=group_id, message=message)
+                return BotUtils.proc_song(msg, group_id)
 
             elif msg.startswith("#翻译"):
-                BotUtils.post_word_meaning(group_id=group_id, word=msg[3:])
+                return BotUtils.proc_translation(msg, group_id)
 
-            else:
-                msg = msg.replace(" ", "").replace("　", "").lower()
-                if msg in ("#help", "#h", "#帮助", "#指令"):
-                    message = (
-                        "珩心初号机支持的指令：\n\n"
-                        f"1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床{group_id}``。)\n"
-                        "2.#点歌 北上 管珩心\n"
-                        "3.#一言\n"
-                        "4.#北京天气\n"
-                        "5.#狮子座运势\n"
-                        "6.#历史上的今天"
-                    )
-                    return bot.send_group_msg(group_id=group_id, message=message)
-                # not available in docker
-                #
-                # elif re.match(r"^[a-z]+$", msg[1:]):
-                #     BotUtils.post_word_audio(word=msg[1:], group_id=group_id)
+            elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
+                return BotUtils.proc_help(msg, group_id)
 
     elif context["message_type"] == "private":
         user_id = context["sender"]["user_id"]
@@ -433,7 +431,7 @@ def handle_msg(context):
         elif user_id not in (80873436, 310300788):
             bot.send_private_msg(
                 user_id=80873436,
-                message=f"来自{user_nickname}(QQ: {user_id}) -> {msg}",
+                message=f"来自{user_nickname}(QQ: {user_id}) -> \n{msg}",
                 auto_escape=True,
             )
 
