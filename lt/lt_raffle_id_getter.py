@@ -12,6 +12,8 @@ from config.log4 import lt_raffle_id_getter_logger as logging
 from config import LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT, LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
 from utils.dao import redis_cache
 
+# ACCEPT URL: http://127.0.0.1:30000?action=prize_notice&key_type=T&room_id=123
+
 
 class Executor(object):
     def __init__(self):
@@ -30,14 +32,14 @@ class Executor(object):
         key = "$".join(args)
 
         key_type, room_id, gift_id, *_ = args
-        data = {
+        params = {
             "action": "prize_key",
             "key_type": key_type,
             "room_id": room_id,
             "gift_id": gift_id
         }
         try:
-            r = requests.get(url=self.post_prize_url, data=data, timeout=2)
+            r = requests.get(url=self.post_prize_url, params=params, timeout=2)
             assert r.status_code == 200
             assert "OK" in r.content.decode("utf-8")
         except Exception as e:

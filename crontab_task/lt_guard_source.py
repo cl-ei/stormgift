@@ -10,13 +10,13 @@ class GuardScanner(object):
         self.post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
 
     def post_prize_info(self, room_id):
-        data = {
+        params = {
             "action": "prize_notice",
             "key_type": "G",
             "room_id": room_id
         }
         try:
-            r = requests.get(url=self.post_prize_url, data=data, timeout=0.5)
+            r = requests.get(url=self.post_prize_url, params=params, timeout=0.5)
             assert r.status_code == 200
             assert "OK" in r.content.decode("utf-8")
         except Exception as e:

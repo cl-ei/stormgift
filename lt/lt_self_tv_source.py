@@ -24,13 +24,13 @@ class TvScanner(object):
         logging.info(f"post_prize_url: {self.post_prize_url}")
 
     def post_prize_info(self, room_id):
-        data = {
+        params = {
             "action": "prize_notice",
             "key_type": "T",
             "room_id": room_id
         }
         try:
-            r = requests.get(url=self.post_prize_url, data=data, timeout=0.5)
+            r = requests.get(url=self.post_prize_url, params=params, timeout=0.5)
             print(f"r: {r}, {r.status_code}, {r.content}")
             assert r.status_code == 200
             assert "OK" in r.content.decode("utf-8")
