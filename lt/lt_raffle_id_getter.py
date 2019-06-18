@@ -70,7 +70,7 @@ class Executor(object):
         gift_id = gift_info.get('id', 0)
         key = f"NG{room_id}${gift_id}"
         await redis_cache.non_repeated_save(key, info)
-        self.send_prize_info("G", room_id, key)
+        self.send_prize_info("G", room_id, gift_id)
 
     async def force_get_uid_by_name(self, user_name):
         cookie = self.load_a_cookie()
