@@ -28,3 +28,7 @@ def send_email(subject, to=""):
 
     flag = False if error_message else True
     return flag, error_message
+
+
+if __name__ == "__main__":
+    send_email("測試", "80873436@qq.com")
