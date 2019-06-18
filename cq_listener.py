@@ -9,7 +9,7 @@ from aiohttp import web
 from queue import Empty
 from multiprocessing import Process, Queue
 from utils.biliapi import BiliApi
-from config.log4 import acceptor_logger as logging
+from config.log4 import listener_logger as logging
 from config import LT_LISTENER_HOST, LT_LISTENER_PORT
 
 
