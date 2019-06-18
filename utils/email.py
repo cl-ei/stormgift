@@ -31,4 +31,5 @@ def send_email(subject, to=""):
 
 
 if __name__ == "__main__":
-    send_email("測試", "80873436@qq.com")
+    r = send_email("測試", "80873436@qq.com")
+    print(r)
