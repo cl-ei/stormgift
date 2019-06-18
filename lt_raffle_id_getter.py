@@ -11,7 +11,7 @@ from queue import Empty
 from multiprocessing import Process, Queue
 from utils.biliapi import BiliApi
 from config.log4 import listener_logger as logging
-from config import LT_LISTENER_HOST, LT_LISTENER_PORT, LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
+from config import LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT, LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
 from utils.dao import redis_cache
 
 
@@ -63,28 +63,25 @@ class Executor(object):
         }
         gift_id = gift_info.get('id', 0)
         key = f"NG{room_id}${gift_id}"
-        result = await redis_cache.non_repeated_save(key, info)
-        if result:
-            self.send_prize_info("G", room_id, key)
+        await redis_cache.non_repeated_save(key, info)
+        self.send_prize_info("G", room_id, key)
 
-    async def get_uid_by_name(self, user_name, cookie, retry_times=3):
-        for retry_time in range(retry_times):
+    async def force_get_uid_by_name(self, user_name):
+        cookie = self.load_a_cookie()
+        if not cookie:
+            logging.error("Cannot load cookie!")
+            return None
+
+        for retry_time in range(3):
             r, uid = await BiliApi.get_user_id_by_search_way(user_name)
-            if r:
-                return True, uid
+            if r and isinstance(uid, (int, float)) and uid > 0:
+                return uid
 
-            logging.warning(
-                f"Cannot get uid by search, try other way. "
-                f"retry times: {retry_time}, search result: {uid}"
-            )
-
-            flag, r = await BiliApi.add_admin(user_name, cookie)
-            if not flag:
-                logging.error(f"Ignored error when add_admin: {r}")
+            # Try other way
+            await BiliApi.add_admin(user_name, cookie)
 
             flag, admin_list = await BiliApi.get_admin_list(cookie)
             if not flag:
-                logging.error(f"Cannot get admin list: {admin_list}, retry time: {retry_time}")
                 continue
 
             uid = None
@@ -92,33 +89,21 @@ class Executor(object):
                 if admin.get("uname") == user_name:
                     uid = admin.get("uid")
                     break
-            if uid:
-                flag, r = await BiliApi.remove_admin(uid, cookie)
-                if not flag:
-                    logging.error(f"Ignored error in remove_admin: {r}")
-                return True, uid
-        return False, None
+            if isinstance(uid, (int, float)) and uid > 0:
+                await BiliApi.remove_admin(uid, cookie)
+                return uid
+        return None
 
     async def proc_tv_gifts_by_single_user(self, user_name, gift_list):
-        cookie = self.load_a_cookie()
-        if not cookie:
-            uid = None
-        else:
-            flag, uid = await self.get_uid_by_name(user_name, cookie, retry_times=3)
-            if flag:
-                logging.info(f"Get user info: {user_name}: {uid}. gift_list length: {len(gift_list)}.")
-            else:
-                logging.error(f"Cannot get uid for user: {user_name}")
-                uid = None
+        uid = await self.force_get_uid_by_name(user_name)
 
         for info in gift_list:
             info["uid"] = uid
             room_id = info["room_id"]
             gift_id = info["gift_id"]
             key = f"_T{room_id}${gift_id}"
-            result = await redis_cache.non_repeated_save(key, info)
-            if result:
-                self.send_prize_info("T", room_id, gift_id)
+            await redis_cache.non_repeated_save(key, info)
+            self.send_prize_info("T", room_id, gift_id)
 
     async def __call__(self, args):
         key_type, room_id, *_ = args
@@ -227,7 +212,7 @@ def main():
 
     q = Queue()
 
-    server = AsyncHTTPServer(q=q, host=LT_LISTENER_HOST, port=LT_LISTENER_PORT)
+    server = AsyncHTTPServer(q=q, host=LT_RAFFLE_ID_GETTER_HOST, port=LT_RAFFLE_ID_GETTER_PORT)
     p = Process(target=server, daemon=True)
     p.start()
 

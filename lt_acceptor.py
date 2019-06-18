@@ -32,7 +32,8 @@ class Executor(object):
             return False
 
         self.accepted_keys.insert(0, key)
-        while len(self.accepted_keys) >= 1000:
+
+        while len(self.accepted_keys) >= 5000:
             self.accepted_keys.pop()
 
         return True
