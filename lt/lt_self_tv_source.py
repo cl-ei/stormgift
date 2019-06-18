@@ -31,6 +31,7 @@ class TvScanner(object):
         }
         try:
             r = requests.get(url=self.post_prize_url, data=data, timeout=0.5)
+            print(f"r: {r}, {r.status_code}, {r.content}")
             assert r.status_code == 200
             assert "OK" in r.content.decode("utf-8")
         except Exception as e:
