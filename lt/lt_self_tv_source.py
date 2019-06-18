@@ -36,7 +36,7 @@ class TvScanner(object):
             logging.error(error_message, exc_info=True)
             return
 
-        if r.status_code == 200 or "OK" not in r.content.decode("utf-8"):
+        if r.status_code != 200 or "OK" not in r.content.decode("utf-8"):
             logging.error(
                 F"Prize room post failed. code: {r.status_code}, "
                 F"response: {r.content}. key: T${room_id}"

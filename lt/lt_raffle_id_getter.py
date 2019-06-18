@@ -45,7 +45,7 @@ class Executor(object):
             logging.error(error_message)
             return
 
-        if r.status_code == 200 or "OK" not in r.content.decode("utf-8"):
+        if r.status_code != 200 or "OK" not in r.content.decode("utf-8"):
             logging.error(
                 F"Prize key post failed. code: {r.status_code}, "
                 F"response: {r.content}. key: {key_type}${room_id}${gift_id}"

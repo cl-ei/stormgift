@@ -17,14 +17,19 @@ class GuardScanner(object):
         }
         try:
             r = requests.get(url=self.post_prize_url, params=params, timeout=0.5)
-            assert r.status_code == 200
-            assert "OK" in r.content.decode("utf-8")
         except Exception as e:
-            error_message = F"Prize room post failed. room_id: {room_id}, e: {e}"
+            error_message = F"Http request error. room_id: {room_id}, e: {e}"
             logging.error(error_message, exc_info=True)
             return
 
-        logging.info(f"Guard Prize key post success: {room_id}")
+        if r.status_code != 200 or "OK" not in r.content.decode("utf-8"):
+            logging.error(
+                F"Prize room post failed. code: {r.status_code}, "
+                F"response: {r.content}. key: G${room_id}"
+            )
+            return
+
+        logging.info(f"Guard Prize room post success: {room_id}")
 
     async def run(self):
         flag, r = await BiliApi.get_guard_room_list()
