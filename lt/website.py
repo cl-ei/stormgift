@@ -2,23 +2,21 @@ from jinja2 import Template
 from aiohttp import web
 from utils.biliapi import BiliApi
 
-WHITE_LIST = {
-    65568410, 20932326, 312186483, 9556961, 49279889,
-    51965232, 35535038, 87301592, 48386500,
-    171175717, 39748080, 359496014, 3359387,
-    95284802, 242134263, 294020041,
-    397730683, 315973598, 383823638,
-    12298306,  # 丸子
-    383155055,  # 元元爱喵凉
-    11816325,
-    21222683,
-    57111889,
-    19765414,
-    3641474,
-    108539825,
-    147357893,
-    373569502,
-}
+
+def load_lt_white_uid_list():
+    with open("data/lt_white_uid_list.txt") as f:
+        records = f.readlines()
+
+    uid_list = []
+    for uid in records:
+        try:
+            uid = int(uid.strip())
+            assert uid > 0
+        except Exception:
+            continue
+        else:
+            uid_list.append(uid)
+    return uid_list
 
 
 def render_to_response(template, context=None):
@@ -42,9 +40,9 @@ async def query(request):
         uid = int("".join(raw_uid.split()))
         assert uid > 0
     except Exception:
-        return web.Response(text=f"错误的uid: {raw_uid}, 重新输入!".format())
+        return web.Response(text=f"错误的uid: {raw_uid}, 重新输入!")
 
-    if uid not in WHITE_LIST:
+    if uid not in load_lt_white_uid_list():
         return web.Response(text=f"USER ID {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
 
     with open("data/valid_cookies.txt", "r") as f:
@@ -67,7 +65,6 @@ async def query(request):
     uid = str(uid)
     try:
         with open("/home/wwwroot/log/acceptor_stormgift.log", "rb") as f:
-            # with open("./log/hansy.log", "rb") as f:
             _ = f.readline()
             f.seek(-1024 * 20, 2)
             lines = f.readlines()
@@ -96,7 +93,7 @@ async def api(request):
     except Exception:
         return web.Response(text="错误的USER ID!")
 
-    if uid not in WHITE_LIST:
+    if uid not in load_lt_white_uid_list():
         return web.Response(text=f"USER ID {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
 
     if action == "submit":
