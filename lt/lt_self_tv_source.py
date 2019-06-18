@@ -31,15 +31,19 @@ class TvScanner(object):
         }
         try:
             r = requests.get(url=self.post_prize_url, params=params, timeout=0.5)
-            print(f"r: {r}, {r.status_code}, {r.content}")
-            assert r.status_code == 200
-            assert "OK" in r.content.decode("utf-8")
         except Exception as e:
-            error_message = F"Prize room post failed. room_id: {room_id}, e: {e}"
+            error_message = F"Http request error. room_id: {room_id}, e: {e}"
             logging.error(error_message, exc_info=True)
             return
 
-        logging.info(f"TV Prize key post success: {room_id}")
+        if r.status_code == 200 or "OK" not in r.content.decode("utf-8"):
+            logging.error(
+                F"Prize room post failed. code: {r.status_code}, "
+                F"response: {r.content}. key: T${room_id}"
+            )
+            return
+
+        logging.info(f"TV Prize room post success: {room_id}")
 
     async def on_message(self, area, room_id, message):
         cmd = message.get("cmd")
