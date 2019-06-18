@@ -10,6 +10,7 @@ from queue import Empty
 from multiprocessing import Process, Queue
 from utils.biliapi import BiliApi
 from config.log4 import acceptor_logger as logging
+from config import LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
 
 NON_SKIP_USER_ID = [
     20932326,  # DD
@@ -222,7 +223,7 @@ def main():
 
     q = Queue()
 
-    server = AsyncHTTPServer(q=q, host="127.0.0.1", port=50000)
+    server = AsyncHTTPServer(q=q, host=LT_ACCEPTOR_HOST, port=LT_ACCEPTOR_PORT)
     p = Process(target=server, daemon=True)
     p.start()
 

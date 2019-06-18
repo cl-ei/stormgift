@@ -69,6 +69,18 @@ except KeyError:
     CQBOT["access_token"] = ""
     CQBOT["secret"] = ""
 
+try:
+    LT_ACCEPTOR_HOST = config["stormgift"]["LT_ACCEPTOR_HOST"]
+    LT_ACCEPTOR_PORT = int(config["stormgift"]["LT_ACCEPTOR_PORT"])
+    LT_LISTENER_HOST = config["stormgift"]["LT_LISTENER_HOST"]
+    LT_LISTENER_PORT = int(config["stormgift"]["LT_LISTENER_PORT"])
+
+except KeyError:
+    LT_ACCEPTOR_HOST = "127.0.0.1"
+    LT_ACCEPTOR_PORT = 50000
+    LT_LISTENER_HOST = "127.0.0.1"
+    LT_LISTENER_PORT = 50001
+
 print(
     "\n"
     "CONFIG: \n"
