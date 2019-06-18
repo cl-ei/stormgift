@@ -1,7 +1,5 @@
-import re
 import sys
 import time
-from random import random
 import asyncio
 import datetime
 import requests
@@ -10,7 +8,7 @@ from aiohttp import web
 from queue import Empty
 from multiprocessing import Process, Queue
 from utils.biliapi import BiliApi
-from config.log4 import listener_logger as logging
+from config.log4 import lt_raffle_id_getter_logger as logging
 from config import LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT, LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
 from utils.dao import redis_cache
 

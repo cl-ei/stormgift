@@ -78,6 +78,21 @@ cqbot_logger.addHandler(console)
 cqbot_logger.addHandler(file_handler)
 
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_raffle_id_getter.log"))
+file_handler.setFormatter(log_format)
+lt_raffle_id_getter_logger = logging.getLogger("lt_raffle_id_getter")
+lt_raffle_id_getter_logger.setLevel(logging.DEBUG)
+lt_raffle_id_getter_logger.addHandler(console)
+lt_raffle_id_getter_logger.addHandler(file_handler)
+
+
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_source.log"))
+file_handler.setFormatter(log_format)
+lt_source_logger = logging.getLogger("lt_source")
+lt_source_logger.setLevel(logging.DEBUG)
+lt_source_logger.addHandler(console)
+lt_source_logger.addHandler(file_handler)
+
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_hansy.log"))
 file_handler.setFormatter(log_format)
 dxj_hansy_logger = logging.getLogger("dxj_hansy")
@@ -107,6 +122,8 @@ __all__ = (
     "server_logger",
     "crontab_task_logger",
     "cqbot_logger",
+    "lt_source_logger",
+    "lt_raffle_id_getter_logger",
     "dxj_hansy_logger",
     "dxj_xiaoke_logger",
     "dxj_wanzi_logger",

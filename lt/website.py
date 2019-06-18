@@ -25,7 +25,7 @@ def render_to_response(template, context=None):
 
 
 async def handle(request):
-    return render_to_response("website_homepage.html")
+    return render_to_response("lt/website_homepage.html")
 
 
 async def query(request):
