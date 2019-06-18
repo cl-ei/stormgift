@@ -4,22 +4,157 @@ import time
 from random import random
 import asyncio
 import datetime
+import requests
 import traceback
 from aiohttp import web
 from queue import Empty
 from multiprocessing import Process, Queue
 from utils.biliapi import BiliApi
 from config.log4 import listener_logger as logging
-from config import LT_LISTENER_HOST, LT_LISTENER_PORT
+from config import LT_LISTENER_HOST, LT_LISTENER_PORT, LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
+from utils.dao import redis_cache
 
 
 class Executor(object):
     def __init__(self):
         self.cookie_file = "data/valid_cookies.txt"
+        self.post_prize_url = f"http://{LT_ACCEPTOR_HOST}:{LT_ACCEPTOR_PORT}"
+
+    def load_a_cookie(self):
+        try:
+            with open(self.cookie_file, "r") as f:
+                cookies = [c.strip() for c in f.readlines()]
+            return cookies[0]
+        except:
+            return ""
+
+    def send_prize_info(self, *args):
+        key = "$".join(args)
+
+        key_type, room_id, gift_id, *_ = args
+        data = {
+            "action": "prize_key",
+            "key_type": key_type,
+            "room_id": room_id,
+            "gift_id": gift_id
+        }
+        try:
+            r = requests.get(url=self.post_prize_url, data=data, timeout=2)
+            assert r.status_code == 200
+            assert "OK" in r.content.decode("utf-8")
+        except Exception as e:
+            error_message = F"Prize key post failed. key: {key}, e: {e}"
+            logging.error(error_message)
+
+        logging.info(f"Prize key post success: {key}")
+
+    async def proc_single_gift_of_guard(self, room_id, gift_info):
+        info = {
+            "uid": gift_info.get("sender").get("uid"),
+            "name": gift_info.get("sender").get("uname"),
+            "face": gift_info.get("sender").get("face"),
+            "room_id": room_id,
+            "gift_id": gift_info.get("id", 0),
+            "gift_name": "guard",
+            "gift_type": "G%s" % gift_info.get("privilege_type"),
+            "sender_type": None,
+            "created_time": str(datetime.datetime.now())[:19],
+            "status": gift_info.get("status")
+        }
+        gift_id = gift_info.get('id', 0)
+        key = f"NG{room_id}${gift_id}"
+        result = await redis_cache.non_repeated_save(key, info)
+        if result:
+            self.send_prize_info("G", room_id, key)
+
+    async def get_uid_by_name(self, user_name, cookie, retry_times=3):
+        for retry_time in range(retry_times):
+            r, uid = await BiliApi.get_user_id_by_search_way(user_name)
+            if r:
+                return True, uid
+
+            logging.warning(
+                f"Cannot get uid by search, try other way. "
+                f"retry times: {retry_time}, search result: {uid}"
+            )
+
+            flag, r = await BiliApi.add_admin(user_name, cookie)
+            if not flag:
+                logging.error(f"Ignored error when add_admin: {r}")
+
+            flag, admin_list = await BiliApi.get_admin_list(cookie)
+            if not flag:
+                logging.error(f"Cannot get admin list: {admin_list}, retry time: {retry_time}")
+                continue
+
+            uid = None
+            for admin in admin_list:
+                if admin.get("uname") == user_name:
+                    uid = admin.get("uid")
+                    break
+            if uid:
+                flag, r = await BiliApi.remove_admin(uid, cookie)
+                if not flag:
+                    logging.error(f"Ignored error in remove_admin: {r}")
+                return True, uid
+        return False, None
+
+    async def proc_tv_gifts_by_single_user(self, user_name, gift_list):
+        cookie = self.load_a_cookie()
+        if not cookie:
+            uid = None
+        else:
+            flag, uid = await self.get_uid_by_name(user_name, cookie, retry_times=3)
+            if flag:
+                logging.info(f"Get user info: {user_name}: {uid}. gift_list length: {len(gift_list)}.")
+            else:
+                logging.error(f"Cannot get uid for user: {user_name}")
+                uid = None
+
+        for info in gift_list:
+            info["uid"] = uid
+            room_id = info["room_id"]
+            gift_id = info["gift_id"]
+            key = f"_T{room_id}${gift_id}"
+            result = await redis_cache.non_repeated_save(key, info)
+            if result:
+                self.send_prize_info("T", room_id, gift_id)
 
     async def __call__(self, args):
         key_type, room_id, *_ = args
-        pass
+        if key_type == "G":
+            flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
+            if not flag:
+                logging.error(f"Guard proc_single_room, room_id: {room_id}, e: {gift_info_list}")
+                return
+
+            for gift_info in gift_info_list:
+                await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
+
+        elif key_type == "T":
+            flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
+            if not flag:
+                logging.error(f"TV proc_single_room, room_id: {room_id}, e: {gift_info_list}")
+                return
+
+            result = {}
+            for info in gift_info_list:
+                user_name = info.get("from_user").get("uname")
+                i = {
+                    "name": user_name,
+                    "face": info.get("from_user").get("face"),
+                    "room_id": room_id,
+                    "gift_id": info.get("raffleId", 0),
+                    "gift_name": info.get("title"),
+                    "gift_type": info.get("type"),
+                    "sender_type": info.get("sender_type"),
+                    "created_time": str(datetime.datetime.now())[:19],
+                    "status": info.get("status")
+                }
+                result.setdefault(user_name, []).append(i)
+
+            for user_name, gift_list in result.items():
+                await self.proc_tv_gifts_by_single_user(user_name, gift_list)
 
 
 class AsyncHTTPServer(object):
