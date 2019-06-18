@@ -1,6 +1,4 @@
 import re
-import os
-import sys
 import json
 import time
 import uuid
@@ -12,26 +10,8 @@ import traceback
 from random import choice
 from cqhttp import CQHttp
 
-if "linux" in sys.platform:
-    LOG_FILE = "/home/wwwroot/log/cqbot.log"
-    access_token, secret = sys.argv[1], sys.argv[2]
-    print(f"cqbot start: access_token: {access_token}, secret: {secret}")
-else:
-    LOG_FILE = os.path.join("./log", "cqbot.log")
-    access_token = ''
-    secret = ''
-
-
-log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
-console = logging.StreamHandler(sys.stdout)
-console.setFormatter(log_format)
-log_file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
-log_file_handler.setFormatter(log_format)
-logger = logging.getLogger("cqbot")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(console)
-logger.addHandler(log_file_handler)
-logging = logger
+from config.log4 import cqbot_logger as logging
+from config import CQBOT
 
 
 class Settings:
@@ -79,7 +59,7 @@ class Settings:
         return f"<{user_id}\n" in content
 
 
-bot = CQHttp(api_root='http://127.0.0.1:5700/', access_token=access_token, secret=access_token)
+bot = CQHttp(*CQBOT)
 
 
 class BotUtils:
@@ -222,10 +202,6 @@ class BotUtils:
         return filtered_songs[0].get("id") if filtered_songs else None
 
 
-cq_image_pattern = re.compile(r"\[CQ:image,file=([^\]]*)\]")
-cq_record_pattern = re.compile(r"\[CQ:record,file=([^\]]*)\]")
-
-
 @bot.on_message()
 def handle_msg(context):
     if context["message_type"] == "group":
@@ -242,16 +218,6 @@ def handle_msg(context):
             "Group message received: group_%s [%s][%s](%s qq: %s) -> %s"
             % (group_id, title, card, user_nickname, user_id, msg)
         )
-
-        # not available in docker
-        #
-        # image_files = cq_image_pattern.findall(msg)
-        # for image_file in image_files:
-        #     bot.get_image(file=image_file)
-        #
-        # record_files = cq_record_pattern.findall(msg)
-        # for record_file in record_files:
-        #     bot.get_record(file=record_file, out_format="mp3")
 
         msg = msg.replace("＃", "#")
         if msg.startswith("#"):

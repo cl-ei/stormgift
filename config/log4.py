@@ -70,6 +70,13 @@ crontab_task_logger.setLevel(logging.DEBUG)
 crontab_task_logger.addHandler(console)
 crontab_task_logger.addHandler(file_handler)
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "cqbot.log"))
+file_handler.setFormatter(log_format)
+cqbot_logger = logging.getLogger("cqbot")
+cqbot_logger.setLevel(logging.DEBUG)
+cqbot_logger.addHandler(console)
+cqbot_logger.addHandler(file_handler)
+
 
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_hansy.log"))
 file_handler.setFormatter(log_format)
@@ -99,6 +106,7 @@ __all__ = (
     "status_logger",
     "server_logger",
     "crontab_task_logger",
+    "cqbot_logger",
     "dxj_hansy_logger",
     "dxj_xiaoke_logger",
     "dxj_wanzi_logger",
