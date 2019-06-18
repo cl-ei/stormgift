@@ -207,7 +207,7 @@ class AsyncWorker(object):
 
 
 def main():
-    logging.warning("Starting CQ listener process shutdown!")
+    logging.info("Starting listener process...")
 
     q = Queue()
 
