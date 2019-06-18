@@ -1,6 +1,7 @@
 import asyncio
 from config.log4 import crontab_task_logger as logging
 from utils.biliapi import BiliApi
+from utils.email import send_email
 
 
 async def check_single_cookie(c):
@@ -40,7 +41,19 @@ async def check_single_cookie(c):
 
     if r:
         return True, data, cookie
+
     else:
+        email_addr = ""
+        for c in cookie.split(';'):
+            if "notice_email" in c:
+                email_addr = c.split("=")[-1].strip()
+                break
+
+        if email_addr:
+            flag, err_msg = send_email(f"辣条-登录信息已过期：\n{cookie.split(';')[0]}", email_addr)
+            if not flag:
+                logging.error(err_msg)
+
         return False, False, ""
 
 

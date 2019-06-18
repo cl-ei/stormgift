@@ -81,6 +81,12 @@ except KeyError:
     LT_RAFFLE_ID_GETTER_HOST = "127.0.0.1"
     LT_RAFFLE_ID_GETTER_PORT = 30001
 
+try:
+    mail_auth_pass = config["mail"]["mail_auth_pass"]
+except KeyError:
+    mail_auth_pass = ""
+
+
 print(
     "\n"
     "CONFIG: \n"
@@ -90,7 +96,6 @@ print(
     f"MYSQL_CONFIG: {MYSQL_CONFIG}\n"
     f"CQBOT: {CQBOT}\n"
     "\n"
-    f"PRIZE_HANDLER_SERVE_ADDR: {PRIZE_HANDLER_SERVE_ADDR}\n"
-    f"PRIZE_SOURCE_PUSH_ADDR: {PRIZE_SOURCE_PUSH_ADDR}\n"
+    f"mail_auth_pass: {mail_auth_pass}\n"
     f"{'-'*80}\n"
 )
