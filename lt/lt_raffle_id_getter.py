@@ -40,11 +40,16 @@ class Executor(object):
         }
         try:
             r = requests.get(url=self.post_prize_url, params=params, timeout=2)
-            assert r.status_code == 200
-            assert "OK" in r.content.decode("utf-8")
         except Exception as e:
-            error_message = F"Prize key post failed. key: {key}, e: {e}"
+            error_message = f"Http request error: {e}"
             logging.error(error_message)
+            return
+
+        if r.status_code == 200 or "OK" not in r.content.decode("utf-8"):
+            logging.error(
+                F"Prize key post failed. code: {r.status_code}, "
+                F"response: {r.content}. key: {key_type}${room_id}${gift_id}"
+            )
             return
 
         logging.info(f"Prize key post success: {key}")
