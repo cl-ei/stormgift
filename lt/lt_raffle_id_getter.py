@@ -43,6 +43,7 @@ class Executor(object):
         except Exception as e:
             error_message = F"Prize key post failed. key: {key}, e: {e}"
             logging.error(error_message)
+            return
 
         logging.info(f"Prize key post success: {key}")
 
