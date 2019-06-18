@@ -107,7 +107,7 @@ async def api(request):
 
         if is_vip:
             with open("data/vip_cookies.txt") as f:
-                cookies = [c.strip for c in f.readlines()]
+                cookies = [c.strip() for c in f.readlines()]
 
             new_vip_list = [user_cookie]
             for c in cookies:
@@ -119,7 +119,7 @@ async def api(request):
 
         # 刷新RAW
         with open("data/cookies.txt") as f:
-            cookies = [c.strip for c in f.readlines()]
+            cookies = [c.strip() for c in f.readlines()]
         raw_cookies = [user_cookie]
         for c in cookies:
             if f"{uid};" not in c:
@@ -129,7 +129,7 @@ async def api(request):
 
         # 刷新vaild
         with open("data/valid_cookies.txt") as f:
-            cookies = [c.strip for c in f.readlines()]
+            cookies = [c.strip() for c in f.readlines()]
 
         valid_cookies = [user_cookie]
         for c in cookies:
