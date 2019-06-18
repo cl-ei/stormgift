@@ -1,7 +1,5 @@
 import configparser
 
-print("-"*80)
-
 config = configparser.ConfigParser()
 config.read('/etc/madliar.settings.ini')
 
@@ -87,15 +85,7 @@ except KeyError:
     mail_auth_pass = ""
 
 
-print(
-    "\n"
-    "CONFIG: \n"
-    f"PROJECT_ROOT: {PROJECT_ROOT}\n"
-    f"LOG_PATH: {LOG_PATH}\n"
-    f"REDIS_CONFIG: {REDIS_CONFIG}\n"
-    f"MYSQL_CONFIG: {MYSQL_CONFIG}\n"
-    f"CQBOT: {CQBOT}\n"
-    "\n"
-    f"mail_auth_pass: {mail_auth_pass}\n"
-    f"{'-'*80}\n"
-)
+local_keys = sorted([_ for _ in dir() if not _.startswith("_") and _ not in ("config", "configparser")])
+local_vars = locals()
+display_str = "\n".join([f"{k}: {local_vars[k]}" for k in local_keys])
+print(f"{'-'*80}\nConfigurations:\n\n{display_str}\n{'-'*80}\n")
