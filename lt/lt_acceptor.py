@@ -30,7 +30,7 @@ class Executor(object):
         self.accepted_keys = []
 
     def _is_new_gift(self, *args):
-        key = "$".join(args)
+        key = "$".join([str(_) for _ in args])
         if key in self.accepted_keys:
             return False
 

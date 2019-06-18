@@ -29,7 +29,7 @@ class Executor(object):
             return ""
 
     def send_prize_info(self, *args):
-        key = "$".join(args)
+        key = "$".join([str(_) for _ in args])
 
         key_type, room_id, gift_id, *_ = args
         params = {
