@@ -13,6 +13,11 @@ stormgift_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "stormgift.l
 stormgift_file_handler.setFormatter(log_format)
 
 
+console_logger = logging.getLogger("console")
+console_logger.setLevel(logging.DEBUG)
+console_logger.addHandler(console)
+
+
 acceptor_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "acceptor_stormgift.log"))
 acceptor_file_handler.setFormatter(log_format)
 acceptor_logger = logging.getLogger("acceptor_stormgift")
@@ -96,6 +101,7 @@ bili_api_logger.addHandler(stormgift_file_handler)
 
 
 __all__ = (
+    "console_logger",
     "acceptor_logger",
     "status_logger",
     "crontab_task_logger",

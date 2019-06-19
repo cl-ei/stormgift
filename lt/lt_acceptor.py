@@ -138,21 +138,19 @@ class Executor(object):
             display_index += 1
             await process_fn(display_index, user_id, room_id, gift_id, cookie)
 
-        now_hour = datetime.datetime.now().hour
-        busy_time = bool(now_hour < 2 or now_hour > 18)
         busy_412 = bool(time.time() - self.__busy_time < 60 * 20)
-        chance = 0.4 if busy_412 else 0.95
         for user_id, cookie in white_cookies:
             display_index += 1
 
-            if busy_time or busy_412:
-                if random() < chance:
-                    await asyncio.sleep(random())
-                else:
+            if busy_412:
+                if random() < 0.5:
                     logging.info(
-                        f"Too busy, user {display_index}-{user_id} skip. reason: {'412' if busy_412 else 'time'}.")
+                        f"Too busy, user {display_index}-{user_id} skip. "
+                        f"reason: 412."
+                    )
                     continue
-
+                else:
+                    await asyncio.sleep(0.1)
             await process_fn(display_index, user_id, room_id, gift_id, cookie)
 
 
