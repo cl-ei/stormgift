@@ -683,9 +683,6 @@ class BiliApi:
 
     @classmethod
     async def force_get_real_room_id(cls, room_id, timeout=10):
-        if room_id > 9999:
-            return room_id
-
         from utils.dao import redis_cache
 
         redis_cache_key = f"REAL_ROOM_ID_OF_{room_id}"
@@ -699,9 +696,9 @@ class BiliApi:
             logging.error(f"BILI_API Cannot get real room id of {room_id}: {data}.")
             return room_id
 
-        real_room_id = data.get("data", {}).get("room_id") if r else 0
+        real_room_id = data.get("data", {}).get("room_id")
         if isinstance(real_room_id, int) and real_room_id > 0:
-            r = await redis_cache.set(redis_cache_key, real_room_id, timeout=3600*24*30)
+            r = await redis_cache.set(redis_cache_key, real_room_id, timeout=3600*24*200)
             logging.info(f"BILI_API Real room id of {room_id} got: {real_room_id}. saved to redis: {r}")
             room_id = real_room_id
         return room_id
