@@ -21,6 +21,8 @@ class Executor(object):
         self.cookie_file = "data/valid_cookies.txt"
         self.post_prize_url = f"http://{LT_ACCEPTOR_HOST}:{LT_ACCEPTOR_PORT}"
 
+        self.__posted_keys = []
+
     def load_a_cookie(self):
         try:
             with open(self.cookie_file, "r") as f:
@@ -31,6 +33,12 @@ class Executor(object):
 
     def send_prize_info(self, *args):
         key = "$".join([str(_) for _ in args])
+        if key in self.__posted_keys:
+            return
+
+        self.__posted_keys.insert(0, key)
+        while len(self.__posted_keys) >= 10000:
+            self.__posted_keys.pop()
 
         key_type, room_id, gift_id, *_ = args
         params = {
@@ -56,6 +64,10 @@ class Executor(object):
         logging.info(f"Prize key post success: {key}")
 
     async def proc_single_gift_of_guard(self, room_id, gift_info):
+        gift_id = gift_info.get('id', 0)
+        self.send_prize_info("G", room_id, gift_id)
+
+        key = f"NG{room_id}${gift_id}"
         info = {
             "uid": gift_info.get("sender").get("uid"),
             "name": gift_info.get("sender").get("uname"),
@@ -68,10 +80,7 @@ class Executor(object):
             "created_time": str(datetime.datetime.now())[:19],
             "status": gift_info.get("status")
         }
-        gift_id = gift_info.get('id', 0)
-        key = f"NG{room_id}${gift_id}"
         await redis_cache.non_repeated_save(key, info)
-        self.send_prize_info("G", room_id, gift_id)
 
     async def force_get_uid_by_name(self, user_name):
         cookie = self.load_a_cookie()
@@ -108,9 +117,11 @@ class Executor(object):
             info["uid"] = uid
             room_id = info["room_id"]
             gift_id = info["gift_id"]
+
+            self.send_prize_info("T", room_id, gift_id)
+
             key = f"_T{room_id}${gift_id}"
             await redis_cache.non_repeated_save(key, info)
-            self.send_prize_info("T", room_id, gift_id)
 
     async def __call__(self, args):
         key_type, room_id, *_ = args
