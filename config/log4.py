@@ -86,6 +86,15 @@ dxj_wanzi_logger.addHandler(console)
 dxj_wanzi_logger.addHandler(file_handler)
 
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "bili_api.log"))
+file_handler.setFormatter(log_format)
+bili_api_logger = logging.getLogger("bili_api")
+bili_api_logger.setLevel(logging.DEBUG)
+bili_api_logger.addHandler(console)
+bili_api_logger.addHandler(file_handler)
+bili_api_logger.addHandler(stormgift_file_handler)
+
+
 __all__ = (
     "acceptor_logger",
     "status_logger",
@@ -96,4 +105,5 @@ __all__ = (
     "dxj_hansy_logger",
     "dxj_xiaoke_logger",
     "dxj_wanzi_logger",
+    "bili_api_logger",
 )

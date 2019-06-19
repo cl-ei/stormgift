@@ -5,6 +5,7 @@ import asyncio
 import requests
 from random import random
 from math import floor
+from config.log4 import bili_api_logger as logging
 
 
 class WsApi(object):
@@ -685,12 +686,24 @@ class BiliApi:
         if room_id > 9999:
             return room_id
 
+        from utils.dao import redis_cache
+
+        redis_cache_key = f"REAL_ROOM_ID_OF_{room_id}"
+        real_room_id = await redis_cache.get(redis_cache_key)
+        if isinstance(real_room_id, int) and real_room_id > 0:
+            return real_room_id
+
         req_url = f"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
         r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        if not r:
+            logging.error(f"BILI_API Cannot get real room id of {room_id}: {data}.")
+            return room_id
 
         real_room_id = data.get("data", {}).get("room_id") if r else 0
         if isinstance(real_room_id, int) and real_room_id > 0:
-            return real_room_id
+            r = await redis_cache.set(redis_cache_key, real_room_id, timeout=3600*24*30)
+            logging.info(f"BILI_API Real room id of {room_id} got: {real_room_id}. saved to redis: {r}")
+            room_id = real_room_id
         return room_id
 
 
