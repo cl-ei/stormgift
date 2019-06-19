@@ -221,7 +221,8 @@ def main():
     q = Queue()
 
     server = AsyncHTTPServer(q=q, host=LT_RAFFLE_ID_GETTER_HOST, port=LT_RAFFLE_ID_GETTER_PORT)
-    p = Process(target=server, daemon=True)
+    p = Process(target=server)
+    p.daemon = True
     p.start()
 
     worker = AsyncWorker(p, q=q, target=Executor())
