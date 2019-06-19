@@ -113,6 +113,8 @@ class Executor(object):
 
     async def __call__(self, args):
         key_type, room_id, *_ = args
+        room_id = await BiliApi.force_get_real_room_id(room_id)
+
         if key_type == "G":
             flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
             if not flag:
