@@ -11,7 +11,8 @@ from random import choice
 from cqhttp import CQHttp
 
 from config.log4 import cqbot_logger as logging
-from config import CQBOT
+from config.log4 import lt_source_logger
+from config import CQBOT, LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT
 
 
 class Settings:
@@ -341,6 +342,32 @@ class BotUtils:
         )
         return bot.send_group_msg(group_id=group_id, message=message)
 
+    @classmethod
+    def post_guard_prize_info(cls, room_id):
+
+        post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
+
+        params = {
+            "action": "prize_notice",
+            "key_type": "G",
+            "room_id": room_id
+        }
+        try:
+            r = requests.get(url=post_prize_url, params=params, timeout=0.5)
+        except Exception as e:
+            error_message = F"Http request error. room_id: {room_id}, e: {e}"
+            lt_source_logger.error(error_message, exc_info=True)
+            return
+
+        if r.status_code != 200 or "OK" not in r.content.decode("utf-8"):
+            lt_source_logger.error(
+                F"Prize room post failed. code: {r.status_code}, "
+                F"response: {r.content}. key: G${room_id}"
+            )
+            return
+
+        lt_source_logger.info(f"Guard Prize room post success: {room_id}")
+
 
 @bot.on_message()
 def handle_msg(context):
@@ -354,6 +381,16 @@ def handle_msg(context):
 
         group_id = context["group_id"]
         msg = context["raw_message"]
+
+        if group_id == 930242871:
+            if user_id == 1934116519 and ("舰长" in msg or "提督" in msg or "总督" in msg):
+                try:
+                    room_id = int(msg.strip("/").split("/", 1)[-1])
+                except Exception as e:
+                    lt_source_logger.error(f"Error when get guard prize room: {e}.", exc_info=True)
+                    return
+                BotUtils.post_guard_prize_info(room_id=room_id)
+            return
 
         logging.info(
             "Group message received: group_%s [%s][%s](%s qq: %s) -> %s"
