@@ -21,33 +21,44 @@
 <body>
 <div>
     <div>
-        <label>USER ID=<input class="redinput" type="number" name="uid">;</label>
+        <label>B站uid=<input class="redinput" type="number" name="uid">;</label>
         <label>SESSDATA=<input class="redinput" type="text" name="SESSDATA">;</label>
         <label>bili_jct=<input class="redinput" type="text" name="bili_jct">;</label>
-        <label>邮箱=<input class="redinput" type="text" name="email">;</label>
-        <button class="button center" id="submit-cookie">确定</button>
-        <button class="button center" id="submit-query">查询状态</button>
+        <label>异常情况通知邮箱=<input class="redinput" type="text" name="email">;</label>
+        <button class="button center" id="submit-cookie">我要挂辣条！</button>
+        <button class="button center" id="submit-query">查询挂机状态</button>
     </div>
 </div>
 <div>
     <hr>
-    <p>
-        这是一个免费挂辣条的网站，包括每日签到、应援团签到、双端直播任务签到、直播挂机升UL、舰长亲密度、高能/小电视辣条领取。按照下面的说明，把你的账号配置在这里就可以了。为了防止恶意攻击，你需要先把你的uid告诉站长，他加入白名单后方可使用。
-    </p>
+    <p><strong>
+        这是一个免费挂辣条的网站，包括每日签到、应援团签到、双端直播任务签到、直播挂机升UL、舰长亲密度、高能/小电视辣条领取。你要先把你的B站uid告诉站长，然后按照下面的说明，把你的账号信息填写在这里就可以了。
+    </strong></p>
     <hr>
     <h3>使用说明</h3>
     <p>
-        1.如果只是想查看自己的账号挂辣条是否正常，只需要输入USER ID即可，然后点击「查询状态」。<strong style="color: red;">USER ID 就是你B站账号的uid，不是绑定的手机号，在「个人空间」的「直播间公告」下方可以查看。</strong>
+        1.如果只是想查看自己的账号挂辣条是否正常，只需要输入B站uid即可，然后点击「查询挂机状态」按钮。<strong style="color: red;">你B站账号的uid不是绑定的手机号，在bilibili网站「个人空间」的「直播间公告」下方可以查看。</strong>
     </p>
     <p>
-        2.想要挂辣条，需要把你的账号相关的USER ID、SESSDATA和bili_jct配置到这里。具体方法是: <br />
-        用chrome浏览器（或者百度浏览器、360浏览器都可以），登录到破站，然后在页面空白地区点击右键，选择“检查”或者“审查元素”，然后按照图中提示一步一步操作，将⑤和⑥对应的值填到这里，然后点击「确定」按钮。（图片看不清可以放大看）：
+        2.想要挂辣条，需要把你的B站账号的「uid」、「SESSDATA」和「bili_jct」配置到这里。「SESSDATA」和「bili_jct」要从浏览器中获取，具体方法是:
         <br />
-        <strong style="color: red;">注意，如果你在浏览器中，退出Bilibili的登录，那么这里也会同步退出。如果你需要挂多个账号，务必在多个浏览器中操作，或者在「多个浏览器用户」中操作，或者在访客模式中登录。</strong>
+        ① 用chrome浏览器（或者百度浏览器、360浏览器都可以）登录到破站
+        <br />
+        ② 然后<strong>在页面空白地区点击右键</strong>，点击「检查」或者「审查元素」
+        <br />
+        ③ 在打开的调试框中，点击「Application」或者「应用」
+        <br />
+        ④ 在调试框的左侧点击 "Storage"（中文名称 "存储"）下的 "Cookies"，选择 "https://www.bilibili.com/"这一项
+        <br />
+        ⑤和⑥ 也就是图中箭头指的，就是你要填写到上面的表单中的值。填写完了之后，点击「我要挂辣条」按钮就行了。
+        <br />
+        上面表单中的「异常情况通知邮箱」可以不填。但建议填上，这样如果登录过期、挂辣条出现错误，就会给你发送通知邮件。
     </p>
+    <h3>注意事项</h3>
     <p>
-        邮箱可以不填。但建议填上，这样如果登录过期、挂辣条出现错误，就会给你发送通知邮件。
+        1. <strong style="color: red;">注意，如果你在浏览器中，退出Bilibili的登录，那么这里也会同步退出。如果你需要挂多个账号，务必在多个浏览器中操作，或者在「多个浏览器用户」中操作，或者在访客模式中登录。</strong>
     </p>
+
 <img src="https://statics.madliar.com/static/img/使用说明.png" style="width:100%">
 
 
