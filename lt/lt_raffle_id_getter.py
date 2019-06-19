@@ -234,7 +234,7 @@ def main():
                 f"[{line}]\n"
                 f"now exec `kill -9 {existed_proc_number}`..."
             )
-            r = os.system(f"kill -9  {existed_proc_number}")
+            r = os.system(f"kill -9 {existed_proc_number}")
             logging.info(f"Process {existed_proc_number} killed. result: {r}")
             time.sleep(0.2)
             break

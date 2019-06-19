@@ -144,7 +144,7 @@ class Executor(object):
             display_index += 1
 
             if busy_412:
-                if random() < 0.5:
+                if random() < 0.3:
                     logging.info(
                         f"Too busy, user {display_index}-{user_id} skip. "
                         f"reason: 412."
@@ -239,7 +239,7 @@ def main():
                 f"[{line}]\n"
                 f"now exec `kill -9 {existed_proc_number}`..."
             )
-            r = os.system(f"kill -9  {existed_proc_number}")
+            r = os.system(f"kill -9 {existed_proc_number}")
             logging.info(f"Process {existed_proc_number} killed. result: {r}")
             time.sleep(0.2)
             break
