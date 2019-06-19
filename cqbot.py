@@ -385,7 +385,7 @@ def handle_msg(context):
         if group_id == 930242871:
             if user_id == 1934116519 and ("舰长" in msg or "提督" in msg or "总督" in msg):
                 try:
-                    room_id = int(msg.strip("/").split("/", 1)[-1])
+                    room_id = int(msg.strip("/").split("/")[-1])
                 except Exception as e:
                     lt_source_logger.error(f"Error when get guard prize room: {e}.", exc_info=True)
                     return
