@@ -113,7 +113,7 @@ class Executor(object):
         else:
             logging.critical(f"GUARD AC FAILED! {index}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
-                await self.add_to_block_list(cookie)
+                self.add_to_block_list(cookie)
 
             elif "412" in msg:
                 self.__busy_time = time.time()
