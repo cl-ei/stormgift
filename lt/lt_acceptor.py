@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 import time
@@ -202,7 +203,7 @@ class AsyncWorker(object):
                 sys.exit(1)
 
             try:
-                msg = self.__q.get(timeout=30)
+                msg = self.__q.get(timeout=3)
             except Empty:
                 continue
 
@@ -221,7 +222,27 @@ class AsyncWorker(object):
 
 
 def main():
-    logging.warning("Starting acceptor process shutdown!")
+    logging.warning("Starting LT acceptor process...")
+
+    for line in os.popen(f'lsof -i:{LT_ACCEPTOR_PORT}').readlines():
+        line = line.strip()
+        parts = line.split()
+        if (
+            len(parts) > 8
+            and parts[0] == "python3.7"
+            and str(LT_ACCEPTOR_PORT) in parts[-2]
+            and parts[-3] == "TCP"
+        ):
+            existed_proc_number = int(parts[1])
+            logging.warn(
+                f"\nLT acceptor process already existed:\n"
+                f"[{line}]\n"
+                f"now exec `kill -9 {existed_proc_number}`..."
+            )
+            r = os.system(f"kill -9  {existed_proc_number}")
+            logging.info(f"Process {existed_proc_number} killed. result: {r}")
+            time.sleep(0.2)
+            break
 
     q = Queue()
 

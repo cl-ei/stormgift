@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import asyncio
@@ -197,7 +198,7 @@ class AsyncWorker(object):
                 sys.exit(1)
 
             try:
-                msg = self.__q.get(timeout=30)
+                msg = self.__q.get(timeout=3)
             except Empty:
                 continue
 
@@ -216,7 +217,27 @@ class AsyncWorker(object):
 
 
 def main():
-    logging.info("Starting listener process...")
+    logging.info("Starting raffle id getter process...")
+
+    for line in os.popen(f'lsof -i:{LT_RAFFLE_ID_GETTER_PORT}').readlines():
+        line = line.strip()
+        parts = line.split()
+        if (
+            len(parts) > 8
+            and parts[0] == "python3.7"
+            and str(LT_RAFFLE_ID_GETTER_PORT) in parts[-2]
+            and parts[-3] == "TCP"
+        ):
+            existed_proc_number = int(parts[1])
+            logging.warn(
+                f"\nRaffle id process already existed:\n"
+                f"[{line}]\n"
+                f"now exec `kill -9 {existed_proc_number}`..."
+            )
+            r = os.system(f"kill -9  {existed_proc_number}")
+            logging.info(f"Process {existed_proc_number} killed. result: {r}")
+            time.sleep(0.2)
+            break
 
     q = Queue()
 
