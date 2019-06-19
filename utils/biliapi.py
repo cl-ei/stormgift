@@ -688,6 +688,7 @@ class BiliApi:
         redis_cache_key = f"REAL_ROOM_ID_OF_{room_id}"
         real_room_id = await redis_cache.get(redis_cache_key)
         if isinstance(real_room_id, int) and real_room_id > 0:
+            logging.info(f"BILI_API Get real room id: {room_id} -> {real_room_id} by redis.")
             return real_room_id
 
         req_url = f"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
@@ -699,7 +700,7 @@ class BiliApi:
         real_room_id = data.get("data", {}).get("room_id")
         if isinstance(real_room_id, int) and real_room_id > 0:
             r = await redis_cache.set(redis_cache_key, real_room_id, timeout=3600*24*200)
-            logging.info(f"BILI_API Real room id of {room_id} got: {real_room_id}. saved to redis: {r}")
+            logging.info(f"BILI_API Get real room id: {room_id} -> {real_room_id}, saved to redis: {r}.")
             room_id = real_room_id
         return room_id
 
