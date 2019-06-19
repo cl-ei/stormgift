@@ -43,7 +43,7 @@ async def query(request):
         return web.Response(text=f"错误的uid: {raw_uid}, 重新输入!")
 
     if uid not in load_lt_white_uid_list():
-        return web.Response(text=f"USER ID {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
+        return web.Response(text=f"{uid} 你没有权限！! 联系站长把你加到白名单才能领辣条哦。")
 
     with open("data/valid_cookies.txt", "r") as f:
         cookie_list = [c.strip() for c in f.readlines()]
@@ -55,11 +55,11 @@ async def query(request):
             user_cookie = cookie
             break
     if not user_cookie:
-        return web.Response(text=f"用户（USER ID: {uid}）尚未配置，没开始领辣条。")
+        return web.Response(text=f"用户（uid: {uid}）尚未配置，没开始领辣条。")
 
     r, data = await BiliApi.do_sign(user_cookie)
     if not r and "登录" in data:
-        return web.Response(text=f"用户（USER ID: {uid}）已过期！请重新配置！！！")
+        return web.Response(text=f"用户（uid: {uid}）已过期！请重新配置！！！")
 
     message_list = []
     uid = str(uid)
@@ -81,7 +81,7 @@ async def query(request):
                 break
     except Exception as e:
         message_list = [f"未能读取。E：{e}"]
-    return web.Response(text=f"用户（USER ID: {uid}）正常领取辣条中。领取记录：\n\n" + "\n".join(message_list))
+    return web.Response(text=f"用户（uid: {uid}）正常领取辣条中。领取记录：\n\n" + "\n".join(message_list))
 
 
 async def api(request):
@@ -91,10 +91,10 @@ async def api(request):
     try:
         uid = int("".join(uid.split()))
     except Exception:
-        return web.Response(text="错误的USER ID!")
+        return web.Response(text="错误的uid!")
 
     if uid not in load_lt_white_uid_list():
-        return web.Response(text=f"USER ID {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
+        return web.Response(text=f"uid {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
 
     if action == "submit":
         SESSDATA = data['SESSDATA']
@@ -108,7 +108,7 @@ async def api(request):
         user_cookie = f"DedeUserID={uid}; SESSDATA={SESSDATA}; bili_jct={bili_jct}; notice_email={email};"
         r, is_vip = await BiliApi.get_if_user_is_live_vip(user_cookie, user_id=uid)
         if not r:
-            return web.Response(text=f"用户（USER ID: {uid}）你输入的数据不正确！！请检查后重新配置！！！")
+            return web.Response(text=f"用户（uid: {uid}）你输入的数据不正确！！请检查后重新配置！！！")
 
         if is_vip:
             with open("data/vip_cookies.txt") as f:
@@ -144,7 +144,7 @@ async def api(request):
         with open("data/valid_cookies.txt", "w") as f:
             f.write("\n".join(valid_cookies))
 
-        return web.Response(text=f"用户（USER ID: {uid}）配置成功！")
+        return web.Response(text=f"用户（uid: {uid}）配置成功！")
 
     else:
         return web.Response(text="错误的请求")
