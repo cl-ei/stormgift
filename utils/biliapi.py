@@ -156,6 +156,8 @@ class BiliApi:
         )
         flag, r = await cls.get(req_url, timeout=timeout, check_response_json=True, check_error_code=True)
         if not flag:
+            if "房间已经被锁定" in r:
+                return True, False
             return False, r
 
         data = r.get("data", {})
@@ -677,7 +679,9 @@ class BiliApi:
         req_url = F"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
         r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
         if not r:
-            return r, data
+            if "房间已经被锁定" in data:
+                return True, False
+            return False, data
         result = data.get("data", {}).get("status") == "LIVE"
         return True, result
 
