@@ -152,9 +152,9 @@ async def api(request):
 
 app = web.Application()
 app.add_routes([
-    web.get('/', handle),
-    web.get('/{uid}', query),
-    web.post('/', api),
+    web.get('/lt', handle),
+    web.get('/lt{uid}', query),
+    web.post('/lt/api', api),
 
 ])
 web.run_app(app, port=1024)
