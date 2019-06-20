@@ -58,6 +58,66 @@ class GiftRedisCache(object):
 redis_cache = GiftRedisCache(**REDIS_CONFIG)
 
 
+class CookieOperator(object):
+    RAW_COOKIE_FILE = "data/cookies.txt"
+    VALID_COOKIE_FILE = "data/valid_cookies.txt"
+    VIP_COOKIE_FILE = "data/vip_cookies.txt"
+
+    COOKIE_FILES = [
+        RAW_COOKIE_FILE,
+        VALID_COOKIE_FILE,
+        VIP_COOKIE_FILE,
+    ]
+
+    WHITE_UID_LIST_FILE = "data/lt_white_uid_list.txt"
+
+    @classmethod
+    def delete_cookie_by_uid(cls, user_id):
+        check_str = f"={user_id};"
+        for file_name in cls.COOKIE_FILES:
+            with open(file_name, "r") as f:
+                cookies = [_.strip() for _ in f.readlines()]
+                cookies = [_ for _ in cookies if _ and check_str not in _]
+
+            with open(file_name, "w") as f:
+                f.write("\n".join(cookies))
+
+    @classmethod
+    def add_uid_to_white_list(cls, user_id):
+        user_id = int(user_id)
+
+        with open(cls.WHITE_UID_LIST_FILE) as f:
+            uid_list = [_.strip() for _ in f.readlines()]
+            uid_list = {int(_) for _ in uid_list if _}
+
+        if user_id in uid_list:
+            return f"Already in! total: {len(uid_list)}"
+
+        uid_list.add(user_id)
+        with open(cls.WHITE_UID_LIST_FILE, "w") as f:
+            f.write("\n".join([str(_) for _ in uid_list]))
+        return f"OK. total: {len(uid_list)}"
+
+    @classmethod
+    def remove_uid_from_white_list(cls, user_id):
+        user_id = int(user_id)
+
+        with open(cls.WHITE_UID_LIST_FILE) as f:
+            uid_list = [_.strip() for _ in f.readlines()]
+            uid_list = {int(_) for _ in uid_list if _}
+
+        if user_id not in uid_list:
+            msg = f"Already removed! total: {len(uid_list)}"
+        else:
+            uid_list.remove(user_id)
+            with open(cls.WHITE_UID_LIST_FILE, "w") as f:
+                f.write("\n".join([str(_) for _ in uid_list]))
+            msg = f"OK. total: {len(uid_list)}"
+
+        cls.delete_cookie_by_uid(user_id)
+        return msg
+
+
 async def test():
     key = "test"
     value = None

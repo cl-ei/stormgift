@@ -70,6 +70,7 @@ class Executor(object):
 
         non_skip_cookies = []
         white_cookies = []
+        blocked_list = []
 
         now = time.time()
         t_12_hours = 3600 * 12
@@ -77,13 +78,15 @@ class Executor(object):
             user_id = int(re.findall(r"DedeUserID=(\d+)", cookie)[0])
             block_time = self.__block_list.get(cookie)
             if isinstance(block_time, (int, float)) and now - block_time < t_12_hours:
-                logging.info(f"User {user_id} in black list, skip it.")
+                blocked_list.append(user_id)
                 continue
 
             if user_id in NON_SKIP_USER_ID:
                 non_skip_cookies.append((user_id, cookie))
             else:
                 white_cookies.append((user_id, cookie))
+
+        logging.info(f"Blocked users: {blocked_list}, now skip.")
 
         # GC
         if len(self.__block_list) > len(cookies):
