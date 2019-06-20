@@ -13,6 +13,7 @@ from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
 from config.log4 import lt_source_logger
 from config import CQBOT, LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT
+from utils.dao import CookieOperator
 
 
 class Settings:
@@ -443,29 +444,14 @@ def handle_msg(context):
             elif msg.startswith("add") or msg.startswith("del"):
                 uid = int(msg[3:])
                 if not uid > 0:
-                    bot.send_private_msg(user_id=80873436, message=f"E! {uid}")
-
-                with open("data/lt_white_uid_list.txt") as f:
-                    uid_list = [_.strip() for _ in f.readlines()]
-                    uid_list = [int(_) for _ in uid_list if _]
+                    bot.send_private_msg(user_id=80873436, message=f"Error uid! {uid}")
 
                 if msg.startswith("add"):
-                    if uid in uid_list:
-                        bot.send_private_msg(user_id=80873436, message=f"Already in! ({len(uid_list)})")
-                        return
-                    else:
-                        uid_list.append(uid)
+                    message = CookieOperator.add_uid_to_white_list(uid)
                 else:
-                    if uid not in uid_list:
-                        bot.send_private_msg(user_id=80873436, message=f"Already deleted! ({len(uid_list)})")
-                        return
-                    else:
-                        uid_list = [_ for _ in uid_list if _ != uid]
+                    message = CookieOperator.remove_uid_from_white_list(uid)
 
-                with open("data/lt_white_uid_list.txt", "w") as f:
-                    f.write("\n".join([str(_) for _ in uid_list]))
-
-                bot.send_private_msg(user_id=80873436, message=f"Done! ({len(uid_list)})")
+                bot.send_private_msg(user_id=80873436, message=message)
 
         elif msg.startswith("起床"):
             try:
