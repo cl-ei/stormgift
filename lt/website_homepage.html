@@ -110,16 +110,6 @@ $(function () {
             warning("错误的uid！")
         }
         window.open("/lt" + uid);
-        // $.ajax({
-        //     url: "/",
-        //     type: "post",
-        //     data: {
-        //         action: "query",
-        //         uid: uid
-        //     },
-        //     success: function (data){warning(data)},
-        //     error: function (data) {warning("网络错误!")}
-        // });
     }
     function submit(){
         let uid = $("input[name=uid]").val();
@@ -136,7 +126,7 @@ $(function () {
             warning("错误的bili_jct！")
         }
         $.ajax({
-            url: "/lt",
+            url: "/lt/api",
             type: "post",
             data: {
                 action: "submit",
