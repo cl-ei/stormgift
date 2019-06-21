@@ -129,7 +129,7 @@ class WsManager(object):
                 await asyncio.sleep(60 * 5)
                 await self.flush_monitor_live_rooms()
 
-        await flush_monitor_live_rooms()
+        await self.flush_monitor_live_rooms()
 
         p = asyncio.create_task(print_msg_speed())
         u = asyncio.create_task(update_connections())
