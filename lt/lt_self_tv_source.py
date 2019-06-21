@@ -1,6 +1,6 @@
 import asyncio
 import requests
-from utils.ws import ReConnectingWsClient, State
+from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
 from config.log4 import status_logger
@@ -32,8 +32,8 @@ class TvScanner(object):
         try:
             r = requests.get(url=self.post_prize_url, params=params, timeout=0.5)
         except Exception as e:
-            error_message = F"Http request error. room_id: {room_id}, e: {e}"
-            logging.error(error_message, exc_info=True)
+            error_message = F"Http request error. room_id: {room_id}, e: {str(e)[:20]} ..."
+            logging.error(error_message, exc_info=False)
             return
 
         if r.status_code != 200 or "OK" not in r.content.decode("utf-8"):
@@ -77,19 +77,9 @@ class TvScanner(object):
             await self.update_clients_of_single_area(room_id=new_room_id, area=area)
 
     async def update_clients_of_single_area(self, room_id, area):
-        logging.info(f"Create_client, room_id: {room_id}, area: {self.AREA_MAP[area]}")
-
         client = self.__rws_clients.get(area)
         if client:
-            if client.status not in ("stopping", "stopped"):
-                await client.kill()
-            else:
-                logging.error(
-                    f"CLDBG_ client status is not stopping or stopped when try to close it."
-                    f"area: {self.AREA_MAP[area]}, update_room_id: {room_id}, "
-                    f"client_room_id: {getattr(client, 'room_id', '--')}, client_status: {client.status}, "
-                    f"inner status: {await client.get_inner_status()}"
-                )
+            await client.kill()
 
         async def on_message(message):
             for msg in WsApi.parse_msg(message):
@@ -104,8 +94,8 @@ class TvScanner(object):
         async def on_error(e, msg):
             logging.error(f"Listener CATCH ERROR: {msg}. e: {e}")
 
-        new_client = ReConnectingWsClient(
-            uri=WsApi.BILI_WS_URI,
+        new_client = RCWebSocketClient(
+            url=WsApi.BILI_WS_URI,
             on_message=on_message,
             on_error=on_error,
             on_connect=on_connect,
@@ -117,31 +107,20 @@ class TvScanner(object):
         self.__rws_clients[area] = new_client
         await new_client.start()
 
+        logging.info(f"WS client created, room_id: {room_id}, area: {self.AREA_MAP[area]}")
+
     async def check_status(self):
         for area_id in [1, 2, 3, 4, 5, 6]:
             client = self.__rws_clients.get(area_id)
-            if client is None:
-                logging.error(f"None client for area: {self.AREA_MAP[area_id]}!")
-            else:
-                status = await client.get_inner_status()
-                if status != State.OPEN:
-                    room_id = getattr(client, "room_id", None)
-                    outer_status = client.status
-                    msg = (
-                        f"Client state Error! room_id: {room_id}, area: {self.AREA_MAP[area_id]}, "
-                        f"state: {status}, outer_statues: {outer_status}."
-                    )
-                    logging.error(msg)
-                    status_logger.info(msg)
+            if client and client.status != "OPEN":
+                room_id = getattr(client, "room_id", None)
+                msg = f"WS state Error! room_id: {room_id}, area: {self.AREA_MAP[area_id]}, status: {client.status}"
+                logging.error(msg)
+                status_logger.info(msg)
 
             room_id = getattr(client, "room_id", None)
-            flag, status = await BiliApi.check_live_status(room_id, area_id)
-            if not flag:
-                logging.error(f"Request error when check live room status. "
-                              f"room_id: {self.AREA_MAP[area_id]} -> {room_id}, e: {status}")
-                continue
-
-            if not status:
+            flag, active = await BiliApi.check_live_status(room_id, area_id)
+            if flag and not active:
                 logging.warning(f"Room [{room_id}] from area [{self.AREA_MAP[area_id]}] not active, change it.")
                 await self.force_change_room(old_room_id=room_id, area=area_id)
 
