@@ -14,6 +14,7 @@ class WsManager(object):
 
     def __init__(self):
         self._clients = {}
+        self.msg_count = 0
         self.post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
 
         logging.info(f"post_prize_url: {self.post_prize_url}")
@@ -41,6 +42,7 @@ class WsManager(object):
         logging.info(f"TV Prize room post success: {room_id}")
 
     async def on_message(self, room_id, message):
+        self.msg_count += 1
         cmd = message.get("cmd")
         print(f"cmd: {cmd}, msg: {message}")
 
@@ -99,9 +101,24 @@ class WsManager(object):
             await self.new_room(room_id)
 
     async def run_forever(self):
+        count = 0
         while True:
-            await self.check_status()
-            await asyncio.sleep(120)
+            if count % 120 == 0:
+                await self.check_status()
+
+            if count % 5:
+                speed = self.msg_count / 5
+                print(f"Message speed: {speed:0.2f}")
+                self.msg_count = 0
+
+            if count % 60:
+                valid_client_count = 0
+                for room_id, c in self._clients.items():
+                    if c.status == "OPEN" and c.set_shutdown is False:
+                        valid_client_count += 1
+                print(f"Active client count: {valid_client_count}.")
+
+            await asyncio.sleep(1)
 
 
 async def main():
