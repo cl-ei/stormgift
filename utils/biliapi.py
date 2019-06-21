@@ -742,7 +742,7 @@ class BiliApi:
             if len(live_room_is_list) >= count:
                 return True, live_room_is_list[:count]
 
-            await asyncio.sleep(2)
+            await asyncio.sleep(5)
 
         return True, live_room_is_list[:count]
 
