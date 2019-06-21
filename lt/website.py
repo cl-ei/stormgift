@@ -1,6 +1,7 @@
 from jinja2 import Template
 from aiohttp import web
 from utils.biliapi import BiliApi
+from config import CDN_URL
 
 
 def load_lt_white_uid_list():
@@ -31,7 +32,10 @@ def render_to_response(template, context=None):
 
 
 async def handle(request):
-    return render_to_response("lt/website_homepage.html")
+    context = {
+        "CDN_URL": CDN_URL,
+    }
+    return render_to_response("lt/website_homepage.html", context=context)
 
 
 async def query(request):
@@ -152,9 +156,9 @@ async def api(request):
 
 app = web.Application()
 app.add_routes([
-    web.get('/', handle),
-    web.get('/{uid}', query),
-    web.post('/', api),
+    web.get('/lt', handle),
+    web.get('/lt{uid}', query),
+    web.post('/lt/api', api),
 
 ])
 web.run_app(app, port=1024)

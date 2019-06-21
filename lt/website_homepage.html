@@ -10,12 +10,12 @@
     <meta name="MobileOptimized" content="320" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link rel="stylesheet" href="https://statics.madliar.com/static/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://statics.madliar.com/static/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://statics.madliar.com/static/css/jstree.min.css">
-    <link rel="stylesheet" href="https://statics.madliar.com/static/notebook/jstree.custom.css">
-    <link rel="stylesheet" href="https://statics.madliar.com/static/notebook/main.css">
-    <script>window.CDN_URL = "https://statics.madliar.com";</script>
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/css/font-awesome.min.css">
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/css/jstree.min.css">
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/notebook/jstree.custom.css">
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/notebook/main.css">
+    <script>window.CDN_URL = "{{ CDN_URL }}";</script>
 </head>
 
 <body>
@@ -79,7 +79,7 @@
         全免费的吗？为什么？答：免费的。站长的名字叫雷锋。
     </p>
 
-    <img src="https://statics.madliar.com/static/img/使用说明.png" style="width:100%">
+    <img src="{{ CDN_URL }}/static/img/使用说明.png" style="width:100%">
 </div>
 <div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -94,8 +94,8 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" src="https://statics.madliar.com/static/js/jquery.min.js"></script>
-<script type="text/javascript" src="https://statics.madliar.com/static/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="{{ CDN_URL }}/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="{{ CDN_URL }}/static/js/bootstrap.min.js"></script>
 <script>
 $(function () {
     function warning(msg){
@@ -109,17 +109,7 @@ $(function () {
         }else{
             warning("错误的uid！")
         }
-        window.open("/" + uid);
-        // $.ajax({
-        //     url: "/",
-        //     type: "post",
-        //     data: {
-        //         action: "query",
-        //         uid: uid
-        //     },
-        //     success: function (data){warning(data)},
-        //     error: function (data) {warning("网络错误!")}
-        // });
+        window.open("/lt" + uid);
     }
     function submit(){
         let uid = $("input[name=uid]").val();
@@ -136,7 +126,7 @@ $(function () {
             warning("错误的bili_jct！")
         }
         $.ajax({
-            url: "/",
+            url: "/lt/api",
             type: "post",
             data: {
                 action: "submit",

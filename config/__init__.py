@@ -5,6 +5,11 @@ config.read('/etc/madliar.settings.ini')
 
 
 try:
+    CDN_URL = config["default"]["CDN_URL"]
+except KeyError:
+    CDN_URL = "http://49.234.17.23"
+
+try:
     PROJECT_ROOT = config["stormgift"]["PROJECT_ROOT"]
 except KeyError:
     PROJECT_ROOT = "./"
