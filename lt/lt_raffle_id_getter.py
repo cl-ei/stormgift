@@ -214,13 +214,13 @@ class AsyncWorker(object):
                 continue
 
             start_time = time.time()
-            logging.info(f"Task starting... msg: {msg}")
+            logging.info(f"RAFFLE_ID_GETTER task starting... msg: {msg}")
             try:
                 r = await self.__exc(msg)
             except Exception as e:
                 r = f"Error: {e}, {traceback.format_exc()}"
             cost_time = time.time() - start_time
-            logging.info(f"Task finished. cost time: {cost_time}, result: {r}")
+            logging.info(f"RAFFLE_ID_GETTER task finished. cost time: {cost_time:.3f}, result: {r}")
 
     def __call__(self, *args, **kwargs):
         loop = asyncio.get_event_loop()
