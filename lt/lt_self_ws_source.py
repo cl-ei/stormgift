@@ -17,7 +17,7 @@ class WsManager(object):
         self.monitor_live_rooms = []
         self.msg_count = 0
         self.post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
-
+        self.heartbeat_pkg = WsApi.gen_heart_beat_pkg()
         logging.info(f"post_prize_url: {self.post_prize_url}")
 
     def post_prize_info(self, room_id):
@@ -72,7 +72,7 @@ class WsManager(object):
             on_error=on_error,
             on_connect=on_connect,
             on_shut_down=on_shut_down,
-            heart_beat_pkg=WsApi.gen_heart_beat_pkg(),
+            heart_beat_pkg=self.heartbeat_pkg,
             heart_beat_interval=10
         )
         new_client.room_id = room_id
@@ -105,10 +105,13 @@ class WsManager(object):
         for room_id in need_add[:1500]:
 
             await self.new_room(room_id)
-            count += 1
 
-            if count % 100:
+            count += 1
+            if count % 100 == 0:
                 await asyncio.sleep(1)
+
+            if count > 999999999:
+                count = 0
 
     async def task_print_info(self):
         count = 0
@@ -134,7 +137,7 @@ class WsManager(object):
     async def task_update_connections(self):
         while True:
             await self.update_connections()
-            await asyncio.sleep(120)
+            await asyncio.sleep(60)
 
     async def task_flush_monitor_live_rooms(self):
         while True:
