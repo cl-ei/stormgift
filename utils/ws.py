@@ -1,3 +1,4 @@
+import time
 import asyncio
 import websockets
 import traceback
@@ -225,6 +226,7 @@ class RCWebSocketClient(object):
 
     async def connect(self):
         async with websockets.connect(self.server_url) as ws:
+            ws.last_heartbeat = time.time()
             self.__client = ws
 
             if self.on_connect:
@@ -237,6 +239,10 @@ class RCWebSocketClient(object):
                     while not ws.closed:
                         await asyncio.sleep(self.heart_beat_interval)
                         await ws.send(self.heart_beat_package)
+
+                        interval = time.time() - ws.last_heartbeat
+                        if interval > self.heart_beat_interval + 3:
+                            print(f"WARNING!!! Heart beat interval too long! time: {interval}")
 
                 heart_beat_task = asyncio.create_task(send_heart_beat())
 
