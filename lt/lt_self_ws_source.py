@@ -110,43 +110,45 @@ class WsManager(object):
             if count % 30:
                 await asyncio.sleep(1)
 
-    async def run_forever(self):
-
-        async def print_msg_speed():
-            while True:
-                await asyncio.sleep(5)
+    async def task_print_info(self):
+        count = 0
+        while True:
+            if count % 5 == 0:
                 speed = self.msg_count / 5
                 self.msg_count = 0
                 print(f"Message speed: {speed:0.2f}")
 
-        async def print_ws_status():
-            while True:
+            if count % 30 == 0:
                 valid_client_count = 0
                 for room_id, c in self._clients.items():
                     if c.status == "OPEN" and c.set_shutdown is False:
                         valid_client_count += 1
                 print(f"Active client count: {valid_client_count}.")
-                await asyncio.sleep(30)
 
-        async def update_connections():
-            while True:
-                await self.update_connections()
-                await asyncio.sleep(120)
+            count += 1
+            if count > 1000000000:
+                count = 0
 
-        async def flush_monitor_live_rooms():
-            while True:
-                await asyncio.sleep(60 * 5)
-                await self.flush_monitor_live_rooms()
+            await asyncio.sleep(1)
 
+    async def task_update_connections(self):
+        while True:
+            await self.update_connections()
+            await asyncio.sleep(120)
+
+    async def task_flush_monitor_live_rooms(self):
+        while True:
+            await asyncio.sleep(60 * 5)
+            await self.flush_monitor_live_rooms()
+
+    async def run_forever(self):
         await self.flush_monitor_live_rooms()
 
-        p = asyncio.create_task(print_msg_speed())
-        p2 = asyncio.create_task(print_ws_status())
-        u = asyncio.create_task(update_connections())
-        f = asyncio.create_task(flush_monitor_live_rooms())
+        p = asyncio.create_task(self.task_print_info())
+        f = asyncio.create_task(self.task_update_connections())
+        u = asyncio.create_task(self.task_flush_monitor_live_rooms())
 
         await p
-        await p2
         await u
         await f
 
