@@ -44,7 +44,7 @@ class WsManager(object):
     async def on_message(self, room_id, message):
         self.msg_count += 1
         cmd = message.get("cmd")
-        print(f"cmd: {cmd}, msg: {message}")
+        # print(f"cmd: {cmd}, msg: {message}")
 
     async def new_room(self, room_id):
         client = self._clients.get(room_id)
