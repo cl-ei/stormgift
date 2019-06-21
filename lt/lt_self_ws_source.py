@@ -102,12 +102,12 @@ class WsManager(object):
         print(f"Need add room count: {len(need_add)}")
 
         count = 0
-        for room_id in need_add[:500]:
+        for room_id in need_add[:1500]:
 
             await self.new_room(room_id)
             count += 1
 
-            if count % 30:
+            if count % 100:
                 await asyncio.sleep(1)
 
     async def task_print_info(self):
