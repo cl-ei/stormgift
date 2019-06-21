@@ -708,10 +708,44 @@ class BiliApi:
             room_id = real_room_id
         return room_id
 
+    @classmethod
+    async def get_all_lived_room_count(cls, timeout=10):
+        req_url = F"https://api.live.bilibili.com/room/v1/Area/getLiveRoomCountByAreaID?areaId=0"
+        r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        if not r:
+            return False, data
+        num = data.get("data", {}).get("num", 0)
+        return num > 0, num
+
+    @classmethod
+    async def get_lived_room_id_by_page(cls, page=0, timeout=10):
+        req_url = (
+            f"https://api.live.bilibili.com/room/v1/Area/getListByAreaID"
+            f"?areaId=0&sort=online&pageSize=2000&page={page}"
+        )
+        r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        if not r:
+            return False, data
+        room_list = data.get("data", []) or []
+        return True, [r["roomid"] for r in room_list]
+
+    @classmethod
+    async def get_lived_room_id_list(cls, count=500, timeout=10):
+        live_room_is_list = []
+        for _ in range(20):
+            flag, data = await cls.get_lived_room_id_by_page(page=_)
+            if not flag:
+                return False, []
+            live_room_is_list.extend(data)
+            live_room_is_list = list(set(live_room_is_list))
+            if len(live_room_is_list) >= count:
+                return True, live_room_is_list[:count]
+        return True, live_room_is_list[:count]
+
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_live_status(2516117)
+    r = await BiliApi.get_lived_room_id_list()
     print(r)
 
 

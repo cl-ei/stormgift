@@ -1,7 +1,13 @@
+import os
 import configparser
 
+config_file = "/etc/madliar.settings.ini"
+if not os.path.exists(config_file):
+    config_file = "./madliar.settings.ini"
+    print("Warning: LOCAL CONFIG FILE!")
+
 config = configparser.ConfigParser()
-config.read('/etc/madliar.settings.ini')
+config.read(config_file)
 
 
 try:

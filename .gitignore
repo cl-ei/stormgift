@@ -6,3 +6,4 @@ __pychache__
 .DS_Store
 package-lock.json
 config/proj_config.json
+madliar.settings.ini
