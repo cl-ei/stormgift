@@ -241,6 +241,7 @@ class RCWebSocketClient(object):
                         await ws.send(self.heart_beat_package)
 
                         interval = time.time() - ws.last_heartbeat
+                        ws.last_heartbeat = time.time()
                         if interval > self.heart_beat_interval + 3:
                             print(f"WARNING!!! Heart beat interval too long! time: {interval}")
 
