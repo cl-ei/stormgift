@@ -48,7 +48,7 @@ class TvScanner(object):
     async def on_message(self, area, room_id, message):
         cmd = message.get("cmd")
         if cmd == "PREPARING":
-            logging.warning(f"Room {room_id} from area {self.AREA_MAP[area]} closed! now search new.")
+            logging.warning(f"Room {room_id} from area {self.AREA_MAP[area]} closed! now force_change_room.")
             await self.force_change_room(old_room_id=room_id, area=area)
 
         elif cmd == "NOTICE_MSG":
@@ -111,17 +111,22 @@ class TvScanner(object):
 
     async def check_status(self):
         for area_id in [1, 2, 3, 4, 5, 6]:
+            area = self.AREA_MAP[area_id]
             client = self.__rws_clients.get(area_id)
-            if client and client.status != "OPEN":
-                room_id = getattr(client, "room_id", None)
-                msg = f"WS state Error! room_id: {room_id}, area: {self.AREA_MAP[area_id]}, status: {client.status}"
-                logging.error(msg)
-                status_logger.info(msg)
-
             room_id = getattr(client, "room_id", None)
+
             flag, active = await BiliApi.check_live_status(room_id, area_id)
-            if flag and not active:
-                logging.warning(f"Room [{room_id}] from area [{self.AREA_MAP[area_id]}] not active, change it.")
+            if not flag:
+                logging.error(f"Cannot get live status of room: {room_id} from area: {area} ")
+                return
+
+            if active:
+                if client and client.status != "OPEN":
+                    msg = f"WS state Error! room_id: {room_id}, area: {area}, status: {client.status}"
+                    logging.error(msg)
+                    status_logger.info(msg)
+            else:
+                logging.info(f"Room [{room_id}] from area [{area}] not active, change it.")
                 await self.force_change_room(old_room_id=room_id, area=area_id)
 
     async def run_forever(self):
