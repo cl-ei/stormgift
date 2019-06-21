@@ -736,7 +736,7 @@ class BiliApi:
 
             flag, data = await cls.get_lived_room_id_by_page(page=_)
             if not flag:
-                return False, []
+                return False, data
             live_room_is_list.extend(data)
             live_room_is_list = list(set(live_room_is_list))
             if len(live_room_is_list) >= count:
