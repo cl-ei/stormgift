@@ -178,7 +178,7 @@ class WsManager(object):
 
 async def main():
     logging.info("LT self_ws_source proc start...")
-    monitor_live_room_count = 20000
+    monitor_live_room_count = 4000
     mgr = WsManager(monitor_live_room_count)
     await mgr.run_forever()
 
