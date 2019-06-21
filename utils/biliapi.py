@@ -732,7 +732,7 @@ class BiliApi:
     @classmethod
     async def get_lived_room_id_list(cls, count=500, timeout=10):
         live_room_is_list = []
-        for _ in range(20):
+        for _ in range((count + 2000) // 2000):
             flag, data = await cls.get_lived_room_id_by_page(page=_)
             if not flag:
                 return False, []

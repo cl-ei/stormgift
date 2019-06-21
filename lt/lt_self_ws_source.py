@@ -12,7 +12,8 @@ VALUABLE_LIVE_ROOM_ID_LIST_KEY = "VALUABLE_LIVE_ROOM_ID_LIST_KEY"
 
 class WsManager(object):
 
-    def __init__(self):
+    def __init__(self, count):
+        self.monitor_count = count
         self._clients = {}
         self.monitor_live_rooms = []
         self.msg_count = 0
@@ -89,7 +90,12 @@ class WsManager(object):
         logging.info(f"WS client killed, room_id: {room_id}")
 
     async def flush_monitor_live_rooms(self):
-        flag, room_id_list = await BiliApi.get_lived_room_id_list(count=5500)
+        flag, total = await BiliApi.get_all_lived_room_count()
+        if not flag:
+            print(f"Cannot get lived room count.")
+            return
+
+        flag, room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, self.monitor_count))
         if not flag:
             print(f"Cannot get lived rooms.")
             return
@@ -98,12 +104,25 @@ class WsManager(object):
         print(f"monitor_live_rooms updated! count: {len(self.monitor_live_rooms)}")
 
     async def update_connections(self):
-        need_add = list(set(self.monitor_live_rooms) - set(self._clients.keys()))
-        print(f"Need add room count: {len(need_add)}")
+        existed = set(self._clients.keys())
+        expected = set(self.monitor_live_rooms)
+        need_add = expected - existed
+        need_del = existed - expected
+        print(f"Need add room count: {len(need_add)}, need del: {len(need_del)}")
 
         count = 0
-        for room_id in need_add[:1500]:
+        for room_id in need_del:
+            await self.kill_room(room_id)
+            del self._clients[room_id]
 
+            count += 1
+            if count % 100 == 0:
+                await asyncio.sleep(1)
+
+            if count > 999999999:
+                count = 0
+
+        for room_id in need_add:
             await self.new_room(room_id)
 
             count += 1
@@ -158,7 +177,8 @@ class WsManager(object):
 
 async def main():
     logging.info("LT self_ws_source proc start...")
-    mgr = WsManager()
+    monitor_live_room_count = 20000
+    mgr = WsManager(monitor_live_room_count)
     await mgr.run_forever()
 
 
