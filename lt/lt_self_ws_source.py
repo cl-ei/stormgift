@@ -91,8 +91,11 @@ class WsManager(object):
     async def flush_monitor_live_rooms(self):
         flag, room_id_list = await BiliApi.get_lived_room_id_list(count=5500)
         if not flag:
+            print(f"Cannot get lived rooms.")
             return
+
         self.monitor_live_rooms = room_id_list
+        print(f"monitor_live_rooms updated! count: {len(self.monitor_live_rooms)}")
 
     async def update_connections(self):
         need_add = list(set(self.monitor_live_rooms) - set(self._clients.keys()))
@@ -124,7 +127,7 @@ class WsManager(object):
         async def flush_monitor_live_rooms():
             while True:
                 await asyncio.sleep(60 * 5)
-                await self.update_connections()
+                await self.flush_monitor_live_rooms()
 
         await flush_monitor_live_rooms()
 
