@@ -2,6 +2,7 @@ log
 data
 node_modules
 .idea
+__pychache__
 .DS_Store
 package-lock.json
 config/proj_config.json
