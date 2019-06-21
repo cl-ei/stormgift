@@ -92,7 +92,7 @@ class WsManager(object):
     async def flush_monitor_live_rooms(self):
         flag, total = await BiliApi.get_all_lived_room_count()
         if not flag:
-            print(f"Cannot get lived room count.")
+            print(f"Cannot get lived room count. msg: {total}")
             return
 
         flag, room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, self.monitor_count))
