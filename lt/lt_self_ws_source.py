@@ -119,6 +119,15 @@ class WsManager(object):
                 self.msg_count = 0
                 print(f"Message speed: {speed:0.2f}")
 
+        async def print_ws_status():
+            while True:
+                valid_client_count = 0
+                for room_id, c in self._clients.items():
+                    if c.status == "OPEN" and c.set_shutdown is False:
+                        valid_client_count += 1
+                print(f"Active client count: {valid_client_count}.")
+                await asyncio.sleep(30)
+
         async def update_connections():
             while True:
                 await self.update_connections()
@@ -132,10 +141,12 @@ class WsManager(object):
         await self.flush_monitor_live_rooms()
 
         p = asyncio.create_task(print_msg_speed())
+        p2 = asyncio.create_task(print_ws_status())
         u = asyncio.create_task(update_connections())
         f = asyncio.create_task(flush_monitor_live_rooms())
 
         await p
+        await p2
         await u
         await f
 
