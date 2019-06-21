@@ -123,7 +123,7 @@ class WsManager(object):
                 for room_id, c in self._clients.items():
                     if c.status == "OPEN" and c.set_shutdown is False:
                         valid_client_count += 1
-                print(f"Active client count: {valid_client_count}.")
+                print(f"Active client count: {valid_client_count}, total: {len(self._clients)}.")
 
             count += 1
             if count > 1000000000:
