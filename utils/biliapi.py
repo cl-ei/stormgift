@@ -733,6 +733,7 @@ class BiliApi:
     async def get_lived_room_id_list(cls, count=500, timeout=10):
         live_room_is_list = []
         for _ in range((count + 2000) // 2000):
+
             flag, data = await cls.get_lived_room_id_by_page(page=_)
             if not flag:
                 return False, []
@@ -740,6 +741,9 @@ class BiliApi:
             live_room_is_list = list(set(live_room_is_list))
             if len(live_room_is_list) >= count:
                 return True, live_room_is_list[:count]
+
+            await asyncio.sleep(2)
+
         return True, live_room_is_list[:count]
 
 
