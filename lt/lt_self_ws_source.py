@@ -97,7 +97,7 @@ class WsManager(object):
 
         flag, room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, self.monitor_count))
         if not flag:
-            print(f"Cannot get lived rooms.")
+            print(f"Cannot get lived rooms. msg: {room_id_list}")
             return
 
         self.monitor_live_rooms = room_id_list
