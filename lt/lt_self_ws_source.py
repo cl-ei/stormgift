@@ -14,6 +14,7 @@ class WsManager(object):
 
     def __init__(self):
         self._clients = {}
+        self.monitor_live_rooms = []
         self.msg_count = 0
         self.post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
 
@@ -87,38 +88,53 @@ class WsManager(object):
 
         logging.info(f"WS client killed, room_id: {room_id}")
 
-    async def check_status(self):
-        # rooms = await redis_cache.get(VALUABLE_LIVE_ROOM_ID_LIST_KEY)
-        # if not isinstance(rooms, set):
-        #     logging.info(f"Cannot get VALUABLE_LIVE_ROOM_ID_LIST.")
-        #     return
-
+    async def flush_monitor_live_rooms(self):
         flag, room_id_list = await BiliApi.get_lived_room_id_list(count=5500)
         if not flag:
             return
+        self.monitor_live_rooms = room_id_list
 
-        for room_id in room_id_list:
+    async def update_connections(self):
+        need_add = list(set(self.monitor_live_rooms) - set(self._clients.keys()))
+        print(f"Need add room count: {len(need_add)}")
+
+        count = 0
+        for room_id in need_add[:500]:
+
             await self.new_room(room_id)
+            count += 1
+
+            if count % 30:
+                await asyncio.sleep(1)
 
     async def run_forever(self):
-        count = 0
-        while True:
-            if count % 120 == 0:
-                await self.check_status()
 
-            if count % 5:
+        async def print_msg_speed():
+            while True:
+                await asyncio.sleep(5)
                 speed = self.msg_count / 5
-                print(f"Message speed: {speed:0.2f}")
                 self.msg_count = 0
+                print(f"Message speed: {speed:0.2f}")
 
-            if count % 60:
-                valid_client_count = 0
-                for room_id, c in self._clients.items():
-                    if c.status == "OPEN" and c.set_shutdown is False:
-                        valid_client_count += 1
-                print(f"Active client count: {valid_client_count}.")
+        async def update_connections():
+            while True:
+                await self.update_connections()
+                await asyncio.sleep(120)
 
-            await asyncio.sleep(1)
+        async def flush_monitor_live_rooms():
+            while True:
+                await asyncio.sleep(60 * 5)
+                await self.update_connections()
+
+        await flush_monitor_live_rooms()
+
+        p = asyncio.create_task(print_msg_speed())
+        u = asyncio.create_task(update_connections())
+        f = asyncio.create_task(flush_monitor_live_rooms())
+
+        await p
+        await u
+        await f
 
 
 async def main():
