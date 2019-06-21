@@ -730,11 +730,11 @@ class BiliApi:
         return True, [r["roomid"] for r in room_list]
 
     @classmethod
-    async def get_lived_room_id_list(cls, count=500, timeout=10):
+    async def get_lived_room_id_list(cls, count=500, timeout=50):
         live_room_is_list = []
         for _ in range((count + 2000) // 2000):
 
-            flag, data = await cls.get_lived_room_id_by_page(page=_)
+            flag, data = await cls.get_lived_room_id_by_page(page=_, timeout=timeout)
             if not flag:
                 return False, data
             live_room_is_list.extend(data)
