@@ -93,15 +93,16 @@ class WsManager(object):
         flag, total = await BiliApi.get_all_lived_room_count()
         if not flag:
             print(f"Cannot get lived room count. msg: {total}")
-            return
+            return False
 
         flag, room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, self.monitor_count))
         if not flag:
             print(f"Cannot get lived rooms. msg: {room_id_list}")
-            return
+            return False
 
         self.monitor_live_rooms = room_id_list
         print(f"monitor_live_rooms updated! count: {len(self.monitor_live_rooms)}")
+        return True
 
     async def update_connections(self):
         existed = set(self._clients.keys())
@@ -160,12 +161,10 @@ class WsManager(object):
 
     async def task_flush_monitor_live_rooms(self):
         while True:
-            await asyncio.sleep(60 * 5)
-            await self.flush_monitor_live_rooms()
+            r = await self.flush_monitor_live_rooms()
+            await asyncio.sleep(60 * 5 if r else 45)
 
     async def run_forever(self):
-        await self.flush_monitor_live_rooms()
-
         p = asyncio.create_task(self.task_print_info())
         f = asyncio.create_task(self.task_update_connections())
         u = asyncio.create_task(self.task_flush_monitor_live_rooms())
