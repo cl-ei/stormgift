@@ -65,27 +65,8 @@ async def query(request):
     if not r and "登录" in data:
         return web.Response(text=f"用户（uid: {uid}）已过期！请重新配置！！！")
 
-    message_list = []
-    uid = str(uid)
-    try:
-        with open("/home/wwwroot/log/acceptor_stormgift.log", "rb") as f:
-            _ = f.readline()
-            f.seek(-1024 * 20, 2)
-            lines = f.readlines()
-
-        for line in lines[::-1]:
-            try:
-                line = line.decode("utf-8").strip()
-            except Exception:
-                continue
-
-            if uid in line:
-                message_list.append(line)
-            if len(message_list) >= 15:
-                break
-    except Exception as e:
-        message_list = [f"未能读取。E：{e}"]
-    return web.Response(text=f"用户（uid: {uid}）正常领取辣条中。领取记录：\n\n" + "\n".join(message_list))
+    context = {"CDN_URL": CDN_URL}
+    return render_to_response("lt/website_console.html", context=context)
 
 
 async def api(request):
