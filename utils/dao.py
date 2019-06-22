@@ -54,6 +54,48 @@ class GiftRedisCache(object):
         except TypeError:
             return None
 
+    async def hash_map_set(self, name, key_values):
+        if self.__redis_conn is None:
+            self.__redis_conn = await aioredis.create_connection(
+                address=self.uri, db=self.db, password=self.password
+            )
+        args = []
+        for key, value in key_values.items():
+            args.append(pickle.dumps(key))
+            args.append(pickle.dumps(value))
+        return await self.__redis_conn.execute("hmset", name, *args)
+
+    async def hash_map_get(self, name, *keys):
+        if self.__redis_conn is None:
+            self.__redis_conn = await aioredis.create_connection(
+                address=self.uri, db=self.db, password=self.password
+            )
+
+        if keys:
+            r = await self.__redis_conn.execute("hmget", name, *[pickle.dumps(k) for k in keys])
+            if not isinstance(r, list) or len(r) != len(keys):
+                raise Exception(f"Redis hash map read error! r: {r}")
+
+            result = {}
+            for index in range(len(r)):
+                result[keys[index]] = pickle.loads(r[index])
+            return result
+
+        else:
+            """HDEL key field1 [field2] """
+            r = await self.__redis_conn.execute("hgetall", name)
+            if not isinstance(r, list):
+                raise Exception(f"Redis hash map read error! r: {r}")
+
+            result = {}
+            key_temp = None
+            for index in range(len(r)):
+                if index & 1:
+                    result[pickle.loads(key_temp)] = pickle.loads(r[index])
+                else:
+                    key_temp = r[index]
+            return result
+
 
 redis_cache = GiftRedisCache(**REDIS_CONFIG)
 
