@@ -170,6 +170,7 @@ class BiliUserInfoCache(object):
     async def get_user_name_by_user_id(cls, uid):
         if cls.__update_time == 0 or time.time() - cls.__update_time > cls.timeout:
             cls.__cache_data = await redis_cache.hash_map_get(cls.__cache_key)
+            cls.__update_time = time.time()
         return cls.__cache_data.get(uid)
 
     @classmethod
