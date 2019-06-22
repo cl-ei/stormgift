@@ -384,7 +384,7 @@ def handle_msg(context):
         msg = context["raw_message"]
 
         if group_id == 930242871:
-            if user_id == 1934116519 and ("舰长" in msg or "提督" in msg or "总督" in msg):
+            if "舰长" in msg or "提督" in msg or "总督" in msg:
                 try:
                     room_id = int(msg.strip("/").split("/")[-1])
                 except Exception as e:
