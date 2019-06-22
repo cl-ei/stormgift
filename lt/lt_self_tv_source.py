@@ -7,6 +7,8 @@ from config.log4 import lt_source_logger as logging
 from config.log4 import status_logger
 from config import LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT
 
+BiliApi.USE_ASYNC_REQUEST_METHOD = True
+
 
 class TvScanner(object):
     AREA_MAP = {

@@ -2,10 +2,11 @@ import re
 import json
 import time
 import asyncio
+import aiohttp
 import requests
+import traceback
 from random import random
 from math import floor
-from config.log4 import bili_api_logger as logging
 
 
 class WsApi(object):
@@ -79,6 +80,22 @@ class BiliApi:
             "Chrome/70.0.3538.110 Safari/537.36"
         ),
     }
+    USE_ASYNC_REQUEST_METHOD = False
+
+    @classmethod
+    async def _request_async(cls, method, url, headers, data, timeout):
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+            if method == "get":
+                async with session.get(url, params=data, headers=headers) as resp:
+                    status_code = resp.status
+                    content = await resp.text()
+                    return status_code, content
+
+            else:
+                async with session.post(url, data=data, headers=headers) as resp:
+                    status_code = resp.status
+                    content = await resp.text()
+                    return status_code, content
 
     @classmethod
     async def _request(cls, method, url, headers, data, timeout, check_response_json, check_error_code):
@@ -86,20 +103,33 @@ class BiliApi:
             headers.update(cls.headers)
         else:
             headers = cls.headers
-        fn = requests.post if method == "post" else requests.get
-        try:
-            r = fn(url=url, data=data, headers=headers, timeout=timeout)
-        except Exception as e:
-            return False, f"Response Error: {e}"
 
-        if r.status_code != 200:
-            return False, f"Status code Error: {r.status_code}"
+        if cls.USE_ASYNC_REQUEST_METHOD:
+            try:
+                status_code, content = await cls._request_async(method, url, headers, data, timeout)
+            except Exception as e:
+                from config.log4 import bili_api_logger as logging
+                error_message = f"Async _request Error: {e}, {traceback.format_exc()}"
+                logging.error(error_message)
+                return False, error_message
+
+        else:
+            fn = requests.post if method == "post" else requests.get
+            try:
+                r = fn(url=url, data=data, headers=headers, timeout=timeout)
+            except Exception as e:
+                return False, f"Response Error: {e}"
+
+            if r.status_code != 200:
+                return False, f"Status code Error: {r.status_code}"
+
+            content = r.text
 
         if not check_response_json:
-            return True, r.text
+            return True, content
 
         try:
-            result = json.loads(r.text)
+            result = json.loads(content)
         except Exception as e:
             return False, f"Not json response: {e}"
 
@@ -688,6 +718,7 @@ class BiliApi:
     @classmethod
     async def force_get_real_room_id(cls, room_id, timeout=10):
         from utils.dao import redis_cache
+        from config.log4 import bili_api_logger as logging
 
         redis_cache_key = f"REAL_ROOM_ID_OF_{room_id}"
         real_room_id = await redis_cache.get(redis_cache_key)
