@@ -1,5 +1,6 @@
 import asyncio
 import requests
+from random import random
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
@@ -22,6 +23,8 @@ class TvScanner(object):
         self.__rws_clients = {}
         self.post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
         logging.info(f"post_prize_url: {self.post_prize_url}")
+
+        self.__lock_when_changing_room = {}  # {1: [old_room_id, call by], ...}
 
     def post_prize_info(self, room_id):
         params = {
@@ -48,8 +51,8 @@ class TvScanner(object):
     async def on_message(self, area, room_id, message):
         cmd = message.get("cmd")
         if cmd == "PREPARING":
-            logging.warning(f"Room {room_id} from area {self.AREA_MAP[area]} closed! now force_change_room.")
-            await self.force_change_room(old_room_id=room_id, area=area)
+            logging.warning(f"Room {room_id} from area {self.AREA_MAP[area]} closed! now search new.")
+            await self.force_change_room(old_room_id=room_id, area=area, call_by="on_message")
 
         elif cmd == "NOTICE_MSG":
             msg_self = message.get("msg_self", "")
@@ -67,14 +70,47 @@ class TvScanner(object):
                 )
                 self.post_prize_info(real_room_id)
 
-    async def force_change_room(self, old_room_id, area):
+    async def force_change_room(self, old_room_id, area, call_by):
+        # 检查锁并加锁
+        change_info = self.__lock_when_changing_room.get(area)
+        if change_info:
+            sign = str(random())
+
+            logging.error(
+                f"\n{'-' * 80}\n"
+                f"AREA: {self.AREA_MAP[area]}, already on changing room!\n"
+                f"running func info: old_room_id: {change_info[0]}, call_by: {change_info[2]}\n"
+                f"info about me: {old_room_id}, call by: {call_by}. now waiting [{sign}]..."
+            )
+
+            wait_time = 0
+            while True:
+                await asyncio.sleep(0.2)
+                wait_time += 1
+
+                change_info = self.__lock_when_changing_room.get(area)
+                if not change_info:
+                    break
+
+            logging.error(f"[{sign}]\n{'-' * 80}")
+
+        self.__lock_when_changing_room[area] = [old_room_id, call_by]
+        # 加锁完毕
+
         flag, new_room_id = await BiliApi.search_live_room(area=area, old_room_id=old_room_id)
         if not flag:
             logging.error(f"Force change room error, search_live_room_error: {new_room_id}")
             return
 
         if new_room_id:
+            logging.info(
+                f"New live room from area{self.AREA_MAP[area]} found, "
+                f"room_id old to new: {old_room_id} -> {new_room_id}"
+            )
             await self.update_clients_of_single_area(room_id=new_room_id, area=area)
+
+        # 解锁 ！！！
+        del self.__lock_when_changing_room[area]
 
     async def update_clients_of_single_area(self, room_id, area):
         client = self.__rws_clients.get(area)
@@ -123,15 +159,14 @@ class TvScanner(object):
             if active:
                 if client and client.status != "OPEN":
                     msg = (
-                        f"WS state Error! room_id: {room_id}, "
-                        f"area: {area}, status: {client.status}, "
-                        f"set_shutdown: {client.set_shutdown}"
+                        f"WS status Error! room_id: {room_id}, area: {area}, "
+                        f"status: {client.status}, set_shutdown: {client.set_shutdown}"
                     )
                     logging.error(msg)
                     status_logger.info(msg)
             else:
                 logging.info(f"Room [{room_id}] from area [{area}] not active, change it.")
-                await self.force_change_room(old_room_id=room_id, area=area_id)
+                await self.force_change_room(old_room_id=room_id, area=area_id, call_by="check_status")
 
     async def run_forever(self):
         while True:

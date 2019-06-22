@@ -209,6 +209,10 @@ class RCWebSocketClient(object):
 
         self.__task.cancel()
         if self.__client:
+            if getattr(self.__client, "state", None) == 3:  # 3 -> CLOSED
+                from config.log4 import lt_source_logger as logging
+                logging.error("For DEBUG: client status is already closed when trying to close it.")
+
             await self.__client.close()
         await self.__task
 
