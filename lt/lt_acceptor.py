@@ -88,7 +88,7 @@ class Executor(object):
                 white_cookies.append((user_id, cookie))
 
         user_display_info = ", ".join([
-            f"{BiliUserInfoCache.get_user_name_by_user_id(uid)}({uid})" for uid in blocked_list
+            f"{await BiliUserInfoCache.get_user_name_by_user_id(uid)}({uid})" for uid in blocked_list
         ])
         logging.info(f"Blocked users: {user_display_info}, now skip.")
 
