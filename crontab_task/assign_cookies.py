@@ -42,7 +42,7 @@ async def check_single_cookie(c):
 
     if r:
         hash_map_name = "BILI_LT_USER_ID_TO_NAME"
-        redis_cache.hash_map_set(hash_map_name, key_values={DedeUserID, uname})
+        await redis_cache.hash_map_set(hash_map_name, key_values={DedeUserID, uname})
         return True, data, cookie
 
     else:
