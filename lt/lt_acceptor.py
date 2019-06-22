@@ -46,7 +46,10 @@ class Executor(object):
     def add_to_block_list(self, cookie):
         self.__block_list[cookie] = time.time()
         user_ids = re.findall(r"DedeUserID=(\d+)", "".join(self.__block_list.keys()))
-        logging.critical(f"Black list updated. current {len(user_ids)}: [{', '.join(user_ids)}].")
+        block_display_str = ", ".join([
+            f"{await BiliUserInfoCache.get_user_name_by_user_id(uid)}({uid})" for uid in user_ids
+        ])
+        logging.critical(f"Black list updated. current {len(user_ids)}: [{block_display_str}].")
 
     async def load_uid_and_cookie(self):
         """
@@ -90,7 +93,7 @@ class Executor(object):
         user_display_info = ", ".join([
             f"{await BiliUserInfoCache.get_user_name_by_user_id(uid)}({uid})" for uid in blocked_list
         ])
-        logging.info(f"Blocked users: {user_display_info}, now skip.")
+        logging.info(f"Blocked users: [{user_display_info}], now skip.")
 
         # GC
         if len(self.__block_list) > len(cookies):
