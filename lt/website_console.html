@@ -158,6 +158,11 @@ $(function(){
         }else if(m.indexOf("[CRITICAL]") > -1){
             color = "#cd6000";
         }
+
+        if (m.indexOf("Blocked users: ") > -1){
+            color = "#cd6000";
+            body = "系统在若干小时前发现你进了小黑屋，此次领奖跳过。稍后会试探你是否出了小黑屋。"
+        }
         printToConsole('<span style="color: ' + color + ';">' + header + '</span>' + body);
     }
     var t1 = 0;
