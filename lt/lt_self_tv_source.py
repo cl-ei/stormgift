@@ -155,7 +155,7 @@ class TvScanner(object):
 
             flag, active = await BiliApi.check_live_status(room_id, area_id)
             if not flag:
-                logging.error(f"Cannot get live status of room: {room_id} from area: {area} ")
+                logging.error(f"Cannot get live status of room: {room_id} from area: {area}, error_msg: {active}")
                 return
 
             if active:
