@@ -2,7 +2,7 @@ import asyncio
 from config.log4 import crontab_task_logger as logging
 from utils.biliapi import BiliApi
 from utils.email import send_email
-from utils.dao import redis_cache
+from utils.dao import BiliUserInfoCache
 
 
 async def check_single_cookie(c):
@@ -41,8 +41,7 @@ async def check_single_cookie(c):
         logging.error(f"Error in get_if_user_is_live_vip. try twice, r: {r}, data(is_vip): {data}")
 
     if r:
-        hash_map_name = "BILI_LT_USER_ID_TO_NAME"
-        await redis_cache.hash_map_set(hash_map_name, key_values={DedeUserID: uname})
+        await BiliUserInfoCache.set_user_name(uid=DedeUserID, name=uname)
         return True, data, cookie
 
     else:

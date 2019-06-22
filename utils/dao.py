@@ -1,3 +1,4 @@
+import time
 import json
 import pickle
 import aioredis
@@ -156,6 +157,24 @@ class CookieOperator(object):
 
         cls.delete_cookie_by_uid(user_id)
         return msg
+
+
+class BiliUserInfoCache(object):
+    timeout = 3600 * 12
+
+    __update_time = 0
+    __cache_data = {}
+    __cache_key = "BILI_LT_USER_ID_TO_NAME"
+
+    @classmethod
+    async def get_user_name_by_user_id(cls, uid):
+        if cls.__update_time == 0 or time.time() - cls.__update_time > cls.timeout:
+            cls.__cache_data = await redis_cache.hash_map_get(cls.__cache_key)
+        return cls.__cache_data.get(uid)
+
+    @classmethod
+    async def set_user_name(cls, uid, name):
+        return await redis_cache.hash_map_set(cls.__cache_key, key_values={uid: name})
 
 
 async def test():
