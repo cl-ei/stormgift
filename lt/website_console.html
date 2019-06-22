@@ -77,7 +77,19 @@
             margin-bottom: 20px;
             background: #000;
         }
+        #lt-prompt{
+            position: absolute;
+            background: white;
+            width: 100%;
+            height: 40px;
+            color: #ff4747;
+            text-align: center;
+            line-height: 40px;
+            font-weight: 600;
+        }
         #console{
+            height: calc(100% - 40px);
+            margin-top: 40px;
             height: 100%;
             width: 100%;
             background: #000;
@@ -106,6 +118,7 @@
 $(function(){
     window.consoleLinesLimit = 300;
     window.messagesBuffer = [];
+    window.BILI_LIVE_UID = window.location.pathname.slice(3);
 
     function printToConsole(msg){
         var thisLine = msg.replace("\n", "<br \>");
@@ -120,6 +133,11 @@ $(function(){
         if(m.trim().length < 1){
             return;
         }
+
+        if (m.indexOf(window.BILI_LIVE_UID) < 0){
+            return
+        }
+
         var color = "#006400";
         var sepPos = m.indexOf("]");
         if (sepPos < 0) {
