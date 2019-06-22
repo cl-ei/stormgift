@@ -43,7 +43,7 @@ class Executor(object):
 
         return True
 
-    def add_to_block_list(self, cookie):
+    async def add_to_block_list(self, cookie):
         self.__block_list[cookie] = time.time()
         user_ids = re.findall(r"DedeUserID=(\d+)", "".join(self.__block_list.keys()))
         block_display_str = ", ".join([
@@ -113,7 +113,7 @@ class Executor(object):
         else:
             logging.critical(f"TV AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
-                self.add_to_block_list(cookie)
+                await self.add_to_block_list(cookie)
 
             elif "412" in msg:
                 self.__busy_time = time.time()
@@ -126,7 +126,7 @@ class Executor(object):
         else:
             logging.critical(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
-                self.add_to_block_list(cookie)
+                await self.add_to_block_list(cookie)
 
             elif "412" in msg:
                 self.__busy_time = time.time()
