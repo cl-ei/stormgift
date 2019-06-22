@@ -104,10 +104,11 @@ class Executor(object):
 
     async def accept_tv(self, index, user_id, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_tv(room_id, gift_id, cookie)
+        user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
         if r:
-            logging.info(f"TV AC SUCCESS! {index}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+            logging.info(f"TV AC SUCCESS! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
         else:
-            logging.critical(f"TV AC FAILED! {index}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+            logging.critical(f"TV AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
                 self.add_to_block_list(cookie)
 
@@ -116,10 +117,11 @@ class Executor(object):
 
     async def accept_guard(self, index, user_id, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
+        user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
         if r:
-            logging.info(f"GUARD AC SUCCESS! {index}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+            logging.info(f"GUARD AC SUCCESS! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
         else:
-            logging.critical(f"GUARD AC FAILED! {index}-{user_id}, key: {room_id}${gift_id}, msg: {msg}")
+            logging.critical(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
                 self.add_to_block_list(cookie)
 
@@ -152,8 +154,9 @@ class Executor(object):
 
             if busy_412:
                 if random() < 0.3:
+                    user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
                     logging.info(
-                        f"Too busy, user {display_index}-{user_id} skip. "
+                        f"Too busy, user {display_index}-{user_name}({user_id}) skip. "
                         f"reason: 412."
                     )
                     continue
