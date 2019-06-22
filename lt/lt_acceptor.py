@@ -8,6 +8,7 @@ import traceback
 from aiohttp import web
 from queue import Empty
 from random import random
+from utils.dao import redis_cache
 from multiprocessing import Process, Queue
 from utils.biliapi import BiliApi
 from config.log4 import acceptor_logger as logging
@@ -20,6 +21,20 @@ NON_SKIP_USER_ID = [
     20932326,  # DD
     39748080,  # LP
 ]
+
+
+class UserInfoCache(object):
+    timeout = 3600 * 12
+
+    __update_time = 0
+    __cache_data = {}
+    __cache_key = "BILI_LT_USER_ID_TO_NAME"
+
+    @classmethod
+    async def get_user_name_by_user_id(cls, uid):
+        if cls.__update_time == 0 or time.time() - cls.__update_time > cls.timeout:
+            cls.__cache_data = await redis_cache.hash_map_get(cls.__cache_key)
+        return cls.__cache_data.get(uid)
 
 
 class Executor(object):
