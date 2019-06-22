@@ -76,10 +76,8 @@ class GiftRedisCache(object):
             if not isinstance(r, list) or len(r) != len(keys):
                 raise Exception(f"Redis hash map read error! r: {r}")
 
-            result = {}
-            for index in range(len(r)):
-                result[keys[index]] = pickle.loads(r[index])
-            return result
+            result = [pickle.loads(_) for _ in r]
+            return result[0] if len(result) == 1 else result
 
         else:
             """HDEL key field1 [field2] """
