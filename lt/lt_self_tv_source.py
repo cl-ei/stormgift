@@ -122,7 +122,11 @@ class TvScanner(object):
 
             if active:
                 if client and client.status != "OPEN":
-                    msg = f"WS state Error! room_id: {room_id}, area: {area}, status: {client.status}"
+                    msg = (
+                        f"WS state Error! room_id: {room_id}, "
+                        f"area: {area}, status: {client.status}, "
+                        f"set_shutdown: {client.set_shutdown}"
+                    )
                     logging.error(msg)
                     status_logger.info(msg)
             else:
