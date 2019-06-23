@@ -2,6 +2,7 @@ import time
 import json
 import pickle
 import aioredis
+import datetime
 from config import REDIS_CONFIG
 
 
@@ -95,6 +96,27 @@ class GiftRedisCache(object):
                     key_temp = r[index]
             return result
 
+    async def list_push(self, name, *items):
+        if self.__redis_conn is None:
+            self.__redis_conn = await aioredis.create_connection(
+                address=self.uri, db=self.db, password=self.password
+            )
+
+        r = await self.__redis_conn.execute("LPUSH", name, *[pickle.dumps(e) for e in items])
+        return r
+
+    async def list_get_all(self, name):
+        if self.__redis_conn is None:
+            self.__redis_conn = await aioredis.create_connection(
+                address=self.uri, db=self.db, password=self.password
+            )
+        # count = await self.__redis_conn.execute("LLEN", name)
+
+        r = await self.__redis_conn.execute("LRANGE", name, 0, 100000)
+        if isinstance(r, list):
+            return [pickle.loads(e) for e in r]
+        return []
+
 
 redis_cache = GiftRedisCache(**REDIS_CONFIG)
 
@@ -176,6 +198,24 @@ class BiliUserInfoCache(object):
     @classmethod
     async def set_user_name(cls, uid, name):
         return await redis_cache.hash_map_set(cls.__cache_key, key_values={uid: name})
+
+
+class HansyGiftRecords(object):
+    gift_key = "HANSY_GIFT_{year}_{month}"
+
+    @classmethod
+    async def add_log(cls, uid, uname, gift_name, coin_type, price, count, created_timestamp, rnd=0):
+        today = datetime.datetime.today()
+        key = cls.gift_key.replace("{year}", str(today.year)).replace("{month}", str(today.month))
+        r = await redis_cache.list_push(key, [uid, uname, gift_name, coin_type, price, count, created_timestamp, rnd])
+        return r
+
+    @classmethod
+    async def get_log(cls):
+        today = datetime.datetime.today()
+        key = cls.gift_key.replace("{year}", str(today.year)).replace("{month}", str(today.month))
+        r = await redis_cache.list_get_all(key)
+        return r
 
 
 async def test():

@@ -11,6 +11,7 @@ from random import choice, random
 from config import CQBOT
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import ReConnectingWsClient
+from utils.dao import HansyGiftRecords
 from config.log4 import dxj_hansy_logger as logging
 
 
@@ -61,9 +62,32 @@ class DanmakuSetting(object):
 
 
 class TempData:
-    user_name_to_uid_map = {}
-    silver_gift_list = []
+    __cached_user_info = {}
+    gift_list_for_thank = []
+
     fans_id_set = None
+    cache_count_limit = 10000
+
+    @classmethod
+    async def update_user_info(cls, uid, uname, face):
+        cls.__cached_user_info[uid] = (uname, face, int(time.time()))
+        if len(cls.__cached_user_info) >= cls.cache_count_limit:
+            new_dict = {}
+            for uname, info_tuple in cls.__cached_user_info.items():
+                if time.time() - info_tuple[2] < 3600 * 24 * 7:
+                    new_dict[uname] = info_tuple
+
+            logging.info(
+                f"TempData.__cached_user_info GC finished, "
+                f"old count {len(cls.__cached_user_info)}, new: {len(new_dict)}."
+            )
+            cls.__cached_user_info = new_dict
+
+    @classmethod
+    async def get_user_face_by_uid(cls, uid):
+        if uid in cls.__cached_user_info:
+            return cls.__cached_user_info[uid][1]
+        return None
 
 
 def send_qq_notice_message(test=False):
@@ -129,34 +153,31 @@ async def send_hansy_danmaku(msg, user=""):
         logging.error(f"Danmaku [{msg}] send failed, msg: {msg}, user: {user}.")
 
 
-async def save_gift(uid, name, face, gift_name, count):
-    logging.info(f"Saving new gift, user: {uid}-{name} -> {gift_name}*{count}.")
+async def save_gift(uid, uname, gift_name, coin_type, price, count, created_timestamp, rnd=0, face=None):
+    if DanmakuSetting.THANK_GIFT:
+        TempData.gift_list_for_thank.append([uname, gift_name, count, coin_type, created_timestamp])
+
+    await HansyGiftRecords.add_log(uid, uname, gift_name, coin_type, price, count, created_timestamp, rnd)
+
+    if coin_type != "gold" or price*count < DanmakuSetting.THRESHOLD:
+        return
+
+    if face is None:
+        face = await TempData.get_user_face_by_uid(uid)
     if not face:
         face = await BiliApi.get_user_face(uid)
-
-    faces = map(lambda x: x.split(".")[0], os.listdir("/home/wwwroot/statics/static/face"))
-    if str(uid) not in faces:
-        try:
-            r = requests.get(face, timeout=20)
-            if r.status_code != 200:
-                raise Exception("Request error when get face!")
-            with open(f"/home/wwwroot/statics/static/face/{uid}", "wb") as f:
-                f.write(r.content)
-        except Exception as e:
-            logging.error(f"Cannot save face, e: {e}, {uid} -> {face}")
-        else:
-            logging.info(f"User face saved, {uid} -> {face}")
 
     data = {
         "created_time": str(datetime.datetime.now()),
         "uid": uid,
-        "sender": name,
+        "sender": uname,
         "gift_name": gift_name,
         "count": count,
+        "face": face,
     }
     with open("data/hansy_gift_list.txt", "a+") as f:
         f.write(json.dumps(data, ensure_ascii=False) + "\n")
-    logging.info(f"New gift saved, user: {uid}-{name} -> {gift_name}*{count}.")
+    logging.info(f"New gift saved to `data/hansy_gift_list.txt`, user: {uid}-{uname} -> {gift_name}*{count}.")
 
 
 async def proc_message(message):
@@ -249,53 +270,53 @@ async def proc_message(message):
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")
+
         uid = data.get("uid", "--")
         face = data.get("face", "")
         uname = data.get("uname", "")
         gift_name = data.get("giftName", "")
         coin_type = data.get("coin_type", "")
         total_coin = data.get("total_coin", 0)
-        num = data.get("num", "")
-        if coin_type != "gold":
-            if DanmakuSetting.THANK_GIFT:
-                TempData.silver_gift_list.append(f"{uname}${gift_name}${num}")
-            logging.info(f"SEND_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})")
+        num = data.get("num", 0)
+        price = total_coin // max(1, num)
+        rnd = data.get("rnd", 0)
+        created_time = data.get("timestamp", 0)
 
-        elif coin_type == "gold" and uname not in TempData.user_name_to_uid_map:
-            TempData.user_name_to_uid_map[uname] = {"uid": uid, "face": face}
-            logging.info(f"USER_NAME_TO_ID_MAP Length: {len(TempData.user_name_to_uid_map)}")
-            if len(TempData.user_name_to_uid_map) > 10000:
-                TempData.user_name_to_uid_map = {}
+        logging.info(f"SEND_GIFT: [{coin_type.upper()}] [{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})")
 
-    elif cmd == "COMBO_END":
-        data = message.get("data")
-        uname = data.get("uname", "")
-        gift_name = data.get("gift_name", "")
-        price = data.get("price")
-        count = data.get("combo_num", 0)
-        logging.info(f"GOLD_GIFT: [ ----- ] [{uname}] -> {gift_name}*{count} (price: {price})")
-
-        cached_user = TempData.user_name_to_uid_map.get(uname, {})
-        uid = cached_user.get("uid")
-        face = cached_user.get("face")
-        if DanmakuSetting.THANK_GIFT:
-            await send_hansy_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
-        if uid and price * count > DanmakuSetting.THRESHOLD:
-            await save_gift(uid, uname, face, gift_name, count)
+        await TempData.update_user_info(uid, uname, face)
+        await save_gift(
+            uname=uname,
+            gift_name=gift_name,
+            coin_type=coin_type,
+            price=price,
+            count=num,
+            created_timestamp=created_time,
+            uid=uid,
+            rnd=rnd,
+            face=face
+        )
 
     elif cmd == "GUARD_BUY":
         data = message.get("data")
+
         uid = data.get("uid")
         uname = data.get("username", "")
         gift_name = data.get("gift_name", "GUARD")
-        price = data.get("price")
+        price = data.get("price", 0)
         num = data.get("num", 0)
-        logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
-        if DanmakuSetting.THANK_GIFT:
-            await send_hansy_danmaku(f"感谢{uname}开通了{num}个月的{gift_name}! 大气大气~")
+        created_time = data.get("start_time", 0)
 
-        face = TempData.user_name_to_uid_map.get(uname, {}).get("face")
-        await save_gift(uid, uname, face, gift_name, num)
+        logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
+        await save_gift(
+            uid=uid,
+            uname=uname,
+            gift_name=gift_name,
+            coin_type="gold" if price > 0 else "silver",
+            price=price,
+            count=num,
+            created_timestamp=created_time,
+        )
 
     elif cmd == "LIVE":
         time_interval = time.time() - DanmakuSetting.LAST_LIVE_TIME
@@ -313,6 +334,17 @@ async def proc_message(message):
         DanmakuSetting.THANK_GIFT = True
         DanmakuSetting.THANK_FOLLOWER = False
         await send_hansy_danmaku("状态")
+
+    # elif cmd == "COMBO_END":
+    #     data = message.get("data")
+    #     uname = data.get("uname", "")
+    #     gift_name = data.get("gift_name", "")
+    #     price = data.get("price")
+    #     count = data.get("combo_num", 0)
+    #
+    #     logging.info(f"COMBO_END: [ ----- ] [{uname}] -> {gift_name}*{count} (price: {price})")
+    #     if DanmakuSetting.THANK_GIFT:
+    #         await send_hansy_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
 
 
 async def send_carousel_msg():
@@ -332,19 +364,34 @@ async def send_recorder_group_danmaku():
 
 
 async def thank_gift():
-    gift_list = {}
-    while TempData.silver_gift_list:
-        gift = TempData.silver_gift_list.pop()
-        uname, gift_name, num = gift.split("$")
-        key = f"{uname}${gift_name}"
-        if key in gift_list:
-            gift_list[key] += int(num)
-        else:
-            gift_list[key] = int(num)
+    if not DanmakuSetting.THANK_GIFT:
+        return
 
-    for key, num in gift_list.items():
+    thank_list = {}
+    need_del = []
+    # [uname, gift_name, count, coin_type, created_timestamp]
+    for e in TempData.gift_list_for_thank:
+        uname, gift_name, count, coin_type, created_timestamp = e
+        time_interval = time.time() - created_timestamp
+        if time_interval > 60:
+            need_del.append(e)
+
+        elif time_interval > 15:
+            need_del.append(e)
+
+            key = f"{uname}${gift_name}"
+            if key in thank_list:
+                thank_list[key] += int(count)
+            else:
+                thank_list[key] = int(count)
+
+    for e in need_del:
+        TempData.gift_list_for_thank.remove(e)
+
+    for key, count in thank_list.items():
         uname, gift_name = key.split("$")
-        await send_hansy_danmaku(f"感谢{uname}赠送的{num}个{gift_name}! 大气大气~")
+        await send_hansy_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
+        logging.info(f"DEBUG: gift_list_for_thank length: {len(TempData.gift_list_for_thank)}, del: {len(need_del)}")
 
 
 async def get_fans_list():
@@ -433,11 +480,10 @@ async def main():
         await asyncio.sleep(1)
         counter = (counter + 1) % 10000000000
 
+        await thank_gift()
+
         if counter % 15 == 0 and DanmakuSetting.THANK_FOLLOWER:
             await thank_follower()
-
-        if counter % 13 == 0 and DanmakuSetting.THANK_GIFT:
-            await thank_gift()
 
         if counter % DanmakuSetting.MSG_INTERVAL == 0:
             await send_carousel_msg()
