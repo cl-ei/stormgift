@@ -157,7 +157,8 @@ async def save_gift(uid, uname, gift_name, coin_type, price, count, created_time
     if DanmakuSetting.THANK_GIFT:
         TempData.gift_list_for_thank.append([uname, gift_name, count, coin_type, created_timestamp])
 
-    await HansyGiftRecords.add_log(uid, uname, gift_name, coin_type, price, count, created_timestamp, rnd)
+    if coin_type.lower() == "gold":
+        await HansyGiftRecords.add_log(uid, uname, gift_name, coin_type, price, count, created_timestamp, rnd)
 
     if coin_type != "gold" or price*count < DanmakuSetting.THRESHOLD:
         return
