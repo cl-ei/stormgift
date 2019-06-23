@@ -373,12 +373,9 @@ async def thank_gift():
     for e in TempData.gift_list_for_thank:
         uname, gift_name, count, coin_type, created_timestamp = e
         time_interval = time.time() - created_timestamp
-        if time_interval > 60:
-            need_del.append(e)
+        need_del.append(e)
 
-        elif time_interval > 15:
-            need_del.append(e)
-
+        if time_interval < 20:
             key = f"{uname}${gift_name}"
             if key in thank_list:
                 thank_list[key] += int(count)
@@ -402,6 +399,8 @@ async def get_fans_list():
 
 
 async def thank_follower():
+    if not DanmakuSetting.THANK_FOLLOWER:
+        return
 
     if not isinstance(TempData.fans_id_set, set):
         fl = await get_fans_list()
@@ -480,9 +479,8 @@ async def main():
         await asyncio.sleep(1)
         counter = (counter + 1) % 10000000000
 
-        await thank_gift()
-
-        if counter % 15 == 0 and DanmakuSetting.THANK_FOLLOWER:
+        if counter % 15 == 0:
+            await thank_gift()
             await thank_follower()
 
         if counter % DanmakuSetting.MSG_INTERVAL == 0:
