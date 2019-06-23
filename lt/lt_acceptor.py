@@ -117,6 +117,7 @@ class Executor(object):
 
             elif "412" in msg:
                 self.__busy_time = time.time()
+        return r, msg
 
     async def accept_guard(self, index, user_id, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
@@ -130,6 +131,7 @@ class Executor(object):
 
             elif "412" in msg:
                 self.__busy_time = time.time()
+        return r, msg
 
     async def __call__(self, args):
         key_type, room_id, gift_id, *_ = args
@@ -152,20 +154,26 @@ class Executor(object):
             await process_fn(display_index, user_id, room_id, gift_id, cookie)
 
         busy_412 = bool(time.time() - self.__busy_time < 60 * 20)
+        prize_timeout = False
         for user_id, cookie in white_cookies:
             display_index += 1
+
+            if prize_timeout:
+                user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
+                logging.info(f"Gift time out! user {display_index}-{user_name}({user_id})")
+                continue
 
             if busy_412:
                 if random() < 0.3:
                     user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
-                    logging.info(
-                        f"Too busy, user {display_index}-{user_name}({user_id}) skip. "
-                        f"reason: 412."
-                    )
+                    logging.info(f"Too busy, user {display_index}-{user_name}({user_id}) skip. reason: 412.")
                     continue
                 else:
                     await asyncio.sleep(0.1)
-            await process_fn(display_index, user_id, room_id, gift_id, cookie)
+
+            flag, msg = await process_fn(display_index, user_id, room_id, gift_id, cookie)
+            if not flag and "抽奖已过期" in msg:
+                prize_timeout = True
 
 
 class AsyncHTTPServer(object):
