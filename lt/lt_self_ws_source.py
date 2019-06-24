@@ -1,13 +1,9 @@
 import asyncio
-import requests
-from utils.dao import redis_cache
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
-from config import LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT
 
-
-VALUABLE_LIVE_ROOM_ID_LIST_KEY = "VALUABLE_LIVE_ROOM_ID_LIST_KEY"
+BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
 
 class WsManager(object):
@@ -17,31 +13,7 @@ class WsManager(object):
         self._clients = {}
         self.monitor_live_rooms = []
         self.msg_count = 0
-        self.post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
         self.heartbeat_pkg = WsApi.gen_heart_beat_pkg()
-        logging.info(f"post_prize_url: {self.post_prize_url}")
-
-    def post_prize_info(self, room_id):
-        params = {
-            "action": "prize_notice",
-            "key_type": "T",
-            "room_id": room_id
-        }
-        try:
-            r = requests.get(url=self.post_prize_url, params=params, timeout=0.5)
-        except Exception as e:
-            error_message = F"Http request error. room_id: {room_id}, e: {str(e)[:20]} ..."
-            logging.error(error_message, exc_info=False)
-            return
-
-        if r.status_code != 200 or "OK" not in r.content.decode("utf-8"):
-            logging.error(
-                F"Prize room post failed. code: {r.status_code}, "
-                F"response: {r.content}. key: T${room_id}"
-            )
-            return
-
-        logging.info(f"TV Prize room post success: {room_id}")
 
     async def on_message(self, room_id, message):
         self.msg_count += 1
@@ -51,7 +23,7 @@ class WsManager(object):
     async def new_room(self, room_id):
         client = self._clients.get(room_id)
 
-        if client and client.set_shutdown is not True:
+        if client and not client.set_shutdown:
             return
 
         async def on_message(message):
@@ -83,19 +55,19 @@ class WsManager(object):
     async def kill_room(self, room_id):
         client = self._clients.get(room_id)
 
-        if client and client.set_shutdown is not True:
+        if client and not client.set_shutdown:
             await client.kill()
             del self._clients[room_id]
 
         logging.info(f"WS client killed, room_id: {room_id}")
 
-    async def flush_monitor_live_rooms(self):
+    async def flush_monitor_live_room_list(self):
         flag, total = await BiliApi.get_all_lived_room_count()
         if not flag:
             print(f"Cannot get lived room count. msg: {total}")
             return False
 
-        await asyncio.sleep(3)
+        await asyncio.sleep(1)
 
         flag, room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, self.monitor_count))
         if not flag:
@@ -163,17 +135,15 @@ class WsManager(object):
 
     async def task_flush_monitor_live_rooms(self):
         while True:
-            r = await self.flush_monitor_live_rooms()
+            r = await self.flush_monitor_live_room_list()
             await asyncio.sleep(60 * 5 if r else 45)
 
     async def run_forever(self):
-        p = asyncio.create_task(self.task_print_info())
-        f = asyncio.create_task(self.task_update_connections())
-        u = asyncio.create_task(self.task_flush_monitor_live_rooms())
-
-        await p
-        await u
-        await f
+        await asyncio.gather(*[
+            self.task_print_info(),
+            self.task_update_connections(),
+            self.task_flush_monitor_live_rooms(),
+        ])
 
 
 async def main():
