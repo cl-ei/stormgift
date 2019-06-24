@@ -21,9 +21,8 @@ class WsManager(object):
 
     async def on_message(self, room_id, message):
         self.msg_count += 1
-        cmd = message.get("cmd")
-        if cmd in ("GUARD_BUY", ):
-            logging.info(f"cmd: {cmd}, msg: {message}")
+        if message["cmd"] == "GUARD_BUY" and message["data"]["guard_level"] != 1:
+            logging.info(f"cmd: {message['cmd']}, room_id: {room_id}, msg: {message}")
 
     async def new_room(self, room_id):
         client = self._clients.get(room_id)
