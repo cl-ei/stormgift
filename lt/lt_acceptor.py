@@ -17,6 +17,8 @@ from config import LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
 # ACCEPT URL: http://127.0.0.1:30001?action=prize_key&key_type=T&room_id=123&gift_id=1233
 
 
+BiliApi.USE_ASYNC_REQUEST_METHOD = True
+
 NON_SKIP_USER_ID = [
     20932326,  # DD
     39748080,  # LP
