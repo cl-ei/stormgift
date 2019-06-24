@@ -180,10 +180,7 @@ class BiliApi:
         if not room_id:
             return True, False
 
-        req_url = (
-            "https://api.live.bilibili.com/AppRoom/index"
-            "?platform=android&room_id=%s" % room_id
-        )
+        req_url = f"https://api.live.bilibili.com/AppRoom/index?platform=android&room_id={room_id}"
         flag, r = await cls.get(req_url, timeout=timeout, check_response_json=True, check_error_code=True)
         if not flag:
             if "房间已经被锁定" in r:
