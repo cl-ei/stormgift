@@ -22,7 +22,8 @@ class WsManager(object):
     async def on_message(self, room_id, message):
         self.msg_count += 1
         cmd = message.get("cmd")
-        # print(f"cmd: {cmd}, msg: {message}")
+        if cmd in ("GUARD_BUY", ):
+            print(f"cmd: {cmd}, msg: {message}")
 
     async def new_room(self, room_id):
         client = self._clients.get(room_id)
@@ -38,7 +39,7 @@ class WsManager(object):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
 
         async def on_shut_down():
-            logging.warning(f"Client shutdown! room_id: {room_id}")
+            pass
 
         async def on_error(e, msg):
             logging.error(f"Listener CATCH ERROR: {msg}. e: {e}")
@@ -62,7 +63,6 @@ class WsManager(object):
         if client and not client.set_shutdown:
             await client.kill()
             del self._clients[room_id]
-            logging.info(f"WS client killed, room_id: {room_id}")
 
     async def flush_monitor_live_room_list(self):
         flag, total = await BiliApi.get_all_lived_room_count()
