@@ -1,4 +1,6 @@
+import sys
 import asyncio
+import traceback
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
@@ -139,16 +141,24 @@ class WsManager(object):
             await asyncio.sleep(60 * 5 if r else 45)
 
     async def run_forever(self):
-        await asyncio.gather(*[
-            self.task_print_info(),
-            self.task_update_connections(),
-            self.task_flush_monitor_live_rooms(),
-        ])
+        try:
+            await asyncio.gather(*[
+                self.task_print_info(),
+                self.task_update_connections(),
+                self.task_flush_monitor_live_rooms(),
+            ])
+        except Exception as e:
+            logging.error(f"Error happened in self_ws_source: {e} {traceback.format_exc()}")
 
 
 async def main():
+    try:
+        monitor_live_room_count = int(sys.argv[1])
+    except (TypeError, ValueError, IndexError):
+        monitor_live_room_count = 4000
+
     logging.info("LT self_ws_source proc start...")
-    monitor_live_room_count = 4000
+
     mgr = WsManager(monitor_live_room_count)
     await mgr.run_forever()
 
