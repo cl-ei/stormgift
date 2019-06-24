@@ -136,11 +136,14 @@ class WsManager(object):
             await asyncio.sleep(60)
 
     async def task_flush_monitor_live_rooms(self):
+        r = True
         while True:
-            r = await self.flush_monitor_live_room_list()
             await asyncio.sleep(60 * 5 if r else 45)
+            r = await self.flush_monitor_live_room_list()
 
     async def run_forever(self):
+        await self.flush_monitor_live_room_list()
+
         try:
             await asyncio.gather(*[
                 self.task_print_info(),
