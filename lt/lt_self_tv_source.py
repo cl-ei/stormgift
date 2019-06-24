@@ -94,6 +94,7 @@ class TvScanner(object):
         client = self.__rws_clients.get(area_id)
         if client:
             await client.kill()
+            logging.info(f"Old client killed! room_id: {client.room_id}")
 
         async def on_message(message):
             for msg in WsApi.parse_msg(message):
