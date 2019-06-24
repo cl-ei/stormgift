@@ -69,6 +69,15 @@ lt_source_logger.addHandler(file_handler)
 lt_source_logger.addHandler(stormgift_file_handler)
 
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_ws_source.log"))
+file_handler.setFormatter(log_format)
+lt_ws_source_logger = logging.getLogger("lt_ws_source")
+lt_ws_source_logger.setLevel(logging.DEBUG)
+lt_ws_source_logger.addHandler(console)
+lt_ws_source_logger.addHandler(file_handler)
+lt_source_logger.addHandler(stormgift_file_handler)
+
+
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_hansy.log"))
 file_handler.setFormatter(log_format)
 dxj_hansy_logger = logging.getLogger("dxj_hansy")
@@ -107,6 +116,7 @@ __all__ = (
     "crontab_task_logger",
     "cqbot_logger",
     "lt_source_logger",
+    "lt_ws_source_logger",
     "lt_raffle_id_getter_logger",
     "dxj_hansy_logger",
     "dxj_xiaoke_logger",

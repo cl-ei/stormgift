@@ -4,7 +4,7 @@ import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
-from config.log4 import lt_source_logger as logging
+from config.log4 import lt_ws_source_logger as logging
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
