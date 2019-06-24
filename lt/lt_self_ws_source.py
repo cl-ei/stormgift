@@ -93,7 +93,7 @@ class WsManager(object):
             del self._clients[room_id]
 
             count += 1
-            if count % 100 == 0:
+            if count % 300 == 0:
                 await asyncio.sleep(1)
 
             if count > 999999999:
