@@ -1,10 +1,9 @@
 import asyncio
-import requests
 from random import random
+from lt import LtGiftMessageQ
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
-from config import LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
@@ -22,32 +21,7 @@ class TvScanner(object):
 
     def __init__(self):
         self.__rws_clients = {}
-        self.post_prize_url = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
-        logging.info(f"post_prize_url: {self.post_prize_url}")
-
         self.__lock_when_changing_room = {}  # {1: [old_room_id, call by], ...}
-
-    def post_prize_info(self, room_id):
-        params = {
-            "action": "prize_notice",
-            "key_type": "T",
-            "room_id": room_id
-        }
-        try:
-            r = requests.get(url=self.post_prize_url, params=params, timeout=0.5)
-        except Exception as e:
-            error_message = F"Http request error. room_id: {room_id}, e: {str(e)[:20]} ..."
-            logging.error(error_message, exc_info=False)
-            return
-
-        if r.status_code != 200 or "OK" not in r.content.decode("utf-8"):
-            logging.error(
-                F"Prize room post failed. code: {r.status_code}, "
-                F"response: {r.content}. key: T${room_id}"
-            )
-            return
-
-        logging.info(f"TV Prize room post success: {room_id}")
 
     async def on_message(self, area_id, room_id, message):
         area_name = self.AREA_MAP[area_id]
@@ -71,7 +45,7 @@ class TvScanner(object):
                     f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}. "
                     f"source: {area_id}-{area_name}-{room_id}"
                 )
-                self.post_prize_info(real_room_id)
+                await LtGiftMessageQ.post_gift_info("T", real_room_id)
 
     async def force_change_room(self, old_room_id, area_id, call_by):
         # 检查锁并加锁
