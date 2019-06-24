@@ -23,7 +23,7 @@ class WsManager(object):
         self.msg_count += 1
         cmd = message.get("cmd")
         if cmd in ("GUARD_BUY", ):
-            print(f"cmd: {cmd}, msg: {message}")
+            logging.info(f"cmd: {cmd}, msg: {message}")
 
     async def new_room(self, room_id):
         client = self._clients.get(room_id)
@@ -67,18 +67,18 @@ class WsManager(object):
     async def flush_monitor_live_room_list(self):
         flag, total = await BiliApi.get_all_lived_room_count()
         if not flag:
-            print(f"Cannot get lived room count. msg: {total}")
+            logging.error(f"Cannot get lived room count. msg: {total}")
             return False
 
         await asyncio.sleep(1)
 
         flag, room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, self.monitor_count))
         if not flag:
-            print(f"Cannot get lived rooms. msg: {room_id_list}")
+            logging.error(f"Cannot get lived rooms. msg: {room_id_list}")
             return False
 
         self.monitor_live_rooms = room_id_list
-        print(f"monitor_live_rooms updated! count: {len(self.monitor_live_rooms)}")
+        logging.info(f"monitor_live_rooms updated! count: {len(self.monitor_live_rooms)}")
         self.monitor_live_rooms_update_time = time.time()
         return True
 
@@ -89,7 +89,7 @@ class WsManager(object):
         need_add = expected - existed
         need_del = existed - expected
 
-        print(f"Need add room count: {len(need_add)}, need del: {len(need_del)}")
+        logging.info(f"Need add room count: {len(need_add)}, need del: {len(need_del)}")
 
         count = 0
         for room_id in need_del:
@@ -115,17 +115,17 @@ class WsManager(object):
     async def task_print_info(self):
         count = 0
         while True:
-            if count % 5 == 0:
-                speed = self.msg_count / 5
+            if count % 11 == 0:
+                speed = self.msg_count / 11
                 self.msg_count = 0
-                print(f"Message speed: {speed:0.2f}")
+                logging.info(f"Message speed: {speed:0.2f} msg/s.")
 
             if count % 30 == 0:
                 valid_client_count = 0
                 for room_id, c in self._clients.items():
                     if c.status == "OPEN" and c.set_shutdown is False:
                         valid_client_count += 1
-                print(f"Active client count: {valid_client_count}, total: {len(self._clients)}.")
+                logging.info(f"Active client count: {valid_client_count}, total: {len(self._clients)}.")
 
             count += 1
             if count > 1000000000:

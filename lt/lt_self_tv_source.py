@@ -143,8 +143,6 @@ class TvScanner(object):
 
             area_id, old_room_id = error_status_info
             await self.check_status_for_single_area(area_id=area_id, old_room_id=old_room_id, called_by="msg_trigger")
-            if (time.time() - last_check_status_time) > (cyclic_check_interval - 5):
-                last_check_status_time = time.time() + 195
 
     async def parse_single_message(self, area_id, room_id, message):
         area_name = self.AREA_MAP[area_id]
