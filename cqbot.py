@@ -367,9 +367,7 @@ def handle_msg(context):
                     lt_source_logger.error(f"Error when get guard prize room: {e}, msg: {msg}", exc_info=True)
                     return
 
-                coroutine = LtGiftMessageQ.post_gift_info("G", room_id)
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(coroutine)
+                asyncio.run(LtGiftMessageQ.post_gift_info("G", room_id))
             return
 
         logging.info(
