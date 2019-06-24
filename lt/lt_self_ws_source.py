@@ -1,4 +1,5 @@
 import sys
+import time
 import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
@@ -14,6 +15,7 @@ class WsManager(object):
         self.monitor_count = count
         self._clients = {}
         self.monitor_live_rooms = []
+        self.monitor_live_rooms_update_time = 0
         self.msg_count = 0
         self.heartbeat_pkg = WsApi.gen_heart_beat_pkg()
 
@@ -54,14 +56,13 @@ class WsManager(object):
         self._clients[room_id] = new_client
         await new_client.start()
 
-    async def kill_room(self, room_id):
+    async def kill_client_and_remove_it(self, room_id):
         client = self._clients.get(room_id)
 
         if client and not client.set_shutdown:
             await client.kill()
             del self._clients[room_id]
-
-        logging.info(f"WS client killed, room_id: {room_id}")
+            logging.info(f"WS client killed, room_id: {room_id}")
 
     async def flush_monitor_live_room_list(self):
         flag, total = await BiliApi.get_all_lived_room_count()
@@ -78,19 +79,21 @@ class WsManager(object):
 
         self.monitor_live_rooms = room_id_list
         print(f"monitor_live_rooms updated! count: {len(self.monitor_live_rooms)}")
+        self.monitor_live_rooms_update_time = time.time()
         return True
 
     async def update_connections(self):
+
         existed = set(self._clients.keys())
         expected = set(self.monitor_live_rooms)
         need_add = expected - existed
         need_del = existed - expected
+
         print(f"Need add room count: {len(need_add)}, need del: {len(need_del)}")
 
         count = 0
         for room_id in need_del:
-            await self.kill_room(room_id)
-            del self._clients[room_id]
+            await self.kill_client_and_remove_it(room_id)
 
             count += 1
             if count % 300 == 0:
@@ -131,9 +134,14 @@ class WsManager(object):
             await asyncio.sleep(1)
 
     async def task_update_connections(self):
+        update_connection_timestamp = 0
         while True:
-            await self.update_connections()
-            await asyncio.sleep(60)
+            if update_connection_timestamp == self.monitor_live_rooms_update_time:
+                await asyncio.sleep(1)
+
+            else:
+                update_connection_timestamp = self.monitor_live_rooms_update_time
+                await self.update_connections()
 
     async def task_flush_monitor_live_rooms(self):
         r = True
