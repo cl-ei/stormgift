@@ -40,7 +40,7 @@ class LtGiftMessageQ(object):
         else:
             params = {"action": "prize_notice", "key_type": key_type, "room_id": room_id}
             url = cls.__prize_post_url_without_raffle_id
-            code, content = cls._request("get", url=url, params=params)
+            code, content = await cls._request("get", url=url, params=params)
             if code == 200 and "OK" in content:
                 logging.info(f"Prize post success! {key_type}-{room_id}")
             else:
