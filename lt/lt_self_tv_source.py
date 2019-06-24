@@ -168,6 +168,8 @@ class TvScanner(object):
                     f"source: {area_id}-[{area_name}]-{room_id}"
                 )
                 await LtGiftMessageQ.post_gift_info("T", real_room_id)
+        elif cmd == "GUARD_BUY":
+            logging.info(f"GUARD_BUY DANMAKU: {message}")
 
     async def parse_message(self):
         while True:
