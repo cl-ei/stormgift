@@ -11,70 +11,45 @@ class GiftRedisCache(object):
         self.uri = f'redis://{host}:{port}'
         self.db = db
         self.password = password
-        self.__redis_conn = None
+
+    async def execute(self, *args, **kwargs):
+        redis_conn = await aioredis.create_connection(
+            address=self.uri,
+            db=self.db,
+            password=self.password
+        )
+        return await redis_conn.execute(*args, **kwargs)
 
     async def non_repeated_save(self, key, info, ex=3600*24*7):
-        """
-
-        :param key:
-        :param info:
-        :param ex:
-        :return: True
-        """
-        if self.__redis_conn is None:
-            self.__redis_conn = await aioredis.create_connection(
-                address=self.uri, db=self.db, password=self.password
-            )
-        return await self.__redis_conn.execute("set", key, json.dumps(info), "ex", ex, "nx")
+        return await self.execute("set", key, json.dumps(info), "ex", ex, "nx")
 
     async def set(self, key, value, timeout=0):
         v = pickle.dumps(value)
-        if self.__redis_conn is None:
-            self.__redis_conn = await aioredis.create_connection(
-                address=self.uri, db=self.db, password=self.password
-            )
         if timeout > 0:
-            return await self.__redis_conn.execute("setex", key, timeout, v)
+            return await self.execute("setex", key, timeout, v)
         else:
-            return await self.__redis_conn.execute("set", key, v)
+            return await self.execute("set", key, v)
 
     async def ttl(self, key):
-        if self.__redis_conn is None:
-            self.__redis_conn = await aioredis.create_connection(
-                address=self.uri, db=self.db, password=self.password
-            )
-        return await self.__redis_conn.execute("ttl", key)
+        return await self.execute("ttl", key)
 
     async def get(self, key):
-        if self.__redis_conn is None:
-            self.__redis_conn = await aioredis.create_connection(
-                address=self.uri, db=self.db, password=self.password
-            )
-        r = await self.__redis_conn.execute("get", key)
+        r = await self.execute("get", key)
         try:
             return pickle.loads(r)
         except TypeError:
             return None
 
     async def hash_map_set(self, name, key_values):
-        if self.__redis_conn is None:
-            self.__redis_conn = await aioredis.create_connection(
-                address=self.uri, db=self.db, password=self.password
-            )
         args = []
         for key, value in key_values.items():
             args.append(pickle.dumps(key))
             args.append(pickle.dumps(value))
-        return await self.__redis_conn.execute("hmset", name, *args)
+        return await self.execute("hmset", name, *args)
 
     async def hash_map_get(self, name, *keys):
-        if self.__redis_conn is None:
-            self.__redis_conn = await aioredis.create_connection(
-                address=self.uri, db=self.db, password=self.password
-            )
-
         if keys:
-            r = await self.__redis_conn.execute("hmget", name, *[pickle.dumps(k) for k in keys])
+            r = await self.execute("hmget", name, *[pickle.dumps(k) for k in keys])
             if not isinstance(r, list) or len(r) != len(keys):
                 raise Exception(f"Redis hash map read error! r: {r}")
 
@@ -83,7 +58,7 @@ class GiftRedisCache(object):
 
         else:
             """HDEL key field1 [field2] """
-            r = await self.__redis_conn.execute("hgetall", name)
+            r = await self.execute("hgetall", name)
             if not isinstance(r, list):
                 raise Exception(f"Redis hash map read error! r: {r}")
 
@@ -97,25 +72,34 @@ class GiftRedisCache(object):
             return result
 
     async def list_push(self, name, *items):
-        if self.__redis_conn is None:
-            self.__redis_conn = await aioredis.create_connection(
-                address=self.uri, db=self.db, password=self.password
-            )
-
-        r = await self.__redis_conn.execute("LPUSH", name, *[pickle.dumps(e) for e in items])
+        r = await self.execute("LPUSH", name, *[pickle.dumps(e) for e in items])
         return r
 
     async def list_get_all(self, name):
-        if self.__redis_conn is None:
-            self.__redis_conn = await aioredis.create_connection(
-                address=self.uri, db=self.db, password=self.password
-            )
-        # count = await self.__redis_conn.execute("LLEN", name)
+        # count = await self.execute("LLEN", name)
 
-        r = await self.__redis_conn.execute("LRANGE", name, 0, 100000)
+        r = await self.execute("LRANGE", name, 0, 100000)
         if isinstance(r, list):
             return [pickle.loads(e) for e in r]
         return []
+
+    async def set_add(self, name, *items):
+        r = await self.execute("SADD", name, *[pickle.dumps(e) for e in items])
+        return r
+
+    async def set_remove(self, name, *items):
+        r = await self.execute("SREM", name, *[pickle.dumps(e) for e in items])
+        return r
+
+    async def set_get_all(self, name):
+        r = await self.execute("SMEMBERS", name)
+        if isinstance(r, list):
+            return [pickle.loads(e) for e in r]
+        return []
+
+    async def set_get_count(self, name):
+        r = await self.execute("SCARD", name)
+        return r
 
 
 redis_cache = GiftRedisCache(**REDIS_CONFIG)
@@ -215,6 +199,30 @@ class HansyGiftRecords(object):
         today = datetime.datetime.today()
         key = cls.gift_key.replace("{year}", str(today.year)).replace("{month}", str(today.month))
         r = await redis_cache.list_get_all(key)
+        return r
+
+
+class ValuableLiveRoom(object):
+    _key = "VALUABLE_LIVE_ROOM"
+
+    @classmethod
+    async def add(cls, *room_id):
+        r = await redis_cache.set_add(cls._key, *room_id)
+        return r
+
+    @classmethod
+    async def get_all(cls):
+        r = await redis_cache.set_get_all(cls._key)
+        return r
+
+    @classmethod
+    async def get_count(cls):
+        r = await redis_cache.set_get_count(cls._key)
+        return r
+
+    @classmethod
+    async def delete(cls, *room_id):
+        r = await redis_cache.set_remove(cls._key, *room_id)
         return r
 
 
