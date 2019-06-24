@@ -236,31 +236,25 @@ class RCWebSocketClient(object):
             if self.on_connect:
                 await self.on_connect(ws)
 
-            heart_beat_task = None
-            if self.heart_beat_interval > 0:
+            async def send_heart_beat():
+                while not ws.closed and self.heart_beat_interval > 0:
+                    await asyncio.sleep(self.heart_beat_interval)
+                    await ws.send(self.heart_beat_package)
 
-                async def send_heart_beat():
-                    while not ws.closed:
-                        await asyncio.sleep(self.heart_beat_interval)
-                        await ws.send(self.heart_beat_package)
+                    interval = time.time() - ws.last_heartbeat
+                    ws.last_heartbeat = time.time()
+                    if interval > self.heart_beat_interval + 3:
+                        print(f"WARNING!!! Heart beat interval too long! time: {interval}")
 
-                        interval = time.time() - ws.last_heartbeat
-                        ws.last_heartbeat = time.time()
-                        if interval > self.heart_beat_interval + 3:
-                            print(f"WARNING!!! Heart beat interval too long! time: {interval}")
+            async def receive_message():
+                while not ws.closed:
+                    data = await ws.recv()
+                    try:
+                        await self.on_message(data)
+                    except Exception as e:
+                        await self.on_error(e, f"Error in receiving msg: {e}, {traceback.format_exc()}")
 
-                heart_beat_task = asyncio.create_task(send_heart_beat())
-
-            while not ws.closed:
-                data = await ws.recv()
-                try:
-                    await self.on_message(data)
-                except Exception as e:
-                    await self.on_error(e, f"Error in receiving msg: {e}, {traceback.format_exc()}")
-
-            if heart_beat_task:
-                heart_beat_task.cancel()
-                await heart_beat_task
+            await asyncio.gather(send_heart_beat(), receive_message())
 
 
 async def test():
