@@ -126,7 +126,7 @@ class TvScanner(object):
             interval = time.time() - last_check_status_time
             if interval > cyclic_check_interval:
                 last_check_status_time = time.time()
-                logging.info(f"Now fully check live room status. interval: {interval}, time: {time.time():.3f}")
+                logging.info(f"Now fully check status. interval: {interval:.3f}, time: {time.time():.3f}")
                 for area_id in [1, 2, 3, 4, 5, 6]:
                     old_room_id = getattr(self.__rws_clients.get(area_id), "room_id", None)
                     await self.check_status_for_single_area(
