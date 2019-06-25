@@ -169,7 +169,7 @@ class TvScanner(object):
                 )
                 await LtGiftMessageQ.post_gift_info("T", real_room_id)
 
-        elif cmd == "GUARD_MSG" and message['buy_type'] == 1 and area_id == 1:
+        elif cmd == "GUARD_MSG":
             # {
             #   'cmd': 'GUARD_MSG',
             #   'msg': '用户 :?菜刀刀的鸭鸭:? 在主播 小菜刀夫斯基 的直播间开通了总督',
@@ -180,8 +180,10 @@ class TvScanner(object):
             #   'broadcast_type': 0
             # }
 
-            room_id = message['roomid']  # TODO: need find real room id.
-            await LtGiftMessageQ.post_gift_info("G", room_id)
+            logging.info(f"m: {message}")
+            if message['buy_type'] == 1 and area_id == 1:
+                room_id = message['roomid']  # TODO: need find real room id.
+                await LtGiftMessageQ.post_gift_info("G", room_id)
 
     async def parse_message(self):
         while True:
