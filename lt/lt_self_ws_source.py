@@ -109,11 +109,21 @@ class WsManager(object):
 
     async def task_print_info(self):
         count = 0
+        msg_count_of_last_second = 0
+        msg_speed_peak = 0
         while True:
+
+            msg_speed_peak = max(self.msg_count - msg_count_of_last_second, msg_speed_peak)
+            msg_count_of_last_second = self.msg_count
+
             if count % 11 == 0:
                 speed = self.msg_count / 11
+
                 self.msg_count = 0
-                logging.info(f"Message speed: {speed:0.2f} msg/s.")
+                msg_count_of_last_second = 0
+                msg_speed_peak = 0
+
+                logging.info(f"Message speed avg: {speed:0.2f} msg/s, peak: {msg_speed_peak} msg/s.")
 
             if count % 30 == 0:
                 valid_client_count = 0
