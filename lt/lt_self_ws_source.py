@@ -122,10 +122,6 @@ class WsManager(object):
             if count % 11 == 0:
                 speed = self.msg_count / 11
 
-                self.msg_count = 0
-                msg_count_of_last_second = 0
-                msg_speed_peak = 0
-
                 if self._broken_live_rooms:
                     append_msg = (
                         f"broken count: {len(self._broken_live_rooms)}, "
@@ -137,6 +133,10 @@ class WsManager(object):
                     append_msg = ""
 
                 logging.info(f"Message speed avg: {speed:0.2f}, peak: {msg_speed_peak}. {append_msg}")
+
+                self.msg_count = 0
+                msg_count_of_last_second = 0
+                msg_speed_peak = 0
 
             if count % 30 == 0:
                 valid_client_count = 0
