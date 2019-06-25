@@ -168,8 +168,20 @@ class TvScanner(object):
                     f"source: {area_id}-[{area_name}]-{room_id}"
                 )
                 await LtGiftMessageQ.post_gift_info("T", real_room_id)
-        elif cmd == "GUARD_BUY":
-            logging.info(f"GUARD_BUY DANMAKU: {message}")
+
+        elif cmd == "GUARD_MSG" and area_id == 1:
+            # {
+            #   'cmd': 'GUARD_MSG',
+            #   'msg': '用户 :?菜刀刀的鸭鸭:? 在主播 小菜刀夫斯基 的直播间开通了总督',
+            #   'msg_new': '<%菜刀刀的鸭鸭%> 在 <%小菜刀夫斯基%> 的房间开通了总督并触发了抽奖，点击前往TA的房间去抽奖吧',
+            #   'url': 'https://live.bilibili.com/7331822',
+            #   'roomid': 7331822,
+            #   'buy_type': 1,
+            #   'broadcast_type': 0
+            # }
+
+            room_id = message['roomid']  # TODO: need find real room id.
+            await LtGiftMessageQ.post_gift_info("G", room_id)
 
     async def parse_message(self):
         while True:
