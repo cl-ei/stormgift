@@ -181,6 +181,7 @@ class TvScanner(object):
             # }
 
             room_id = message['roomid']  # TODO: need find real room id.
+            logging.info(f"PRIZE 总督 room id: {room_id}, msg: {message.get('msg_new')}")
             await LtGiftMessageQ.post_gift_info("G", room_id)
 
     async def parse_message(self):
