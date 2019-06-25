@@ -9,7 +9,7 @@ class LtGiftMessageQ(object):
     __prize_post_url_without_raffle_id = f"http://{LT_RAFFLE_ID_GETTER_HOST}:{LT_RAFFLE_ID_GETTER_PORT}"
 
     @classmethod
-    async def __request_async(cls, method, url, params=None, data=None, headers=None, timeout=1):
+    async def __request_async(cls, method, url, params, data, headers, timeout):
         headers = headers or {}
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
             if method == "get":
@@ -25,7 +25,7 @@ class LtGiftMessageQ(object):
                     return status_code, content
 
     @classmethod
-    async def _request(cls, method, url, params=None, data=None, headers=None, timeout=1):
+    async def _request(cls, method, url, params=None, data=None, headers=None, timeout=5):
         try:
             status_code, content = await cls.__request_async(method, url, params, data, headers, timeout)
         except Exception as e:
