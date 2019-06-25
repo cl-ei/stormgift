@@ -170,6 +170,7 @@ class TvScanner(object):
                 await LtGiftMessageQ.post_gift_info("T", real_room_id)
 
         elif cmd == "GUARD_MSG" and area_id == 1:
+            logging.info(f"message: {message}")
             # {
             #   'cmd': 'GUARD_MSG',
             #   'msg': '用户 :?菜刀刀的鸭鸭:? 在主播 小菜刀夫斯基 的直播间开通了总督',
