@@ -37,18 +37,14 @@ class WsManager(object):
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
 
-        async def on_shut_down():
-            pass
-
         async def on_error(e, msg):
-            logging.error(f"Listener CATCH ERROR: {msg}. e: {e}")
+            logging.error(f"WS ERROR! room_id: [{room_id}], msg: {msg}, e: {e}")
 
         new_client = RCWebSocketClient(
             url=WsApi.BILI_WS_URI,
             on_message=on_message,
             on_error=on_error,
             on_connect=on_connect,
-            on_shut_down=on_shut_down,
             heart_beat_pkg=self.heartbeat_pkg,
             heart_beat_interval=10
         )
