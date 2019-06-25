@@ -125,8 +125,8 @@ class WsManager(object):
                 if self._broken_live_rooms:
                     append_msg = (
                         f"broken count: {len(self._broken_live_rooms)}, "
-                        f"[{','.join(str(r) for r in [self._broken_live_rooms[:10]])}"
-                        f"{' ...' if len(self._broken_live_rooms) > 10 else ''}]."
+                        f"{','.join([str(r) for r in self._broken_live_rooms[:10]])}"
+                        f"{' ...' if len(self._broken_live_rooms) > 10 else '.'}"
                     )
                     self._broken_live_rooms = []
                 else:
