@@ -40,11 +40,15 @@ class WsManager(object):
         async def on_error(e, msg):
             logging.error(f"WS ERROR! room_id: [{room_id}], msg: {msg}, e: {e}")
 
+        async def on_reconnected(ws, reconnecting_times):
+            logging.error(f"WS RECONNECTED! room_id: [{room_id}], reconnecting_times: {reconnecting_times}.")
+
         new_client = RCWebSocketClient(
             url=WsApi.BILI_WS_URI,
             on_message=on_message,
             on_error=on_error,
             on_connect=on_connect,
+            on_reconnected=on_reconnected,
             heart_beat_pkg=self.heartbeat_pkg,
             heart_beat_interval=10
         )

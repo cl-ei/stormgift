@@ -13,6 +13,7 @@ class RCWebSocketClient(object):
             on_connect=None,
             on_shut_down=None,
             on_error=None,
+            on_reconnected=None,
             heart_beat_pkg="heart beat",
             heart_beat_interval=0
     ):
@@ -26,14 +27,20 @@ class RCWebSocketClient(object):
         self._on_connect_cb = on_connect
         self._on_error_cb = on_error
         self.on_shut_down = on_shut_down
+        self.on_reconnected = on_reconnected
         self.heart_beat_package = heart_beat_pkg
         self.heart_beat_interval = heart_beat_interval
 
         self.set_shutdown = False
 
     async def on_connect(self, ws):
+        if self.__reconnecting_times > 0 and self.on_reconnected:
+            await self.on_reconnected(ws, self.__reconnecting_times)
+
         self.__reconnecting_times = 0
-        await self._on_connect_cb(ws)
+
+        if self._on_connect_cb:
+                await self._on_connect_cb(ws)
 
     async def on_error(self, *args, **kw):
         if self._on_error_cb and not self.set_shutdown:
@@ -107,8 +114,7 @@ class RCWebSocketClient(object):
             ws.last_heartbeat = time.time()
             self.__client = ws
 
-            if self.on_connect:
-                await self.on_connect(ws)
+            await self.on_connect(ws)
 
             async def send_heart_beat():
                 while not ws.closed and self.heart_beat_interval > 0:
@@ -160,13 +166,13 @@ async def test():
     )
     await new_client.start()
 
-    time = 0
+    count = 0
     while True:
-        time += 1
+        count += 1
         await asyncio.sleep(2)
         print(f"Status: {new_client.status}")
 
-        if time == 20:
+        if count == 20:
             print("Kill !")
             await new_client.kill()
 
