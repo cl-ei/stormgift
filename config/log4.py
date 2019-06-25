@@ -75,7 +75,7 @@ lt_ws_source_logger = logging.getLogger("lt_ws_source")
 lt_ws_source_logger.setLevel(logging.DEBUG)
 lt_ws_source_logger.addHandler(console)
 lt_ws_source_logger.addHandler(file_handler)
-lt_source_logger.addHandler(stormgift_file_handler)
+lt_ws_source_logger.addHandler(stormgift_file_handler)
 
 
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_hansy.log"))
