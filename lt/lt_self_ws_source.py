@@ -16,7 +16,9 @@ class WsManager(object):
         self._clients = {}
         self.monitor_live_rooms = []
         self.monitor_live_rooms_update_time = 0
+
         self.msg_count = 0
+        self._broken_live_rooms = []
         self.heartbeat_pkg = WsApi.gen_heart_beat_pkg()
 
     async def on_message(self, room_id, message):
@@ -38,17 +40,14 @@ class WsManager(object):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
 
         async def on_error(e, msg):
-            logging.error(f"WS ERROR! room_id: [{room_id}], msg: {msg}, e: {e}")
-
-        async def on_reconnected(ws, reconnecting_times):
-            logging.error(f"WS RECONNECTED! room_id: [{room_id}], reconnecting_times: {reconnecting_times}.")
+            self._broken_live_rooms.append(room_id)
+            # logging.error(f"WS ERROR! room_id: [{room_id}], msg: {msg}, e: {e}")
 
         new_client = RCWebSocketClient(
             url=WsApi.BILI_WS_URI,
             on_message=on_message,
             on_error=on_error,
             on_connect=on_connect,
-            on_reconnected=on_reconnected,
             heart_beat_pkg=self.heartbeat_pkg,
             heart_beat_interval=10
         )
@@ -127,7 +126,17 @@ class WsManager(object):
                 msg_count_of_last_second = 0
                 msg_speed_peak = 0
 
-                logging.info(f"Message speed avg: {speed:0.2f} msg/s, peak: {msg_speed_peak} msg/s.")
+                if self._broken_live_rooms:
+                    append_msg = (
+                        f"broken count: {len(self._broken_live_rooms)}, "
+                        f"[{','.join(str(r) for r in [self._broken_live_rooms[:10]])}"
+                        f"{' ...' if len(self._broken_live_rooms) > 10 else ''}]."
+                    )
+                    self._broken_live_rooms = []
+                else:
+                    append_msg = ""
+
+                logging.info(f"Message speed avg: {speed:0.2f}, peak: {msg_speed_peak}. {append_msg}")
 
             if count % 30 == 0:
                 valid_client_count = 0
