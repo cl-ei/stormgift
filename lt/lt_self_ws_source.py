@@ -5,6 +5,8 @@ import traceback
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_ws_source_logger as logging
+from lt import LtGiftMessageQ
+
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
@@ -25,6 +27,7 @@ class WsManager(object):
         self.msg_count += 1
         if message["cmd"] == "GUARD_BUY" and message["data"]["guard_level"] != 1:
             logging.info(f"cmd: {message['cmd']}, room_id: {room_id}, msg: {message}")
+            await LtGiftMessageQ.post_gift_info("G", room_id)
 
     async def new_room(self, room_id):
         client = self._clients.get(room_id)
