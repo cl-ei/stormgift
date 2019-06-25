@@ -1,7 +1,7 @@
 import os
 import sys
 import asyncio
-from utils.ws import ReConnectingWsClient
+from utils.ws import RCWebSocketClient
 from utils.biliapi import WsApi, BiliApi
 from config.log4 import dxj_wanzi_logger as logging
 
@@ -293,8 +293,8 @@ async def main():
         for msg in WsApi.parse_msg(message):
             await proc_message(msg)
 
-    new_client = ReConnectingWsClient(
-        uri=WsApi.BILI_WS_URI,
+    new_client = RCWebSocketClient(
+        url=WsApi.BILI_WS_URI,
         on_message=on_message,
         on_connect=on_connect,
         on_shut_down=on_shut_down,

@@ -10,7 +10,7 @@ from random import choice, random
 
 from config import CQBOT
 from utils.biliapi import WsApi, BiliApi
-from utils.ws import ReConnectingWsClient
+from utils.ws import RCWebSocketClient
 from utils.dao import HansyGiftRecords
 from config.log4 import dxj_hansy_logger as logging
 
@@ -463,8 +463,8 @@ async def main():
             except Exception as e:
                 logging.error(f"Error happened when proc_message: {e}", exc_info=True)
 
-    new_client = ReConnectingWsClient(
-        uri=WsApi.BILI_WS_URI,
+    new_client = RCWebSocketClient(
+        url=WsApi.BILI_WS_URI,
         on_message=on_message,
         on_connect=on_connect,
         on_shut_down=on_shut_down,
