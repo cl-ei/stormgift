@@ -11,6 +11,31 @@ loop = asyncio.get_event_loop()
 objects = Manager(mysql_db, loop=loop)
 
 
+class User(peewee.Model):
+    name = peewee.CharField()
+    uid = peewee.IntegerField(unique=True, null=True, )
+    face = peewee.CharField()
+    info = peewee.CharField()
+
+    class Meta:
+        database = mysql_db
+
+
+class GiftRec(peewee.Model):
+    key = peewee.CharField(unique=True)
+    room_id = peewee.IntegerField()
+    gift_id = peewee.IntegerField()
+    gift_name = peewee.CharField()
+    gift_type = peewee.CharField()
+    sender = peewee.ForeignKeyField(User, related_name="gift_rec", on_delete="SET NULL", null=True)
+    sender_type = peewee.IntegerField(null=True)
+    created_time = peewee.DateTimeField(default=datetime.datetime.now)
+    status = peewee.IntegerField()
+
+    class Meta:
+        database = mysql_db
+
+
 class LiveRoomInfo(peewee.Model):
     short_room_id = peewee.IntegerField()
     real_room_id = peewee.IntegerField(null=False, unique=True)
