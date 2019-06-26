@@ -30,6 +30,9 @@ class GiftRedisCache(object):
         else:
             return await self.execute("set", key, v)
 
+    async def delete(self, key):
+        return await self.execute("DEL", key)
+
     async def ttl(self, key):
         return await self.execute("ttl", key)
 

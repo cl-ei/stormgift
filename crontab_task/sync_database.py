@@ -1,47 +1,15 @@
 import time
-import os
-import sys
 import json
-import peewee
 import logging
 import asyncio
 import aioredis
-import datetime
 
-from peewee_async import Manager, PooledMySQLDatabase
 from config.log4 import crontab_task_logger as logging
-from config import MYSQL_CONFIG, REDIS_CONFIG
-
-mysql_db = PooledMySQLDatabase(**MYSQL_CONFIG)
-
-
-class User(peewee.Model):
-    name = peewee.CharField()
-    uid = peewee.IntegerField(unique=True, null=True, )
-    face = peewee.CharField()
-    info = peewee.CharField()
-
-    class Meta:
-        database = mysql_db
-
-
-class GiftRec(peewee.Model):
-    key = peewee.CharField(unique=True)
-    room_id = peewee.IntegerField()
-    gift_id = peewee.IntegerField()
-    gift_name = peewee.CharField()
-    gift_type = peewee.CharField()
-    sender = peewee.ForeignKeyField(User, related_name="gift_rec", on_delete="SET NULL", null=True)
-    sender_type = peewee.IntegerField(null=True)
-    created_time = peewee.DateTimeField(default=datetime.datetime.now)
-    status = peewee.IntegerField()
-
-    class Meta:
-        database = mysql_db
-
+from config import REDIS_CONFIG
+from utils.model import User, GiftRec, LiveRoomInfo, objects
+from utils.dao import ValuableLiveRoom
 
 loop = asyncio.get_event_loop()
-objects = Manager(mysql_db, loop=loop)
 
 
 class SyncTool(object):
@@ -134,6 +102,31 @@ class SyncTool(object):
             logging.info("Bulk create succeed! r: %s" % r)
 
     @classmethod
+    async def sync_valuable_live_room(cls):
+        condition = (
+            (LiveRoomInfo.guard_count > 5)
+            & (
+                (LiveRoomInfo.guard_count > 30)
+                | (LiveRoomInfo.real_room_id != LiveRoomInfo.short_room_id)
+                | (LiveRoomInfo.attention > 10000)
+            )
+        )
+        select = (LiveRoomInfo.real_room_id, LiveRoomInfo.guard_count, LiveRoomInfo.attention)
+        order_by = (LiveRoomInfo.guard_count.desc(), LiveRoomInfo.attention.desc())
+        query = LiveRoomInfo.select(*select).where(condition).distinct().order_by(*order_by)
+        r = await objects.execute(query)
+        room_id = {e.real_room_id for e in r}
+        logging.info(F"Valuable live rooms get from db success, count: {len(room_id)}")
+
+        existed = set(await ValuableLiveRoom.get_all())
+        need_add = room_id - existed
+        need_del = existed - room_id
+
+        r = await ValuableLiveRoom.add(*need_add)
+        r2 = await ValuableLiveRoom.delete(*need_del)
+        logging.info(f"Save to redis result: add: {r}, del: {r2}")
+
+    @classmethod
     async def run(cls):
         start_time = time.time()
         await objects.connect()
@@ -143,7 +136,9 @@ class SyncTool(object):
             password=REDIS_CONFIG["password"],
             loop=loop
         )
+
         await cls.sync_rec(redis)
+        await cls.sync_valuable_live_room()
 
         redis.close()
         await redis.wait_closed()
