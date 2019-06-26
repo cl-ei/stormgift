@@ -227,6 +227,9 @@ class ValuableLiveRoom(object):
 
     @classmethod
     async def add(cls, *room_id):
+        if not room_id:
+            return 0
+
         r = await redis_cache.set_add(cls._key, *room_id)
         return r
 
@@ -242,6 +245,9 @@ class ValuableLiveRoom(object):
 
     @classmethod
     async def delete(cls, *room_id):
+        if not room_id:
+            return 0
+
         r = await redis_cache.set_remove(cls._key, *room_id)
         return r
 
