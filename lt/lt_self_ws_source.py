@@ -4,6 +4,7 @@ import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
+from utils.dao import ValuableLiveRoom
 from config.log4 import lt_ws_source_logger as logging
 from lt import LtGiftMessageQ
 
@@ -78,8 +79,26 @@ class WsManager(object):
             logging.error(f"Cannot get lived rooms. msg: {room_id_list}")
             return False
 
-        self.monitor_live_rooms = room_id_list
-        logging.info(f"monitor_live_rooms updated! count: {len(self.monitor_live_rooms)}")
+        valuable_room_count_limit = 3000
+        valuable_live_rooms = await ValuableLiveRoom.get_all()
+        valuable_count = len(valuable_live_rooms)
+        if valuable_count > valuable_room_count_limit:
+            logging.error(
+                f"TOO MANY Valuable live rooms! count: {valuable_count}, "
+                f"now only fetch top {valuable_room_count_limit}."
+            )
+            valuable_live_rooms = valuable_live_rooms[:valuable_room_count_limit]
+            valuable_count = len(valuable_live_rooms)
+
+        api_count = len(room_id_list)
+        self.monitor_live_rooms = list(set(room_id_list + valuable_live_rooms))
+        total_count = len(self.monitor_live_rooms)
+        cache_hit_rate = 100 * (api_count + valuable_count - total_count) / valuable_count
+
+        logging.info(
+            f"monitor_live_rooms updated! api count: {api_count}, valuable: {valuable_count}, "
+            f"total: {total_count}, cache_hit_rate: {cache_hit_rate:.1f}%"
+        )
         self.monitor_live_rooms_update_time = time.time()
         return True
 
