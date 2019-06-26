@@ -202,6 +202,23 @@ class HansyGiftRecords(object):
         return r
 
 
+class HansyQQGroupUserInfo(object):
+
+    _key = "HANSY_QQ_GROUP_USER_INFO_{group_id}_{user_id}"
+
+    @classmethod
+    async def get_info(cls, group_id, user_id):
+        key = cls._key.replace("{group_id}", str(group_id)).replace("{user_id}", str(user_id))
+        r = await redis_cache.list_get_all(key)
+        return r
+
+    @classmethod
+    async def add_info(cls, group_id, user_id, info):
+        key = cls._key.replace("{group_id}", str(group_id)).replace("{user_id}", str(user_id))
+        r = await redis_cache.list_push(key, info)
+        return r
+
+
 class ValuableLiveRoom(object):
     _key = "VALUABLE_LIVE_ROOM"
 

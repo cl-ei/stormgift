@@ -6,16 +6,13 @@ import logging
 import requests
 import datetime
 import hashlib
-import traceback
 import asyncio
+import traceback
 from random import choice
 from cqhttp import CQHttp
-
-from config.log4 import cqbot_logger as logging
-from config.log4 import lt_source_logger
 from config import CQBOT
-from lt import LtGiftMessageQ
-from utils.dao import CookieOperator
+from utils.dao import CookieOperator, HansyQQGroupUserInfo
+from config.log4 import cqbot_logger as logging
 
 
 class Settings:
@@ -29,7 +26,7 @@ class Settings:
         159855203,  # test
         883237694,  # guard
         436496941,
-        591691708,
+        591691708,  # 禁言群
     ]
 
 
@@ -359,17 +356,6 @@ def handle_msg(context):
         group_id = context["group_id"]
         msg = context["raw_message"]
 
-        if group_id == 930242871:
-            if "舰长" in msg or "提督" in msg or "总督" in msg:
-                try:
-                    room_id = int(msg.strip("/").split("/")[-1])
-                except Exception as e:
-                    lt_source_logger.error(f"Error when get guard prize room: {e}, msg: {msg}", exc_info=True)
-                    return
-
-                asyncio.run(LtGiftMessageQ.post_gift_info("G", room_id))
-            return
-
         logging.info(
             "Group message received: group_%s [%s][%s](%s qq: %s) -> %s"
             % (group_id, title, card, user_nickname, user_id, msg)
@@ -481,21 +467,54 @@ def handle_notice(context):
     }
     """
     logging.info("notice: %s" % context)
+    now = str(datetime.datetime.now())[:19]
 
-    if context["notice_type"] == 'group_increase' and context["group_id"] == 436496941:
+    if context["notice_type"] == 'group_increase':
+        group_id = context["group_id"]
+        if group_id not in (436496941, 159855203):
+            return
+
         user_id = context["user_id"]
-        member = bot.get_group_member_info(group_id=436496941, user_id=user_id)
+        member = bot.get_group_member_info(group_id=group_id, user_id=user_id)
         nickname = member["nickname"]
+        operator_id = context["operator_id"]
 
-        bot.set_group_card(group_id=436496941, user_id=user_id, card="✿泡泡┊" + nickname)
+        sub_type = context["sub_type"]
+        if sub_type == "approve":
+            sub_type = "主动加群"
+        elif sub_type == "invite":
+            sub_type = "管理员邀请"
 
+        info = f"{now}-QQ: {nickname}({user_id})通过{sub_type}方式加入到本群，审核者QQ({operator_id})"
+        asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
+
+        bot.set_group_card(group_id=group_id, user_id=user_id, card="✿泡泡┊" + nickname)
         message = (
             f"欢迎[CQ:at,qq={user_id}] 进入泡泡小黄鸡养殖场！\n\n"
             "群名片格式：✿泡泡┊ + 你的昵称，初号机已经自动为你修改~ \n\n"
             "进群记得发个言哦，否则有可能会被当机器人清理掉，很可怕的哦~ "
             "从今天开始一起跟泡泡守护小黄鸡呀！叽叽叽~"
         )
-        bot.send_group_msg(group_id=436496941, message=message)
+        bot.send_group_msg(group_id=group_id, message=message)
+
+    elif context["notice_type"] == 'group_decrease':
+        group_id = context["group_id"]
+        if group_id not in (436496941, 159855203):
+            return
+
+        operator_id = context["operator_id"]
+        user_id = context["user_id"]
+
+        sub_type = context["sub_type"]
+        if sub_type == "leave":
+            sub_type = "主动退群"
+        elif sub_type == "kick":
+            sub_type = "被管理员移出"
+        elif sub_type == "kick_me":
+            sub_type = "登录号被踢"
+
+        info = f"{now}-QQ: ({user_id})通过{sub_type}方式离开本群，操作者QQ({operator_id})"
+        asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
 
     return {}
 
@@ -512,10 +531,32 @@ def handle_request(context):
         comment = context["comment"]
         group_id = context["group_id"]
 
-        logging.info(f"Add group request: user_id: {user_id}, comment: {comment}, group_id: {group_id}")
+        sub_type = context["sub_type"]
+        if sub_type == "add":
+            sub_type = "主动添加"
+        elif sub_type == "invite":
+            sub_type = "群内成员邀请"
 
-        if group_id in Settings.NOTICE_GROUP_ID_LIST and group_id != 883237694:
+        logging.info(f"Add group request: user_id: {user_id}, comment: {comment}, group_id: {group_id}")
+        if group_id == 591691708:
             return {'approve': True}
+
+        elif group_id in (436496941, 159855203):
+            now = str(datetime.datetime.now())[:19]
+            user_info = asyncio.run(HansyQQGroupUserInfo.get_info(group_id=group_id, user_id=user_id))
+
+            if user_info:
+                info = f"{now}-QQ({user_id})通过{sub_type}方式尝试加入本群，初号机未处理。验证信息: {comment}"
+                asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
+
+                user_info_str = "\n".join([user_info] + [info])
+                message = f"发现已退出本群成员的重新加群请求！相关记录如下：\n\n{user_info_str}"
+                bot.send_group_msg(group_id=group_id, message=message)
+
+            else:
+                info = f"{now}-QQ({user_id})通过{sub_type}方式加入本群，由初号机审核通过。验证信息: {comment}"
+                asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
+                return {'approve': True}
 
     return
 
