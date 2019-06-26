@@ -11,14 +11,16 @@ class GiftRedisCache(object):
         self.uri = f'redis://{host}:{port}'
         self.db = db
         self.password = password
+        self.redis_conn = None
 
     async def execute(self, *args, **kwargs):
-        redis_conn = await aioredis.create_connection(
-            address=self.uri,
-            db=self.db,
-            password=self.password
-        )
-        return await redis_conn.execute(*args, **kwargs)
+        if self.redis_conn is None:
+            self.redis_conn = await aioredis.create_connection(
+                address=self.uri,
+                db=self.db,
+                password=self.password
+            )
+        return await self.redis_conn.execute(*args, **kwargs)
 
     async def non_repeated_save(self, key, info, ex=3600*24*7):
         return await self.execute("set", key, json.dumps(info), "ex", ex, "nx")
