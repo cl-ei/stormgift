@@ -551,6 +551,7 @@ def handle_request(context):
 
                 user_info_str = "\n".join([user_info] + [info])
                 message = f"发现已退出本群成员的重新加群请求！相关记录如下：\n\n{user_info_str}"
+                logging.info(message)
                 bot.send_group_msg(group_id=group_id, message=message)
 
             else:
