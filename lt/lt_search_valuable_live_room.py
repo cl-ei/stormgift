@@ -22,7 +22,7 @@ async def search_short_number():
     updated_live_room_id_list = {r.real_room_id for r in updated_live_room_id_list}
 
     final_list = room_id_list - updated_live_room_id_list
-    print(f"finnal_list: {len(final_list)}")
+    print(f"Final list: {len(final_list)}")
 
     for room_id in final_list:
         now_hour = datetime.datetime.now().hour
