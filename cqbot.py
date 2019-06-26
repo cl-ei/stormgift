@@ -485,7 +485,7 @@ def handle_notice(context):
         elif sub_type == "invite":
             sub_type = "管理员邀请"
 
-        info = f"{now}-QQ: {nickname}({user_id})通过{sub_type}方式加入到本群，审核者QQ({operator_id})"
+        info = f"{now} QQ: {nickname}({user_id})通过{sub_type}方式加入到本群，审核者QQ({operator_id})"
         asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
 
         bot.set_group_card(group_id=group_id, user_id=user_id, card="✿泡泡┊" + nickname)
@@ -513,7 +513,7 @@ def handle_notice(context):
         elif sub_type == "kick_me":
             sub_type = "登录号被踢"
 
-        info = f"{now}-QQ: ({user_id})通过{sub_type}方式离开本群，操作者QQ({operator_id})"
+        info = f"{now} QQ: ({user_id})通过{sub_type}方式离开本群，操作者QQ({operator_id})"
         asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
 
     return {}
@@ -546,16 +546,19 @@ def handle_request(context):
             user_info = asyncio.run(HansyQQGroupUserInfo.get_info(group_id=group_id, user_id=user_id))
 
             if user_info:
-                info = f"{now}-QQ({user_id})通过{sub_type}方式尝试加入本群，初号机未处理。验证信息: {comment}"
+                info = f"{now} QQ({user_id})通过{sub_type}方式尝试加入本群，初号机未处理。验证信息: {comment}"
                 asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
 
-                user_info_str = "\n".join([user_info] + [info])
+                user_info_str = "\n".join([info] + user_info)
                 message = f"发现已退出本群成员的重新加群请求！相关记录如下：\n\n{user_info_str}"
                 logging.info(message)
+
+                if len(message) > 200:
+                    message = message[:200] + "..."
                 bot.send_group_msg(group_id=group_id, message=message)
 
             else:
-                info = f"{now}-QQ({user_id})通过{sub_type}方式加入本群，由初号机审核通过。验证信息: {comment}"
+                info = f"{now} QQ({user_id})通过{sub_type}方式加入本群，由初号机审核通过。验证信息: {comment}"
                 asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
                 return {'approve': True}
 
