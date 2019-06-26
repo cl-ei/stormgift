@@ -549,13 +549,13 @@ def handle_request(context):
                 info = f"{now} QQ({user_id})通过{sub_type}方式尝试加入本群，初号机未处理。验证信息: {comment}"
                 asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
 
-                split = "\n" + "-"*30
+                split = "\n" + "-"*30 + "\n"
                 user_info_str = split.join([info] + user_info)
                 message = f"发现已退出本群成员的重新加群请求！相关记录如下：\n\n{user_info_str}"
                 logging.info(message)
 
-                if len(message) > 500:
-                    message = message[:500] + "..."
+                if len(message) > 700:
+                    message = message[:700] + "..."
                 bot.send_group_msg(group_id=group_id, message=message)
 
             else:
