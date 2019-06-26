@@ -553,8 +553,8 @@ def handle_request(context):
                 message = f"发现已退出本群成员的重新加群请求！相关记录如下：\n\n{user_info_str}"
                 logging.info(message)
 
-                if len(message) > 200:
-                    message = message[:200] + "..."
+                if len(message) > 500:
+                    message = message[:500] + "..."
                 bot.send_group_msg(group_id=group_id, message=message)
 
             else:
