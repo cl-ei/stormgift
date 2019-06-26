@@ -78,6 +78,14 @@ lt_ws_source_logger.addHandler(file_handler)
 lt_ws_source_logger.addHandler(stormgift_file_handler)
 
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_valuable_live_room_scanner.log"))
+file_handler.setFormatter(log_format)
+lt_valuable_live_room_scanner_logger = logging.getLogger("lt_valuable_live_room_scanner")
+lt_valuable_live_room_scanner_logger.setLevel(logging.DEBUG)
+lt_valuable_live_room_scanner_logger.addHandler(console)
+lt_valuable_live_room_scanner_logger.addHandler(file_handler)
+lt_valuable_live_room_scanner_logger.addHandler(stormgift_file_handler)
+
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_hansy.log"))
 file_handler.setFormatter(log_format)
 dxj_hansy_logger = logging.getLogger("dxj_hansy")
@@ -118,6 +126,7 @@ __all__ = (
     "lt_source_logger",
     "lt_ws_source_logger",
     "lt_raffle_id_getter_logger",
+    "lt_valuable_live_room_scanner_logger",
     "dxj_hansy_logger",
     "dxj_xiaoke_logger",
     "dxj_wanzi_logger",
