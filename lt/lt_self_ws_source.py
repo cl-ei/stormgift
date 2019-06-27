@@ -2,11 +2,12 @@ import sys
 import time
 import asyncio
 import traceback
-from utils.ws import RCWebSocketClient
+from utils.ws import RCWebSocketClient, get_ws_established_and_time_wait
 from utils.biliapi import BiliApi, WsApi
 from utils.dao import ValuableLiveRoom
 from config.log4 import lt_ws_source_logger as logging
 from lt import LtGiftMessageQ
+from utils.model import objects, MonitorWsClient
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
@@ -99,6 +100,18 @@ class WsManager(object):
             f"monitor_live_rooms updated! api count: {api_count}, valuable: {valuable_count}, "
             f"total: {total_count}, cache_hit_rate: {cache_hit_rate:.1f}%"
         )
+
+        established, time_wait = get_ws_established_and_time_wait()
+        __monitor_info = {
+            "valuable room": valuable_count,
+            "api room cnt": api_count,
+            "target clients": total_count,
+            "valuable hit rate": cache_hit_rate,
+            "TCP ESTABLISHED": established,
+            "TCP TIME_WAIT": time_wait,
+        }
+        await MonitorWsClient.record(__monitor_info)
+
         self.monitor_live_rooms_update_time = time.time()
         return True
 
@@ -150,22 +163,31 @@ class WsManager(object):
                         f"{','.join([str(r) for r in self._broken_live_rooms[:10]])}"
                         f"{' ...' if len(self._broken_live_rooms) > 10 else '.'}"
                     )
-                    self._broken_live_rooms = []
                 else:
                     append_msg = ""
 
                 logging.info(f"Message speed avg: {speed:0.2f}, peak: {msg_speed_peak}. {append_msg}")
+                __monitor_info = {
+                    "msg speed": speed,
+                    "msg peak speed": msg_speed_peak,
+                    "broken clients": len(self._broken_live_rooms)
+                }
+                await MonitorWsClient.record(__monitor_info)
 
                 self.msg_count = 0
+                self._broken_live_rooms = []
                 msg_count_of_last_second = 0
                 msg_speed_peak = 0
 
             if count % 30 == 0:
+                total = len(self._clients)
                 valid_client_count = 0
                 for room_id, c in self._clients.items():
                     if c.status == "OPEN" and c.set_shutdown is False:
                         valid_client_count += 1
-                logging.info(f"Active client count: {valid_client_count}, total: {len(self._clients)}.")
+
+                logging.info(f"Active client count: {valid_client_count}, total: {total}.")
+                await MonitorWsClient.record({"active clients": valid_client_count, "total clients": total})
 
             count += 1
             if count > 1000000000:
@@ -203,6 +225,8 @@ class WsManager(object):
 
 
 async def main():
+    await objects.connect()
+
     try:
         monitor_live_room_count = int(sys.argv[1])
     except (TypeError, ValueError, IndexError):

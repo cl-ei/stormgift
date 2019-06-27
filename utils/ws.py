@@ -1,3 +1,4 @@
+import os
 import time
 import asyncio
 import websockets
@@ -175,6 +176,11 @@ async def test():
         if count == 20:
             print("Kill !")
             await new_client.kill()
+
+
+def get_ws_established_and_time_wait():
+    r = os.popen("netstat -nat| grep ESTABLISHED |wc -l && netstat -nat| grep TIME_WAIT |wc -l").read()
+    return [int(i) for i in r.split()]
 
 
 if __name__ == "__main__":
