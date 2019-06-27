@@ -46,10 +46,10 @@ try:
     MYSQL_CONFIG["password"] = config["mysql"]["password"]
     MYSQL_CONFIG["database"] = config["mysql"]["stormgift_database"]
 except KeyError:
-    MYSQL_CONFIG["user"] = "mysql"
-    MYSQL_CONFIG["host"] = "localhost"
+    MYSQL_CONFIG["user"] = "root"
+    MYSQL_CONFIG["host"] = "49.234.17.23"
     MYSQL_CONFIG["port"] = 44444
-    MYSQL_CONFIG["password"] = ""
+    MYSQL_CONFIG["password"] = "calom310300"
     MYSQL_CONFIG["database"] = "bilibili"
 
 
