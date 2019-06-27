@@ -8,6 +8,9 @@ import traceback
 from random import random
 from math import floor
 
+from utils.dao import redis_cache
+from config.log4 import bili_api_logger as logging
+
 
 class WsApi(object):
     BILI_WS_URI = "ws://broadcastlv.chat.bilibili.com:2244/sub"
@@ -723,9 +726,6 @@ class BiliApi:
 
     @classmethod
     async def force_get_real_room_id(cls, room_id, timeout=10):
-        from utils.dao import redis_cache
-        from config.log4 import bili_api_logger as logging
-
         redis_cache_key = f"REAL_ROOM_ID_OF_{room_id}"
         real_room_id = await redis_cache.get(redis_cache_key)
         if isinstance(real_room_id, int) and real_room_id > 0:
