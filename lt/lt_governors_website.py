@@ -30,13 +30,12 @@ async def query_gifts_json(request):
 
 async def query_gifts(request):
     json_req = request.query.get("json")
+    start_time = time.time()
 
     if time.time() < Cache.version + 30:
         records = Cache.records
     else:
         await objects.connect()
-        records_list = []
-
         try:
             records = await objects.execute(GiftRec.select(
                 GiftRec.room_id,
@@ -88,6 +87,7 @@ async def query_gifts(request):
         ) for r in records
     ]
 
+    proc_time = time.time() - start_time
     text = (
         f'<html><body><h2>礼物列表:（Version: {hash(Cache.version)}）'
         f'<a href="/query_gifts?json=true" target="_blank">JSON格式</a>'
@@ -101,7 +101,9 @@ async def query_gifts(request):
         f'<th>爪机</th>'
         f'</tr>'
         f"{''.join(gift_list)}"
-        f"</table></body></html>"
+        f"</table>"
+        f"<h6>Process time: {proc_time:.3f}</h6>"
+        f"</body></html>"
     )
     return web.Response(text=text, content_type="text/html")
 
