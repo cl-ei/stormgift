@@ -68,14 +68,24 @@ class Executor(object):
         self.send_prize_info("G", room_id, gift_id)
 
         key = f"NG{room_id}${gift_id}"
+        privilege_type = gift_info.get("privilege_type")
+        if privilege_type == 3:
+            gift_name = "舰长"
+        elif privilege_type == 2:
+            gift_name = "提督"
+        elif privilege_type == 1:
+            gift_name = "总督"
+        else:
+            gift_name = "guard_%s" % privilege_type
+
         info = {
             "uid": gift_info.get("sender").get("uid"),
             "name": gift_info.get("sender").get("uname"),
             "face": gift_info.get("sender").get("face"),
             "room_id": room_id,
             "gift_id": gift_info.get("id", 0),
-            "gift_name": "guard",
-            "gift_type": "G%s" % gift_info.get("privilege_type"),
+            "gift_name": gift_name,
+            "gift_type": "G%s" % privilege_type,
             "sender_type": None,
             "created_time": str(datetime.datetime.now())[:19],
             "status": gift_info.get("status")
