@@ -12,6 +12,7 @@ from utils.biliapi import BiliApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from config import LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT, LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
 from utils.dao import redis_cache
+from utils.model import objects, GiftRec
 
 # ACCEPT URL: http://127.0.0.1:30000?action=prize_notice&key_type=T&room_id=123
 
@@ -67,8 +68,7 @@ class Executor(object):
         gift_id = gift_info.get('id', 0)
         self.send_prize_info("G", room_id, gift_id)
 
-        key = f"NG{room_id}${gift_id}"
-        privilege_type = gift_info.get("privilege_type")
+        privilege_type = gift_info["privilege_type"]
         if privilege_type == 3:
             gift_name = "舰长"
         elif privilege_type == 2:
@@ -78,19 +78,23 @@ class Executor(object):
         else:
             gift_name = "guard_%s" % privilege_type
 
-        info = {
-            "uid": gift_info.get("sender").get("uid"),
-            "name": gift_info.get("sender").get("uname"),
-            "face": gift_info.get("sender").get("face"),
+        expire_time = gift_info["created_time"] + datetime.timedelta(seconds=gift_info["time"])
+        sender = gift_info["sender"]
+
+        gift_rec_params = {
             "room_id": room_id,
-            "gift_id": gift_info.get("id", 0),
+            "gift_id": gift_id,
             "gift_name": gift_name,
             "gift_type": "G%s" % privilege_type,
             "sender_type": None,
-            "created_time": str(datetime.datetime.now())[:19],
-            "status": gift_info.get("status")
+            "created_time": gift_info["created_time"],
+            "status": gift_info["status"],
+            "expire_time": expire_time,
+            "uid": sender["uid"],
+            "name": sender["uname"],
+            "face": sender["face"],
         }
-        await redis_cache.non_repeated_save(key, info)
+        await GiftRec.create(**gift_rec_params)
 
     async def force_get_uid_by_name(self, user_name):
         cookie = self.load_a_cookie()
@@ -130,13 +134,27 @@ class Executor(object):
 
             self.send_prize_info("T", room_id, gift_id)
 
-            key = f"_T{room_id}${gift_id}"
-            await redis_cache.non_repeated_save(key, info)
+            expire_time = info["created_time"] + datetime.timedelta(seconds=info["time"])
+            gift_rec_params = {
+                "room_id": room_id,
+                "gift_id": gift_id,
+                "gift_name": info["gift_name"],
+                "gift_type": info["gift_type"],
+                "sender_type": info["sender_type"],
+                "created_time": info["created_time"],
+                "status": info["status"],
+                "expire_time": expire_time,
+                "uid": uid,
+                "name": info["name"],
+                "face": info["face"],
+            }
+            await GiftRec.create(**gift_rec_params)
 
     async def __call__(self, args):
         key_type, room_id, *_ = args
-        room_id = await BiliApi.force_get_real_room_id(room_id)
+        created_time = datetime.datetime.now()
 
+        room_id = await BiliApi.force_get_real_room_id(room_id)
         if key_type == "G":
             flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
             if not flag:
@@ -144,9 +162,11 @@ class Executor(object):
                 return
 
             for gift_info in gift_info_list:
+                gift_info["created_time"] = created_time
                 await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
 
         elif key_type == "T":
+
             flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
             if not flag:
                 logging.error(f"TV proc_single_room, room_id: {room_id}, e: {gift_info_list}")
@@ -163,8 +183,9 @@ class Executor(object):
                     "gift_name": info.get("title"),
                     "gift_type": info.get("type"),
                     "sender_type": info.get("sender_type"),
-                    "created_time": str(datetime.datetime.now())[:19],
-                    "status": info.get("status")
+                    "created_time": created_time,
+                    "status": info.get("status"),
+                    "time": info.get("time"),
                 }
                 result.setdefault(user_name, []).append(i)
 
@@ -212,6 +233,9 @@ class AsyncWorker(object):
         self.__exc = target
 
     async def handler(self):
+
+        await objects.connect()
+
         while True:
             fe_status = self.__http_server.is_alive()
             if not fe_status:

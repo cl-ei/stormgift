@@ -20,6 +20,24 @@ class User(peewee.Model):
     class Meta:
         database = mysql_db
 
+    @classmethod
+    async def get_or_update(cls, uid, name, face=""):
+        if uid is None:
+            users = await objects.execute(User.select().where(User.name == name))
+            if users:
+                return users[0]
+            else:
+                return await objects.create(User, name=name, uid=uid, face=face)
+
+        users = await objects.execute(User.select().where(User.uid == uid))
+        if users:
+            user_obj = users[0]
+            if user_obj.name != name:
+                user_obj.name = name
+                await objects.update(user_obj)
+            return user_obj
+        return await objects.create(User, name=name, uid=uid, face=face)
+
 
 class GiftRec(peewee.Model):
     key = peewee.CharField(unique=True)
@@ -31,9 +49,41 @@ class GiftRec(peewee.Model):
     sender_type = peewee.IntegerField(null=True)
     created_time = peewee.DateTimeField(default=datetime.datetime.now)
     status = peewee.IntegerField()
+    expire_time = peewee.DateTimeField(default=datetime.datetime.now)
 
     class Meta:
         database = mysql_db
+
+    @classmethod
+    async def create(
+            cls, room_id, gift_id, gift_name, gift_type,
+            sender_type, created_time, status, expire_time, uid, name, face
+    ):
+        if gift_type in ("G1", "G2", "G3"):
+            key = F"NG{room_id}${gift_id}"
+        else:
+            key = F"_T{room_id}${gift_id}"
+
+        sender = await User.get_or_update(uid=uid, name=name, face=face)
+
+        try:
+            g_obj = await objects.create(
+                GiftRec,
+                key=key,
+                room_id=room_id,
+                gift_id=gift_id,
+                gift_name=gift_name,
+                gift_type=gift_type,
+                sender=sender,
+                sender_type=sender_type,
+                created_time=created_time,
+                status=status,
+                expire_time=expire_time
+            )
+            return True, g_obj
+
+        except Exception as e:
+            return False, f"GiftRec.create Error: {e}"
 
 
 class LiveRoomInfo(peewee.Model):
