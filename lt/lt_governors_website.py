@@ -1,6 +1,7 @@
 import time
 import json
 import asyncio
+import traceback
 import datetime
 from aiohttp import web
 from utils.model import objects, GiftRec, User
@@ -51,7 +52,7 @@ async def query_gifts(request):
             ]
             records.sort(key=lambda x: (gift_price_map.get(x[0], 0), x[1], x[3]), reverse=True)
         except Exception as e:
-            records = F"Error: {e}"
+            records = F"Error: {e} {traceback.format_exc()}"
         finally:
             await objects.close()
 
