@@ -90,12 +90,9 @@ class RedisCache(object):
 
     async def list_br_pop(self, *names, timeout=10):
         r = await self.execute("BRPOP", *names, "LISTN", timeout)
-        if isinstance(r, (list, tuple)):
-            if len(names) == 1:
-                return pickle.loads(r[1])
-            else:
-                return r[0], pickle.loads(r[1])
-        return None
+        if r is None:
+            return None
+        return r[0], pickle.loads(r[1])
 
     async def set_add(self, name, *items):
         r = await self.execute("SADD", name, *[pickle.dumps(e) for e in items])
@@ -292,10 +289,9 @@ class DanmakuMessageQ(object):
     async def get(cls, *cmds, timeout):
         keys = [cls._key + cmd for cmd in cmds]
         r = await redis_cache.list_br_pop(*keys, timeout=timeout)
-        if len(cmds) == 1:
-            return r
-        else:
-            return r[1]
+        if r is None:
+            return None
+        return r[1]
 
 
 class RaffleMessageQ(object):
@@ -309,7 +305,9 @@ class RaffleMessageQ(object):
     @classmethod
     async def get(cls, timeout):
         r = await redis_cache.list_br_pop(cls._key, timeout=timeout)
-        return r
+        if r is None:
+            return None
+        return r[1]
 
 
 class MonitorLiveRooms(object):
