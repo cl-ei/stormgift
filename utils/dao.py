@@ -169,6 +169,21 @@ class CookieOperator(object):
         cls.delete_cookie_by_uid(user_id)
         return msg
 
+    @classmethod
+    def get_cookie_by_uid(cls, user_id):
+        if user_id == "DD":
+            user_id = 20932326
+        elif user_id == "LP":
+            user_id = 39748080
+
+        with open("data/valid_cookies.txt", "r") as f:
+            cookies = f.readlines()
+
+        for c in cookies:
+            if f"={user_id};" in c:
+                return c.strip()
+        return ""
+
 
 class BiliUserInfoCache(object):
     timeout = 3600 * 12

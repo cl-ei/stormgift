@@ -1,4 +1,5 @@
 import re
+import html
 import json
 import time
 import asyncio
@@ -782,6 +783,23 @@ class BiliApi:
             await asyncio.sleep(2)
 
         return True, live_room_is_list[:count]
+
+    @classmethod
+    async def update_brief_intro(cls, cookie, description, room_id=None, timeout=50):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.live.bilibili.com/room/v1/Room/update"
+        data = {
+            "room_id": room_id or 13369254,
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "description": description,
+        }
+        headers = {"Cookie": cookie}
+        return await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
 
 
 async def test():
