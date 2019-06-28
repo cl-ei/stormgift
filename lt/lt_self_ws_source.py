@@ -35,7 +35,7 @@ class WsManager(object):
                 cmd = msg["cmd"]
                 if cmd in self.monitor_commands:
                     r = await DanmakuMessageQ.put(msg, time.time(), room_id)
-                    logging.info(f"RECEIVED: {cmd}, put ro mq result: {r}, room_id: {room_id}, msg: {msg}")
+                    logging.info(f"RECEIVED: {cmd}, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
@@ -78,7 +78,10 @@ class WsManager(object):
 
         need_add = expected - existed
         need_del = existed - expected
-        logging.info(f"Live room update: Need add room count: {len(need_add)}, need del: {len(need_del)}")
+        logging.info(
+            f"Ws monitor settings read finished, Need add: {len(need_add)}, need del: {len(need_del)}, "
+            f"monitor cmd: {self.monitor_commands}, cmds from redis: {commands}."
+        )
 
         count = 0
         for room_id in need_del:
