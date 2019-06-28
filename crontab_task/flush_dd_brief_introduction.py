@@ -33,8 +33,7 @@ template = """
     text-shadow: 1px 1px 1px #FFF;"
 >
   <span>机器人开发者:</span>
-  <a style="color: #7a91f3; color: #009; 
-    text-shadow: 1px 1px 1px #FFF;" 
+  <a style="color: #7a91f3; text-shadow: 1px 1px 1px #FFF;" 
     title="←◡←" 
     href="https://space.bilibili.com/20932326" 
     target="_blank">偷闲一天打个盹
@@ -79,16 +78,35 @@ async def gen_intro():
         records = []
     finally:
         await objects.close()
+
+    now = datetime.datetime.now()
+
+    def calc_expire_time(d):
+        prompt = ""
+        seconds = (d - now).seconds
+        if seconds > 3600:
+            prompt += f"{seconds // 3600}小时"
+            seconds %= 3600
+
+        if seconds > 60:
+            prompt += f"{seconds // 60}分"
+            seconds %= 60
+
+        if seconds > 0:
+            prompt += f"{seconds}秒"
+
+        return prompt
+
     content = [
         (
             f'<li>'
             f'<a href="https://live.bilibili.com/{x[1]}" target="_blank">'
-            f'{x[1]}-{x[0]}，有效期至{x[2]}'
+            f'{x[0][0]}->{x[1]}，{calc_expire_time(x[2])}后过期'
             f'</a>'
             f'</li>'
         ) for x in records
     ]
-    date_time_str = str(datetime.datetime.now())[:23]
+    date_time_str = str(now)[:23]
     return template.replace("{date_time_str}", date_time_str).replace("{content}", "".join(content))
 
 
