@@ -73,7 +73,11 @@ async def query_gifts(request):
             for r in records
         ]
         return web.Response(
-            text=json.dumps({"code": 0, "version": hash(Cache.version), "list": gift_list}),
+            text=json.dumps(
+                {"code": 0, "version": hash(Cache.version), "list": gift_list},
+                indent=2,
+                ensure_ascii=False,
+            ),
             content_type="application/json"
         )
 
