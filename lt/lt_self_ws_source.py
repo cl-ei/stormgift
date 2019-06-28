@@ -174,3 +174,33 @@ async def main():
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
+
+
+"""
+9-06-28 23:19:30,101 [INFO]: Message speed avg: 246.55, peak: 299. 
+2019-06-28 23:19:38,854 [INFO]: Live room update: Need add room count: 0, need del: 0
+2019-06-28 23:19:41,204 [INFO]: Active client count: 9803, total: 9803.
+2019-06-28 23:19:42,212 [INFO]: Message speed avg: 251.82, peak: 683. 
+2019-06-28 23:19:48,430 [INFO]: RAFFLE Task[7833111079637751] start...
+2019-06-28 23:19:48,430 [ERROR]: RAFFLE Task[7833111079637751] error: tuple indices must be integers or slices, not str, Traceback (most recent call last):
+File "/home/wwwroot/stormgift/lt/lt_raffle_id_getter.py", line 188, in run
+r = await self.proc_single_msg(msg)
+File "/home/wwwroot/stormgift/lt/lt_raffle_id_getter.py", line 129, in proc_single_msg
+room_id = msg['real_room_id']
+TypeError: tuple indices must be integers or slices, not str
+2019-06-28 23:19:48,430 [ERROR]: Process Error! e: 'real_room_id' Traceback (most recent call last):
+File "/home/wwwroot/stormgift/lt/lt_self_tv_source.py", line 194, in run
+await asyncio.gather(self.parse_message(), self.check_status())
+File "/home/wwwroot/stormgift/lt/lt_self_tv_source.py", line 190, in parse_message
+await self.parse_single_message(area_id, room_id, message)
+File "/home/wwwroot/stormgift/lt/lt_self_tv_source.py", line 168, in parse_single_message
+f"PRIZE: [{msg_self[:2]}] room_id: {message['real_room_id']}, msg: {msg_self}. "
+KeyError: 'real_room_id'
+Now exit!
+2019-06-28 23:19:49,935 [INFO]: Start lt TV source proc...
+2019-06-28 23:19:49,939 [INFO]: Now fully check status. interval: 1561735189.939, time: 1561735189.939
+2019-06-28 23:19:49,940 [INFO]: Room [None] from area [娱乐] not active, change it.
+2019-06-28 23:19:50,174 [INFO]: Area [娱乐] find new live room None -> 101320
+2019-06-28 23:19:50,176 [INFO]: New ws client created, [娱乐]-101320
+2019-06-28 23:19:50,176 [INFO]: Room [None] from area [网游] not active, change it.
+"""

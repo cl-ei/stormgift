@@ -126,7 +126,7 @@ class Executor(object):
 
         elif danmaku["cmd"] == "NOTICE_MSG":
             key_type = "T"
-            room_id = msg['real_room_id']
+            room_id = msg['real_roomid']
 
         elif danmaku["cmd"] == "GUARD_BUY":
             key_type = "G"

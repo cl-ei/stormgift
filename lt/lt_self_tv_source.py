@@ -165,7 +165,7 @@ class TvScanner(object):
             if matched_notice_area:
                 r = await DanmakuMessageQ.put(message, time.time(), room_id)
                 logging.info(
-                    f"PRIZE: [{msg_self[:2]}] room_id: {message['real_room_id']}, msg: {msg_self}. "
+                    f"PRIZE: [{msg_self[:2]}] room_id: {message['real_roomid']}, msg: {msg_self}. "
                     f"source: {area_id}-[{area_name}]-{room_id}, mq put result: {r}"
                 )
 
