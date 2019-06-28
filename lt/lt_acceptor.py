@@ -201,5 +201,4 @@ async def main():
     logging.warning("LT acceptor process shutdown!")
 
 
-if __name__ == "__main__":
-    main()
+asyncio.get_event_loop().run_until_complete(main())
