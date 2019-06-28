@@ -1,20 +1,11 @@
-import os
 import re
-import sys
 import time
 import asyncio
-import datetime
 import traceback
-from aiohttp import web
-from queue import Empty
 from random import random
-from utils.dao import BiliUserInfoCache
-from multiprocessing import Process, Queue
+from utils.dao import BiliUserInfoCache, RaffleMessageQ
 from utils.biliapi import BiliApi
 from config.log4 import acceptor_logger as logging
-from config import LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
-
-# ACCEPT URL: http://127.0.0.1:30001?action=prize_key&key_type=T&room_id=123&gift_id=1233
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
@@ -25,7 +16,7 @@ NON_SKIP_USER_ID = [
 ]
 
 
-class Executor(object):
+class Acceptor(object):
     def __init__(self):
         self.__busy_time = 0
 
@@ -135,8 +126,15 @@ class Executor(object):
                 self.__busy_time = time.time()
         return r, msg
 
-    async def __call__(self, args):
-        key_type, room_id, gift_id, *_ = args
+    async def proc_single(self, msg):
+        key, args, kwargs = msg
+        created_time = args[0]
+        if time.time() - created_time > 20:
+            logging.error(f"Message Expired ! created_time: {created_time}")
+
+        key_type, room_id, gift_id = key.split("$")
+        room_id = int(room_id)
+        gift_id = int(gift_id)
 
         if key_type == "T":
             process_fn = self.accept_tv
@@ -177,105 +175,29 @@ class Executor(object):
             if not flag and "抽奖已过期" in msg:
                 prize_timeout = True
 
-
-class AsyncHTTPServer(object):
-    def __init__(self, q, host="127.0.0.1", port=8080):
-        self.__q = q
-        self.host = host
-        self.port = port
-
-    async def handler(self, request):
-        action = request.query.get("action")
-        if action != "prize_key":
-            return web.Response(text=f"Error Action.", content_type="text/html")
-
-        try:
-            key_type = request.query.get("key_type")
-            room_id = int(request.query.get("room_id"))
-            gift_id = int(request.query.get("gift_id"))
-            assert room_id > 0 and gift_id > 0 and key_type in ("T", "G")
-        except Exception as e:
-            error_message = f"Param Error: {e}."
-            return web.Response(text=error_message, content_type="text/html")
-
-        self.__q.put_nowait((key_type, room_id, gift_id))
-        return web.Response(text=f"OK", content_type="text/html")
-
-    def __call__(self):
-        app = web.Application()
-        app.add_routes([web.get('/', self.handler)])
-
-        logging.info(f"Start server on: {self.host}:{self.port}")
-        try:
-            web.run_app(app, host=self.host, port=self.port)
-        except Exception as e:
-            logging.exception(f"Exception: {e}\n", exc_info=True)
-
-
-class AsyncWorker(object):
-    def __init__(self, http_server_proc, q, target):
-        self.__http_server = http_server_proc
-        self.__q = q
-        self.__exc = target
-
-    async def handler(self):
+    async def run(self):
         while True:
-            fe_status = self.__http_server.is_alive()
-            if not fe_status:
-                logging.error(f"Http server is not alive! exit now.")
-                sys.exit(1)
-
-            try:
-                msg = self.__q.get(timeout=3)
-            except Empty:
+            msg = await RaffleMessageQ.get(timeout=50)
+            if msg is None:
                 continue
 
             start_time = time.time()
-            logging.info(f"LT_ACCEPTOR Task starting... msg: {msg}")
+            task_id = str(random())[2:]
+            logging.info(f"Acceptor Task[{task_id}] start...")
+
             try:
-                r = await self.__exc(msg)
+                r = await self.proc_single(msg)
             except Exception as e:
-                r = f"Error: {e}, {traceback.format_exc()}"
-            cost_time = time.time() - start_time
-            logging.info(f"LT_ACCEPTOR Task finished. cost time: {cost_time:.3f}, result: {r}")
-
-    def __call__(self, *args, **kwargs):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.handler())
+                logging.error(f"Acceptor Task[{task_id}] error: {e}, {traceback.format_exc()}")
+            else:
+                cost_time = time.time() - start_time
+                logging.info(f"Acceptor Task[{task_id}] success, r: {r} cost time: {cost_time:.3f}")
 
 
-def main():
+async def main():
     logging.warning("Starting LT acceptor process...")
-
-    for line in os.popen(f'lsof -i:{LT_ACCEPTOR_PORT}').readlines():
-        line = line.strip()
-        parts = line.split()
-        if (
-            len(parts) > 8
-            and parts[0] == "python3.7"
-            and str(LT_ACCEPTOR_PORT) in parts[-2]
-            and parts[-3] == "TCP"
-        ):
-            existed_proc_number = int(parts[1])
-            logging.warn(
-                f"\nLT acceptor process already existed:\n"
-                f"[{line}]\n"
-                f"now exec `kill -9 {existed_proc_number}`..."
-            )
-            r = os.system(f"kill -9 {existed_proc_number}")
-            logging.info(f"Process {existed_proc_number} killed. result: {r}")
-            time.sleep(0.2)
-            break
-
-    q = Queue()
-
-    server = AsyncHTTPServer(q=q, host=LT_ACCEPTOR_HOST, port=LT_ACCEPTOR_PORT)
-    p = Process(target=server, daemon=True)
-    p.start()
-
-    worker = AsyncWorker(p, q=q, target=Executor())
-    worker()
-
+    acceptor = Acceptor()
+    await acceptor.run()
     logging.warning("LT acceptor process shutdown!")
 
 

@@ -3,7 +3,7 @@ import asyncio
 from config.log4 import crontab_task_logger as logging
 from utils.biliapi import BiliApi
 from utils.ws import get_ws_established_and_time_wait
-from utils.dao import ValuableLiveRoom, LiveRoomIdListForDanmakuMonitor
+from utils.dao import ValuableLiveRoom, MonitorLiveRooms
 from utils.model import MonitorWsClient
 
 MONITOR_COUNT = 15000
@@ -28,11 +28,11 @@ async def main():
     valuable_count = len(valuable_live_rooms)
 
     api_count = len(room_id_list)
-    monitor_live_rooms = list(set(room_id_list + valuable_live_rooms))
+    monitor_live_rooms = set(room_id_list + valuable_live_rooms)
     total_count = len(monitor_live_rooms)
     cache_hit_rate = 100 * (api_count + valuable_count - total_count) / valuable_count
 
-    r = await LiveRoomIdListForDanmakuMonitor.set_all(monitor_live_rooms)
+    r = await MonitorLiveRooms.set(monitor_live_rooms)
     logging.info(
         f"monitor_live_rooms updated! r: {r} api count: {api_count}, valuable: {valuable_count}, "
         f"total: {total_count}, cache_hit_rate: {cache_hit_rate:.1f}%"
@@ -51,4 +51,4 @@ async def main():
     return True
 
 
-# asyncio.get_event_loop().run_until_complete(main())
+asyncio.get_event_loop().run_until_complete(main())

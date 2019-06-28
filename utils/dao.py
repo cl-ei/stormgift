@@ -279,7 +279,7 @@ class ValuableLiveRoom(object):
 
 
 class DanmakuMessageQ(object):
-    _key = "DANMAKU_CMD_"
+    _key = "DANMAKU_MQ_OF_CMD_"
 
     @classmethod
     async def put(cls, danmaku, *args, **kwargs):
@@ -298,21 +298,52 @@ class DanmakuMessageQ(object):
             return r[1]
 
 
-class LiveRoomIdListForDanmakuMonitor(object):
-    _key = "LiveRoomIdListForDanmakuMonitor"
+class RaffleMessageQ(object):
+    _key = "RAFFLE_MESSAGE"
 
     @classmethod
-    async def get_all(cls):
+    async def put(cls, message, *args, **kwargs):
+        item = (message, args, kwargs)
+        return await redis_cache.list_push(cls._key, item)
+
+    @classmethod
+    async def get(cls, timeout):
+        r = await redis_cache.list_br_pop(cls._key, timeout=timeout)
+        return r
+
+
+class MonitorLiveRooms(object):
+    _key = "MonitorLiveRooms_KEY"
+    _version_key = "MonitorLiveRooms_VERSION"
+    __version_of_last_get = None
+    __data_of_last_get = None
+
+    @classmethod
+    async def get(cls):
+        version = await redis_cache.get(cls._version_key)
+        if version == cls.__version_of_last_get:
+            return cls.__data_of_last_get
+
         r = await redis_cache.get(cls._key)
-        return r if isinstance(r, (list, set, tuple)) else []
+        if not r or not isinstance(r, set):
+            return set()
+
+        cls.__version_of_last_get = version
+        cls.__data_of_last_get = r
+
+        return r
 
     @classmethod
-    async def set_all(cls, live_room_id_list):
-        return await redis_cache.set(cls._key, live_room_id_list)
+    async def set(cls, live_room_id_set):
+        if not isinstance(live_room_id_set, set):
+            live_room_id_set = set(live_room_id_set)
+        r = await redis_cache.set(cls._key, live_room_id_set)
+        r2 = await redis_cache.set(cls._version_key, str(time.time()))
+        return r, r2
 
 
-class DanmakuCmdsForMonitor(object):
-    _key = "DanmakuCmdsForMonitor"
+class MonitorCommands(object):
+    _key = "MonitorCommands"
 
     @classmethod
     async def get(cls):

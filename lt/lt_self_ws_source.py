@@ -1,12 +1,10 @@
-import sys
 import time
 import asyncio
 import traceback
-from utils.ws import RCWebSocketClient, get_ws_established_and_time_wait
+from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
-from utils.dao import ValuableLiveRoom
+from utils.dao import MonitorLiveRooms, MonitorCommands, DanmakuMessageQ
 from config.log4 import lt_ws_source_logger as logging
-from lt import LtGiftMessageQ
 from utils.model import objects, MonitorWsClient
 
 
@@ -15,21 +13,14 @@ BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
 class WsManager(object):
 
-    def __init__(self, count):
-        self.monitor_count = count
+    def __init__(self):
         self._clients = {}
-        self.monitor_live_rooms = []
-        self.monitor_live_rooms_update_time = 0
+        self.monitor_live_rooms = {}
+        self.monitor_commands = ["GUARD_BUY"]
 
         self.msg_count = 0
         self._broken_live_rooms = []
         self.heartbeat_pkg = WsApi.gen_heart_beat_pkg()
-
-    async def on_message(self, room_id, message):
-        self.msg_count += 1
-        if message["cmd"] == "GUARD_BUY" and message["data"]["guard_level"] != 1:
-            logging.info(f"cmd: {message['cmd']}, room_id: {room_id}, msg: {message}")
-            await LtGiftMessageQ.post_gift_info("G", room_id)
 
     async def new_room(self, room_id):
         client = self._clients.get(room_id)
@@ -39,7 +30,12 @@ class WsManager(object):
 
         async def on_message(message):
             for msg in WsApi.parse_msg(message):
-                await self.on_message(room_id, msg)
+                self.msg_count += 1
+
+                cmd = msg["cmd"]
+                if cmd in self.monitor_commands:
+                    r = await DanmakuMessageQ.put(msg, time.time(), room_id)
+                    logging.info(f"RECEIVED: {cmd}, put ro mq result: {r}, room_id: {room_id}, msg: {msg}")
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
@@ -67,62 +63,22 @@ class WsManager(object):
             await client.kill()
             del self._clients[room_id]
 
-    async def flush_monitor_live_room_list(self):
-        flag, total = await BiliApi.get_all_lived_room_count()
-        if not flag:
-            logging.error(f"Cannot get lived room count. msg: {total}")
-            return False
-
-        await asyncio.sleep(1)
-
-        flag, room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, self.monitor_count))
-        if not flag:
-            logging.error(f"Cannot get lived rooms. msg: {room_id_list}")
-            return False
-
-        valuable_room_count_limit = 3000
-        valuable_live_rooms = await ValuableLiveRoom.get_all()
-        valuable_count = len(valuable_live_rooms)
-        if valuable_count > valuable_room_count_limit:
-            logging.error(
-                f"TOO MANY Valuable live rooms! count: {valuable_count}, "
-                f"now only fetch top {valuable_room_count_limit}."
-            )
-            valuable_live_rooms = valuable_live_rooms[:valuable_room_count_limit]
-            valuable_count = len(valuable_live_rooms)
-
-        api_count = len(room_id_list)
-        self.monitor_live_rooms = list(set(room_id_list + valuable_live_rooms))
-        total_count = len(self.monitor_live_rooms)
-        cache_hit_rate = 100 * (api_count + valuable_count - total_count) / valuable_count
-
-        logging.info(
-            f"monitor_live_rooms updated! api count: {api_count}, valuable: {valuable_count}, "
-            f"total: {total_count}, cache_hit_rate: {cache_hit_rate:.1f}%"
-        )
-
-        established, time_wait = get_ws_established_and_time_wait()
-        __monitor_info = {
-            "valuable room": valuable_count,
-            "api room cnt": api_count,
-            "target clients": total_count,
-            "valuable hit rate": cache_hit_rate,
-            "TCP ESTABLISHED": established,
-            "TCP TIME_WAIT": time_wait,
-        }
-        await MonitorWsClient.record(__monitor_info)
-
-        self.monitor_live_rooms_update_time = time.time()
-        return True
-
     async def update_connections(self):
+        commands = await MonitorCommands.get()
+        if commands:
+            self.monitor_commands = commands
 
+        expected = await MonitorLiveRooms.get()
+        if not expected:
+            logging.error(f"Cannot load monitor live rooms from redis! keep current: {len(self.monitor_live_rooms)}")
+            return
+
+        self.monitor_live_rooms = expected
         existed = set(self._clients.keys())
-        expected = set(self.monitor_live_rooms)
+
         need_add = expected - existed
         need_del = existed - expected
-
-        logging.info(f"Need add room count: {len(need_add)}, need del: {len(need_del)}")
+        logging.info(f"Live room update: Need add room count: {len(need_add)}, need del: {len(need_del)}")
 
         count = 0
         for room_id in need_del:
@@ -132,18 +88,12 @@ class WsManager(object):
             if count % 300 == 0:
                 await asyncio.sleep(1)
 
-            if count > 999999999:
-                count = 0
-
         for room_id in need_add:
             await self.new_room(room_id)
 
             count += 1
             if count % 100 == 0:
                 await asyncio.sleep(1)
-
-            if count > 999999999:
-                count = 0
 
     async def task_print_info(self):
         count = 0
@@ -196,29 +146,15 @@ class WsManager(object):
             await asyncio.sleep(1)
 
     async def task_update_connections(self):
-        update_connection_timestamp = 0
         while True:
-            if update_connection_timestamp == self.monitor_live_rooms_update_time:
-                await asyncio.sleep(1)
-
-            else:
-                update_connection_timestamp = self.monitor_live_rooms_update_time
-                await self.update_connections()
-
-    async def task_flush_monitor_live_rooms(self):
-        r = True
-        while True:
-            await asyncio.sleep(60 * 5 if r else 120)
-            r = await self.flush_monitor_live_room_list()
+            await self.update_connections()
+            await asyncio.sleep(60)
 
     async def run_forever(self):
-        await self.flush_monitor_live_room_list()
-
         try:
             await asyncio.gather(*[
                 self.task_print_info(),
                 self.task_update_connections(),
-                self.task_flush_monitor_live_rooms(),
             ])
         except Exception as e:
             logging.error(f"Error happened in self_ws_source: {e} {traceback.format_exc()}")
@@ -227,14 +163,9 @@ class WsManager(object):
 async def main():
     await objects.connect()
 
-    try:
-        monitor_live_room_count = int(sys.argv[1])
-    except (TypeError, ValueError, IndexError):
-        monitor_live_room_count = 4000
-
     logging.info("LT self_ws_source proc start...")
 
-    mgr = WsManager(monitor_live_room_count)
+    mgr = WsManager()
     await mgr.run_forever()
 
 

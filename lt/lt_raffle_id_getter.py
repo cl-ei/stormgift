@@ -1,20 +1,13 @@
-import os
-import sys
 import time
 import asyncio
 import datetime
-import requests
 import traceback
-from aiohttp import web
-from queue import Empty
-from multiprocessing import Process, Queue
+from random import random
 from utils.biliapi import BiliApi
 from config.log4 import lt_raffle_id_getter_logger as logging
-from config import LT_RAFFLE_ID_GETTER_HOST, LT_RAFFLE_ID_GETTER_PORT, LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
-from utils.dao import redis_cache
+from config import LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
+from utils.dao import DanmakuMessageQ, RaffleMessageQ
 from utils.model import objects, GiftRec
-
-# ACCEPT URL: http://127.0.0.1:30000?action=prize_notice&key_type=T&room_id=123
 
 
 class Executor(object):
@@ -32,41 +25,10 @@ class Executor(object):
         except:
             return ""
 
-    def send_prize_info(self, *args):
-        key = "$".join([str(_) for _ in args])
-        if key in self.__posted_keys:
-            return
-
-        self.__posted_keys.insert(0, key)
-        while len(self.__posted_keys) >= 10000:
-            self.__posted_keys.pop()
-
-        key_type, room_id, gift_id, *_ = args
-        params = {
-            "action": "prize_key",
-            "key_type": key_type,
-            "room_id": room_id,
-            "gift_id": gift_id
-        }
-        try:
-            r = requests.get(url=self.post_prize_url, params=params, timeout=2)
-        except Exception as e:
-            error_message = f"Http request error: {e}"
-            logging.error(error_message)
-            return
-
-        if r.status_code != 200 or "OK" not in r.content.decode("utf-8"):
-            logging.error(
-                F"Prize key post failed. code: {r.status_code}, "
-                F"response: {r.content}. key: {key_type}${room_id}${gift_id}"
-            )
-            return
-
-        logging.info(f"Prize key post success: {key}")
-
-    async def proc_single_gift_of_guard(self, room_id, gift_info):
+    @staticmethod
+    async def proc_single_gift_of_guard(room_id, gift_info):
         gift_id = gift_info.get('id', 0)
-        self.send_prize_info("G", room_id, gift_id)
+        await RaffleMessageQ.put(F"G${room_id}${gift_id}", time.time())
 
         privilege_type = gift_info["privilege_type"]
         if privilege_type == 3:
@@ -132,7 +94,7 @@ class Executor(object):
             room_id = info["room_id"]
             gift_id = info["gift_id"]
 
-            self.send_prize_info("T", room_id, gift_id)
+            await RaffleMessageQ.put(f"T${room_id}${gift_id}", time.time())
 
             expire_time = info["created_time"] + datetime.timedelta(seconds=info["time"])
             gift_rec_params = {
@@ -150,8 +112,28 @@ class Executor(object):
             }
             await GiftRec.create(**gift_rec_params)
 
-    async def __call__(self, args):
-        key_type, room_id, *_ = args
+    async def proc_single_msg(self, msg):
+        danmaku, args, kwargs = msg
+        created_time = args[0]
+        msg_from_room_id = args[1]
+
+        if time.time() - created_time > 30:
+            return "EXPIRED DANMAKU !"
+
+        if danmaku["cmd"] == "GUARD_MSG":
+            key_type = "G"
+            room_id = msg['roomid']
+
+        elif danmaku["cmd"] == "NOTICE_MSG":
+            key_type = "T"
+            room_id = msg['real_room_id']
+
+        elif danmaku["cmd"] == "GUARD_BUY":
+            key_type = "G"
+            room_id = msg_from_room_id
+        else:
+            return f"Error cmd `{danmaku['cmd']}`!"
+
         created_time = datetime.datetime.now()
 
         room_id = await BiliApi.force_get_real_room_id(room_id)
@@ -166,7 +148,6 @@ class Executor(object):
                 await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
 
         elif key_type == "T":
-
             flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
             if not flag:
                 logging.error(f"TV proc_single_room, room_id: {room_id}, e: {gift_info_list}")
@@ -192,110 +173,39 @@ class Executor(object):
             for user_name, gift_list in result.items():
                 await self.proc_tv_gifts_by_single_user(user_name, gift_list)
 
-
-class AsyncHTTPServer(object):
-    def __init__(self, q, host="127.0.0.1", port=8080):
-        self.__q = q
-        self.host = host
-        self.port = port
-
-    async def handler(self, request):
-        action = request.query.get("action")
-        if action != "prize_notice":
-            return web.Response(text=f"Error Action.", content_type="text/html")
-
-        try:
-            key_type = request.query.get("key_type")
-            room_id = int(request.query.get("room_id"))
-            assert room_id > 0 and key_type in ("T", "G")
-        except Exception as e:
-            error_message = f"Param Error: {e}."
-            return web.Response(text=error_message, content_type="text/html")
-
-        self.__q.put_nowait((key_type, room_id))
-        return web.Response(text=f"OK", content_type="text/html")
-
-    def __call__(self):
-        app = web.Application()
-        app.add_routes([web.get('/', self.handler)])
-
-        logging.info(f"Start server on: {self.host}:{self.port}")
-        try:
-            web.run_app(app, host=self.host, port=self.port)
-        except Exception as e:
-            logging.exception(f"Exception: {e}\n", exc_info=True)
-
-
-class AsyncWorker(object):
-    def __init__(self, http_server_proc, q, target):
-        self.__http_server = http_server_proc
-        self.__q = q
-        self.__exc = target
-
-    async def handler(self):
-
-        await objects.connect()
-
+    async def run(self):
+        monitor_commands = ["GUARD_MSG", "NOTICE_MSG", "GUARD_BUY"]
         while True:
-            fe_status = self.__http_server.is_alive()
-            if not fe_status:
-                logging.error(f"Http server is not alive! exit now.")
-                sys.exit(1)
-
-            try:
-                msg = self.__q.get(timeout=3)
-            except Empty:
+            msg = await DanmakuMessageQ.get(*monitor_commands, timeout=50)
+            if msg is None:
                 continue
 
             start_time = time.time()
-            logging.info(f"RAFFLE_ID_GETTER task starting... msg: {msg}")
+            task_id = str(random())[2:]
+            logging.info(f"RAFFLE Task[{task_id}] start...")
+
             try:
-                r = await self.__exc(msg)
+                r = await self.proc_single_msg(msg)
             except Exception as e:
-                r = f"Error: {e}, {traceback.format_exc()}"
-            cost_time = time.time() - start_time
-            logging.info(f"RAFFLE_ID_GETTER task finished. cost time: {cost_time:.3f}, result: {r}")
-
-    def __call__(self, *args, **kwargs):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.handler())
+                logging.error(f"RAFFLE Task[{task_id}] error: {e}, {traceback.format_exc()}")
+            else:
+                cost_time = time.time() - start_time
+                logging.info(f"RAFFLE Task[{task_id}] success, r: {r} cost time: {cost_time:.3f}")
 
 
-def main():
+async def main():
     logging.info("Starting raffle id getter process...")
 
-    for line in os.popen(f'lsof -i:{LT_RAFFLE_ID_GETTER_PORT}').readlines():
-        line = line.strip()
-        parts = line.split()
-        if (
-            len(parts) > 8
-            and parts[0] == "python3.7"
-            and str(LT_RAFFLE_ID_GETTER_PORT) in parts[-2]
-            and parts[-3] == "TCP"
-        ):
-            existed_proc_number = int(parts[1])
-            logging.warn(
-                f"\nRaffle id process already existed:\n"
-                f"[{line}]\n"
-                f"now exec `kill -9 {existed_proc_number}`..."
-            )
-            r = os.system(f"kill -9 {existed_proc_number}")
-            logging.info(f"Process {existed_proc_number} killed. result: {r}")
-            time.sleep(0.2)
-            break
+    await objects.connect()
 
-    q = Queue()
-
-    server = AsyncHTTPServer(q=q, host=LT_RAFFLE_ID_GETTER_HOST, port=LT_RAFFLE_ID_GETTER_PORT)
-    p = Process(target=server)
-    p.daemon = True
-    p.start()
-
-    worker = AsyncWorker(p, q=q, target=Executor())
-    worker()
-
-    logging.warning("CQ listener process shutdown!")
+    try:
+        executor = Executor()
+        await executor.run()
+    except Exception as e:
+        logging.error(f"Raffle id getter process shutdown! e: {e}, {traceback.format_exc()}")
+    finally:
+        await objects.close()
 
 
-if __name__ == "__main__":
-    main()
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())

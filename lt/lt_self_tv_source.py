@@ -3,10 +3,11 @@ import time
 import asyncio
 import traceback
 from random import random
-from lt import LtGiftMessageQ
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
+from utils.dao import DanmakuMessageQ
+
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
@@ -162,12 +163,11 @@ class TvScanner(object):
                 matched_notice_area = True
 
             if matched_notice_area:
-                real_room_id = message.get("real_roomid", 0)
+                r = await DanmakuMessageQ.put(message, time.time(), room_id)
                 logging.info(
-                    f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}. "
-                    f"source: {area_id}-[{area_name}]-{room_id}"
+                    f"PRIZE: [{msg_self[:2]}] room_id: {message['real_room_id']}, msg: {msg_self}. "
+                    f"source: {area_id}-[{area_name}]-{room_id}, mq put result: {r}"
                 )
-                await LtGiftMessageQ.post_gift_info("T", real_room_id)
 
         elif cmd == "GUARD_MSG" and message.get("buy_type") == 1 and area_id == 1:
             # {
@@ -180,9 +180,9 @@ class TvScanner(object):
             #   'broadcast_type': 0
             # }
 
-            room_id = message['roomid']  # TODO: need find real room id.
-            logging.info(f"PRIZE 总督 room id: {room_id}, msg: {message.get('msg_new')}")
-            await LtGiftMessageQ.post_gift_info("G", room_id)
+            prize_room_id = message['roomid']  # TODO: need find real room id.
+            logging.info(f"PRIZE 总督 room id: {prize_room_id}, msg: {message.get('msg_new')}")
+            await DanmakuMessageQ.put(message, time.time(), room_id)
 
     async def parse_message(self):
         while True:
