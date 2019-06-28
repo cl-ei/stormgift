@@ -353,7 +353,7 @@ class MonitorCommands(object):
     @classmethod
     async def set(cls, *cmds):
         r = await redis_cache.set(cls._key, [c for c in cmds if isinstance(c, str)])
-        return r if isinstance(r, (list, tuple, set)) else []
+        return r
 
 
 async def test():
