@@ -190,7 +190,7 @@ class Executor(object):
                 logging.error(f"RAFFLE Task[{task_id}] error: {e}, {traceback.format_exc()}")
             else:
                 cost_time = time.time() - start_time
-                logging.info(f"RAFFLE Task[{task_id}] success, r: {r} cost time: {cost_time:.3f}")
+                logging.info(f"RAFFLE Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
 
 
 async def main():

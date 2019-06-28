@@ -191,7 +191,7 @@ class Acceptor(object):
                 logging.error(f"Acceptor Task[{task_id}] error: {e}, {traceback.format_exc()}")
             else:
                 cost_time = time.time() - start_time
-                logging.info(f"Acceptor Task[{task_id}] success, r: {r} cost time: {cost_time:.3f}")
+                logging.info(f"Acceptor Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
 
 
 async def main():
