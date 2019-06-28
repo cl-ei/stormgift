@@ -20,27 +20,6 @@ class TempData:
     fans_id_set = None
     cache_count_limit = 10000
 
-    @classmethod
-    async def update_user_info(cls, uid, uname, face):
-        cls.__cached_user_info[uid] = (uname, face, int(time.time()))
-        if len(cls.__cached_user_info) >= cls.cache_count_limit:
-            new_dict = {}
-            for uname, info_tuple in cls.__cached_user_info.items():
-                if time.time() - info_tuple[2] < 3600 * 24 * 7:
-                    new_dict[uname] = info_tuple
-
-            logging.info(
-                f"TempData.__cached_user_info GC finished, "
-                f"old count {len(cls.__cached_user_info)}, new: {len(new_dict)}."
-            )
-            cls.__cached_user_info = new_dict
-
-    @classmethod
-    async def get_user_face_by_uid(cls, uid):
-        if uid in cls.__cached_user_info:
-            return cls.__cached_user_info[uid][1]
-        return None
-
 
 async def send_danmaku(msg, user=""):
     user = user or "LP"
@@ -91,8 +70,7 @@ async def proc_message(message):
         created_time = data.get("timestamp", 0)
 
         logging.info(f"SEND_GIFT: [{coin_type.upper()}] [{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})")
-
-        await TempData.update_user_info(uid, uname, face)
+        TempData.gift_list_for_thank.append([uname, gift_name, num, coin_type, created_time])
 
     elif cmd == "GUARD_BUY":
         data = message.get("data")
@@ -105,12 +83,12 @@ async def proc_message(message):
         created_time = data.get("start_time", 0)
 
         logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
+        TempData.gift_list_for_thank.append([uname, gift_name, num, "gold", created_time])
 
 
 async def thank_gift():
     thank_list = {}
     need_del = []
-    # [uname, gift_name, count, coin_type, created_timestamp]
     for e in TempData.gift_list_for_thank:
         uname, gift_name, count, coin_type, created_timestamp = e
         time_interval = time.time() - created_timestamp
