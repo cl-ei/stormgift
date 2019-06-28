@@ -92,7 +92,7 @@ async def gen_intro():
             display.append(f"{len(j)}个舰长")
             intimacy += len(j)
 
-        result.append((room_id, ", ".join(display), intimacy))
+        result.append((room_id, "、".join(display), intimacy))
     result.sort(key=lambda x: x[2], reverse=True)
 
     content = [
