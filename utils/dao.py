@@ -6,7 +6,7 @@ import datetime
 from config import REDIS_CONFIG
 
 
-class GiftRedisCache(object):
+class RedisCache(object):
     def __init__(self, host, port, db, password):
         self.uri = f'redis://{host}:{port}'
         self.db = db
@@ -15,7 +15,7 @@ class GiftRedisCache(object):
 
     async def execute(self, *args, **kwargs):
         if self.redis_conn is None:
-            self.redis_conn = await aioredis.create_connection(
+            self.redis_conn = await aioredis.create_pool(
                 address=self.uri,
                 db=self.db,
                 password=self.password
@@ -88,6 +88,15 @@ class GiftRedisCache(object):
             return [pickle.loads(e) for e in r]
         return []
 
+    async def list_br_pop(self, *names, timeout=10):
+        r = await self.execute("BRPOP", *names, "LISTN", timeout)
+        if isinstance(r, (list, tuple)):
+            if len(names) == 1:
+                return pickle.loads(r[1])
+            else:
+                return r[0], pickle.loads(r[1])
+        return None
+
     async def set_add(self, name, *items):
         r = await self.execute("SADD", name, *[pickle.dumps(e) for e in items])
         return r
@@ -107,7 +116,7 @@ class GiftRedisCache(object):
         return r
 
 
-redis_cache = GiftRedisCache(**REDIS_CONFIG)
+redis_cache = RedisCache(**REDIS_CONFIG)
 
 
 class CookieOperator(object):
@@ -267,6 +276,53 @@ class ValuableLiveRoom(object):
 
         r = await redis_cache.set_remove(cls._key, *room_id)
         return r
+
+
+class DanmakuMessageQ(object):
+    _key = "DANMAKU_CMD_"
+
+    @classmethod
+    async def put(cls, danmaku, *args, **kwargs):
+        cmd = danmaku["cmd"]
+        key = cls._key + cmd
+        item = (danmaku, args, kwargs)
+        return await redis_cache.list_push(key, item)
+
+    @classmethod
+    async def get(cls, *cmds, timeout):
+        keys = [cls._key + cmd for cmd in cmds]
+        r = await redis_cache.list_br_pop(*keys, timeout=timeout)
+        if len(cmds) == 1:
+            return r
+        else:
+            return r[1]
+
+
+class LiveRoomIdListForDanmakuMonitor(object):
+    _key = "LiveRoomIdListForDanmakuMonitor"
+
+    @classmethod
+    async def get_all(cls):
+        r = await redis_cache.get(cls._key)
+        return r if isinstance(r, (list, set, tuple)) else []
+
+    @classmethod
+    async def set_all(cls, live_room_id_list):
+        return await redis_cache.set(cls._key, live_room_id_list)
+
+
+class DanmakuCmdsForMonitor(object):
+    _key = "DanmakuCmdsForMonitor"
+
+    @classmethod
+    async def get(cls):
+        r = await redis_cache.get(cls._key)
+        return r if isinstance(r, (list, tuple, set)) else []
+
+    @classmethod
+    async def set(cls, *cmds):
+        r = await redis_cache.set(cls._key, [c for c in cmds if isinstance(c, str)])
+        return r if isinstance(r, (list, tuple, set)) else []
 
 
 async def test():
