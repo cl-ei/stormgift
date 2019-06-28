@@ -60,53 +60,51 @@ template = """
 
 
 async def gen_intro():
-    gift_price_map = {"舰长": 1, "提督": 2, "总督": 3}
     await objects.connect()
-    try:
-        records = await objects.execute(GiftRec.select(
-            GiftRec.room_id,
-            GiftRec.gift_name,
-            GiftRec.expire_time,
-        ).where(
-            (GiftRec.expire_time > datetime.datetime.now())
-            & (GiftRec.gift_name.in_(("舰长", "提督", "总督")))
-        ))
-        records = [[r.gift_name, r.room_id, r.expire_time] for r in records]
-        records.sort(key=lambda x: (gift_price_map.get(x[0], 0), x[2], x[1]), reverse=True)
-    except Exception as e:
-        print(f"Error: {e}")
-        records = []
-    finally:
-        await objects.close()
+    r = await objects.execute(GiftRec.select(
+        GiftRec.room_id,
+        GiftRec.gift_name
+    ).where(
+        (GiftRec.expire_time > datetime.datetime.now())
+        & (GiftRec.gift_name.in_(("舰长", "提督", "总督")))
+    ))
+    await objects.close()
 
-    now = datetime.datetime.now()
+    gifts = {}
+    for e in r:
+        gifts.setdefault(e.room_id, []).append(e.gift_name)
 
-    def calc_expire_time(d):
-        prompt = ""
-        seconds = (d - now).seconds
-        if seconds > 3600:
-            prompt += f"{seconds // 3600}小时"
-            seconds %= 3600
+    result = []
+    for room_id, gifts_list in gifts.items():
+        display = []
+        intimacy = 0
 
-        if seconds > 60:
-            prompt += f"{seconds // 60}分"
-            seconds %= 60
+        z = [n for n in gifts_list if n == "总督"]
+        if z:
+            display.append(f"{len(z)}个总督")
+            intimacy += 20*len(z)
+        t = [n for n in gifts_list if n == "提督"]
+        if t:
+            display.append(f"{len(t)}个提督")
+            intimacy += 5 * len(t)
+        j = [n for n in gifts_list if n == "舰长"]
+        if j:
+            display.append(f"{len(j)}个舰长")
+            intimacy += len(j)
 
-        if seconds > 0:
-            prompt += f"{seconds}秒"
-
-        return prompt
+        result.append((room_id, ", ".join(display), intimacy))
+    result.sort(key=lambda x: x[2], reverse=True)
 
     content = [
         (
             f'<li>'
-            f'<a href="https://live.bilibili.com/{x[1]}" target="_blank">'
-            f'{x[0][0]}->{x[1]}，{calc_expire_time(x[2])}后过期'
+            f'<a href="https://live.bilibili.com/{x[0]}" target="_blank">'
+            f'{x[0]}: {x[1]}，{x[2]}点亲密度'
             f'</a>'
             f'</li>'
-        ) for x in records
+        ) for x in result
     ]
-    date_time_str = str(now)[:23]
+    date_time_str = str(datetime.datetime.now())[:23]
     return template.replace("{date_time_str}", date_time_str).replace("{content}", "".join(content))
 
 
