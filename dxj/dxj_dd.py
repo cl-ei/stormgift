@@ -72,7 +72,7 @@ async def proc_message(message):
 
             count = len(raffle_list)
             latest = raffle_list[0]
-            interval = (datetime.datetime.now() - raffle_list[3]).total_seconds()
+            interval = (datetime.datetime.now() - latest[3]).total_seconds()
             if interval < 3600:
                 date_time_str = "刚刚"
             elif interval < 3600*24:
