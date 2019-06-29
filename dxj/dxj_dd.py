@@ -54,11 +54,15 @@ async def proc_message(message):
         logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
 
         if msg in ("总督", "提督", "舰长", "小电视"):
-            await send_danmaku("|･ω･｀) ")
+            await send_danmaku("|･ω･｀) 查看下方的主播简介哦")
 
         elif "中奖" in msg and "查询" in msg:
-            if uid == 20932326 and msg.startswith("#中奖查询"):
-                uid = int(msg[5:])
+            if msg.startswith("#中奖查询"):
+                try:
+                    uid = int(msg[5:])
+                except (ValueError, TypeError):
+                    return
+
                 user_name = f"uid{uid}"
 
             raffle_list = await ReqFreLimitApi.get_raffle_record(uid)
