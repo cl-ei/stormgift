@@ -5,7 +5,7 @@ import traceback
 from random import random
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
-from utils.dao import DanmakuMessageQ
+from utils.dao import DanmakuMessageQ, redis_cache
 from utils.model import objects, RaffleRec
 from utils.biliapi import BiliApi
 from cqhttp import CQHttp
@@ -64,20 +64,36 @@ class Executor(object):
 
     async def run(self):
         monitor_commands = ['RAFFLE_END', 'TV_END']
+
+        current_proc_message_key = "LT_RECORD_RAFFLE_CURRENT_PROC_MSG"
+        msg = await redis_cache.get(current_proc_message_key)
+        if msg is not None:
+            logging.warn(f"Found UNFINISHED TASK, put back to mq: {msg}")
+            await DanmakuMessageQ.put(msg)
+            await redis_cache.delete(current_proc_message_key)
+
         while True:
             msg = await DanmakuMessageQ.get(*monitor_commands, timeout=50)
             if msg is None:
                 continue
+
+            # 保存当前处理的任务
+            await redis_cache.set(current_proc_message_key, msg)
 
             start_time = time.time()
             task_id = str(random())[2:]
             logging.info(f"RAFFLE_RECORD Task[{task_id}] start...")
 
             try:
+                # 此操作必须是可重入的！
                 r = await self.record_raffle_info(msg)
             except Exception as e:
                 logging.error(f"RAFFLE_RECORD Task[{task_id}] error: {e}, msg: `{msg}`, {traceback.format_exc()}")
             else:
+
+                # 确认当前处理任务已完成
+                await redis_cache.delete(current_proc_message_key)
+
                 cost_time = time.time() - start_time
                 logging.info(f"RAFFLE_RECORD Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
 

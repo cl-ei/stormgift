@@ -194,6 +194,10 @@ class RaffleRec(peewee.Model):
     @classmethod
     async def create(cls, cmd, room_id, raffle_id, gift_name, count, msg, user_id, user_name, user_face, created_time):
         winner = await User.get_or_update(uid=user_id, name=user_name, face=user_face)
+        existed_obj = await objects.execute(RaffleRec.select().where(RaffleRec.raffle_id == raffle_id))
+        if existed_obj:
+            return existed_obj[0]
+
         r_obj = await objects.create(
             RaffleRec,
             cmd=cmd,
