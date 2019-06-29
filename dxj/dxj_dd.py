@@ -7,6 +7,7 @@ from config import CQBOT
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import RCWebSocketClient
 from utils.dao import CookieOperator
+from utils.highlevel_api import ReqFreLimitApi, objects
 from config.log4 import console_logger as logging
 
 MONITOR_ROOM_ID = 13369254
@@ -54,6 +55,26 @@ async def proc_message(message):
 
         if msg in ("总督", "提督", "舰长", "小电视"):
             await send_danmaku("|･ω･｀) ")
+
+        elif "中奖" in msg and "查询" in msg:
+            if uid == 20932326 and msg.startswith("#中奖查询"):
+                uid = int(msg[5:])
+                user_name = f"uid{uid}"
+
+            raffle_list = await ReqFreLimitApi.get_raffle_record(uid)
+            if not raffle_list:
+                return await send_danmaku(f"{user_name}: 七天内没有中奖纪录。")
+
+            count = len(raffle_list)
+            latest = raffle_list[0]
+            msg = f"{latest[0]}在7天内累计中奖{count}次，最近一次在{latest[1]}直播间获得{latest[2]}."
+            if len(msg) <= 30:
+                return await send_danmaku(msg)
+
+            while msg:
+                await send_danmaku(msg[:29])
+                msg = msg[29:]
+                await asyncio.sleep(1)
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")
@@ -136,6 +157,8 @@ async def main():
     )
 
     await new_client.start()
+
+    await objects.connect()
     logging.info("Hansy ws stated.")
 
     counter = -1

@@ -1,5 +1,6 @@
 import time
 import asyncio
+import datetime
 import traceback
 from random import random
 from utils.highlevel_api import ReqFreLimitApi
@@ -13,6 +14,7 @@ class Executor(object):
         danmaku, args, kwargs = msg
         created_time = args[0]
         msg_from_room_id = args[1]
+        created_time = datetime.datetime.now() - datetime.timedelta(seconds=(time.time() - created_time))
 
         if danmaku["cmd"] == "RAFFLE_END":
             data = danmaku["data"]
@@ -20,6 +22,7 @@ class Executor(object):
             uid = await ReqFreLimitApi.get_uid_by_name(user_name)
             create_param = {
                 "cmd": "RAFFLE_END",
+                "room_id": msg_from_room_id,
                 "raffle_id": int(data["raffleId"]),
                 "gift_name": data["giftName"],
                 "count": data.get("win", {}).get("giftNum", -1),
@@ -27,6 +30,7 @@ class Executor(object):
                 "user_id": uid,
                 "user_name": user_name,
                 "user_face": data.get("win", {}).get("face", -1),
+                "created_time": created_time,
             }
             obj = await RaffleRec.create(**create_param)
             logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: id: {obj.id}, obj: {obj}")
@@ -37,6 +41,7 @@ class Executor(object):
             uid = await ReqFreLimitApi.get_uid_by_name(user_name)
             create_param = {
                 "cmd": "TV_END",
+                "room_id": msg_from_room_id,
                 "raffle_id": int(data["raffleId"]),
                 "gift_name": data["giftName"],
                 "count": data.get("win", {}).get("giftNum", -1),
@@ -44,6 +49,7 @@ class Executor(object):
                 "user_id": uid,
                 "user_name": user_name,
                 "user_face": data.get("win", {}).get("face", -1),
+                "created_time": created_time,
             }
             obj = await RaffleRec.create(**create_param)
             logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: id: {obj.id}, obj: {obj}")

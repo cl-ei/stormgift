@@ -1,7 +1,9 @@
 import time
 import asyncio
+import datetime
 from utils.biliapi import BiliApi
 from utils.dao import CookieOperator
+from utils.model import objects, User, RaffleRec
 from config.log4 import bili_api_logger as logging
 
 
@@ -56,3 +58,19 @@ class ReqFreLimitApi(object):
 
         await cls._update_time("get_uid_by_name")
         return uid
+
+    @classmethod
+    async def get_raffle_record(cls, uid):
+
+        user_obj = await User.get_by_uid(uid=uid)
+        if not user_obj:
+            return []
+
+        raffles = await objects.execute(RaffleRec.select().where(
+            (RaffleRec.user_obj_id == user_obj.id)
+            & (RaffleRec.created_time > (datetime.datetime.now() - datetime.timedelta(days=7))))
+        )
+        results = []
+        for r in raffles:
+            results.append((user_obj.name, r.room_id, r.gift_name))
+        return results
