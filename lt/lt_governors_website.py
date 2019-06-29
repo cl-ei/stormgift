@@ -21,6 +21,8 @@ class Cache:
     records = None
     version = 0
 
+    last_time_of_get_raffle = time.time()
+
 
 async def get_records_of_raffle(request):
     try:
@@ -35,6 +37,12 @@ async def get_records_of_raffle(request):
     except (TypeError, ValueError, AssertionError, AttributeError):
         return web.Response(
             text=json.dumps({"code": 400, "msg": f"Error query param!"}, indent=2, ensure_ascii=False),
+            content_type="application/json"
+        )
+
+    if time.time() - Cache.last_time_of_get_raffle < 3:
+        return web.Response(
+            text=json.dumps({"code": 500, "msg": f"System busy!"}, indent=2, ensure_ascii=False),
             content_type="application/json"
         )
 
@@ -73,6 +81,8 @@ async def get_records_of_raffle(request):
 
     finally:
         await objects.close()
+
+    Cache.last_time_of_get_raffle = time.time()
 
     if isinstance(records, str):
         text = json.dumps({"code": 500, "msg": records})
