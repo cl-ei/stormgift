@@ -98,7 +98,8 @@ class Executor(object):
             room_id = info["room_id"]
             gift_id = info["gift_id"]
 
-            await RaffleMessageQ.put(f"T${room_id}${gift_id}", time.time())
+            raffle_msg = (f"T${room_id}${gift_id}", time.time())
+            await RaffleMessageQ.put(raffle_msg)
 
             expire_time = info["created_time"] + datetime.timedelta(seconds=info["time"])
             gift_rec_params = {
