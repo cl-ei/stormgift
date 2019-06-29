@@ -28,7 +28,11 @@ class Executor(object):
     @staticmethod
     async def proc_single_gift_of_guard(room_id, gift_info):
         gift_id = gift_info.get('id', 0)
-        await RaffleMessageQ.put(F"G${room_id}${gift_id}", time.time())
+
+        key = F"G${room_id}${gift_id}"
+        created_time = time.time()
+        raffle_msg = (key, created_time)
+        await RaffleMessageQ.put(raffle_msg)
 
         privilege_type = gift_info["privilege_type"]
         if privilege_type == 3:

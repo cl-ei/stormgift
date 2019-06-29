@@ -301,8 +301,7 @@ class RaffleMessageQ(object):
     _key = "RAFFLE_MESSAGE"
 
     @classmethod
-    async def put(cls, message, *args, **kwargs):
-        item = (message, args, kwargs)
+    async def put(cls, item):
         return await redis_cache.list_push(cls._key, item)
 
     @classmethod
