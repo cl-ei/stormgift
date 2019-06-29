@@ -6,7 +6,7 @@ from random import random
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
-from utils.dao import DanmakuMessageQ
+from utils.dao import DanmakuMessageQ, InLotteryLiveRooms
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
@@ -164,9 +164,13 @@ class TvScanner(object):
 
             if matched_notice_area:
                 r = await DanmakuMessageQ.put((message, time.time(), room_id))
+
+                real_room_id = message['real_roomid']
+                r2 = await InLotteryLiveRooms.add(real_room_id)
+
                 logging.info(
-                    f"PRIZE: [{msg_self[:2]}] room_id: {message['real_roomid']}, msg: {msg_self}. "
-                    f"source: {area_id}-[{area_name}]-{room_id}, mq put result: {r}"
+                    f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}. "
+                    f"source: {area_id}-[{area_name}]-{room_id}, mq put result: {r}, update lottery_rooms r: {r2}"
                 )
 
         elif cmd == "GUARD_MSG" and message.get("buy_type") == 1 and area_id == 1:

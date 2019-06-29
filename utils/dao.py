@@ -278,6 +278,40 @@ class ValuableLiveRoom(object):
         return r
 
 
+class InLotteryLiveRooms(object):
+    _key = "IN_LOTTERY_LIVE_ROOM"
+    time_out = 60*10
+
+    @classmethod
+    async def add(cls, room_id):
+        old = await redis_cache.get(cls._key)
+        if not isinstance(old, dict):
+            old = dict()
+
+        old[room_id] = time.time()
+        return await redis_cache.set(cls._key, old)
+
+    @classmethod
+    async def get_all(cls):
+        room_dict = await redis_cache.get(cls._key)
+        if not isinstance(room_dict, dict):
+            return set()
+
+        result = {}
+        now = time.time()
+        changed = False
+        for room_id, timestamp in room_dict.items():
+            if now - timestamp < cls.time_out:
+                result[room_id] = timestamp
+            else:
+                changed = True
+
+        if changed:
+            await redis_cache.set(cls._key, result)
+
+        return set(result.keys())
+
+
 class DanmakuMessageQ(object):
     _key = "DANMAKU_MQ_OF_CMD_"
 
