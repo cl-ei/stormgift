@@ -185,6 +185,9 @@ class CookieOperator(object):
         with open("data/valid_cookies.txt", "r") as f:
             cookies = f.readlines()
 
+        if user_id == "*":
+            return cookies[0].strip()
+
         for c in cookies:
             if f"={user_id};" in c:
                 return c.strip()

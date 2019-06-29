@@ -169,3 +169,36 @@ class MonitorWsClient(peewee.Model):
             return True
         else:
             return False
+
+
+class RaffleRec(peewee.Model):
+    cmd = peewee.CharField()
+
+    raffle_id = peewee.IntegerField(index=True)
+    gift_name = peewee.CharField()
+    count = peewee.IntegerField()
+
+    msg = peewee.CharField()
+    user_obj_id = peewee.IntegerField(index=True)
+    update_time = peewee.DateTimeField(default=datetime.datetime.now)
+
+    class Meta:
+        database = mysql_db
+
+    @classmethod
+    async def create(cls, cmd, raffle_id, gift_name, count, msg, user_id, user_name, user_face):
+        winner = await User.get_or_update(uid=user_id, name=user_name, face=user_face)
+        try:
+            r_obj = await objects.create(
+                RaffleRec,
+                cmd=cmd,
+                raffle_id=raffle_id,
+                gift_name=gift_name,
+                count=count,
+                msg=msg,
+                user_obj_id=winner.id,
+                update_time=datetime.datetime.now()
+            )
+            return True, r_obj
+        except Exception as e:
+            return False, f"GiftRec.create Error: {e}"
