@@ -23,9 +23,10 @@ class Cache:
 
 
 async def get_records_of_raffle(request):
-    uid = request.query.get("uid")
-    day_range = request.query.get("day_range", 7)
     try:
+        uid = request.query.get("uid")
+        day_range = request.query.get("day_range", 7)
+
         uid_list = [int(u.strip()) for u in uid.split("_")]
         assert uid_list
 
