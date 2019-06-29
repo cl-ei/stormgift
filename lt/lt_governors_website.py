@@ -1,11 +1,9 @@
 import time
 import json
-import asyncio
 import traceback
 import datetime
 from aiohttp import web
-from utils.model import objects, GiftRec, User
-from peewee_async import select
+from utils.model import objects, GiftRec, User, RaffleRec
 
 
 gift_price_map = {
@@ -24,9 +22,62 @@ class Cache:
     version = 0
 
 
-async def query_gifts_json(request):
-    response_json = {"a": {"c": [1, 2]}}
-    return web.Response(text=json.dumps(response_json, indent=2, ensure_ascii=False), content_type="application/json")
+async def get_records_of_raffle(request):
+    uid = request.query.get("uid")
+    day_range = request.query.get("day_range", 7)
+    try:
+        uid_list = [int(u.strip()) for u in uid.split("_")]
+        assert uid_list
+
+        day_range = int(day_range)
+        assert 1 <= day_range <= 180
+    except (TypeError, ValueError, AssertionError):
+        return web.Response(
+            text=json.dumps({"code": 400, "msg": f"Error query param!"}, indent=2, ensure_ascii=False),
+            content_type="application/json"
+        )
+
+    await objects.connect()
+    try:
+        records = {uid: {"uid": uid, "uname": None, "raffle": []} for uid in uid_list}
+
+        user_objs = await objects.execute(User.select().where(User.uid.in_(uid_list)))
+        q = {o.uid: {"uid": o.uid, "uname": o.name, "raffle": []} for o in user_objs}
+        records.update(q)
+
+        user_obj_id_map = {u.id: u.uid for u in user_objs}
+        raffles = await objects.execute(
+            RaffleRec.select(
+                RaffleRec.room_id,
+                RaffleRec.gift_name,
+                RaffleRec.user_obj_id,
+                RaffleRec.created_time,
+            ).where(
+                (RaffleRec.user_obj_id.in_(user_obj_id_map.keys()))
+                & (RaffleRec.created_time > datetime.datetime.now() - datetime.timedelta(days=day_range))
+            )
+        )
+
+        for r in raffles:
+            uid = user_obj_id_map[r.user_obj_id]
+            records[uid]["raffle"].append({
+                "real_room_id": r.room_id,
+                "gift_name": r.gift_name,
+                "created_time": str(r.created_time)
+            })
+
+    except Exception as e:
+        records = F"Internal Server Error!"
+
+    finally:
+        await objects.close()
+
+    if isinstance(records, str):
+        text = json.dumps({"code": 500, "msg": records})
+        content_type = "application/json"
+        return web.Response(text=text, content_type=content_type)
+    response = {"code": 0, "data": records.values()}
+    return web.Response(text=json.dumps(response, indent=2, ensure_ascii=False), content_type="application/json")
 
 
 async def query_gifts(request):
@@ -116,6 +167,6 @@ async def query_gifts(request):
 app = web.Application()
 app.add_routes([
     web.get('/query_gifts', query_gifts),
-    web.get('/query_gifts_json', query_gifts_json)
+    web.get('/get_records_of_raffle', get_records_of_raffle)
 ])
 web.run_app(app, port=2048)
