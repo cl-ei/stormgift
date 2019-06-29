@@ -104,12 +104,17 @@ class Acceptor(object):
         if r:
             logging.info(f"TV AC SUCCESS! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
         else:
-            logging.critical(f"TV AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
                 await self.add_to_block_list(cookie)
 
             elif "412" in msg:
                 self.__busy_time = time.time()
+
+            if index != 0:
+                msg = msg[:100]
+
+            logging.warn(f"TV AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
+
         return r, msg
 
     async def accept_guard(self, index, user_id, room_id, gift_id, cookie):
@@ -118,12 +123,17 @@ class Acceptor(object):
         if r:
             logging.info(f"GUARD AC SUCCESS! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
         else:
-            logging.critical(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
             if "访问被拒绝" in msg:
                 await self.add_to_block_list(cookie)
 
             elif "412" in msg or "Not json response" in msg:
                 self.__busy_time = time.time()
+
+            if index != 0:
+                msg = msg[:100]
+
+            logging.critical(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
+
         return r, msg
 
     async def proc_single(self, msg):
