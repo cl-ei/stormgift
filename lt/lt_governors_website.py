@@ -54,7 +54,7 @@ async def get_records_of_raffle(request):
                 RaffleRec.user_obj_id,
                 RaffleRec.created_time,
             ).where(
-                (RaffleRec.user_obj_id.in_(user_obj_id_map.keys()))
+                (RaffleRec.user_obj_id.in_(list(user_obj_id_map.keys())))
                 & (RaffleRec.created_time > datetime.datetime.now() - datetime.timedelta(days=day_range))
             )
         )
