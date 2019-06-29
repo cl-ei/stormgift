@@ -1,6 +1,7 @@
 import time
 import logging
 import asyncio
+import datetime
 from cqhttp import CQHttp
 
 from config import CQBOT
@@ -71,7 +72,15 @@ async def proc_message(message):
 
             count = len(raffle_list)
             latest = raffle_list[0]
-            msg = f"{latest[0]}在7天内累计中奖{count}次，最近一次在{latest[1]}直播间获得{latest[2]}."
+            interval = (datetime.datetime.now() - raffle_list[3]).total_seconds()
+            if interval < 3600:
+                date_time_str = "刚刚"
+            elif interval < 3600*24:
+                date_time_str = f"{interval // 3600}小时前"
+            else:
+                date_time_str = f"{interval // (3600*24)}天前"
+
+            msg = f"{latest[0]}在7天内中奖{count}次，最后一次{date_time_str}在{latest[1]}直播间获得{latest[2]}."
             if len(msg) <= 30:
                 return await send_danmaku(msg)
 

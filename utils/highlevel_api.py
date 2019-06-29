@@ -72,5 +72,5 @@ class ReqFreLimitApi(object):
         )
         results = []
         for r in raffles:
-            results.append((user_obj.name, r.room_id, r.gift_name))
+            results.append((user_obj.name, r.room_id, r.gift_name, r.created_time))
         return results
