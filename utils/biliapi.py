@@ -111,6 +111,10 @@ class BiliApi:
         if cls.USE_ASYNC_REQUEST_METHOD:
             try:
                 status_code, content = await cls._request_async(method, url, headers, data, timeout)
+
+            except asyncio.TimeoutError:
+                return False, "Bili api HTTP request timeout!"
+
             except Exception as e:
                 from config.log4 import bili_api_logger as logging
                 error_message = f"Async _request Error: {e}, {traceback.format_exc()}"
