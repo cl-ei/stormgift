@@ -68,6 +68,7 @@ async def get_records_of_raffle(request):
             })
 
     except Exception as e:
+        print(f"Error: {e}, {traceback.format_exc()}")
         records = F"Internal Server Error!"
 
     finally:
