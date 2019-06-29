@@ -192,7 +192,7 @@ class RaffleRec(peewee.Model):
         database = mysql_db
 
     @classmethod
-    async def create(cls, cmd, room_id, raffle_id, gift_name, count, msg, user_id, user_name, user_face, update_time):
+    async def create(cls, cmd, room_id, raffle_id, gift_name, count, msg, user_id, user_name, user_face, created_time):
         winner = await User.get_or_update(uid=user_id, name=user_name, face=user_face)
         r_obj = await objects.create(
             RaffleRec,
@@ -203,6 +203,6 @@ class RaffleRec(peewee.Model):
             count=count,
             msg=msg,
             user_obj_id=winner.id,
-            created_time=update_time
+            created_time=created_time
         )
         return r_obj
