@@ -140,6 +140,7 @@ class Acceptor(object):
         key, created_time, *_ = msg
         if time.time() - created_time > 20:
             logging.error(f"Message Expired ! created_time: {created_time}")
+            return
 
         key_type, room_id, gift_id = key.split("$")
         room_id = int(room_id)
@@ -163,26 +164,21 @@ class Acceptor(object):
             await process_fn(display_index, user_id, room_id, gift_id, cookie)
 
         busy_412 = bool(time.time() - self.__busy_time < 60 * 20)
-        prize_timeout = False
         for user_id, cookie in white_cookies:
             display_index += 1
-
-            if prize_timeout:
-                user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
-                logging.info(f"Gift time out! user {display_index}-{user_name}({user_id})")
-                continue
 
             if busy_412:
                 if random() < 0.5:
                     user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
                     logging.info(f"Too busy, user {display_index}-{user_name}({user_id}) skip. reason: 412.")
                     continue
-                else:
-                    await asyncio.sleep(0.5)
+
+                await asyncio.sleep(0.5)
 
             flag, msg = await process_fn(display_index, user_id, room_id, gift_id, cookie)
-            if not flag and "抽奖已过期" in msg:
-                prize_timeout = True
+            if not flag and ("抽奖已过期" in msg or "已经过期啦" in msg):
+                logging.warn(f"Prize expired! now skip all!")
+                return
 
     async def run(self):
         while True:
