@@ -32,7 +32,7 @@ async def get_records_of_raffle(request):
 
         day_range = int(day_range)
         assert 1 <= day_range <= 180
-    except (TypeError, ValueError, AssertionError):
+    except (TypeError, ValueError, AssertionError, AttributeError):
         return web.Response(
             text=json.dumps({"code": 400, "msg": f"Error query param!"}, indent=2, ensure_ascii=False),
             content_type="application/json"
