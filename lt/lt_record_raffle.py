@@ -29,7 +29,7 @@ class Executor(object):
                 "user_face": data.get("win", {}).get("face", -1),
             }
             obj = await RaffleRec.create(**create_param)
-            logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: id:{obj}, obj: {obj}")
+            logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: id: {obj.id}, obj: {obj}")
 
         elif danmaku["cmd"] == "TV_END":
             data = danmaku["data"]
@@ -46,7 +46,7 @@ class Executor(object):
                 "user_face": data.get("win", {}).get("face", -1),
             }
             obj = await RaffleRec.create(**create_param)
-            logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: id:{obj}, obj: {obj}")
+            logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: id: {obj.id}, obj: {obj}")
 
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"
