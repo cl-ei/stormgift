@@ -18,7 +18,7 @@ class Executor(object):
             data = danmaku["data"]
             user_name = data["uname"]
             uid = await ReqFreLimitApi.get_uid_by_name(user_name)
-            create_parama = {
+            create_param = {
                 "cmd": "RAFFLE_END",
                 "raffle_id": int(data["raffleId"]),
                 "gift_name": data["giftName"],
@@ -28,14 +28,14 @@ class Executor(object):
                 "user_name": user_name,
                 "user_face": data.get("win", {}).get("face", -1),
             }
-            flag, obj = await RaffleRec.create(**create_parama)
-            logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: {flag}, {obj.id if flag else obj}")
+            obj = await RaffleRec.create(**create_param)
+            logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: id:{obj}, obj: {obj}")
 
         elif danmaku["cmd"] == "TV_END":
             data = danmaku["data"]
             user_name = data["uname"]
             uid = await ReqFreLimitApi.get_uid_by_name(user_name)
-            create_parama = {
+            create_param = {
                 "cmd": "TV_END",
                 "raffle_id": int(data["raffleId"]),
                 "gift_name": data["giftName"],
@@ -45,8 +45,8 @@ class Executor(object):
                 "user_name": user_name,
                 "user_face": data.get("win", {}).get("face", -1),
             }
-            flag, obj = await RaffleRec.create(**create_parama)
-            logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: {flag}, {obj.id if flag else obj}")
+            obj = await RaffleRec.create(**create_param)
+            logging.info(f"RaffleRec cmd: {danmaku['cmd']}, save result: id:{obj}, obj: {obj}")
 
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"

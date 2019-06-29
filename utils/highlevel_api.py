@@ -18,7 +18,7 @@ class ReqFreLimitApi(object):
             print(interval)
             if interval < wait_time:
                 sleep_time = wait_time - interval
-                logging.warn(f"f: {f}, sleep_time: {sleep_time:.3f}")
+                logging.warn(f"High level api request frequency control: f: {f}, sleep_time: {sleep_time:.3f}")
                 await asyncio.sleep(sleep_time)
             cls.__req_time[f] = time.time()
 
