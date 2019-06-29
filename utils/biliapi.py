@@ -135,7 +135,7 @@ class BiliApi:
         try:
             result = json.loads(content)
         except Exception as e:
-            return False, f"Not json response: {e}"
+            return False, f"Not json response: {e}, content: {content}"
 
         if not check_error_code:
             return True, result

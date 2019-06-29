@@ -122,7 +122,7 @@ class Acceptor(object):
             if "访问被拒绝" in msg:
                 await self.add_to_block_list(cookie)
 
-            elif "412" in msg:
+            elif "412" in msg or "Not json response" in msg:
                 self.__busy_time = time.time()
         return r, msg
 
