@@ -353,6 +353,11 @@ class RaffleMessageQ(object):
 
 
 class MonitorLiveRooms(object):
+    """
+
+    返回值是set 类型！
+
+    """
     _key = "MonitorLiveRooms_KEY"
     _version_key = "MonitorLiveRooms_VERSION"
     __version_of_last_get = None

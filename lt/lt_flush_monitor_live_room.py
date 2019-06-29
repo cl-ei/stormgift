@@ -1,16 +1,15 @@
 import asyncio
-
-from config.log4 import crontab_task_logger as logging
+from config.log4 import lt_source_logger as logging
 from utils.biliapi import BiliApi
 from utils.ws import get_ws_established_and_time_wait
-from utils.dao import ValuableLiveRoom, MonitorLiveRooms
+from utils.dao import ValuableLiveRoom, MonitorLiveRooms, InLotteryLiveRooms
 from utils.model import MonitorWsClient
 
 MONITOR_COUNT = 15000
 VALUABLE_ROOM_COUNT_LIMIT = 3000
 
 
-async def main():
+async def get_live_rooms_from_api():
     logging.info("Flush monitor live rooms...")
 
     flag, total = await BiliApi.get_all_lived_room_count()
@@ -23,6 +22,10 @@ async def main():
     if not flag:
         logging.error(f"Cannot get lived rooms. msg: {room_id_list}")
         return False
+
+    in_lottery_live_rooms = await InLotteryLiveRooms().get_all()
+    logging.info(f"Get in_lottery_live_rooms count: {len(in_lottery_live_rooms)}")
+    room_id_list.extend(in_lottery_live_rooms)
 
     valuable_live_rooms = (await ValuableLiveRoom.get_all())[:VALUABLE_ROOM_COUNT_LIMIT]
     valuable_count = len(valuable_live_rooms)
@@ -51,4 +54,35 @@ async def main():
     return True
 
 
-asyncio.get_event_loop().run_until_complete(main())
+async def flush_in_lottery_live_rooms():
+    monitor_live_rooms = await MonitorLiveRooms.get()
+    in_lottery = await InLotteryLiveRooms.get_all()
+    target_monitor_live_rooms = monitor_live_rooms | in_lottery
+
+    if target_monitor_live_rooms != monitor_live_rooms:
+        await MonitorLiveRooms.set(target_monitor_live_rooms)
+    logging.info(
+        f"In lottery live room update! "
+        f"count: {len(monitor_live_rooms)}, total: {len(target_monitor_live_rooms)}."
+    )
+
+
+async def main():
+    logging.info("LT flush monitor live room proc starting ...")
+    count = 0
+    while True:
+        if count % 5 == 0:
+            logging.info("Flush monitor live room: Now get_live_rooms_from_api!")
+            await get_live_rooms_from_api()
+
+        else:
+            logging.info("Flush monitor live room: Now flush_in_lottery_live_rooms!")
+            await flush_in_lottery_live_rooms()
+
+        await asyncio.sleep(60)
+        count += 1
+        count %= 99999999999
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
