@@ -34,7 +34,7 @@ class WsManager(object):
 
                 cmd = msg["cmd"]
                 if cmd in self.monitor_commands:
-                    r = await DanmakuMessageQ.put(msg, time.time(), room_id)
+                    r = await DanmakuMessageQ.put((msg, time.time(), room_id))
                     logging.info(f"RECEIVED: {cmd}, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
 
         async def on_connect(ws):

@@ -163,7 +163,7 @@ class TvScanner(object):
                 matched_notice_area = True
 
             if matched_notice_area:
-                r = await DanmakuMessageQ.put(message, time.time(), room_id)
+                r = await DanmakuMessageQ.put((message, time.time(), room_id))
                 logging.info(
                     f"PRIZE: [{msg_self[:2]}] room_id: {message['real_roomid']}, msg: {msg_self}. "
                     f"source: {area_id}-[{area_name}]-{room_id}, mq put result: {r}"
@@ -182,7 +182,7 @@ class TvScanner(object):
 
             prize_room_id = message['roomid']  # TODO: need find real room id.
             logging.info(f"PRIZE 总督 room id: {prize_room_id}, msg: {message.get('msg_new')}")
-            await DanmakuMessageQ.put(message, time.time(), room_id)
+            await DanmakuMessageQ.put((message, time.time(), room_id))
 
     async def parse_message(self):
         while True:

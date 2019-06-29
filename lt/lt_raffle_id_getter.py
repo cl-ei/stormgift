@@ -118,9 +118,7 @@ class Executor(object):
             await GiftRec.create(**gift_rec_params)
 
     async def proc_single_msg(self, msg):
-        danmaku, args, kwargs = msg
-        created_time = args[0]
-        msg_from_room_id = args[1]
+        danmaku, created_time, msg_from_room_id, *_ = msg
 
         if time.time() - created_time > 30:
             return "EXPIRED DANMAKU !"

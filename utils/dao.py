@@ -282,11 +282,17 @@ class DanmakuMessageQ(object):
     _key = "DANMAKU_MQ_OF_CMD_"
 
     @classmethod
-    async def put(cls, danmaku, *args, **kwargs):
+    async def put(cls, message):
+        """
+        message 必须是 tuple，第一个是DANMAKU的 python dict.
+
+        :param message:
+        :return:
+        """
+        danmaku = message[0]
         cmd = danmaku["cmd"]
         key = cls._key + cmd
-        item = (danmaku, args, kwargs)
-        return await redis_cache.list_push(key, item)
+        return await redis_cache.list_push(key, message)
 
     @classmethod
     async def get(cls, *cmds, timeout):
