@@ -95,12 +95,14 @@ async def get_records_of_raffle(request):
 async def query_gifts(request):
     json_req = request.query.get("json")
     start_time = time.time()
+    db_query_time = 0
 
     if time.time() < Cache.version + 30:
         records = Cache.records
     else:
         await objects.connect()
         try:
+            db_start_time = time.time()
             records = await objects.execute(GiftRec.select(
                 GiftRec.room_id,
                 GiftRec.gift_id,
@@ -110,6 +112,7 @@ async def query_gifts(request):
             ).where(
                 GiftRec.expire_time > datetime.datetime.now()
             ))
+            db_query_time = time.time() - db_start_time
         except Exception as e:
             records = F"Error: {e} {traceback.format_exc()}"
         finally:
@@ -171,7 +174,7 @@ async def query_gifts(request):
         f'</tr>'
         f"{''.join(gift_list)}"
         f"</table>"
-        f"<h6>Process time: {proc_time:.3f}</h6>"
+        f"<h6>Process time: {proc_time:.3f}(db query time: {db_query_time:.3f})</h6>"
         f"</body></html>"
     )
     return web.Response(text=text, content_type="text/html")
