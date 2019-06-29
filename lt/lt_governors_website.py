@@ -110,10 +110,6 @@ async def query_gifts(request):
             ).where(
                 GiftRec.expire_time > datetime.datetime.now()
             ))
-            records = [
-                [r.gift_name, r.room_id, r.gift_id, r.expire_time, r.sender.name] for r in records
-            ]
-            records.sort(key=lambda x: (gift_price_map.get(x[0], 0), x[1], x[3]), reverse=True)
         except Exception as e:
             records = F"Error: {e} {traceback.format_exc()}"
         finally:
@@ -128,6 +124,11 @@ async def query_gifts(request):
                 content_type = "text/html"
             return web.Response(text=text, content_type=content_type)
         else:
+            records = [
+                [r.gift_name, r.room_id, r.gift_id, r.expire_time, r.sender.name] for r in records
+            ]
+            records.sort(key=lambda x: (gift_price_map.get(x[0], 0), x[1], x[3]), reverse=True)
+
             Cache.version = time.time()
             Cache.records = records
 
