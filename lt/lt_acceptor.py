@@ -163,12 +163,12 @@ class Acceptor(object):
                 continue
 
             if busy_412:
-                if random() < 0.3:
+                if random() < 0.5:
                     user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
                     logging.info(f"Too busy, user {display_index}-{user_name}({user_id}) skip. reason: 412.")
                     continue
                 else:
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.5)
 
             flag, msg = await process_fn(display_index, user_id, room_id, gift_id, cookie)
             if not flag and "抽奖已过期" in msg:
