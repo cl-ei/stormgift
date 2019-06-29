@@ -78,7 +78,7 @@ async def get_records_of_raffle(request):
         text = json.dumps({"code": 500, "msg": records})
         content_type = "application/json"
         return web.Response(text=text, content_type=content_type)
-    response = {"code": 0, "data": records.values()}
+    response = {"code": 0, "data": list(records.values())}
     return web.Response(text=json.dumps(response, indent=2, ensure_ascii=False), content_type="application/json")
 
 
