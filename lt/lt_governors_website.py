@@ -4,7 +4,7 @@ import jinja2
 import traceback
 import datetime
 from aiohttp import web
-from utils.model import GiftRec, User, RaffleRec
+from utils.model import GiftRec, User, RaffleRec, LiveRoomInfo
 from utils.model import objects as db_objects
 
 
@@ -127,10 +127,28 @@ async def query_gifts(request):
             )
             user_dict = {u.id: u.name for u in users}
 
+            live_room_info = await objects.execute(
+                LiveRoomInfo.select(LiveRoomInfo.short_room_id, LiveRoomInfo.real_room_id).where(
+                    LiveRoomInfo.real_room_id.in_([g.room_id for g in records])
+                )
+            )
+            live_room_dict = {l.real_room_id: l.short_room_id for l in live_room_info}
+
+            def get_short_live_room_id(real_room_id):
+                short_room_id = live_room_dict.get(real_room_id)
+                if short_room_id is None:
+                    return "未收录"
+                else:
+                    if short_room_id == real_room_id:
+                        return "-"
+                    else:
+                        return short_room_id
+
             records = [
                 {
                     "gift_name": r.gift_name,
                     "raffle_id": r.gift_id,
+                    "short_room_id": get_short_live_room_id(r.room_id),
                     "real_room_id": r.room_id,
                     "expire_time": r.expire_time,
                     "sender_name": user_dict.get(r.sender_id, None),
@@ -179,7 +197,7 @@ async def query_gifts(request):
         <style>
         table{
             width: 100%;
-            max-width: 1000px;
+            max-width: 1100px;
             margin-bottom: 20px;
             border: 1px solid #7a7a7a;
             border-collapse: collapse;
@@ -197,6 +215,7 @@ async def query_gifts(request):
         <table>
         <tr>
         <th>礼物名称</th>
+        <th>短房间号</th>
         <th>原房间号</th>
         <th>赠送者</th>
         <th>raffle id</th>
@@ -207,6 +226,7 @@ async def query_gifts(request):
         {% for r in records %}
         <tr>
             <td>{{ r.gift_name }}</td>
+            <td>{{ r.short_room_id }}</td>
             <td>{{ r.real_room_id }}</td>
             <td>{{ r.sender_name }}</td>
             <td>{{ r.raffle_id }}</td>
