@@ -1,5 +1,6 @@
 import time
 import json
+import jinja2
 import traceback
 import datetime
 from aiohttp import web
@@ -127,10 +128,17 @@ async def query_gifts(request):
             user_dict = {u.id: u.name for u in users}
 
             records = [
-                [r.gift_name, r.room_id, r.gift_id, r.expire_time, user_dict.get(r.sender_id, None)]
+                {
+                    "gift_name": r.gift_name,
+                    "raffle_id": r.gift_id,
+                    "real_room_id": r.room_id,
+                    "expire_time": r.expire_time,
+                    "sender_name": user_dict.get(r.sender_id, None),
+                    "price": gift_price_map.get(r.gift_name, 0)
+                }
                 for r in records
             ]
-            records.sort(key=lambda x: (gift_price_map.get(x[0], 0), x[1], x[3]), reverse=True)
+            records.sort(key=lambda r: (r["price"], r["real_room_id"], r["expire_time"]), reverse=True)
 
             db_query_time = time.time() - db_start_time
 
@@ -149,47 +157,77 @@ async def query_gifts(request):
             Cache.data = records
 
     if json_req:
-        gift_list = [
-            {"gift_name": r[0], "real_room_id": r[1], "raffle_id": r[2], "expire_time": f"{r[3]}"}
+        json_result = [
+            {
+                k: str(v) if isinstance(v, datetime.datetime) else v
+                for k, v in r.items()
+                if k in ("gift_name", "real_room_id", "raffle_id", "expire_time")
+            }
             for r in records
         ]
         return web.Response(
             text=json.dumps(
-                {"code": 0, "version": hash(Cache.version), "list": gift_list},
+                {"code": 0, "version": hash(Cache.version), "list": json_result},
                 indent=2,
                 ensure_ascii=False,
             ),
             content_type="application/json"
         )
 
-    gift_list = [
-        (
-            f"<tr>"
-            f"<th>{r[0]}</th><th>{r[1]}</th><th>{r[4]}</th><th>{r[2]}</th><th>{r[3]}</th>"
-            f'<th><a href="https://live.bilibili.com/{r[1]}" target="_blank">Gooo</a></th>'
-            f'<th><a href="bilibili://live/{r[1]}" target="_blank">打开破站</a></th>'
-            f'</tr>'
-        ) for r in records
-    ]
+    template_text = """
+        <html>
+        <style>
+        table{
+            width: 100%;
+            margin-bottom: 20px;
+            border: 1px solid #7a7a7a;
+            border-collapse: collapse;
+            border-left: none;
+            word-break: normal;
+            line-height: 30px;
+            text-align: center;
+        }
+        tr, th, td{
+            border: 1px solid #7a7a7a;
+        }
+        </style>
+        <body>
+        <h2>礼物列表:（Version: {{ version }}）<a href="/query_gifts?json=true" target="_blank">JSON格式</a></h2>
+        <table>
+        <tr>
+        <th>礼物名称</th>
+        <th>原房间号</th>
+        <th>赠送者</th>
+        <th>raffle id</th>
+        <th>失效时间</th>
+        <th>传送门</th>
+        <th>爪机</th>
+        </tr>
+        {% for r in records %}
+        <tr>
+            <td>{{ r.gift_name }}</td>
+            <td>{{ r.real_room_id }}</td>
+            <td>{{ r.sender_name }}</td>
+            <td>{{ r.raffle_id }}</td>
+            <td>{{ r.expire_time }}</td>
+            <td><a href="https://live.bilibili.com/{{ r.real_room_id }}" target="_blank">Gooo</a></td>
+            <td><a href="bilibili://live/{{ r.real_room_id }}" target="_blank">打开破站</a></td>
+        </tr>
+        {% endfor %}
+        </table>
+        <h6>Process time: {{ proc_time }}(db query time: {{ db_query_time }})</h6></body></html>
+    """
+    template_text = " ".join(template_text.split())
 
-    proc_time = time.time() - start_time
-    text = (
-        f'<html><body><h2>礼物列表:（Version: {hash(Cache.version)}）'
-        f'<a href="/query_gifts?json=true" target="_blank">JSON格式</a>'
-        f'</h2><table border="1"><tr>'
-        f'<th>礼物名称</th>'
-        f'<th>原房间号</th>'
-        f'<th>赠送者</th>'
-        f'<th>raffle id</th>'
-        f'<th>失效时间</th>'
-        f'<th>传送门</th>'
-        f'<th>爪机</th>'
-        f'</tr>'
-        f"{''.join(gift_list)}"
-        f"</table>"
-        f"<h6>Process time: {proc_time:.3f}(db query time: {db_query_time:.3f})</h6>"
-        f"</body></html>"
-    )
+    context = {
+        "version": f"{hash(Cache.version):0x}",
+        "records": records,
+        "proc_time": f"{(time.time() - start_time):.3f}",
+        "db_query_time": f"{db_query_time:.3f}",
+
+    }
+
+    text = jinja2.Template(template_text).render(context)
     return web.Response(text=text, content_type="text/html")
 
 
