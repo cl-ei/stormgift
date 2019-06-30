@@ -3,7 +3,7 @@ import asyncio
 import datetime
 from utils.dao import CookieOperator
 from utils.biliapi import BiliApi
-from utils.model import objects, GiftRec
+from utils.model import objects, GiftRec, LiveRoomInfo
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
@@ -75,6 +75,13 @@ async def gen_intro():
         (GiftRec.expire_time > datetime.datetime.now())
         & (GiftRec.gift_name.in_(("舰长", "提督", "总督")))
     ))
+
+    live_room_info = await objects.execute(
+        LiveRoomInfo.select(LiveRoomInfo.short_room_id, LiveRoomInfo.real_room_id).where(
+            LiveRoomInfo.real_room_id.in_([x.room_id for x in r])
+        )
+    )
+    live_room_dict = {l.real_room_id: l.short_room_id for l in live_room_info}
     await objects.close()
 
     gifts = {}
@@ -99,7 +106,7 @@ async def gen_intro():
             display.append(f"{len(j)}个舰长")
             intimacy += len(j)
 
-        result.append((room_id, "、".join(display), intimacy))
+        result.append((live_room_dict.get(room_id, room_id), "、".join(display), intimacy))
     result.sort(key=lambda x: x[2], reverse=True)
 
     content = [
