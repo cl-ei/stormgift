@@ -3,7 +3,8 @@ import json
 import traceback
 import datetime
 from aiohttp import web
-from utils.model import objects, GiftRec, User, RaffleRec
+from utils.model import GiftRec, User, RaffleRec
+from utils.model import objects as db_objects
 
 
 gift_price_map = {
@@ -18,10 +19,22 @@ gift_price_map = {
 
 
 class Cache:
-    records = None
     version = 0
+    data = None
 
     last_time_of_get_raffle = time.time()
+
+
+class objects:
+
+    _objects = None
+
+    @classmethod
+    async def execute(cls, *args, **kwargs):
+        if cls._objects is None:
+            await db_objects.connect()
+            cls._objects = db_objects
+        return await cls._objects.execute(*args, **kwargs)
 
 
 async def get_records_of_raffle(request):
@@ -46,7 +59,6 @@ async def get_records_of_raffle(request):
             content_type="application/json"
         )
 
-    await objects.connect()
     try:
         records = {uid: {"uid": uid, "uname": None, "raffle": []} for uid in uid_list}
 
@@ -79,9 +91,6 @@ async def get_records_of_raffle(request):
         print(f"Error: {e}, {traceback.format_exc()}")
         records = F"Internal Server Error!"
 
-    finally:
-        await objects.close()
-
     Cache.last_time_of_get_raffle = time.time()
 
     if isinstance(records, str):
@@ -97,10 +106,9 @@ async def query_gifts(request):
     start_time = time.time()
     db_query_time = 0
 
-    if time.time() < Cache.version + 30:
-        records = Cache.records
+    if time.time() < Cache.version + 10:
+        records = Cache.data
     else:
-        await objects.connect()
         try:
             db_start_time = time.time()
             records = await objects.execute(GiftRec.select(
@@ -108,32 +116,37 @@ async def query_gifts(request):
                 GiftRec.gift_id,
                 GiftRec.gift_name,
                 GiftRec.expire_time,
-                GiftRec.sender,
+                GiftRec.sender_id,
             ).where(
                 GiftRec.expire_time > datetime.datetime.now()
             ))
-            db_query_time = time.time() - db_start_time
-        except Exception as e:
-            records = F"Error: {e} {traceback.format_exc()}"
-        finally:
-            await objects.close()
 
-        if isinstance(records, str):
-            if json_req:
-                text = json.dumps({"code": 500, "msg": records})
-                content_type = "application/json"
-            else:
-                text = records
-                content_type = "text/html"
-            return web.Response(text=text, content_type=content_type)
-        else:
+            users = await objects.execute(
+                User.select(User.id, User.name).where(User.id.in_([g.sender_id for g in records]))
+            )
+            user_dict = {u.id: u.name for u in users}
+
             records = [
-                [r.gift_name, r.room_id, r.gift_id, r.expire_time, r.sender.name] for r in records
+                [r.gift_name, r.room_id, r.gift_id, r.expire_time, user_dict.get(r.sender_id, None)]
+                for r in records
             ]
             records.sort(key=lambda x: (gift_price_map.get(x[0], 0), x[1], x[3]), reverse=True)
 
+            db_query_time = time.time() - db_start_time
+
+        except Exception as e:
+            msg = F"Error: {e} {traceback.format_exc()}"
+            if json_req:
+                text = json.dumps({"code": 500, "msg": msg})
+                content_type = "application/json"
+            else:
+                text = msg
+                content_type = "text/html"
+            return web.Response(text=text, content_type=content_type)
+
+        else:
             Cache.version = time.time()
-            Cache.records = records
+            Cache.data = records
 
     if json_req:
         gift_list = [
