@@ -107,7 +107,7 @@ async def gen_intro():
             intimacy += len(j)
 
         result.append((live_room_dict.get(room_id, room_id), "、".join(display), intimacy))
-    result.sort(key=lambda x: x[2], reverse=True)
+    result.sort(key=lambda x: (x[2], -x[0]), reverse=True)
 
     content = [
         (
