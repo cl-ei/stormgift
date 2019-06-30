@@ -42,12 +42,19 @@ template = """
 </div>
 
 <div style="border-bottom: 1px dashed #ccc;">
-  <p style="font-size: 22px;">
+  <p style="font-size: 14px;">
     点此去<a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
             href="http://129.204.43.2:2048/query_gifts" 
             target="_blank" rel="noopener noreferrer">
             礼物列表站点
          </a>ヾ(❀╹◡╹)ﾉﾞ❀~&nbsp;
+  </p>
+  <p style="font-size: 14px;">
+    想看看都谁中奖了？➟ <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
+            href="http://129.204.43.2:2048/query_raffles" 
+            target="_blank" rel="noopener noreferrer">
+            获奖记录
+         </a>
   </p>
 </div>
 
