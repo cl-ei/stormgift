@@ -117,6 +117,15 @@ bili_api_logger.addHandler(file_handler)
 bili_api_logger.addHandler(stormgift_file_handler)
 
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "model_operation.log"))
+file_handler.setFormatter(log_format)
+model_operation_logger = logging.getLogger("model_operation")
+model_operation_logger.setLevel(logging.DEBUG)
+model_operation_logger.addHandler(console)
+model_operation_logger.addHandler(file_handler)
+model_operation_logger.addHandler(stormgift_file_handler)
+
+
 __all__ = (
     "console_logger",
     "acceptor_logger",
@@ -131,4 +140,5 @@ __all__ = (
     "dxj_xiaoke_logger",
     "dxj_wanzi_logger",
     "bili_api_logger",
+    "model_operation_logger",
 )
