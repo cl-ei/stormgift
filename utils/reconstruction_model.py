@@ -145,8 +145,8 @@ class Guard(peewee.Model):
 class Raffle(peewee.Model):
     id = peewee.IntegerField(primary_key=True)
     room_id = peewee.IntegerField(index=True)
-    gift_name = peewee.CharField(null=True)
-    gift_type = peewee.CharField(null=True)
+    gift_name = peewee.CharField()
+    gift_type = peewee.CharField()
 
     sender_obj_id = peewee.IntegerField(index=True)
     sender_name = peewee.CharField(null=True)
