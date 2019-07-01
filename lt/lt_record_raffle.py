@@ -7,26 +7,7 @@ from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.dao import DanmakuMessageQ, redis_cache
 from utils.model import objects, RaffleRec
-from utils.biliapi import BiliApi
-from cqhttp import CQHttp
-from config import CQBOT
-
-bot = CQHttp(**CQBOT)
-
-
-class CachedInfos(object):
-    guard_list = None
-    update_time = 0
-
-    @classmethod
-    async def get_hansy_guard_list(cls):
-        if cls.guard_list and time.time() - cls.update_time < 3600*12:
-            return cls.guard_list
-
-        guard_list = await BiliApi.get_guard_list(uid=65568410)
-        cls.guard_list = guard_list
-        cls.update_time = time.time()
-        return guard_list
+from utils.reconstruction_model import Raffle
 
 
 class Executor(object):
@@ -37,27 +18,61 @@ class Executor(object):
         cmd = danmaku["cmd"]
         if cmd in ("RAFFLE_END", "TV_END"):
             data = danmaku["data"]
-            user_name = data["uname"]
-            uid = await ReqFreLimitApi.get_uid_by_name(user_name)
+            winner_name = data["uname"]
+            winner_uid = await ReqFreLimitApi.get_uid_by_name(winner_name)
+            winner_face = data["win"]["face"]
+
+            raffle_id = int(data["raffleId"])
+            gift_type = data["type"]
+            sender_name = data["from"]
+            sender_face = data["fromFace"]
+
+            prize_gift_name = data["giftName"]
+            prize_count = int(data["win"]["giftNum"])
+
             create_param = {
                 "cmd": cmd,
                 "room_id": msg_from_room_id,
-                "raffle_id": int(data["raffleId"]),
-                "gift_name": data["giftName"],
-                "count": data.get("win", {}).get("giftNum", -1),
+                "raffle_id": raffle_id,
+                "gift_name": prize_gift_name,
+                "count": prize_count,
                 "msg": data["mobileTips"],
-                "user_id": uid,
-                "user_name": user_name,
-                "user_face": data.get("win", {}).get("face", -1),
+                "user_id": winner_uid,
+                "user_name": winner_name,
+                "user_face": winner_face,
                 "created_time": created_time,
             }
             obj = await RaffleRec.create(**create_param)
             logging.info(f"RaffleRec cmd: {cmd}, save result: id: {obj.id}, obj: {obj}")
 
-            guards = await CachedInfos.get_hansy_guard_list()
-            if uid in [g["uid"] for g in guards]:
-                message = f"恭喜咱们的舰长{user_name}中了{data['giftName']}！欧气吮吸！=͟͟͞͞(꒪ᗜ꒪ ‧̣̥̇)"
-                bot.send_group_msg(group_id=883237694, message=message)
+            # --------------- use new model! -----------------
+            raffle_obj = await Raffle.get_by_id(raffle_id)
+            if not raffle_obj:
+                sender_uid = await ReqFreLimitApi.get_uid_by_name(sender_name)
+                gift_gen_time = created_time - datetime.timedelta(seconds=180)
+                raffle_create_param = {
+                    "raffle_id": raffle_id,
+                    "room_id": msg_from_room_id,
+                    "gift_name": "-",
+                    "gift_type": gift_type,
+                    "sender_uid": sender_uid,
+                    "sender_name": sender_name,
+                    "sender_face": sender_face,
+                    "created_time": gift_gen_time,
+                    "expire_time": created_time,
+                }
+                raffle_obj = await Raffle.record_raffle_before_result(**raffle_create_param)
+
+            update_param = {
+                "prize_gift_name": prize_gift_name,
+                "prize_count": prize_count,
+                "winner_uid": winner_uid,
+                "winner_name": winner_name,
+                "winner_face": winner_face,
+                "danmaku_json_str": "",
+            }
+            await Raffle.update_raffle_result(raffle_obj, **update_param)
+            logging.info(f"Raffle saved! cmd: {cmd}, save result: id: {raffle_obj.id}, obj: {raffle_obj}")
 
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"

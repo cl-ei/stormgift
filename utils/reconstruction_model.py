@@ -1,16 +1,10 @@
 import peewee
-import asyncio
 import datetime
 import traceback
 from random import randint
-from peewee_async import Manager, PooledMySQLDatabase
-from config import MYSQL_CONFIG
 from config.log4 import model_operation_logger as logging
 
-
-mysql_db = PooledMySQLDatabase(**MYSQL_CONFIG)
-loop = asyncio.get_event_loop()
-objects = Manager(mysql_db, loop=loop)
+from utils.model import mysql_db, objects
 
 
 def random_datetime():
@@ -191,22 +185,21 @@ class Raffle(peewee.Model):
         except peewee.IntegrityError as e:
             error_msg = f"{e}"
             if "Duplicate entry" in error_msg:
-                old_rec = await objects.get(Raffle, id=raffle_id)
-                old_rec.room_id = room_id
-                old_rec.gift_name = gift_name
-                old_rec.gift_type = gift_type
-                old_rec.sender_obj_id = sender.id
-                old_rec.sender_name = sender_name
-                old_rec.created_time = created_time
-                old_rec.expire_time = expire_time
-
-                await objects.update(old_rec)
                 logging.warning(
                     f"Raffle Duplicate entry -> id: {raffle_id}, E is ignored and do force update guard record."
                 )
-                return old_rec
-            logging.error(f"Raffle Error happened when create raffle rec: {e}, {traceback.format_exc()}")
-            return None
+
+            old_rec = await objects.get(Raffle, id=raffle_id)
+            old_rec.room_id = room_id
+            old_rec.gift_name = gift_name
+            old_rec.gift_type = gift_type
+            old_rec.sender_obj_id = sender.id
+            old_rec.sender_name = sender_name
+            old_rec.created_time = created_time
+            old_rec.expire_time = expire_time
+
+            await objects.update(old_rec)
+            return old_rec
 
     @classmethod
     async def update_raffle_result(
