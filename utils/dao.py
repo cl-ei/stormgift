@@ -32,6 +32,10 @@ class RedisCache(object):
         else:
             return await self.execute("set", key, v)
 
+    async def set_if_not_exists(self, key, value, timeout=3600*24*7):
+        v = pickle.dumps(value)
+        return await self.execute("set", key, v, "ex", timeout, "nx")
+
     async def delete(self, key):
         return await self.execute("DEL", key)
 

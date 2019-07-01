@@ -5,35 +5,23 @@ import traceback
 from random import random
 from utils.biliapi import BiliApi
 from config.log4 import lt_raffle_id_getter_logger as logging
-from config import LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
-from utils.dao import DanmakuMessageQ, RaffleMessageQ
+from utils.dao import DanmakuMessageQ, RaffleMessageQ, redis_cache
 from utils.model import objects, GiftRec
+from utils.highlevel_api import ReqFreLimitApi
 from utils.reconstruction_model import Guard, Raffle
 
 
 class Executor(object):
-    def __init__(self):
-        self.cookie_file = "data/valid_cookies.txt"
-        self.post_prize_url = f"http://{LT_ACCEPTOR_HOST}:{LT_ACCEPTOR_PORT}"
-
-        self.__posted_keys = []
-
-    def load_a_cookie(self):
-        try:
-            with open(self.cookie_file, "r") as f:
-                cookies = [c.strip() for c in f.readlines()]
-            return cookies[0]
-        except:
-            return ""
 
     @staticmethod
     async def proc_single_gift_of_guard(room_id, gift_info):
         gift_id = gift_info.get('id', 0)
-
         key = F"G${room_id}${gift_id}"
-        created_time = time.time()
-        raffle_msg = (key, created_time)
-        await RaffleMessageQ.put(raffle_msg)
+
+        if not await redis_cache.set_if_not_exists(key, gift_info):
+            return
+
+        await RaffleMessageQ.put((key, time.time()))
 
         privilege_type = gift_info["privilege_type"]
         if privilege_type == 3:
@@ -76,44 +64,20 @@ class Executor(object):
         }
         await Guard.create(**create_param)
 
-    async def force_get_uid_by_name(self, user_name):
-        cookie = self.load_a_cookie()
-        if not cookie:
-            logging.error("Cannot load cookie!")
-            return None
-
-        for retry_time in range(3):
-            r, uid = await BiliApi.get_user_id_by_search_way(user_name)
-            if r and isinstance(uid, (int, float)) and uid > 0:
-                return uid
-
-            # Try other way
-            await BiliApi.add_admin(user_name, cookie)
-
-            flag, admin_list = await BiliApi.get_admin_list(cookie)
-            if not flag:
-                continue
-
-            uid = None
-            for admin in admin_list:
-                if admin.get("uname") == user_name:
-                    uid = admin.get("uid")
-                    break
-            if isinstance(uid, (int, float)) and uid > 0:
-                await BiliApi.remove_admin(uid, cookie)
-                return uid
-        return None
-
-    async def proc_tv_gifts_by_single_user(self, user_name, gift_list):
-        uid = await self.force_get_uid_by_name(user_name)
+    @staticmethod
+    async def proc_tv_gifts_by_single_user(user_name, gift_list):
+        uid = await ReqFreLimitApi.get_uid_by_name(user_name, wait_time=1)
 
         for info in gift_list:
             info["uid"] = uid
             room_id = info["room_id"]
             gift_id = info["gift_id"]
 
-            raffle_msg = (f"T${room_id}${gift_id}", time.time())
-            await RaffleMessageQ.put(raffle_msg)
+            key = f"T${room_id}${gift_id}"
+            if not await redis_cache.set_if_not_exists(key, info):
+                return
+
+            await RaffleMessageQ.put((key, time.time()))
 
             expire_time = info["created_time"] + datetime.timedelta(seconds=info["time"])
             gift_rec_params = {
