@@ -1,4 +1,5 @@
 import time
+import json
 import asyncio
 import datetime
 import traceback
@@ -69,7 +70,7 @@ class Executor(object):
                 "winner_uid": winner_uid,
                 "winner_name": winner_name,
                 "winner_face": winner_face,
-                "danmaku_json_str": "",
+                "danmaku_json_str": json.dumps(danmaku),
             }
             await Raffle.update_raffle_result(raffle_obj, **update_param)
             logging.info(f"Raffle saved! cmd: {cmd}, save result: id: {raffle_obj.id}, obj: {raffle_obj}")
