@@ -13,7 +13,7 @@ config.read(config_file)
 try:
     CDN_URL = config["default"]["CDN_URL"]
 except KeyError:
-    CDN_URL = "http://49.234.17.23"
+    CDN_URL = ""
 
 try:
     PROJECT_ROOT = config["stormgift"]["PROJECT_ROOT"]
