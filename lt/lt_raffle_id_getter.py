@@ -8,6 +8,7 @@ from config.log4 import lt_raffle_id_getter_logger as logging
 from config import LT_ACCEPTOR_HOST, LT_ACCEPTOR_PORT
 from utils.dao import DanmakuMessageQ, RaffleMessageQ
 from utils.model import objects, GiftRec
+from utils.reconstruction_model import Guard, Raffle
 
 
 class Executor(object):
@@ -61,6 +62,19 @@ class Executor(object):
             "face": sender["face"],
         }
         await GiftRec.create(**gift_rec_params)
+
+        # ------------ use new model -----------------
+        create_param = {
+            "gift_id": gift_id,
+            "room_id": room_id,
+            "gift_name": gift_name,
+            "sender_uid": sender["uid"],
+            "sender_name": sender["uname"],
+            "sender_face": sender["face"],
+            "created_time": gift_info["created_time"],
+            "expire_time": expire_time,
+        }
+        await Guard.create(**create_param)
 
     async def force_get_uid_by_name(self, user_name):
         cookie = self.load_a_cookie()
@@ -116,6 +130,20 @@ class Executor(object):
                 "face": info["face"],
             }
             await GiftRec.create(**gift_rec_params)
+
+            # ------------ use new model -----------------
+            create_param = {
+                "raffle_id": gift_id,
+                "room_id": room_id,
+                "gift_name": info["gift_name"],
+                "gift_type": info["gift_type"],
+                "sender_uid": uid,
+                "sender_name": info["name"],
+                "sender_face": info["face"],
+                "created_time": info["created_time"],
+                "expire_time": expire_time
+            }
+            await Raffle.record_raffle_before_result(**create_param)
 
     async def proc_single_msg(self, msg):
         danmaku, created_time, msg_from_room_id, *_ = msg

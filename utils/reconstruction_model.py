@@ -102,9 +102,9 @@ class Guard(peewee.Model):
         database = mysql_db
 
     @classmethod
-    async def create(cls, gift_id, room_id, gift_name, sender_uid, sender_name, created_time, expire_time):
+    async def create(cls, gift_id, room_id, gift_name, sender_uid, sender_name, sender_face, created_time, expire_time):
 
-        sender = await BiliUser.get_or_update(uid=sender_uid, name=sender_name)
+        sender = await BiliUser.get_or_update(uid=sender_uid, name=sender_name, face=sender_face)
         try:
             return await objects.create(
                 Guard,
