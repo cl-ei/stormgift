@@ -1,5 +1,6 @@
 import time
 import json
+import copy
 import jinja2
 import traceback
 import datetime
@@ -256,6 +257,8 @@ async def query_gifts(request):
 
 
 async def query_raffles(request):
+    json_req = request.query.get("json")
+
     if time.time() < Cache.raffle_e_tag + 300:
         raffle_data = Cache.raffle_data
     else:
@@ -268,7 +271,13 @@ async def query_raffles(request):
         ).where(
             RaffleRec.created_time > (datetime.datetime.now() - datetime.timedelta(hours=48))
         ))
-
+        sender_user_obj_id = await objects.execute(
+            GiftRec.select(
+                GiftRec.gift_id, GiftRec.sender_id
+            ).where(
+                GiftRec.gift_id.in_([r.raffle_id for r in records])
+            )
+        )
         live_room_info = await objects.execute(
             LiveRoomInfo.select(
                 LiveRoomInfo.short_room_id,
@@ -282,15 +291,19 @@ async def query_raffles(request):
 
         users = await objects.execute(
             User.select(User.id, User.uid, User.name).where(
-                User.id.in_([r.user_obj_id for r in records])
+                User.id.in_([r.user_obj_id for r in records] + [s.sender_id for s in sender_user_obj_id])
                 | User.uid.in_([r.user_id for r in live_room_info])
             )
         )
         user_dict = {u.id: (u.uid, u.name) for u in users}
         uid_to_uname_dict = {u.uid: u.name for u in users}
+        sender_dict = {s.gift_id: user_dict[s.sender_id] for s in sender_user_obj_id}
 
         raffle_data = []
         for r in records:
+
+            sender_uid, sender_name = sender_dict.get(r.raffle_id, ("", ""))
+
             this_live_room = live_room_dict.get(r.room_id)
             if this_live_room:
                 short_room_id = "-" if this_live_room[0] == r.room_id else this_live_room[0]
@@ -309,6 +322,8 @@ async def query_raffles(request):
                 "user_id": user_dict[r.user_obj_id][0],
                 "user_name": user_dict[r.user_obj_id][1],
                 "master_uname": master_uname,
+                "sender_uid": sender_uid,
+                "sender_name": sender_name,
             }
             raffle_data.insert(0, info)
         # result.sort(key=lambda x: x["created_time"])
@@ -316,12 +331,30 @@ async def query_raffles(request):
         Cache.raffle_data = raffle_data
         Cache.raffle_e_tag = time.time()
 
+    if json_req:
+        json_result = copy.deepcopy(raffle_data)
+        for info in json_result:
+            for k, v in info.items():
+                if isinstance(v, datetime.datetime):
+                    info[k] = str(v)
+                elif v == "":
+                    info[k] = None
+
+        return web.Response(
+            text=json.dumps(
+                {"code": 0, "e_tag": f"{hash(Cache.raffle_e_tag):0x}", "list": json_result},
+                indent=2,
+                ensure_ascii=False,
+            ),
+            content_type="application/json"
+        )
+
     template_text = """
             <html>
             <style>
             table{
                 width: 100%;
-                max-width: 1100px;
+                max-width: 1600px;
                 margin-bottom: 20px;
                 border: 1px solid #7a7a7a;
                 border-collapse: collapse;
@@ -350,7 +383,7 @@ async def query_raffles(request):
             }
             </style>
             <body>
-            <h2>中奖记录:（e_tag: {{ e_tag }}）</h2>
+            <h2>中奖记录:（e_tag: {{ e_tag }}）<a href="/query_raffles?json=true" target="_blank">JSON格式</a></h2>
             <p>仅展示48小时内的获奖记录，共计{{ raffle_count }}条。
                 <div>
                     精确查询用户中奖记录：
@@ -366,8 +399,10 @@ async def query_raffles(request):
             <th>原房间号</th>
             <th>主播</th>
             <th>奖品</th>
-            <th>用户uid</th>
-            <th>用户名</th>
+            <th>获奖用户uid</th>
+            <th>获奖用户名</th>
+            <th>奖品提供者uid</th>
+            <th>奖品提供用户名</th>
             <th>中奖时间</th>
             </tr>
             {% for r in raffle_data %}
@@ -379,6 +414,8 @@ async def query_raffles(request):
                 <td>{{ r.gift_name }}</td>
                 <td>{{ r.user_id }}</td>
                 <td>{{ r.user_name }}</td>
+                <td>{{ r.sender_uid }}</td>
+                <td>{{ r.sender_name }}</td>
                 <td>{{ r.created_time }}</td>
             </tr>
             {% endfor %}
