@@ -165,6 +165,13 @@ class Raffle(peewee.Model):
         database = mysql_db
 
     @classmethod
+    async def get_by_id(cls, raffle_id):
+        try:
+            return await objects.get(Raffle, id=raffle_id)
+        except peewee.DoesNotExist:
+            return None
+
+    @classmethod
     async def record_raffle_before_result(
         cls, raffle_id, room_id, gift_name, gift_type, sender_uid, sender_name, sender_face, created_time, expire_time,
     ):
@@ -203,28 +210,18 @@ class Raffle(peewee.Model):
 
     @classmethod
     async def update_raffle_result(
-        cls,
-        raffle_id, room_id,
-        prize_gift_name, prize_count,
-        winner_uid, winner_name, winner_face,
-        expire_time, danmaku_json_str=""
+            cls, raffle_obj, prize_gift_name, prize_count, winner_uid, winner_name, winner_face, danmaku_json_str=""
     ):
         sender = await BiliUser.get_or_update(uid=winner_uid, name=winner_name, face=winner_face)
-        try:
-            raffle_obj = await objects.get(Raffle, id=raffle_id)
+        raffle_obj.prize_gift_name = prize_gift_name
+        raffle_obj.prize_count = prize_count
+        raffle_obj.winner_obj_id = sender.id
+        raffle_obj.winner_name = winner_name
+        raffle_obj.raffle_result_danmaku = danmaku_json_str
 
-            raffle_obj.prize_gift_name = prize_gift_name
-            raffle_obj.prize_count = prize_count
-            raffle_obj.winner_obj_id = sender.id
-            raffle_obj.winner_name = winner_name
-            raffle_obj.raffle_result_danmaku = danmaku_json_str
+        await objects.update(
+            obj=raffle_obj,
+            only=("prize_gift_name", "prize_count", "winner_obj_id", "winner_name", "raffle_result_danmaku")
+        )
 
-            await objects.update(
-                obj=raffle_obj,
-                only=("prize_gift_name", "prize_count", "winner_obj_id", "winner_name", "raffle_result_danmaku")
-            )
-
-            return raffle_obj
-
-        except peewee.DoesNotExist:
-            return None
+        return raffle_obj
