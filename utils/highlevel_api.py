@@ -85,14 +85,16 @@ class ReqFreLimitApi(object):
         )
         max_raffle_id_yesterday = result[0][0]
 
-        result = await AsyncMySQL.execute("select id from raffle where id > %s order by id desc;", (345652,))
+        result = await AsyncMySQL.execute(
+            "select id from raffle where id > %s order by id desc;", (max_raffle_id_yesterday, )
+        )
         total_id_list = [r[0] for r in result]
 
         target_count = total_id_list[0] - max_raffle_id_yesterday
         miss = target_count - len(total_id_list)
 
         result = await AsyncMySQL.execute(
-            "select gift_type, count(id) from raffle where id > %s group by 1;", (345652,)
+            "select gift_type, count(id) from raffle where id > %s group by 1;", (max_raffle_id_yesterday, )
         )
 
         gift_list = {}
