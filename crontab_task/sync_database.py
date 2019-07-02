@@ -18,7 +18,7 @@ class SyncTool(object):
     async def sync_valuable_live_room(cls):
         query = await AsyncMySQL.execute(
             "select real_room_id from biliuser "
-            "where guard_count > 30 or attention > 10000 or real_room_id != short_room_id "
+            "where guard_count > 20 or attention > 10000 or real_room_id != short_room_id "
             "order by guard_count desc, attention desc ;"
         )
         room_id = {row[0] for row in query}
