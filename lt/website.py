@@ -104,8 +104,8 @@ async def api(request):
             })
         if blocked_datetime:
             title = (
-                f"<h3>系统发现你在{str(blocked_datetime)[:19]}时，被关进了小黑屋</h3>"
-                f"<p>目前挂辣条暂停中。稍后会再探测你是否被放出小黑屋</p>"
+                f"<h3>系统在{str(blocked_datetime)[:19]}发现你被关进了小黑屋</h3>"
+                f"<p>目前挂辣条暂停中。稍后会再探测</p>"
                 f"<p>最后一次抽奖时间：{str(most_recently)}</p>"
                 f"<p>最近24小时内的领奖统计：</p>"
             )
