@@ -1,11 +1,8 @@
 import time
 import logging
 import asyncio
-import aioredis
 
 from config.log4 import crontab_task_logger as logging
-from config import REDIS_CONFIG
-from utils.model import LiveRoomInfo, objects
 from utils.dao import ValuableLiveRoom
 from utils.db_raw_query import AsyncMySQL
 
