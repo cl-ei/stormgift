@@ -54,7 +54,7 @@ async def proc_message(message):
         deco = d[1] if d else "undefined"
         logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
 
-        if msg in ("总督", "提督", "舰长", "小电视"):
+        if msg in ("总督", "提督", "舰长", "低保"):
             await send_danmaku("|･ω･｀) 查看下方的主播简介哦")
 
         elif "中奖" in msg and "查询" in msg:
