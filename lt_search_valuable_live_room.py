@@ -24,7 +24,35 @@ async def search_short_number():
     )
     room_id_list = [row[0] for row in query]
 
-    for room_id in room_id_list:
+    query = await AsyncMySQL.execute(
+        (
+            "select distinct room_id, count(id) "
+            "from guard "
+            "where room_id not in (select real_room_id from biliuser where room_info_update_time >= %s) "
+            "group by room_id order by 2 desc;"
+        ), (datetime.datetime.now() - datetime.timedelta(days=2))
+    )
+    room_id_list2 = [row[0] for row in query]
+
+    finnal_list = []
+    while True:
+        if not room_id_list:
+            break
+        else:
+            finnal_list.append(room_id_list.pop())
+
+        if not room_id_list2:
+            break
+        else:
+            finnal_list.append(room_id_list2.pop())
+    finnal_list.extend(room_id_list + room_id_list2)
+    search_list = []
+    for room_id in finnal_list:
+        if room_id not in search_list:
+            search_list.append(room_id)
+
+    logging.info(f"Start searching, total count: {len(search_list)}")
+    for room_id in search_list:
         req_url = F"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
         flag, response = await BiliApi.get(req_url, timeout=10, check_error_code=True)
         if flag and response["code"] in (0, "0"):
@@ -74,8 +102,9 @@ async def search_short_number():
 
 async def main():
     await objects.connect()
-
-    await search_short_number()
+    while True:
+        await search_short_number()
+        await asyncio.sleep(180)
 
 
 loop = asyncio.get_event_loop()
