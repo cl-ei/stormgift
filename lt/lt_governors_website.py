@@ -7,6 +7,8 @@ import datetime
 from aiohttp import web
 from utils.model import GiftRec, User, RaffleRec, LiveRoomInfo
 from utils.model import objects as db_objects
+from utils.reconstruction_model import Raffle
+from utils.db_raw_query import AsyncMySQL
 
 
 gift_price_map = {
@@ -262,71 +264,73 @@ async def query_raffles(request):
     if time.time() < Cache.raffle_e_tag + 300:
         raffle_data = Cache.raffle_data
     else:
-        records = await objects.execute(RaffleRec.select(
-            RaffleRec.room_id,
-            RaffleRec.raffle_id,
-            RaffleRec.gift_name,
-            RaffleRec.user_obj_id,
-            RaffleRec.created_time,
-        ).where(
-            RaffleRec.created_time > (datetime.datetime.now() - datetime.timedelta(hours=48))
-        ))
-        sender_user_obj_id = await objects.execute(
-            GiftRec.select(
-                GiftRec.gift_id, GiftRec.sender_id
-            ).where(
-                GiftRec.gift_id.in_([r.raffle_id for r in records])
-            )
+        start_date = datetime.datetime.now() - datetime.timedelta(hours=48)
+        records = await AsyncMySQL.execute(
+            (
+                "select id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, prize_gift_name, expire_time "
+                "from raffle "
+                "where expire_time >= %s "
+                "order by id desc ;"
+            ), (start_date, )
         )
-        live_room_info = await objects.execute(
-            LiveRoomInfo.select(
-                LiveRoomInfo.short_room_id,
-                LiveRoomInfo.real_room_id,
-                LiveRoomInfo.user_id,
-            ).where(
-                LiveRoomInfo.real_room_id.in_([g.room_id for g in records])
-            )
-        )
-        live_room_dict = {l.real_room_id: (l.short_room_id, l.user_id) for l in live_room_info}
+        user_obj_id_list = []
+        room_id_list = []
+        for row in records:
 
-        users = await objects.execute(
-            User.select(User.id, User.uid, User.name).where(
-                User.id.in_([r.user_obj_id for r in records] + [s.sender_id for s in sender_user_obj_id])
-                | User.uid.in_([r.user_id for r in live_room_info])
-            )
-        )
-        user_dict = {u.id: (u.uid, u.name) for u in users}
-        uid_to_uname_dict = {u.uid: u.name for u in users}
-        sender_dict = {s.gift_id: user_dict[s.sender_id] for s in sender_user_obj_id}
+            id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, prize_gift_name, expire_time = row
 
+            room_id_list.append(room_id)
+            user_obj_id_list.append(sender_obj_id)
+            user_obj_id_list.append(winner_obj_id)
+
+        users = await AsyncMySQL.execute(
+            (
+                "select id, uid, name, short_room_id, real_room_id "
+                "from biliuser "
+                "where id in %s or real_room_id in %s "
+                "order by id desc ;"
+            ), (user_obj_id_list, room_id_list)
+        )
+        room_id_map = {}
+        user_obj_id_map = {}
+        for row in users:
+            id, uid, name, short_room_id, real_room_id = row
+            if short_room_id and real_room_id:
+                room_id_map[real_room_id] = (short_room_id, name)
+            user_obj_id_map[id] = (uid, name)
+
+        print(users[:10])
         raffle_data = []
-        for r in records:
+        for row in records:
+            id, real_room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, prize_gift_name, expire_time = row
 
-            sender_uid, sender_name = sender_dict.get(r.raffle_id, ("", ""))
-
-            this_live_room = live_room_dict.get(r.room_id)
-            if this_live_room:
-                short_room_id = "-" if this_live_room[0] == r.room_id else this_live_room[0]
-                master_uid = this_live_room[1]
-                master_uname = uid_to_uname_dict.get(master_uid, "")
-            else:
+            short_room_id, master_uname = room_id_map.get(real_room_id, (None, ""))
+            if short_room_id is None:
                 short_room_id = ""
-                master_uname = ""
+            elif short_room_id == real_room_id:
+                short_room_id = "-"
+
+            if winner_obj_id:
+                user_id, user_name = user_obj_id_map[winner_obj_id]
+            else:
+                user_id, user_name = "", ""
+
+            sender_uid, sender_name = user_obj_id_map[sender_obj_id]
 
             info = {
                 "short_room_id": short_room_id,
-                "real_room_id": r.room_id,
-                "raffle_id": r.raffle_id,
-                "gift_name": r.gift_name,
-                "created_time": r.created_time,
-                "user_id": user_dict[r.user_obj_id][0],
-                "user_name": user_dict[r.user_obj_id][1],
+                "real_room_id": real_room_id,
+                "raffle_id": id,
+                "gift_name": (gift_name.replace("抽奖", "") + "-" + gift_type) or "",
+                "prize_gift_name": prize_gift_name or "",
+                "created_time": expire_time,
+                "user_id": user_id,
+                "user_name": user_name,
                 "master_uname": master_uname,
                 "sender_uid": sender_uid,
                 "sender_name": sender_name,
             }
-            raffle_data.insert(0, info)
-        # result.sort(key=lambda x: x["created_time"])
+            raffle_data.append(info)
 
         Cache.raffle_data = raffle_data
         Cache.raffle_e_tag = time.time()
@@ -398,11 +402,12 @@ async def query_raffles(request):
             <th>短房间号</th>
             <th>原房间号</th>
             <th>主播</th>
+            <th>高能</th>
+            <th>提供者uid</th>
+            <th>提供者</th>
             <th>奖品</th>
-            <th>获奖用户uid</th>
-            <th>获奖用户名</th>
-            <th>奖品提供者uid</th>
-            <th>奖品提供用户名</th>
+            <th>获奖uid</th>
+            <th>获奖者</th>
             <th>中奖时间</th>
             </tr>
             {% for r in raffle_data %}
@@ -412,10 +417,11 @@ async def query_raffles(request):
                 <td>{{ r.real_room_id }}</td>
                 <td>{{ r.master_uname }}</td>
                 <td>{{ r.gift_name }}</td>
-                <td>{{ r.user_id }}</td>
-                <td>{{ r.user_name }}</td>
                 <td>{{ r.sender_uid }}</td>
                 <td>{{ r.sender_name }}</td>
+                <td>{{ r.prize_gift_name }}</td>
+                <td>{{ r.user_id }}</td>
+                <td>{{ r.user_name }}</td>
                 <td>{{ r.created_time }}</td>
             </tr>
             {% endfor %}
