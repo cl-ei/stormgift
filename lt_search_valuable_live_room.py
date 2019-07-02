@@ -1,8 +1,7 @@
 import asyncio
 import datetime
 from utils.biliapi import BiliApi
-import traceback
-from utils.model import GiftRec, LiveRoomInfo, objects
+from utils.model import objects
 from utils.reconstruction_model import BiliUser
 from config.log4 import lt_valuable_live_room_scanner_logger as logging
 from utils.db_raw_query import AsyncMySQL
