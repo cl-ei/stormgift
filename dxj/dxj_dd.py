@@ -100,6 +100,16 @@ async def proc_message(message):
                 danmaku = danmaku[30:]
                 await asyncio.sleep(0.5)
 
+        elif msg.strip() in ("船员", ):
+            result = await ReqFreLimitApi.get_guard_count()
+            r = "、".join([f"{v}个{k}" for k, v in result["gift_list"].items()])
+            danmaku = f"今日统计到{r}, 共{result['total']}个"
+
+            while danmaku:
+                await send_danmaku(danmaku[:30])
+                danmaku = danmaku[30:]
+                await asyncio.sleep(0.5)
+
     elif cmd == "SEND_GIFT":
         data = message.get("data")
 
