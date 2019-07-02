@@ -1,36 +1,34 @@
-import sys
 import asyncio
 import datetime
+import jinja2
 from utils.dao import CookieOperator
 from utils.biliapi import BiliApi
-from utils.model import objects, GiftRec, LiveRoomInfo
+from utils.db_raw_query import AsyncMySQL
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
-template = """
+template_text = """
 <div class="room-introduction">
 <div class="room-introduction-scroll-wrapper">
 <div class="room-introduction-content p-relative">
-
 <div style="height: 100%; width: 25%; float: right;">
-<a href="https://space.bilibili.com/20932326" 
-    target="_blank">
-    <span style="
-        background: url('https://i0.hdslb.com/bfs/face/e0928eee0443ea39c3e0e30ffd01f3bf5ceec9cd.jpg') no-repeat; 
-        margin: 5% 10% 0%; 
-        background-size: 160px 160px; 
-        background-color: #ffffff; 
-        box-shadow: 0 0 10px #a4a4a4; 
-        width: 160px; height: 160px; 
-        float: left; 
-        border-radius: 50%;">
-    </span>
+<a href="https://space.bilibili.com/20932326" target="_blank">
+  <span style="
+    background: url('https://i0.hdslb.com/bfs/face/e0928eee0443ea39c3e0e30ffd01f3bf5ceec9cd.jpg') no-repeat; 
+    margin: 5% 10% 0%; 
+    background-size: 160px 160px; 
+    background-color: #ffffff; 
+    box-shadow: 0 0 10px #a4a4a4; 
+    width: 160px; height: 160px; 
+    float: left; 
+    border-radius: 50%;">
+  </span>
 </a>
 <span style="float: right; margin: 4% 4% 0%; 
-    font-size: 12px; font-weight: bold;
-    width: 100%; text-align: center; 
-    text-shadow: 1px 1px 1px #FFF;"
+  font-size: 12px; font-weight: bold;
+  width: 100%; text-align: center; 
+  text-shadow: 1px 1px 1px #FFF;"
 >
   <span>机器人开发者:</span>
   <a style="color: #7a91f3; text-shadow: 1px 1px 1px #FFF;" 
@@ -58,37 +56,35 @@ template = """
   </p>
 </div>
 
-<div><p>更新时间: {date_time_str}</p></div>
-<div><ol style="color: #7a91f3">{content}</ol></div>
-</div>
-</div>
-</div>
+<div><p>更新时间: {{ update_time }}</p></div>
+<div><ol style="color: #7a91f3">
+{% for row in guard_list %}<li><a href="https://live.bilibili.com/{{ row.room_id }}" target="_blank">
+{{ row.room_id }}: {{ row.prompt }}，{{ row.intimacy }}点亲密度</a></li>
+{% endfor %}
+</ol></div></div></div></div>
 """
 
 
 async def gen_intro():
-    await objects.connect()
-    r = await objects.execute(GiftRec.select(
-        GiftRec.room_id,
-        GiftRec.gift_name
-    ).where(
-        (GiftRec.expire_time > datetime.datetime.now())
-        & (GiftRec.gift_name.in_(("舰长", "提督", "总督")))
-    ))
-
-    live_room_info = await objects.execute(
-        LiveRoomInfo.select(LiveRoomInfo.short_room_id, LiveRoomInfo.real_room_id).where(
-            LiveRoomInfo.real_room_id.in_([x.room_id for x in r])
-        )
+    now = datetime.datetime.now()
+    guard_query = await AsyncMySQL.execute(
+        "select room_id, gift_name from guard where expire_time > %s and gift_name in %s;",
+        (now, ("舰长", "提督", "总督"))
     )
-    live_room_dict = {l.real_room_id: l.short_room_id for l in live_room_info}
-    await objects.close()
+
+    room_id_list = [row[0] for row in guard_query]
+    live_room_info = await AsyncMySQL.execute(
+        "select short_room_id, real_room_id from biliuser where real_room_id in %s;",
+        (room_id_list, )
+    )
+    real_to_short_dict = {row[1]: row[0] for row in live_room_info}
 
     gifts = {}
-    for e in r:
-        gifts.setdefault(e.room_id, []).append(e.gift_name)
+    for row in guard_query:
+        room_id, gift_name = row
+        gifts.setdefault(room_id, []).append(gift_name)
 
-    result = []
+    guard_list = []
     for room_id, gifts_list in gifts.items():
         display = []
         intimacy = 0
@@ -106,25 +102,20 @@ async def gen_intro():
             display.append(f"{len(j)}个舰长")
             intimacy += len(j)
 
-        result.append((live_room_dict.get(room_id, room_id), "、".join(display), intimacy))
-    result.sort(key=lambda x: (x[2], -x[0]), reverse=True)
+        guard_list.append({
+            "room_id": real_to_short_dict.get(room_id, room_id),
+            "prompt": "、".join(display),
+            "intimacy": intimacy
+        })
+    guard_list.sort(key=lambda x: (x["intimacy"], -x["room_id"]), reverse=True)
 
-    content = [
-        (
-            f'<li>'
-            f'<a href="https://live.bilibili.com/{x[0]}" target="_blank">'
-            f'{x[0]}: {x[1]}，{x[2]}点亲密度'
-            f'</a>'
-            f'</li>'
-        ) for x in result
-    ]
-    date_time_str = str(datetime.datetime.now())[:23]
-    return template.replace("{date_time_str}", date_time_str).replace("{content}", "".join(content))
+    context = {"guard_list": guard_list, "update_time": str(datetime.datetime.now())[:19]}
+    return jinja2.Template(template_text).render(context)
 
 
 async def main():
-    cookie = CookieOperator.get_cookie_by_uid(user_id="DD")
     intro = await gen_intro()
+    cookie = CookieOperator.get_cookie_by_uid(user_id="DD")
     r = await BiliApi.update_brief_intro(cookie=cookie, description=intro)
     print(r)
 
