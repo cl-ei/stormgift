@@ -103,21 +103,24 @@ async def api(request):
                 "count": count
             })
         if blocked_datetime:
-            main_title = f"<h3>你在{blocked_datetime}时发现被关进了小黑屋。系统会稍后再探测，目前挂辣条暂停中。</h3>"
+            title = (
+                f"<h3>系统发现你在{str(blocked_datetime)[:19]}时，被关进了小黑屋</h3>"
+                f"<p>目前挂辣条暂停中。稍后会再探测你是否被放出小黑屋</p>"
+                f"<p>最后一次抽奖时间：{str(most_recently)}</p>"
+                f"<p>最近24小时内的领奖统计：</p>"
+            )
         else:
-            main_title = f"<h3>你现在正常领取辣条中</h3>"
-        title = (
-            f"{main_title}"
-            f"<p>最后一次抽奖时间：{str(most_recently)}</p>"
-            f"<p>最近24小时内的领奖统计：</p>"
-        )
+            title = (
+                f"<h3>你现在正常领取辣条中</h3>"
+                f"<p>最后一次抽奖时间：{str(most_recently)}</p>"
+                f"<p>最近24小时内的领奖统计：</p>"
+            )
 
         context = {
             "CDN_URL": CDN_URL,
             "query": True,
             "raffle_result": raffle_result,
             "title": title,
-            "query": True,
         }
         return render_to_response("lt/website_homepage.html", context=context)
 
