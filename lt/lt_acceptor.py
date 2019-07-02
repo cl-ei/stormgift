@@ -3,8 +3,9 @@ import time
 import asyncio
 import traceback
 from random import random
-from utils.dao import BiliUserInfoCache, RaffleMessageQ
+from utils.dao import BiliUserInfoCache, RaffleMessageQ, redis_cache
 from utils.biliapi import BiliApi
+from utils.reconstruction_model import UserRaffleRecord, objects
 from config.log4 import acceptor_logger as logging
 
 
@@ -102,7 +103,14 @@ class Acceptor(object):
         r, msg = await BiliApi.join_tv(room_id, gift_id, cookie)
         user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
         if r:
-            logging.info(f"TV AC SUCCESS! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
+            try:
+                info = await redis_cache.get(f"T${room_id}${gift_id}")
+                gift_name = info["gift_name"]
+                r = await UserRaffleRecord.create(user_id, gift_name, gift_id)
+            except Exception as e:
+                r = f"{e}"
+            logging.info(f"TV SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
+
         else:
             if "访问被拒绝" in msg:
                 await self.add_to_block_list(cookie)
@@ -121,7 +129,23 @@ class Acceptor(object):
         r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
         user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
         if r:
-            logging.info(f"GUARD AC SUCCESS! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
+            try:
+                info = await redis_cache.get(f"G${room_id}${gift_id}")
+                privilege_type = info["privilege_type"]
+                if privilege_type == 3:
+                    gift_name = "舰长"
+                elif privilege_type == 2:
+                    gift_name = "提督"
+                elif privilege_type == 2:
+                    gift_name = "总督"
+                else:
+                    gift_name = "大航海"
+                r = await UserRaffleRecord.create(user_id, gift_name, gift_id)
+            except Exception as e:
+                r = f"{e}"
+
+            logging.info(f"GUARD SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
+
         else:
             if "访问被拒绝" in msg:
                 await self.add_to_block_list(cookie)
@@ -201,6 +225,8 @@ class Acceptor(object):
 
 async def main():
     logging.warning("Starting LT acceptor process...")
+    await objects.connect()
+
     acceptor = Acceptor()
     await acceptor.run()
     logging.warning("LT acceptor process shutdown!")
