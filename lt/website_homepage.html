@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html class="no-js" lang="zh-CN">
 <head>
@@ -26,24 +24,30 @@
         <label>bili_jct=<input class="redinput" type="text" name="bili_jct"></label>
         <label>异常情况通知邮箱=<input class="redinput" type="text" name="email"></label>
         <button class="button center" id="submit-cookie">我要挂辣条！</button>
-        <button class="button center" id="submit-query">查询挂机状态</button>
     </div>
 </div>
 <div>
     <hr>
     <p><strong>
-        这是一个免费挂辣条的网站，包括每日签到、应援团签到、双端直播任务签到、直播挂机升UL、舰长亲密度、高能/小电视辣条领取。你要先把你的B站uid通过QQ告诉站长，他允许你使用之后，你按照下面的教程，把你账号信息填写在这里就可以了。
+        这是一个免费挂辣条的网站。包括每日签到、应援团签到、双端直播任务签到、直播挂机升UL、舰长亲密度、高能/小电视辣条领取。你要先把你的B站uid通过QQ告诉站长，他允许你使用之后，你按照下面的教程，把你账号信息填写在这里就可以了。
     </strong></p>
     <p><strong style="color: red;">
-        凡是在这里挂辣条的，都有概率进小黑屋，领取辣条时会提示"访问已拒绝"。如果你要在这里挂辣条，就自行承担风险，出现小黑屋、账号封禁等情况本站概不负责，不能接受的同学请自行离开。在这里已经正常领辣条的同学，如果不想继续挂了，QQ上联系站长发送你的uid即可。
+        凡是在这里挂辣条的，都有概率进小黑屋，领取辣条时会提示"访问已拒绝"！
+        <br />如果你要在这里挂辣条，就自行承担风险，出现小黑屋、账号封禁等情况本站概不负责，不能接受的同学请自行离开！
+        <br />在这里已经正常领辣条的同学，如果不想继续挂了，QQ上联系站长发送你的uid即可。
     </strong></p>
     <hr>
-    <h3>使用说明 （请参考最下面的一幅图）</h3>
+
+    <div>
+        <span style="font-size: 20px;font-weight: 600">查询挂机状态：</span>
+        <label>B站uid <input class="redinput" type="number" name="query-uid">
+            <button class="button center" id="submit-query">查询</button>
+        </label>
+    </div>
+    <hr>
+    <h3>使用说明：想要挂辣条，需要把你的「B站uid」、「SESSDATA」和「bili_jct」填写到上面。</h3>
+    <h3>「SESSDATA」和「bili_jct」要从浏览器中获取，具体方法如下: （请参考最下面的一幅图）</h3>
     <p>
-        1.如果只是想查看自己的账号挂辣条是否正常，只需要输入「B站uid」，然后点击「查询挂机状态」按钮即可。<strong style="color: red;">你的「B站uid」不是绑定的手机号！在bilibili网站「个人空间」的「直播间公告」下方可以查看。</strong>
-    </p><p>
-        2.想要挂辣条，需要把你的「B站uid」、「SESSDATA」和「bili_jct」填写到上面。「SESSDATA」和「bili_jct」要从浏览器中获取，具体方法是（下面条目对应的编号，就是图中的操作编号！）:
-    </p><p>
         ① 用chrome浏览器（或者百度浏览器、360浏览器都可以）登录到破站
     </p><p>
         ② <strong>鼠标指针移动到页面空白的地方，点击鼠标右键</strong>，在弹出的菜单中点击「检查」或者「审查元素」，此时会弹出浏览器的调试框
@@ -103,13 +107,23 @@ $(function () {
         $("#prompt-modal").modal("show");
     }
     function query(){
-        let uid = parseInt($("input[name=uid]").val());
+        let uid = parseInt($("input[name=query-uid]").val());
         if (uid){
             console.log("uid")
         }else{
-            warning("错误的uid！")
+            warning("错误的uid！");
+            return;
         }
-        window.open("/lt" + uid);
+        $.ajax({
+            url: "/lt/api",
+            type: "post",
+            data: {
+                action: "query",
+                uid: uid,
+            },
+            success: function (data){warning(data)},
+            error: function (data) {warning(data)}
+        });
     }
     function submit(){
         let uid = $("input[name=uid]").val();
@@ -129,14 +143,14 @@ $(function () {
             url: "/lt/api",
             type: "post",
             data: {
-                action: "submit",
+                action: "add_cookie",
                 uid: uid,
                 SESSDATA: SESSDATA,
                 bili_jct: bili_jct,
                 email: email,
             },
             success: function (data){warning(data)},
-            error: function (data) {warning("网络错误!")}
+            error: function (data) {warning(data)}
         });
     }
     $("#modal-confirm-btn").click(function () {

@@ -3,7 +3,7 @@ import time
 import asyncio
 import traceback
 from random import random
-from utils.dao import BiliUserInfoCache, RaffleMessageQ, redis_cache
+from utils.dao import BiliUserInfoCache, RaffleMessageQ, AcceptorBlockedUser, redis_cache
 from utils.biliapi import BiliApi
 from utils.reconstruction_model import UserRaffleRecord, objects
 from config.log4 import acceptor_logger as logging
@@ -38,6 +38,9 @@ class Acceptor(object):
         return True
 
     async def add_to_block_list(self, cookie):
+        user_id = int(re.findall(r"DedeUserID=(\d+)", cookie)[0])
+        await AcceptorBlockedUser.add(user_id)
+
         self.__block_list[cookie] = time.time()
         user_ids = re.findall(r"DedeUserID=(\d+)", "".join(self.__block_list.keys()))
         block_display_str = ", ".join([

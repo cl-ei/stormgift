@@ -1,3 +1,4 @@
+import re
 import time
 import json
 import pickle
@@ -134,6 +135,36 @@ class CookieOperator(object):
     WHITE_UID_LIST_FILE = "data/lt_white_uid_list.txt"
 
     @classmethod
+    def get_white_uid_list(cls):
+        with open(cls.WHITE_UID_LIST_FILE) as f:
+            uid_list = [_.strip() for _ in f.readlines()]
+            uid_list = {int(_) for _ in uid_list if _}
+        return uid_list
+
+    @classmethod
+    def add_cookie(cls, cookie, cookie_type):
+        if cookie_type == "vip":
+            file = cls.VIP_COOKIE_FILE
+        elif cookie_type == "valid":
+            file = cls.VALID_COOKIE_FILE
+        elif cookie_type == "raw":
+            file = cls.RAW_COOKIE_FILE
+        else:
+            return False
+
+        user_id = re.findall(r"DedeUserID=(\d+)", cookie)[0]
+
+        with open(file) as f:
+            cookies = [c.strip() for c in f.readlines()]
+        new_list = [cookie]
+        for c in cookies:
+            if f"={user_id};" not in c:
+                new_list.append(c)
+        with open(file, "w") as f:
+            f.write("\n".join(new_list))
+        return True
+
+    @classmethod
     def delete_cookie_by_uid(cls, user_id):
         check_str = f"={user_id};"
         for file_name in cls.COOKIE_FILES:
@@ -196,6 +227,20 @@ class CookieOperator(object):
             if f"={user_id};" in c:
                 return c.strip()
         return ""
+
+
+class AcceptorBlockedUser(object):
+    _key = "ACCEPTOR_BLOCKED_USER_"
+
+    @classmethod
+    async def add(cls, user_id):
+        key = cls._key + str(user_id)
+        return await redis_cache.set(key, datetime.datetime.now(), timeout=3600*12)
+
+    @classmethod
+    async def get_blocked_datetime(cls, user_id):
+        key = cls._key + str(user_id)
+        return await redis_cache.get(key)
 
 
 class BiliUserInfoCache(object):

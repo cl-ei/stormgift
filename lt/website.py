@@ -1,23 +1,10 @@
+import datetime
 from jinja2 import Template
 from aiohttp import web
 from utils.biliapi import BiliApi
+from utils.dao import CookieOperator, AcceptorBlockedUser
+from utils.db_raw_query import AsyncMySQL
 from config import CDN_URL
-
-
-def load_lt_white_uid_list():
-    with open("data/lt_white_uid_list.txt") as f:
-        records = f.readlines()
-
-    uid_list = []
-    for uid in records:
-        try:
-            uid = int(uid.strip())
-            assert uid > 0
-        except Exception:
-            continue
-        else:
-            uid_list.append(uid)
-    return uid_list
 
 
 def render_to_response(template, context=None):
@@ -31,57 +18,25 @@ def render_to_response(template, context=None):
     return web.Response(text=template.render(context or {}), content_type="text/html")
 
 
-async def handle(request):
-    context = {
-        "CDN_URL": CDN_URL,
-    }
-    return render_to_response("lt/website_homepage.html", context=context)
-
-
-async def query(request):
-    raw_uid = request.match_info['uid']
-    try:
-        uid = int("".join(raw_uid.split()))
-        assert uid > 0
-    except Exception:
-        return web.Response(text=f"错误的uid: {raw_uid}, 重新输入!")
-
-    if uid not in load_lt_white_uid_list():
-        return web.Response(text=f"{uid} 你没有权限！! 联系站长把你加到白名单才能领辣条哦。")
-
-    with open("data/valid_cookies.txt", "r") as f:
-        cookie_list = [c.strip() for c in f.readlines()]
-
-    user_cookie = ""
-    char = f"DedeUserID={uid};"
-    for cookie in cookie_list:
-        if char in cookie:
-            user_cookie = cookie
-            break
-    if not user_cookie:
-        return web.Response(text=f"用户（uid: {uid}）尚未配置，没开始领辣条。")
-
-    r, data = await BiliApi.do_sign(user_cookie)
-    if not r and "登录" in data:
-        return web.Response(text=f"用户（uid: {uid}）已过期！请重新配置！！！")
-
+async def lt(request):
     context = {"CDN_URL": CDN_URL}
-    return render_to_response("lt/website_console.html", context=context)
+    return render_to_response("lt/website_homepage.html", context=context)
 
 
 async def api(request):
     data = await request.post()
-    action = data["action"]
-    uid = data['uid']
-    try:
-        uid = int("".join(uid.split()))
-    except Exception:
-        return web.Response(text="错误的uid!")
 
-    if uid not in load_lt_white_uid_list():
-        return web.Response(text=f"uid {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
+    action = data.get("action")
+    if action == "add_cookie":
+        uid = data['uid']
+        try:
+            uid = int("".join(uid.split()))
+        except Exception:
+            return web.Response(text="错误的uid!")
 
-    if action == "submit":
+        if uid not in CookieOperator.get_white_uid_list():
+            return web.Response(text=f"uid {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
+
         SESSDATA = data['SESSDATA']
         bili_jct = data['bili_jct']
         email = data["email"]
@@ -96,50 +51,81 @@ async def api(request):
             return web.Response(text=f"用户（uid: {uid}）你输入的数据不正确！！请检查后重新配置！！！")
 
         if is_vip:
-            with open("data/vip_cookies.txt") as f:
-                cookies = [c.strip() for c in f.readlines()]
-
-            new_vip_list = [user_cookie]
-            for c in cookies:
-                if f"{uid};" not in c:
-                    new_vip_list.append(c)
-
-            with open("data/vip_cookies.txt", "w") as f:
-                f.write("\n".join(new_vip_list))
-
-        # 刷新RAW
-        with open("data/cookies.txt") as f:
-            cookies = [c.strip() for c in f.readlines()]
-        raw_cookies = [user_cookie]
-        for c in cookies:
-            if f"{uid};" not in c:
-                raw_cookies.append(c)
-        with open("data/cookies.txt", "w") as f:
-            f.write("\n".join(raw_cookies))
-
-        # 刷新vaild
-        with open("data/valid_cookies.txt") as f:
-            cookies = [c.strip() for c in f.readlines()]
-
-        valid_cookies = [user_cookie]
-        for c in cookies:
-            if f"{uid};" not in c:
-                valid_cookies.append(c)
-
-        with open("data/valid_cookies.txt", "w") as f:
-            f.write("\n".join(valid_cookies))
-
+            CookieOperator.add_cookie(user_cookie, "vip")
+        CookieOperator.add_cookie(user_cookie, "raw")
+        CookieOperator.add_cookie(user_cookie, "valid")
         return web.Response(text=f"用户（uid: {uid}）配置成功！")
 
-    else:
-        return web.Response(text="错误的请求")
+    elif action == "query":
+        uid = data['uid']
+        # -------------- query ! --------------
+        try:
+            uid = int("".join(uid.split()))
+            assert uid > 0
+        except Exception:
+            return web.Response(text=f"错误的uid: {uid}, 重新输入!")
 
+        if uid not in CookieOperator.get_white_uid_list():
+            return web.Response(text=f"{uid} 你没有权限！! 联系站长把你加到白名单才能领辣条哦。")
+
+        user_cookie = CookieOperator.get_cookie_by_uid(uid)
+        if not user_cookie:
+            return web.Response(text=f"用户（uid: {uid}）尚未配置，没开始领辣条。")
+
+        r, data = await BiliApi.do_sign(user_cookie)
+        if not r and "登录" in data:
+            return web.Response(text=f"用户（uid: {uid}）已过期！请重新配置！！！")
+
+        blocked_datetime = await AcceptorBlockedUser.get_blocked_datetime(uid)
+
+        most_recently = await AsyncMySQL.execute(
+            (
+                "select created_time from userrafflerecord where user_id = %s order by created_time desc limit 1;"
+            ), (uid,)
+        )
+        if most_recently:
+            most_recently = most_recently[0][0]
+        else:
+            most_recently = "未查询到记录"
+
+        rows = await AsyncMySQL.execute(
+            (
+                "select gift_name, count(raffle_id) "
+                "from userrafflerecord "
+                "where user_id = %s and created_time >= %s "
+                "group by gift_name;"
+            ), (uid, datetime.datetime.now() - datetime.timedelta(hours=24))
+        )
+        raffle_result = []
+        for gift_name, count in rows:
+            raffle_result.append({
+                "gift_name": gift_name,
+                "count": count
+            })
+        if blocked_datetime:
+            main_title = f"<h3>你在{blocked_datetime}时发现被关进了小黑屋。系统会稍后再探测，目前挂辣条暂停中。</h3>"
+        else:
+            main_title = f"<h3>你现在正常领取辣条中</h3>"
+        title = (
+            f"{main_title}"
+            f"<p>最后一次抽奖时间：{str(most_recently)}</p>"
+            f"<p>最近24小时内的领奖统计：</p>"
+        )
+
+        context = {
+            "CDN_URL": CDN_URL,
+            "query": True,
+            "raffle_result": raffle_result,
+            "title": title
+        }
+        return render_to_response("lt/website_query.html", context=context)
+
+    else:
+        return web.Response(text=f"X")
 
 app = web.Application()
 app.add_routes([
-    web.get('/lt', handle),
-    web.get('/lt{uid}', query),
+    web.get('/lt', lt),
     web.post('/lt/api', api),
-
 ])
 web.run_app(app, port=1024)
