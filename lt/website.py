@@ -116,9 +116,10 @@ async def api(request):
             "CDN_URL": CDN_URL,
             "query": True,
             "raffle_result": raffle_result,
-            "title": title
+            "title": title,
+            "query": True,
         }
-        return render_to_response("lt/website_query.html", context=context)
+        return render_to_response("lt/website_homepage.html", context=context)
 
     else:
         return web.Response(text=f"X")

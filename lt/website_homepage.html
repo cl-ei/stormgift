@@ -1,3 +1,21 @@
+{% if query %}
+
+<div>{{ title }}</div>
+<table>
+    <tr>
+    <th>抽奖累型</th>
+    <th>参与次数</th>
+    </tr>
+    {% for r in raffle_result %}
+    <tr>
+        <td>{{ r.gift_name }}</td>
+        <td>{{ r.count }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% else %}
+
 <!DOCTYPE html>
 <html class="no-js" lang="zh-CN">
 <head>
@@ -13,6 +31,38 @@
     <link rel="stylesheet" href="{{ CDN_URL }}/static/css/jstree.min.css">
     <link rel="stylesheet" href="{{ CDN_URL }}/static/notebook/jstree.custom.css">
     <link rel="stylesheet" href="{{ CDN_URL }}/static/notebook/main.css">
+    <style>
+        table{
+            width: 100%;
+            max-width: 1600px;
+            margin-bottom: 20px;
+            border: 1px solid #7a7a7a;
+            border-collapse: collapse;
+            border-left: none;
+            word-break: normal;
+            line-height: 30px;
+            text-align: center;
+        }
+        tr, th, td{
+            border: 1px solid #7a7a7a;
+            text-align: center;
+        }
+        input{
+            text-align: center;
+        }
+        button{
+            border: none;
+            background: #ccc;
+            padding: 6px 12px;
+            margin-top: 15px;
+            outline: none;
+            transition: all 0.3s ease-out;
+            cursor: pointer;
+        }button:hover{
+            background: #777;
+            color: #fff;
+        }
+    </style>
     <script>window.CDN_URL = "{{ CDN_URL }}";</script>
 </head>
 
@@ -162,3 +212,4 @@ $(function () {
 </script>
 </body>
 </html>
+{% endif %}
