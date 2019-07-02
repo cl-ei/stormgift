@@ -97,8 +97,8 @@ async def proc_message(message):
 
             while danmaku:
                 await send_danmaku(danmaku[:30])
-                msg = msg[30:]
-                await asyncio.sleep(1)
+                danmaku = danmaku[30:]
+                await asyncio.sleep(0.5)
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")
