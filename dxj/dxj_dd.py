@@ -89,6 +89,17 @@ async def proc_message(message):
                 msg = msg[29:]
                 await asyncio.sleep(1)
 
+        elif msg.strip() in ("小电视", "高能", "摩天大楼", "统计"):
+            result = await ReqFreLimitApi.get_raffle_count()
+            r = "、".join([f"{v}个{k}" for k, v in result["gift_list"].items()])
+            miss = f"漏{result['miss']}个" if result["miss"] > 0 else "没有遗漏"
+            danmaku = f"今日统计到{r}, 共{result['total']}个，{miss}"
+
+            while danmaku:
+                await send_danmaku(danmaku[:30])
+                msg = msg[30:]
+                await asyncio.sleep(1)
+
     elif cmd == "SEND_GIFT":
         data = message.get("data")
 

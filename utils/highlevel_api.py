@@ -5,6 +5,8 @@ from utils.biliapi import BiliApi
 from utils.dao import CookieOperator
 from utils.model import objects, User, RaffleRec
 from config.log4 import bili_api_logger as logging
+from utils.reconstruction_model import Raffle
+from utils.db_raw_query import AsyncMySQL
 
 
 class ReqFreLimitApi(object):
@@ -74,3 +76,45 @@ class ReqFreLimitApi(object):
         for r in raffles:
             results.append((user_obj.name, r.room_id, r.gift_name, r.created_time))
         return results
+
+    @classmethod
+    async def get_raffle_count(cls):
+        result = await AsyncMySQL.execute(
+            "select id from raffle where expire_time < %s order by id desc limit 1;",
+            (datetime.date.today(),)
+        )
+        max_raffle_id_yesterday = result[0][0]
+
+        result = await AsyncMySQL.execute("select id from raffle where id > %s order by id desc;", (345652,))
+        total_id_list = [r[0] for r in result]
+
+        target_count = total_id_list[0] - max_raffle_id_yesterday
+        miss = target_count - len(total_id_list)
+
+        result = await AsyncMySQL.execute(
+            "select gift_type, count(id) from raffle where id > %s group by 1;", (345652,)
+        )
+
+        gift_list = {}
+        total_gift_count = 0
+        for row in result:
+            if row[0] == "GIFT_20003":
+                gift_name = "大楼"
+            elif row[0] == "GIFT_30035":
+                gift_name = "任意门"
+            elif row[0] == "GIFT_30207":
+                gift_name = "幻月之声"
+            elif row[0] == "small_tv":
+                gift_name = "小电视"
+            else:
+                gift_name = "其他高能"
+
+            gift_list[gift_name] = row[1]
+            total_gift_count += row[1]
+
+        return_data = {
+            "miss": miss,
+            "total": total_gift_count,
+            "gift_list": gift_list
+        }
+        return return_data
