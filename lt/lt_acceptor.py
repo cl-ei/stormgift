@@ -107,8 +107,9 @@ class Acceptor(object):
                 info = await redis_cache.get(f"T${room_id}${gift_id}")
                 gift_name = info["gift_name"]
                 r = await UserRaffleRecord.create(user_id, gift_name, gift_id)
+                r = f"obj.id: {r.id}"
             except Exception as e:
-                r = f"{e}"
+                r = f"UserRaffleRecord create Error: {e}"
             logging.info(f"TV SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
 
         else:
@@ -141,8 +142,9 @@ class Acceptor(object):
                 else:
                     gift_name = "大航海"
                 r = await UserRaffleRecord.create(user_id, gift_name, gift_id)
+                r = f"obj.id: {r.id}"
             except Exception as e:
-                r = f"{e}"
+                r = f"UserRaffleRecord create Error: {e}"
 
             logging.info(f"GUARD SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
 
