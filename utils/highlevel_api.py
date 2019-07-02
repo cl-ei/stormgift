@@ -80,7 +80,7 @@ class ReqFreLimitApi(object):
     @classmethod
     async def get_raffle_count(cls):
         result = await AsyncMySQL.execute(
-            "select id from raffle where expire_time < %s order by id desc limit 1;",
+            "select id from raffle where created_time < %s order by id desc limit 1;",
             (datetime.date.today(),)
         )
         max_raffle_id_yesterday = result[0][0]
@@ -112,6 +112,40 @@ class ReqFreLimitApi(object):
                 gift_name = "其他高能"
 
             gift_list[gift_name] = row[1]
+            total_gift_count += row[1]
+
+        return_data = {
+            "miss": miss,
+            "total": total_gift_count,
+            "gift_list": gift_list
+        }
+        return return_data
+
+    @classmethod
+    async def get_guard_count(cls):
+        max_id_yesterday = (await AsyncMySQL.execute(
+            "select id from guard where created_time < %s order by id desc limit 1;",
+            (datetime.date.today(),)
+        ))[0][0]
+        print("max_id_yesterday: %s" % max_id_yesterday)
+
+        result = await AsyncMySQL.execute(
+            "select id from guard where id > %s and created_time >= %s order by id desc;",
+            (max_id_yesterday, datetime.date.today(), )
+        )
+        total_id_list = [r[0] for r in result]
+
+        target_count = total_id_list[0] - max_id_yesterday
+        miss = target_count - len(total_id_list)
+
+        result = await AsyncMySQL.execute(
+            "select gift_name, count(id) from guard where id > %s group by 1;", (max_id_yesterday, )
+        )
+
+        gift_list = {}
+        total_gift_count = 0
+        for row in result:
+            gift_list[row[0]] = row[1]
             total_gift_count += row[1]
 
         return_data = {
