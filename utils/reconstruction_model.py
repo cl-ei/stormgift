@@ -85,6 +85,42 @@ class BiliUser(peewee.Model):
         objs = await objects.execute(BiliUser.select().where(BiliUser.uid == uid))
         return objs[0] if objs else None
 
+    @classmethod
+    async def full_create_or_update(
+            cls, uid, name, face, user_info_update_time, short_room_id, real_room_id, title,
+            create_at, attention, guard_count, room_info_update_time
+    ):
+        obj = await cls.get_by_uid(uid)
+        if obj:
+            obj.name = name
+            obj.face = face
+            obj.user_info_update_time = user_info_update_time
+            obj.short_room_id = short_room_id
+            obj.real_room_id = real_room_id
+            obj.title = title
+            obj.create_at = create_at
+            obj.attention = attention
+            obj.guard_count = guard_count
+            obj.room_info_update_time = room_info_update_time
+
+            await objects.update(obj)
+        else:
+            obj = await objects.create(
+                cls,
+                uid=uid,
+                name=name,
+                face=face,
+                user_info_update_time=user_info_update_time,
+                short_room_id=short_room_id,
+                real_room_id=real_room_id,
+                title=title,
+                create_at=create_at,
+                attention=attention,
+                guard_count=guard_count,
+                room_info_update_time=room_info_update_time
+            )
+        return obj
+
 
 class Guard(peewee.Model):
     id = peewee.IntegerField(primary_key=True)

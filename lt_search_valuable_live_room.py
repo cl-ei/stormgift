@@ -1,9 +1,11 @@
 import asyncio
 import datetime
 from utils.biliapi import BiliApi
+import traceback
 from utils.model import GiftRec, LiveRoomInfo, objects
+from utils.reconstruction_model import BiliUser
 from config.log4 import lt_valuable_live_room_scanner_logger as logging
-
+from utils.db_raw_query import AsyncMySQL
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
 TASK_START_HOUR = 2
@@ -12,69 +14,69 @@ TASK_SLEEP_HOUR = 18
 
 async def search_short_number():
     logging.info("Get room id list from db...")
-
-    condition = GiftRec.created_time >= datetime.datetime.now() - datetime.timedelta(days=60)
-    room_id_list = await objects.execute(GiftRec.select(GiftRec.room_id).where(condition).distinct())
-    room_id_list = {r.room_id for r in room_id_list}
-
-    condition = LiveRoomInfo.update_time > datetime.datetime.now() - datetime.timedelta(days=2)
-    updated_live_room_id_list = await objects.execute(
-        LiveRoomInfo.select(LiveRoomInfo.real_room_id).where(condition).distinct()
+    query = await AsyncMySQL.execute(
+        (
+            "select distinct room_id, count(id) "
+            "from raffle "
+            "where room_id not in (select real_room_id from biliuser where room_info_update_time >= %s) "
+            "group by room_id order by 2 desc;"
+        ), (datetime.datetime.now() - datetime.timedelta(days=2))
     )
-    updated_live_room_id_list = {r.real_room_id for r in updated_live_room_id_list}
+    room_id_list = [row[0] for row in query]
 
-    final_list = room_id_list - updated_live_room_id_list
-    logging.info(f"Final list: {len(final_list)}")
-
-    for room_id in final_list:
-        now_hour = datetime.datetime.now().hour
-        if not TASK_START_HOUR < now_hour < TASK_SLEEP_HOUR:
-            logging.warning("Enter sleep mode.")
-            return
-
-        live_room_info = {}
-
+    for room_id in room_id_list:
         req_url = F"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
-        flag, data = await BiliApi.get(req_url, timeout=10, check_error_code=True)
-        if flag and data["code"] in (0, "0"):
-            short_room_id = data["data"]["show_room_id"]
-            real_room_id = data["data"]["room_id"]
-            user_id = data["data"]["mid"]
+        flag, response = await BiliApi.get(req_url, timeout=10, check_error_code=True)
+        if flag and response["code"] in (0, "0"):
 
-            live_room_info["short_room_id"] = short_room_id
-            live_room_info["real_room_id"] = real_room_id
-            live_room_info["title"] = data["data"]["title"]
-            live_room_info["user_id"] = user_id
-            live_room_info["create_at"] = data["data"]["create_at"]
-            live_room_info["attention"] = data["data"]["attention"]
+            data = response["data"]
+            uid = data["mid"]
+            name = data["uname"]
+            face = data["face"]
+            user_info_update_time = datetime.datetime.now()
+            short_room_id = data["show_room_id"]
+            real_room_id = data["room_id"]
+            title = data["title"]
+            create_at = data["create_at"]
+            attention = data["attention"]
 
-            req_url = f"https://api.live.bilibili.com/guard/topList?roomid={real_room_id}&page=1&ruid={user_id}"
-            flag, data = await BiliApi.get(req_url, timeout=10, check_error_code=True)
+            req_url = f"https://api.live.bilibili.com/guard/topList?roomid={real_room_id}&page=1&ruid={uid}"
+            flag, guard_response = await BiliApi.get(req_url, timeout=10, check_error_code=True)
             if not flag:
-                logging.error(f"Error! e: {data}")
+                logging.error(f"Error! e: {guard_response}")
                 continue
+            guard_count = guard_response["data"]["info"]["num"]
 
-            live_room_info["guard_count"] = data["data"]["info"]["num"]
+            guard_count = guard_count
+            room_info_update_time = datetime.datetime.now()
 
-            flag, r = await LiveRoomInfo.update_live_room(**live_room_info)
-            logging.info(
-                f"Update {'success' if flag else 'Failed'}! room_id: "
-                f"{live_room_info['short_room_id']}->{live_room_info['real_room_id']}, "
-                f"title: `{live_room_info['title']}` r: {r}"
+            obj = await BiliUser.full_create_or_update(
+                uid=uid,
+                name=name,
+                face=face,
+                user_info_update_time=user_info_update_time,
+                short_room_id=short_room_id,
+                real_room_id=real_room_id,
+                title=title,
+                create_at=create_at,
+                attention=attention,
+                guard_count=guard_count,
+                room_info_update_time=room_info_update_time,
             )
-        await asyncio.sleep(20)
+
+            logging.info(
+                f"Update success ! room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
+                f" attention: {attention}, guard: {guard_count}, obj: {obj.id}"
+            )
+
+        await asyncio.sleep(5)
 
 
 async def main():
     await objects.connect()
 
-    while True:
-        now_hour = datetime.datetime.now().hour
-        if TASK_START_HOUR < now_hour < TASK_SLEEP_HOUR:
-            await search_short_number()
+    await search_short_number()
 
-        logging.warning("Now sleep...")
-        await asyncio.sleep(60*10)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
