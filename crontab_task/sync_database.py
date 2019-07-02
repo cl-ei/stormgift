@@ -17,7 +17,7 @@ class SyncTool(object):
     @classmethod
     async def sync_valuable_live_room(cls):
         query = await AsyncMySQL.execute(
-            "select distinct real_room_id from biliuser "
+            "select real_room_id from biliuser "
             "where guard_count > 30 or attention > 10000 or real_room_id != short_room_id "
             "order by guard_count desc, attention desc ;"
         )
