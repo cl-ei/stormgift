@@ -3,9 +3,7 @@ import asyncio
 import datetime
 from utils.biliapi import BiliApi
 from utils.dao import CookieOperator
-from utils.model import objects, User, RaffleRec
 from config.log4 import bili_api_logger as logging
-from utils.reconstruction_model import Raffle
 from utils.db_raw_query import AsyncMySQL
 
 
