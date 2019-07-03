@@ -7,7 +7,7 @@ import datetime
 from aiohttp import web
 from utils.model import GiftRec, User, RaffleRec, LiveRoomInfo
 from utils.model import objects as db_objects
-from utils.reconstruction_model import Raffle
+from utils.reconstruction_model import Raffle, Guard, BiliUser
 from utils.db_raw_query import AsyncMySQL
 
 
@@ -119,52 +119,60 @@ async def query_gifts(request):
     else:
         try:
             db_start_time = time.time()
-            records = await objects.execute(GiftRec.select(
-                GiftRec.room_id,
-                GiftRec.gift_id,
-                GiftRec.gift_name,
-                GiftRec.expire_time,
-                GiftRec.sender_id,
-            ).where(
-                GiftRec.expire_time > datetime.datetime.now()
-            ))
-
-            users = await objects.execute(
-                User.select(User.id, User.name).where(User.id.in_([g.sender_id for g in records]))
+            raffle_records = await AsyncMySQL.execute(
+                (
+                    "select id, room_id, gift_name, sender_name, expire_time "
+                    "from raffle where expire_time > %s order by id desc;"
+                ), (datetime.datetime.now(), )
             )
-            user_dict = {u.id: u.name for u in users}
-
-            live_room_info = await objects.execute(
-                LiveRoomInfo.select(LiveRoomInfo.short_room_id, LiveRoomInfo.real_room_id).where(
-                    LiveRoomInfo.real_room_id.in_([g.room_id for g in records])
-                )
+            guard_records = await AsyncMySQL.execute(
+                (
+                    "select id, room_id, gift_name, sender_name, expire_time "
+                    "from guard where expire_time > %s;"
+                ), (datetime.datetime.now(),)
             )
-            live_room_dict = {l.real_room_id: l.short_room_id for l in live_room_info}
+            room_id_list = [row[1] for row in guard_records + raffle_records]
+            room_info = await AsyncMySQL.execute(
+                (
+                    "select name, short_room_id, real_room_id "
+                    "from biliuser where real_room_id in %s;"
+                ), (room_id_list, )
+            )
+            room_dict = {}
+            for row in room_info:
+                name, short_room_id, real_room_id = row
+                room_dict[real_room_id] = (name, short_room_id)
 
-            def get_short_live_room_id(real_room_id):
-                short_room_id = live_room_dict.get(real_room_id)
-                if short_room_id is None:
-                    return ""
-                else:
-                    if short_room_id == real_room_id:
-                        return "-"
-                    else:
-                        return short_room_id
-
-            records = [
-                {
-                    "gift_name": r.gift_name,
-                    "raffle_id": r.gift_id,
-                    "short_room_id": get_short_live_room_id(r.room_id),
-                    "real_room_id": r.room_id,
-                    "expire_time": r.expire_time,
-                    "sender_name": user_dict.get(r.sender_id, None),
-                    "price": gift_price_map.get(r.gift_name, 0)
+            def get_price(g):
+                price_map = {
+                    "小电视飞船": 1250,
+                    "任意门": 600,
+                    "幻乐之声": 520,
+                    "摩天大楼": 450,
+                    "总督": -1,
+                    "提督": -2,
+                    "舰长": -3
                 }
-                for r in records
-            ]
-            records.sort(key=lambda r: (r["price"], r["real_room_id"], r["expire_time"]), reverse=True)
+                print("sort")
+                return price_map.get(g, 0)
 
+            records = []
+            for row in raffle_records + guard_records:
+                raffle_id, room_id, gift_name, sender_name, expire_time = row
+                master_name, short_room_id = room_dict.get(room_id, (None, None))
+                if short_room_id == room_id:
+                    short_room_id = "-"
+
+                records.append({
+                    "gift_name": gift_name.replace("抽奖", ""),
+                    "short_room_id": short_room_id,
+                    "real_room_id": room_id,
+                    "master_name": master_name,
+                    "sender_name": sender_name,
+                    "raffle_id": raffle_id,
+                    "expire_time": expire_time,
+                })
+            records.sort(key=lambda x: (get_price(x["gift_name"]), x["real_room_id"]), reverse=True)
             db_query_time = time.time() - db_start_time
 
         except Exception as e:
@@ -221,24 +229,29 @@ async def query_gifts(request):
         <h2>礼物列表:（e_tag: {{ e_tag }}）<a href="/query_gifts?json=true" target="_blank">JSON格式</a></h2>
         <table>
         <tr>
-        <th>礼物名称</th>
+        <th>raffle id</th>
         <th>短房间号</th>
         <th>原房间号</th>
+        <th>主播</th>
+        <th>礼物名称</th>
         <th>赠送者</th>
-        <th>raffle id</th>
         <th>失效时间</th>
-        <th>传送门</th>
-        <th>爪机</th>
+        <th>爪机传送门</th>
         </tr>
         {% for r in records %}
         <tr>
-            <td>{{ r.gift_name }}</td>
-            <td>{{ r.short_room_id }}</td>
-            <td>{{ r.real_room_id }}</td>
-            <td>{{ r.sender_name }}</td>
             <td>{{ r.raffle_id }}</td>
+            <td>{% if r.short_room_id %}
+                    {% if r.short_room_id == '-' %}-{% else %}
+                <a href="https://live.bilibili.com/{{ r.short_room_id }}" target="_blank">{{ r.short_room_id }}</a>
+                    {% endif %}
+                {% endif %}
+            </td>
+            <td><a href="https://live.bilibili.com/{{ r.real_room_id }}" target="_blank">{{ r.real_room_id }}</a></td>
+            <td>{{ r.master_name }}</td>
+            <td>{{ r.gift_name }}</td>
+            <td>{{ r.sender_name }}</td>
             <td>{{ r.expire_time }}</td>
-            <td><a href="https://live.bilibili.com/{{ r.real_room_id }}" target="_blank">Gooo</a></td>
             <td><a href="bilibili://live/{{ r.real_room_id }}" target="_blank">打开破站</a></td>
         </tr>
         {% endfor %}

@@ -7,8 +7,6 @@ from config.log4 import lt_valuable_live_room_scanner_logger as logging
 from utils.db_raw_query import AsyncMySQL
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
-TASK_START_HOUR = 2
-TASK_SLEEP_HOUR = 18
 
 
 async def search_short_number():
