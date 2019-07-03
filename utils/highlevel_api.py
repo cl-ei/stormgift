@@ -91,6 +91,13 @@ class ReqFreLimitApi(object):
         target_count = total_id_list[0] - max_raffle_id_yesterday
         miss = target_count - len(total_id_list)
 
+        miss_raffle = (await AsyncMySQL.execute(
+            (
+                "select count(id) from raffle "
+                "where id > %s and winner_obj_id is null and expire_time < %s;"
+            ), (max_raffle_id_yesterday, datetime.datetime.now())
+        ))[0][0]
+
         result = await AsyncMySQL.execute(
             "select gift_type, count(id) from raffle where id > %s group by 1;", (max_raffle_id_yesterday, )
         )
@@ -114,6 +121,7 @@ class ReqFreLimitApi(object):
 
         return_data = {
             "miss": miss,
+            "miss_raffle": miss_raffle,
             "total": total_gift_count,
             "gift_list": gift_list
         }
