@@ -9,6 +9,13 @@ from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.dao import DanmakuMessageQ, redis_cache
 from utils.reconstruction_model import objects, Raffle
 
+GIFT_TYPE_TO_NAME = {
+    "small_tv": "小电视飞船抽奖",
+    "GIFT_30035": "任意门抽奖",
+    "GIFT_30207": "幻乐之声抽奖",
+    "GIFT_20003": "摩天大楼抽奖",
+}
+
 
 class Executor(object):
     async def record_raffle_info(self, msg):
@@ -34,10 +41,11 @@ class Executor(object):
             if not raffle_obj:
                 sender_uid = await ReqFreLimitApi.get_uid_by_name(sender_name)
                 gift_gen_time = created_time - datetime.timedelta(seconds=180)
+                gift_name = GIFT_TYPE_TO_NAME.get(gift_type, "-")
                 raffle_create_param = {
                     "raffle_id": raffle_id,
                     "room_id": msg_from_room_id,
-                    "gift_name": "-",
+                    "gift_name": gift_name,
                     "gift_type": gift_type,
                     "sender_uid": sender_uid,
                     "sender_name": sender_name,
