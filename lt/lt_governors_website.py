@@ -182,7 +182,7 @@ async def query_gifts(request):
                 {% endif %}
             </td>
             <td><a href="https://live.bilibili.com/{{ r.real_room_id }}" target="_blank">{{ r.real_room_id }}</a></td>
-            <td>{{ r.master_name }}</td>
+            <td>{{ r.master_name or "" }}</td>
             <td>{{ r.gift_name }}</td>
             <td>{{ r.sender_name }}</td>
             <td>{{ r.expire_time }}</td>
