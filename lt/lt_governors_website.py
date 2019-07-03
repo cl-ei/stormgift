@@ -202,7 +202,7 @@ async def query_gifts(request):
     }
 
     text = jinja2.Template(template_text).render(context)
-    return web.Response(text=text, content_type="text/html")
+    return web.Response(text=text, content_type="text/html", charset="utf-8")
 
 
 async def query_raffles(request):
