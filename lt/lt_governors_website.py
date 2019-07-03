@@ -432,12 +432,11 @@ async def query_raffles_by_user(request):
     )
     if not records:
         return web.Response(text=f"用户{uid} - {user_name} 在{day_range}天内没有中奖。", content_type="text/html")
-
     room_id_list = [row[0] for row in records]
     room_info = await AsyncMySQL.execute(
         (
             "select short_room_id, real_room_id, name "
-            "from biliuser where real_room_id in (%s);"
+            "from biliuser where real_room_id in %s;"
         ), (room_id_list, )
     )
     room_dict = {}
