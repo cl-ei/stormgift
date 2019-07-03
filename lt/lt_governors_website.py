@@ -5,9 +5,8 @@ import jinja2
 import traceback
 import datetime
 from aiohttp import web
-from utils.model import GiftRec, User, RaffleRec, LiveRoomInfo
+from utils.highlevel_api import ReqFreLimitApi
 from utils.model import objects as db_objects
-from utils.reconstruction_model import Raffle, Guard, BiliUser
 from utils.db_raw_query import AsyncMySQL
 
 
@@ -43,70 +42,6 @@ class objects:
             await db_objects.connect()
             cls._objects = db_objects
         return await cls._objects.execute(*args, **kwargs)
-
-
-async def get_records_of_raffle(request):
-    try:
-        uid = request.query.get("uid")
-        day_range = request.query.get("day_range", 7)
-
-        uid_list = [int(u.strip()) for u in uid.split("_")]
-        assert uid_list
-
-        day_range = int(day_range)
-        assert 1 <= day_range <= 180
-    except (TypeError, ValueError, AssertionError, AttributeError):
-        return web.Response(
-            text=json.dumps({"code": 400, "msg": f"Error query param!"}, indent=2, ensure_ascii=False),
-            content_type="application/json"
-        )
-
-    if time.time() - Cache.last_time_of_get_raffle < 3:
-        return web.Response(
-            text=json.dumps({"code": 500, "msg": f"System busy!"}, indent=2, ensure_ascii=False),
-            content_type="application/json"
-        )
-
-    try:
-        records = {uid: {"uid": uid, "uname": None, "raffle": []} for uid in uid_list}
-
-        user_objs = await objects.execute(User.select().where(User.uid.in_(uid_list)))
-        q = {o.uid: {"uid": o.uid, "uname": o.name, "raffle": []} for o in user_objs}
-        records.update(q)
-
-        user_obj_id_map = {u.id: u.uid for u in user_objs}
-        raffles = await objects.execute(
-            RaffleRec.select(
-                RaffleRec.room_id,
-                RaffleRec.gift_name,
-                RaffleRec.user_obj_id,
-                RaffleRec.created_time,
-            ).where(
-                (RaffleRec.user_obj_id.in_(list(user_obj_id_map.keys())))
-                & (RaffleRec.created_time > datetime.datetime.now() - datetime.timedelta(days=day_range))
-            )
-        )
-
-        for r in raffles:
-            uid = user_obj_id_map[r.user_obj_id]
-            records[uid]["raffle"].append({
-                "real_room_id": r.room_id,
-                "gift_name": r.gift_name,
-                "created_time": str(r.created_time)
-            })
-
-    except Exception as e:
-        print(f"Error: {e}, {traceback.format_exc()}")
-        records = F"Internal Server Error!"
-
-    Cache.last_time_of_get_raffle = time.time()
-
-    if isinstance(records, str):
-        text = json.dumps({"code": 500, "msg": records})
-        content_type = "application/json"
-        return web.Response(text=text, content_type=content_type)
-    response = {"code": 0, "day_range": day_range, "data": list(records.values())}
-    return web.Response(text=json.dumps(response, indent=2, ensure_ascii=False), content_type="application/json")
 
 
 async def query_gifts(request):
@@ -153,7 +88,6 @@ async def query_gifts(request):
                     "提督": -2,
                     "舰长": -3
                 }
-                print("sort")
                 return price_map.get(g, 0)
 
             records = []
@@ -312,7 +246,6 @@ async def query_raffles(request):
                 room_id_map[real_room_id] = (short_room_id, name)
             user_obj_id_map[id] = (uid, name)
 
-        print(users[:10])
         raffle_data = []
         for row in records:
             id, real_room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, prize_gift_name, expire_time = row
@@ -480,63 +413,52 @@ async def query_raffles_by_user(request):
 
     try:
         uid = int(uid)
-    except Exception:
-        user_objs = await objects.execute(User.select(User.id, User.uid, User.name).where(User.name == uid))
-    else:
-        user_objs = await objects.execute(User.select(User.id, User.uid, User.name).where(User.uid == uid))
+    except (TypeError, ValueError):
+        uid = await ReqFreLimitApi.get_uid_by_name(user_name=uid)
 
-    if not user_objs:
-        return web.Response(text="未查询到记录。", content_type="text/html")
+    user_record = await AsyncMySQL.execute(
+        "select id, uid, name from biliuser where uid = %s;", (uid, )
+    )
+    if not user_record:
+        return web.Response(text="未查询到该用户。", content_type="text/html")
 
-    user_obj = user_objs[0]
-    records = await objects.execute(RaffleRec.select(
-        RaffleRec.room_id,
-        RaffleRec.raffle_id,
-        RaffleRec.gift_name,
-        RaffleRec.created_time,
-    ).where(
-        (RaffleRec.created_time > (datetime.datetime.now() - datetime.timedelta(days=day_range)))
-        & (RaffleRec.user_obj_id == user_obj.id)
-    ))
+    winner_obj_id, uid, user_name = user_record[0]
+    records = await AsyncMySQL.execute(
+        (
+            "select room_id, prize_gift_name, expire_time, sender_name, id from raffle "
+            "where winner_obj_id = %s and expire_time > %s "
+            "order by expire_time desc ;"
+        ), (winner_obj_id, datetime.datetime.now() - datetime.timedelta(days=day_range))
+    )
     if not records:
-        return web.Response(text="未查询到记录。", content_type="text/html")
+        return web.Response(text=f"用户{uid} - {user_name} 在{day_range}天内没有中奖。", content_type="text/html")
 
-    live_room_info = await objects.execute(
-        LiveRoomInfo.select(
-            LiveRoomInfo.short_room_id,
-            LiveRoomInfo.real_room_id,
-            LiveRoomInfo.user_id,
-        ).where(
-            LiveRoomInfo.real_room_id.in_([g.room_id for g in records])
-        )
+    room_id_list = [row[0] for row in records]
+    room_info = await AsyncMySQL.execute(
+        (
+            "select short_room_id, real_room_id, name "
+            "from biliuser where real_room_id in (%s);"
+        ), (room_id_list, )
     )
-    live_room_dict = {l.real_room_id: (l.short_room_id, l.user_id) for l in live_room_info}
-
-    users = await objects.execute(
-        User.select(User.id, User.uid, User.name).where(
-            User.uid.in_([r.user_id for r in live_room_info])
-        )
-    )
-    uid_to_uname_dict = {u.uid: u.name for u in users}
+    room_dict = {}
+    for row in room_info:
+        short_room_id, real_room_id, name = row
+        room_dict[real_room_id] = (short_room_id, name)
 
     raffle_data = []
-    for r in records:
-        this_live_room = live_room_dict.get(r.room_id)
-        if this_live_room:
-            short_room_id = "-" if this_live_room[0] == r.room_id else this_live_room[0]
-            master_uid = this_live_room[1]
-            master_uname = uid_to_uname_dict.get(master_uid, "")
-        else:
-            short_room_id = ""
-            master_uname = ""
-
+    for row in records:
+        room_id, prize_gift_name, expire_time, sender_name, raffle_id = row
+        short_room_id, master_name = room_dict.get(room_id, ("-", None))
+        if short_room_id == room_id:
+            short_room_id = "-"
         info = {
             "short_room_id": short_room_id,
-            "real_room_id": r.room_id,
-            "raffle_id": r.raffle_id,
-            "gift_name": r.gift_name,
-            "created_time": r.created_time,
-            "master_uname": master_uname,
+            "real_room_id": room_id,
+            "raffle_id": raffle_id,
+            "prize_gift_name": prize_gift_name,
+            "sender_name": sender_name,
+            "expire_time": expire_time,
+            "master_name": master_name,
         }
         raffle_data.insert(0, info)
 
@@ -570,6 +492,7 @@ async def query_raffles_by_user(request):
             <th>原房间号</th>
             <th>主播</th>
             <th>奖品</th>
+            <th>提供者</th>
             <th>中奖时间</th>
             </tr>
             {% for r in raffle_data %}
@@ -577,9 +500,10 @@ async def query_raffles_by_user(request):
                 <td>{{ r.raffle_id }}</td>
                 <td>{{ r.short_room_id }}</td>
                 <td>{{ r.real_room_id }}</td>
-                <td>{{ r.master_uname }}</td>
-                <td>{{ r.gift_name }}</td>
-                <td>{{ r.created_time }}</td>
+                <td>{{ r.master_name }}</td>
+                <td>{{ r.prize_gift_name }}</td>
+                <td>{{ r.sender_name }}</td>
+                <td>{{ r.expire_time }}</td>
             </tr>
             {% endfor %}
             </table>
@@ -588,12 +512,11 @@ async def query_raffles_by_user(request):
     template_text = " ".join(template_text.split())
 
     context = {
-        "uid": user_obj.id,
-        "user_name": user_obj.name,
+        "uid": uid,
+        "user_name": user_name,
         "day_range": day_range,
         "raffle_data": raffle_data,
     }
-
     text = jinja2.Template(template_text).render(context)
     return web.Response(text=text, content_type="text/html")
 
@@ -603,6 +526,5 @@ app.add_routes([
     web.get('/query_gifts', query_gifts),
     web.get('/query_raffles', query_raffles),
     web.get('/query_raffles_by_user', query_raffles_by_user),
-    web.get('/get_records_of_raffle', get_records_of_raffle)
 ])
 web.run_app(app, port=2048)
