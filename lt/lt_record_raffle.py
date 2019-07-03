@@ -7,8 +7,7 @@ from random import random
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.dao import DanmakuMessageQ, redis_cache
-from utils.model import objects, RaffleRec
-from utils.reconstruction_model import Raffle
+from utils.reconstruction_model import objects, Raffle
 
 
 class Executor(object):
@@ -31,22 +30,6 @@ class Executor(object):
             prize_gift_name = data["giftName"]
             prize_count = int(data["win"]["giftNum"])
 
-            create_param = {
-                "cmd": cmd,
-                "room_id": msg_from_room_id,
-                "raffle_id": raffle_id,
-                "gift_name": prize_gift_name,
-                "count": prize_count,
-                "msg": data["mobileTips"],
-                "user_id": winner_uid,
-                "user_name": winner_name,
-                "user_face": winner_face,
-                "created_time": created_time,
-            }
-            obj = await RaffleRec.create(**create_param)
-            logging.info(f"RaffleRec cmd: {cmd}, save result: id: {obj.id}, obj: {obj}")
-
-            # --------------- use new model! -----------------
             raffle_obj = await Raffle.get_by_id(raffle_id)
             if not raffle_obj:
                 sender_uid = await ReqFreLimitApi.get_uid_by_name(sender_name)
