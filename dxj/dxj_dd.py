@@ -8,7 +8,7 @@ from config import CQBOT
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import RCWebSocketClient
 from utils.dao import CookieOperator
-from utils.highlevel_api import ReqFreLimitApi, objects
+from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import console_logger as logging
 
 MONITOR_ROOM_ID = 13369254
@@ -201,7 +201,6 @@ async def main():
 
     await new_client.start()
 
-    await objects.connect()
     logging.info("Hansy ws stated.")
 
     counter = -1
