@@ -6,9 +6,8 @@ from random import random
 from utils.biliapi import BiliApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.dao import DanmakuMessageQ, RaffleMessageQ, redis_cache
-from utils.model import objects, GiftRec
 from utils.highlevel_api import ReqFreLimitApi
-from utils.reconstruction_model import Guard, Raffle
+from utils.reconstruction_model import objects, Guard, Raffle
 
 
 class Executor(object):
@@ -35,23 +34,6 @@ class Executor(object):
 
         expire_time = gift_info["created_time"] + datetime.timedelta(seconds=gift_info["time"])
         sender = gift_info["sender"]
-
-        gift_rec_params = {
-            "room_id": room_id,
-            "gift_id": gift_id,
-            "gift_name": gift_name,
-            "gift_type": "G%s" % privilege_type,
-            "sender_type": None,
-            "created_time": gift_info["created_time"],
-            "status": gift_info["status"],
-            "expire_time": expire_time,
-            "uid": sender["uid"],
-            "name": sender["uname"],
-            "face": sender["face"],
-        }
-        await GiftRec.create(**gift_rec_params)
-
-        # ------------ use new model -----------------
         create_param = {
             "gift_id": gift_id,
             "room_id": room_id,
@@ -80,22 +62,6 @@ class Executor(object):
             await RaffleMessageQ.put((key, time.time()))
 
             expire_time = info["created_time"] + datetime.timedelta(seconds=info["time"])
-            gift_rec_params = {
-                "room_id": room_id,
-                "gift_id": gift_id,
-                "gift_name": info["gift_name"],
-                "gift_type": info["gift_type"],
-                "sender_type": info["sender_type"],
-                "created_time": info["created_time"],
-                "status": info["status"],
-                "expire_time": expire_time,
-                "uid": uid,
-                "name": info["name"],
-                "face": info["face"],
-            }
-            await GiftRec.create(**gift_rec_params)
-
-            # ------------ use new model -----------------
             create_param = {
                 "raffle_id": gift_id,
                 "room_id": room_id,
