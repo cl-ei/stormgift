@@ -91,7 +91,7 @@ async def main():
 
     for c in cookies:
         if "20932326" in c:
-            await send_gift(cookie=c.strip(), medal="电磁泡", user_name="打盹")
+            await send_gift(cookie=c.strip(), medal="姫sama", user_name="打盹")
 
         if "39748080" in c:
             await send_gift(cookie=c.strip(), medal="电磁泡", user_name="录屏")
