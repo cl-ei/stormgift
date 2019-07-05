@@ -140,7 +140,7 @@ class Acceptor(object):
                     gift_name = "舰长"
                 elif privilege_type == 2:
                     gift_name = "提督"
-                elif privilege_type == 2:
+                elif privilege_type == 1:
                     gift_name = "总督"
                 else:
                     gift_name = "大航海"
