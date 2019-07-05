@@ -345,40 +345,44 @@ class BotUtils:
     @classmethod
     def check_new_member(cls, msg, group_id):
         logging.info("Now check new member!")
-        if not asyncio.run(LockUntilTimeout.it_s_idle_now("check_new_member", timeout=10)):
-            logging.info("Request too frequency! skip it.")
-            return
 
-        all_group_members = bot.get_group_member_list(group_id=group_id)
-        all_group_member_user_id = {x["user_id"]: x for x in all_group_members}
+        async def c():
+            if not await LockUntilTimeout.it_s_idle_now("check_new_member", timeout=10):
+                logging.info("Request too frequency! skip it.")
+                return
 
-        existed_group_members = asyncio.run(HansyQQGroupUserInfo.get_all_user_id(group_id))
-        new_user_id = set(existed_group_members) - set(all_group_member_user_id.keys())
+            all_group_members = bot.get_group_member_list(group_id=group_id)
+            all_group_member_user_id = {x["user_id"]: x for x in all_group_members}
 
-        for user_id in new_user_id:
+            existed_group_members = await HansyQQGroupUserInfo.get_all_user_id(group_id)
+            new_user_id = set(existed_group_members) - set(all_group_member_user_id.keys())
 
-            now = datetime.datetime.now()
-            user_info_from_cq = all_group_members[user_id]
-            nickname = user_info_from_cq["nickname"]
-            card = user_info_from_cq["card"]
+            for user_id in new_user_id:
 
-            info = f"{now} QQ: {nickname}({user_id})通过系统扫描发现已加入到本群"
-            asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
+                now = datetime.datetime.now()
+                user_info_from_cq = all_group_members[user_id]
+                nickname = user_info_from_cq["nickname"]
+                card = user_info_from_cq["card"]
 
-            bot.send_private_msg(user_id=80873436, message=info, auto_escape=True)
-            continue
+                info = f"{now} QQ: {nickname}({user_id})通过系统扫描发现已加入到本群"
+                await HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info)
 
-            if card.startswith("✿泡泡┊"):
+                bot.send_private_msg(user_id=80873436, message=info, auto_escape=True)
                 continue
 
-            bot.set_group_card(group_id=group_id, user_id=user_id, card="✿泡泡┊" + nickname)
-            message = (
-                f"欢迎[CQ:at,qq={user_id}] 进入泡泡小黄鸡养殖场！\n\n"
-                "群名片格式：✿泡泡┊ + 你的昵称，初号机已经自动为你修改~ \n\n"
-                "进群记得发个言哦，否则有可能会被当机器人清理掉，很可怕的哦~ "
-                "从今天开始一起跟泡泡守护小黄鸡呀！叽叽叽~"
-            )
-            bot.send_group_msg(group_id=group_id, message=message)
+                if card.startswith("✿泡泡┊"):
+                    continue
+
+                bot.set_group_card(group_id=group_id, user_id=user_id, card="✿泡泡┊" + nickname)
+                message = (
+                    f"欢迎[CQ:at,qq={user_id}] 进入泡泡小黄鸡养殖场！\n\n"
+                    "群名片格式：✿泡泡┊ + 你的昵称，初号机已经自动为你修改~ \n\n"
+                    "进群记得发个言哦，否则有可能会被当机器人清理掉，很可怕的哦~ "
+                    "从今天开始一起跟泡泡守护小黄鸡呀！叽叽叽~"
+                )
+                bot.send_group_msg(group_id=group_id, message=message)
+
+        asyncio.run(c())
 
 
 @bot.on_message()
