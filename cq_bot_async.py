@@ -554,10 +554,10 @@ class BotHandler:
 async def handler(request):
     context = await request.json()
     if context["post_type"] == "message":
-        response = await BotHandler.handle_request(context)
+        response = await BotHandler.handle_message(context)
 
     elif context["post_type"] == "notice":
-        response = await BotHandler.handle_request(context)
+        response = await BotHandler.handle_notice(context)
 
     elif context["post_type"] == "request":
         response = await BotHandler.handle_request(context)
