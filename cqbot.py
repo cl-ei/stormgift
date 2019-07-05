@@ -344,7 +344,9 @@ class BotUtils:
 
     @classmethod
     def check_new_member(cls, msg, group_id):
+        logging.info("Now check new member!")
         if not asyncio.run(LockUntilTimeout.it_s_idle_now("check_new_member", timeout=10)):
+            logging.info("Request too frequency! skip it.")
             return
 
         all_group_members = bot.get_group_member_list(group_id=group_id)
