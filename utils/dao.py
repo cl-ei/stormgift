@@ -296,6 +296,21 @@ class HansyQQGroupUserInfo(object):
         r = await redis_cache.list_push(key, info)
         return r
 
+    @classmethod
+    async def get_all_user_id(cls, group_id):
+        key = cls._key.replace("{group_id}", str(group_id)).replace("{user_id}", "*")
+        keys = await redis_cache.execute("KEYS", key)
+        return [int(k.decode("utf-8").split("_")[-1]) for k in keys]
+
+
+class LockUntilTimeout(object):
+    _key = "LockUntilTimeout_"
+
+    @classmethod
+    async def it_s_idle_now(cls, key, timeout):
+        key = cls._key + key
+        return not await redis_cache.set_if_not_exists(key=key, value=0, timeout=timeout)
+
 
 class ValuableLiveRoom(object):
     _key = "VALUABLE_LIVE_ROOM"

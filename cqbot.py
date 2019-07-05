@@ -11,7 +11,7 @@ import traceback
 from random import choice
 from cqhttp import CQHttp
 from config import CQBOT
-from utils.dao import CookieOperator, HansyQQGroupUserInfo
+from utils.dao import CookieOperator, HansyQQGroupUserInfo, LockUntilTimeout
 from config.log4 import cqbot_logger as logging
 
 
@@ -342,6 +342,42 @@ class BotUtils:
         )
         return bot.send_group_msg(group_id=group_id, message=message)
 
+    @classmethod
+    def check_new_member(cls, msg, group_id):
+        if not asyncio.run(LockUntilTimeout.it_s_idle_now("check_new_member", timeout=10)):
+            return
+
+        all_group_members = bot.get_group_member_list(group_id=group_id)
+        all_group_member_user_id = {x["user_id"]: x for x in all_group_members}
+
+        existed_group_members = asyncio.run(HansyQQGroupUserInfo.get_all_user_id(group_id))
+        new_user_id = set(existed_group_members) - set(all_group_member_user_id.keys())
+
+        for user_id in new_user_id:
+
+            now = datetime.datetime.now()
+            user_info_from_cq = all_group_members[user_id]
+            nickname = user_info_from_cq["nickname"]
+            card = user_info_from_cq["card"]
+
+            info = f"{now} QQ: {nickname}({user_id})通过系统扫描发现已加入到本群"
+            asyncio.run(HansyQQGroupUserInfo.add_info(group_id=group_id, user_id=user_id, info=info))
+
+            bot.send_private_msg(user_id=80873436, message=info, auto_escape=True)
+            continue
+
+            if card.startswith("✿泡泡┊"):
+                continue
+
+            bot.set_group_card(group_id=group_id, user_id=user_id, card="✿泡泡┊" + nickname)
+            message = (
+                f"欢迎[CQ:at,qq={user_id}] 进入泡泡小黄鸡养殖场！\n\n"
+                "群名片格式：✿泡泡┊ + 你的昵称，初号机已经自动为你修改~ \n\n"
+                "进群记得发个言哦，否则有可能会被当机器人清理掉，很可怕的哦~ "
+                "从今天开始一起跟泡泡守护小黄鸡呀！叽叽叽~"
+            )
+            bot.send_group_msg(group_id=group_id, message=message)
+
 
 @bot.on_message()
 def handle_msg(context):
@@ -387,6 +423,9 @@ def handle_msg(context):
 
             elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
                 return BotUtils.proc_help(msg, group_id)
+
+        elif "欢迎" in msg and group_id == 436496941:
+            await BotUtils.check_new_member(msg, group_id=436496941)
 
     elif context["message_type"] == "private":
         user_id = context["sender"]["user_id"]
