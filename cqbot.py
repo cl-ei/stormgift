@@ -425,7 +425,7 @@ def handle_msg(context):
                 return BotUtils.proc_help(msg, group_id)
 
         elif "欢迎" in msg and group_id == 436496941:
-            await BotUtils.check_new_member(msg, group_id=436496941)
+            BotUtils.check_new_member(msg, group_id=436496941)
 
     elif context["message_type"] == "private":
         user_id = context["sender"]["user_id"]
