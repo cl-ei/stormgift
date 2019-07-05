@@ -360,10 +360,11 @@ class BotHandler:
         )
 
         msg = msg.replace("＃", "#")
-        if msg.startswith("#"):
 
-            if msg == "#一言":
-                return BotUtils.proc_one_sentence(msg, group_id)
+        if msg in ("#一言", "一言"):
+            return BotUtils.proc_one_sentence(msg, group_id)
+
+        if msg.startswith("#"):
 
             if msg == "#历史上的今天":
                 return BotUtils.proc_history(msg, group_id)
@@ -445,7 +446,7 @@ class BotHandler:
         elif user_id not in (80873436, 310300788):
             bot.send_private_msg(
                 user_id=80873436,
-                message=f"来自{user_nickname}(QQ: {user_id}) -> \n{msg}",
+                message=f"来自{user_nickname}(QQ: {user_id}) -> \n\n{msg}",
                 auto_escape=True,
             )
 
@@ -464,7 +465,7 @@ class BotHandler:
 
         if context["notice_type"] == 'group_increase':
             group_id = context["group_id"]
-            if group_id not in (436496941, 159855203):
+            if group_id not in (436496941, 159855203, 1007807100):
                 return
 
             user_id = context["user_id"]
