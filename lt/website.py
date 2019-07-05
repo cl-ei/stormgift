@@ -85,6 +85,13 @@ async def api(request):
         )
         if most_recently:
             most_recently = most_recently[0][0]
+            interval = (datetime.datetime.now() - most_recently).total_seconds()
+            if interval > 3600:
+                most_recently = f"约{interval // 3600}小时前"
+            elif interval > 60:
+                most_recently = f"约{interval // 60}分钟前"
+            else:
+                most_recently = f"{interval}秒前"
         else:
             most_recently = "未查询到记录"
 
@@ -97,7 +104,16 @@ async def api(request):
             ), (uid, datetime.datetime.now() - datetime.timedelta(hours=24))
         )
         raffle_result = []
+        total_intimacy = 0
         for gift_name, count in rows:
+            intimacy_map = {
+                "总督": 20,
+                "提督": 5,
+                "舰长": 1,
+                "小电视飞船抽奖": 5,
+                "任意门抽奖": 5,
+            }
+            total_intimacy += intimacy_map.get(gift_name, 1)*count
             raffle_result.append({
                 "gift_name": gift_name,
                 "count": count
@@ -107,13 +123,13 @@ async def api(request):
                 f"<h3>系统在{str(blocked_datetime)[:19]}发现你被关进了小黑屋</h3>"
                 f"<p>目前挂辣条暂停中。稍后会再探测</p>"
                 f"<p>最后一次抽奖时间：{str(most_recently)}</p>"
-                f"<p>最近24小时内的领奖统计：</p>"
+                f"<p>最近24小时内的领奖统计（24小时内累计获得亲密度：{total_intimacy}）：</p>"
             )
         else:
             title = (
                 f"<h3>你现在正常领取辣条中</h3>"
                 f"<p>最后一次抽奖时间：{str(most_recently)}</p>"
-                f"<p>最近24小时内的领奖统计：</p>"
+                f"<p>最近24小时内的领奖统计（24小时内累计获得亲密度：{total_intimacy}）：</p>"
             )
 
         context = {
