@@ -91,7 +91,7 @@ async def api(request):
             elif interval > 60:
                 most_recently = f"约{interval // 60}分钟前"
             else:
-                most_recently = f"{interval}秒前"
+                most_recently = f"{int(interval)}秒前"
         else:
             most_recently = "未查询到记录"
 
