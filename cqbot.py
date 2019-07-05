@@ -382,7 +382,7 @@ class BotUtils:
                 )
                 bot.send_group_msg(group_id=group_id, message=message)
 
-        asyncio.run(c())
+        asyncio.get_event_loop().run_until_complete(c())
 
 
 @bot.on_message()
