@@ -424,7 +424,7 @@ def handle_msg(context):
             elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
                 return BotUtils.proc_help(msg, group_id)
 
-        elif "欢迎" in msg and group_id == 436496941:
+        elif "欢迎" in msg and group_id in (436496941, 159855203):
             BotUtils.check_new_member(msg, group_id=436496941)
 
     elif context["message_type"] == "private":
