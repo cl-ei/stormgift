@@ -347,7 +347,7 @@ class BotUtils:
         logging.info("Now check new member!")
 
         async def c():
-            if not await LockUntilTimeout.it_s_idle_now("check_new_member", timeout=10):
+            if await LockUntilTimeout.it_s_busy_now("check_new_member", timeout=10):
                 logging.info("Request too frequency! skip it.")
                 return
 

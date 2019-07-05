@@ -307,9 +307,13 @@ class LockUntilTimeout(object):
     _key = "LockUntilTimeout_"
 
     @classmethod
-    async def it_s_idle_now(cls, key, timeout):
+    async def it_s_busy_now(cls, key, timeout):
         key = cls._key + key
-        return not await redis_cache.set_if_not_exists(key=key, value=0, timeout=timeout)
+        if await redis_cache.get(key) == "existed":
+            return True
+
+        await redis_cache.set(key, value="existed", timeout=timeout)
+        return False
 
 
 class ValuableLiveRoom(object):
