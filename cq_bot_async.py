@@ -511,6 +511,8 @@ class BotHandler:
 
     @classmethod
     async def handle_request(cls, context):
+        logging.info(f"Received request context: {context}")
+
         if context["request_type"] != "group":
             return
 
