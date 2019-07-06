@@ -79,7 +79,9 @@ class ReqFreLimitApi(object):
     async def get_raffle_count(cls, day_range=0):
         now = datetime.datetime.today()
         start_datetime = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date_time = start_datetime + datetime.timedelta(days=day_range)
+        if day_range > 0:
+            start_datetime -= datetime.timedelta(days=day_range)
+        end_date_time = start_datetime + datetime.timedelta(days=1)
 
         result = await AsyncMySQL.execute(
             "select id from raffle where created_time >= %s and created_time < %s order by id asc limit 1;",
