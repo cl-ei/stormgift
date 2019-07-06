@@ -91,39 +91,37 @@ class ReqFreLimitApi(object):
         max_raffle_id, min_raffle_id = result[0]
 
         result = await AsyncMySQL.execute(
-            "select id, winner_obj_id from raffle where id >= %s and id <= %s order by id desc;",
+            "select id, winner_obj_id, gift_type from raffle where id >= %s and id <= %s order by id desc;",
             (min_raffle_id, max_raffle_id)
         )
-        miss_raffle = len([winner_obj_id for raffle_id, winner_obj_id in result if winner_obj_id is None])
-        total_id_list = [raffle_id for raffle_id, winner_obj_id in result]
-        target_count = total_id_list[0] - min_raffle_id
-        miss = target_count - len(total_id_list)
-
-        result = await AsyncMySQL.execute(
-            "select gift_type, count(id) from raffle where id >= %s and id <= %s group by 1;",
-            (min_raffle_id, max_raffle_id)
-        )
-
-        gift_list = {}
+        miss_raffle_count = 0
         total_gift_count = 0
-        for row in result:
-            if row[0] == "GIFT_20003":
+        miss_gift_record = max_raffle_id - min_raffle_id - len(result)
+        gift_list = {}
+        for raffle_id, winner_obj_id, gift_type in result:
+            if gift_type == "GIFT_20003":
                 gift_name = "大楼"
-            elif row[0] == "GIFT_30035":
+            elif gift_type == "GIFT_30035":
                 gift_name = "任意门"
-            elif row[0] == "GIFT_30207":
+            elif gift_type == "GIFT_30207":
                 gift_name = "幻月之声"
-            elif row[0] == "small_tv":
+            elif gift_type == "small_tv":
                 gift_name = "小电视"
             else:
                 gift_name = "其他高能"
 
-            gift_list[gift_name] = row[1]
-            total_gift_count += row[1]
+            if gift_name not in gift_list:
+                gift_list[gift_name] = 1
+            else:
+                gift_list[gift_name] += 1
+
+            total_gift_count += 1
+            if winner_obj_id is None:
+                miss_raffle_count += 1
 
         return_data = {
-            "miss": miss,
-            "miss_raffle": miss_raffle,
+            "miss": miss_gift_record,
+            "miss_raffle": miss_raffle_count,
             "total": total_gift_count,
             "gift_list": gift_list
         }
