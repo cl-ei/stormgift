@@ -96,7 +96,7 @@ class ReqFreLimitApi(object):
         )
         miss_raffle_count = 0
         total_gift_count = 0
-        miss_gift_record = max_raffle_id - min_raffle_id - len(result)
+        miss_gift_record = max_raffle_id - min_raffle_id - len(result) + 1
         gift_list = {}
         for raffle_id, winner_obj_id, gift_type in result:
             if gift_type == "GIFT_20003":
