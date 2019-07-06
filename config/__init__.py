@@ -38,6 +38,19 @@ except KeyError:
     REDIS_CONFIG["password"] = ""
     REDIS_CONFIG["db"] = 2
 
+REDIS_CONFIG_X_NODE = {}
+try:
+    REDIS_CONFIG_X_NODE["host"] = config["redis_x_node"]["host"]
+    REDIS_CONFIG_X_NODE["port"] = int(config["redis_x_node"]["port"])
+    REDIS_CONFIG_X_NODE["password"] = config["redis_x_node"]["password"]
+    REDIS_CONFIG_X_NODE["db"] = int(config["redis_x_node"]["stormgift_db"])
+except KeyError:
+    REDIS_CONFIG_X_NODE["host"] = "47.104.176.84"
+    REDIS_CONFIG_X_NODE["port"] = 19941
+    REDIS_CONFIG_X_NODE["password"] = ""
+    REDIS_CONFIG_X_NODE["db"] = 2
+
+
 MYSQL_CONFIG = {}
 try:
     MYSQL_CONFIG["user"] = config["mysql"]["user"]
