@@ -109,7 +109,10 @@ async def proc_message(message):
                 path_prompt = f"高能全部记录，中奖记录漏{miss_raffle}个"
             else:
                 path_prompt = f"高能漏{miss}个，中奖记录漏{miss_raffle}个"
-            danmaku = f"今日统计到{r}, 共{result['total']}个，{path_prompt}。"
+            danmaku = (
+                f"{'今日' if int_str == 0 else str(int_str) + '天前'}统计到{r}, "
+                f"共{result['total']}个，{path_prompt}。"
+            )
 
             while danmaku:
                 await send_danmaku(danmaku[:30])
