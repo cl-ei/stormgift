@@ -76,30 +76,36 @@ class ReqFreLimitApi(object):
         return results
 
     @classmethod
-    async def get_raffle_count(cls):
-        result = await AsyncMySQL.execute(
-            "select id from raffle where created_time < %s order by id desc limit 1;",
-            (datetime.date.today(),)
-        )
-        max_raffle_id_yesterday = result[0][0]
+    async def get_raffle_count(cls, day_range=0):
+        now = datetime.datetime.today()
+        start_datetime = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date_time = start_datetime + datetime.timedelta(days=day_range)
 
         result = await AsyncMySQL.execute(
-            "select id from raffle where id > %s order by id desc;", (max_raffle_id_yesterday, )
+            "select id from raffle where created_time >= %s and created_time < %s order by id asc limit 1;",
+            (start_datetime, end_date_time)
+        )
+        min_raffle_id = result[0][0]
+
+        result = await AsyncMySQL.execute(
+            "select id from raffle where id > %s and created_time < %s order by id desc;",
+            (min_raffle_id, end_date_time)
         )
         total_id_list = [r[0] for r in result]
 
-        target_count = total_id_list[0] - max_raffle_id_yesterday
+        target_count = total_id_list[0] - min_raffle_id
         miss = target_count - len(total_id_list)
 
         miss_raffle = (await AsyncMySQL.execute(
             (
                 "select count(id) from raffle "
                 "where id > %s and winner_obj_id is null and expire_time < %s;"
-            ), (max_raffle_id_yesterday, datetime.datetime.now())
+            ), (min_raffle_id, end_date_time)
         ))[0][0]
 
         result = await AsyncMySQL.execute(
-            "select gift_type, count(id) from raffle where id > %s group by 1;", (max_raffle_id_yesterday, )
+            "select gift_type, count(id) from raffle where id > %s and created_time < %s group by 1;",
+            (min_raffle_id, end_date_time)
         )
 
         gift_list = {}

@@ -90,7 +90,14 @@ async def proc_message(message):
                 await asyncio.sleep(1)
 
         elif msg.strip() in ("小电视", "高能", "摩天大楼", "统计"):
-            result = await ReqFreLimitApi.get_raffle_count()
+            int_str = msg.replace("小电视", "").replace("高能", "").replace("摩天大楼", "").replace("统计", "").strip()
+            try:
+                int_str = int(int_str)
+            except (TypeError, ValueError):
+                int_str = 0
+
+            result = await ReqFreLimitApi.get_raffle_count(day_range=int_str)
+
             r = "、".join([f"{v}个{k}" for k, v in result["gift_list"].items()])
             miss = result['miss']
             miss_raffle = result['miss_raffle']
