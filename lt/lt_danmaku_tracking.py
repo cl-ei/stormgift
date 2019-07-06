@@ -171,8 +171,6 @@ class WsManager(object):
 
 
 async def main():
-    await objects.connect()
-
     logging.info("LT self_ws_source proc start...")
 
     mgr = WsManager()
