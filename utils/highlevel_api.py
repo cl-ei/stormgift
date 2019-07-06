@@ -84,30 +84,24 @@ class ReqFreLimitApi(object):
         end_date_time = start_datetime + datetime.timedelta(days=1)
 
         result = await AsyncMySQL.execute(
-            "select id from raffle where created_time >= %s and created_time < %s order by id asc limit 1;",
+            "select max(id), min(id) "
+            "from raffle where created_time >= %s and created_time < %s;",
             (start_datetime, end_date_time)
         )
-        min_raffle_id = result[0][0]
+        max_raffle_id, min_raffle_id = result[0]
 
         result = await AsyncMySQL.execute(
-            "select id from raffle where id > %s and created_time < %s order by id desc;",
-            (min_raffle_id, end_date_time)
+            "select id, winner_obj_id from raffle where id >= %s and id <= %s order by id desc;",
+            (min_raffle_id, max_raffle_id)
         )
-        total_id_list = [r[0] for r in result]
-
+        miss_raffle = len([winner_obj_id for raffle_id, winner_obj_id in result if winner_obj_id is None])
+        total_id_list = [raffle_id for raffle_id, winner_obj_id in result]
         target_count = total_id_list[0] - min_raffle_id
         miss = target_count - len(total_id_list)
 
-        miss_raffle = (await AsyncMySQL.execute(
-            (
-                "select count(id) from raffle "
-                "where id > %s and winner_obj_id is null and expire_time < %s;"
-            ), (min_raffle_id, end_date_time)
-        ))[0][0]
-
         result = await AsyncMySQL.execute(
-            "select gift_type, count(id) from raffle where id > %s and created_time < %s group by 1;",
-            (min_raffle_id, end_date_time)
+            "select gift_type, count(id) from raffle where id >= %s and id <= %s group by 1;",
+            (min_raffle_id, max_raffle_id)
         )
 
         gift_list = {}
