@@ -89,8 +89,8 @@ async def proc_message(message):
                 msg = msg[29:]
                 await asyncio.sleep(1)
 
-        elif msg.strip() in ("小电视", "高能", "摩天大楼", "统计"):
-            int_str = msg.replace("小电视", "").replace("高能", "").replace("摩天大楼", "").replace("统计", "").strip()
+        elif msg.startswith("小电视"):
+            int_str = msg.replace("小电视", "").strip()
             try:
                 int_str = int(int_str)
             except (TypeError, ValueError):
