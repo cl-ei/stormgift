@@ -8,7 +8,6 @@ from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from utils.dao import MonitorLiveRooms
 from config.log4 import lt_ws_source_logger as logging
-from utils.model import objects, MonitorWsClient
 from config import CQBOT
 from cqhttp import CQHttp
 
@@ -135,12 +134,6 @@ class WsManager(object):
                     append_msg = ""
 
                 logging.info(f"Message speed avg: {speed:0.2f}, peak: {msg_speed_peak}. {append_msg}")
-                __monitor_info = {
-                    "msg speed": speed,
-                    "msg peak speed": msg_speed_peak,
-                    "broken clients": len(self._broken_live_rooms)
-                }
-                await MonitorWsClient.record(__monitor_info)
 
                 self.msg_count = 0
                 self._broken_live_rooms = []
@@ -155,7 +148,6 @@ class WsManager(object):
                         valid_client_count += 1
 
                 logging.info(f"Active client count: {valid_client_count}, total: {total}.")
-                await MonitorWsClient.record({"active clients": valid_client_count, "total clients": total})
 
             count += 1
             if count > 1000000000:
