@@ -33,7 +33,12 @@ class WsManager(object):
                 self.msg_count += 1
 
                 cmd = msg["cmd"]
-                if cmd in self.monitor_commands:
+                if cmd.startswith("DANMU_MSG"):
+                    uid = msg["info"][2][0]
+                    if uid == 39748080 or uid == 65568410:
+                        await DanmakuMessageQ.put((msg, time.time(), room_id))
+
+                elif cmd in self.monitor_commands:
                     r = await DanmakuMessageQ.put((msg, time.time(), room_id))
                     logging.info(f"RECEIVED: {cmd}, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
 
