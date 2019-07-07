@@ -19,8 +19,11 @@ class Executor(object):
                 return
 
             info = message["info"]
-            uid = info[2][0]
             msg = str(info[1])
+            if "哔哩哔哩" in msg and "干杯" in msg:
+                return
+
+            uid = info[2][0]
             user_name = info[2][1]
             is_admin = info[2][2]
             ul = info[4][0]
