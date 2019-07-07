@@ -15,6 +15,8 @@ class Executor(object):
                 continue
 
             message, created_time, msg_from_room_id, *_ = msg
+            if msg_from_room_id == 2516117:
+                return
 
             info = message["info"]
             uid = info[2][0]
