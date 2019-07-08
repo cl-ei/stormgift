@@ -13,6 +13,7 @@ from config import CQBOT
 from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
 from utils.dao import CookieOperator, HansyQQGroupUserInfo, LockUntilTimeout
+from utils.biliapi import BiliApi
 
 
 bot = CQHttp(**CQBOT)
@@ -424,6 +425,22 @@ class BotHandler:
                     message = CookieOperator.remove_uid_from_white_list(uid)
 
                 bot.send_private_msg(user_id=80873436, message=message)
+
+            elif msg.startswith("ddd"):
+                message = msg[3:]
+                await BiliApi.send_danmaku(
+                    message=message,
+                    room_id=2516117,
+                    cookie=CookieOperator.get_cookie_by_uid("DD")
+                )
+
+            elif msg.startswith("lll"):
+                message = msg[3:]
+                await BiliApi.send_danmaku(
+                    message=message,
+                    room_id=2516117,
+                    cookie=CookieOperator.get_cookie_by_uid("LP")
+                )
 
         elif msg.startswith("起床"):
             try:
