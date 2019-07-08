@@ -196,22 +196,28 @@ class BotUtils:
 
     @classmethod
     def proc_sleep(cls, msg, group_id, user_id):
-        postfix = msg.replace(" ", "").replace("　", "").split("睡觉")[-1].lower()
-        if not postfix or postfix[-1] not in ("s", "m", "h"):
-            return {}
+        postfix = msg.replace(" ", "").replace("　", "").replace("#睡觉", "").strip().lower()
 
+        duration_str = ""
+        for s in postfix:
+            if s in "0123456789":
+                duration_str += s
         try:
-            duration = abs(int(postfix[:-1]))
-            assert duration > 0
-        except Exception:
+            duration = abs(int(duration_str.strip()))
+        except (ValueError, TypeError):
             return {}
 
         if postfix[-1] == "m":
             duration *= 60
         elif postfix[-1] == "h":
             duration *= 3600
+        elif postfix[-1] == "d":
+            duration *= 3600*24
 
-        bot.set_group_ban(group_id=group_id, user_id=user_id, duration=duration)
+        if duration <= 0:
+            return {}
+
+        bot.set_group_ban(group_id=group_id, user_id=user_id, duration=min(duration, 720*3600))
 
     @classmethod
     def proc_whether(cls, msg, group_id):
