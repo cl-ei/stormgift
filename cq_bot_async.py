@@ -426,7 +426,7 @@ class BotHandler:
 
                 bot.send_private_msg(user_id=80873436, message=message)
 
-            elif msg.startswith("ddd"):
+            elif msg.startswith("44"):
                 message = msg[3:]
                 await BiliApi.send_danmaku(
                     message=message,
@@ -434,7 +434,7 @@ class BotHandler:
                     cookie=CookieOperator.get_cookie_by_uid("DD")
                 )
 
-            elif msg.startswith("lll"):
+            elif msg.startswith("11"):
                 message = msg[3:]
                 await BiliApi.send_danmaku(
                     message=message,
