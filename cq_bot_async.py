@@ -555,6 +555,8 @@ class BotHandler:
 
 
 async def handler(request):
+    text = await request.text()
+    print(f"text: {text}")
     context = await request.json()
     if context["post_type"] == "message":
         response = await BotHandler.handle_message(context)
