@@ -1,16 +1,159 @@
 import re
-import html
+import rsa
 import json
 import time
+import base64
 import asyncio
 import aiohttp
+import hashlib
 import requests
 import traceback
-from random import random
 from math import floor
-
+from urllib import parse
+from random import random
 from utils.dao import redis_cache
 from config.log4 import bili_api_logger as logging
+
+
+class CookieFetcher:
+    appkey = "1d8b6e7d45233436"
+    actionKey = "appkey"
+    build = "520001"
+    device = "android"
+    mobi_app = "android"
+    platform = "android"
+    app_secret = "560c52ccd288fed045859ed18bffd973"
+    refresh_token = ""
+    access_key = ""
+    cookie = ""
+    csrf = ""
+    uid = ""
+
+    pc_headers = {
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "accept-encoding": "gzip, deflate",
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/62.0.3202.94 Safari/537.36"
+        ),
+    }
+    app_headers = {
+        "User-Agent": "bili-universal/6570 CFNetwork/894 Darwin/17.4.0",
+        "Accept-encoding": "gzip",
+        "Buvid": "000ce0b9b9b4e342ad4f421bcae5e0ce",
+        "Display-ID": "146771405-1521008435",
+        "Accept-Language": "zh-CN",
+        "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+        "Connection": "keep-alive",
+    }
+
+    @classmethod
+    def calc_sign(cls, text):
+        text = f'{text}{cls.app_secret}'
+        return hashlib.md5(text.encode('utf-8')).hexdigest()
+
+    @classmethod
+    async def _request(cls, method, url, params=None, data=None, headers=None, timeout=5):
+        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
+        try:
+            async with client_session as session:
+                if method.lower() == "get":
+                    async with session.get(url, params=params, data=data, headers=headers) as resp:
+                        status_code = resp.status
+                        content = await resp.text()
+                        return status_code, content
+
+                else:
+                    async with session.post(url, data=data, params=params, headers=headers) as resp:
+                        status_code = resp.status
+                        content = await resp.text()
+                        return status_code, content
+        except Exception as e:
+            return 5000, f"Error happend: {e}\n {traceback.format_exc()}"
+
+    @classmethod
+    async def fetch_key(cls):
+        url = 'https://passport.bilibili.com/api/oauth2/getKey'
+
+        sign = cls.calc_sign(f'appkey={cls.appkey}')
+        data = {'appkey': cls.appkey, 'sign': sign}
+
+        status_code, content = await cls._request("post", url=url, data=data)
+        if status_code != 200:
+            return False, content
+
+        try:
+            json_response = json.loads(content)
+        except Exception as e:
+            return False, f"Not json response! {e}"
+
+        if json_response["code"] != 0:
+            return False, json_response.get("msg", "unknown error!")
+
+        return True, json_response
+
+    @classmethod
+    async def post_login_req(cls, url_name, url_password, captcha=''):
+        temp_params = (
+            f'actionKey={cls.actionKey}'
+            f'&appkey={cls.appkey}'
+            f'&build={cls.build}'
+            f'&captcha={captcha}'
+            f'&device={cls.device}'
+            f'&mobi_app={cls.mobi_app}'
+            f'&password={url_password}'
+            f'&platform={cls.platform}'
+            f'&username={url_name}'
+        )
+        sign = cls.calc_sign(temp_params)
+        payload = f'{temp_params}&sign={sign}'
+        url = "https://passport.bilibili.com/api/v2/oauth2/login"
+
+        content = ""
+        for _ in range(10):
+            status_code, content = await cls._request('POST', url, params=payload)
+            if status_code == 200 and content:
+                break
+            await asyncio.sleep(4)
+        else:
+            return False, f"Try too many times! last content: {content}"
+
+        try:
+            json_response = json.loads(content)
+        except Exception as e:
+            return False, f"Not json response! {e}"
+
+        return True, json_response
+
+    @classmethod
+    async def get_cookie(cls, account, password):
+        flag, json_rsp = await cls.fetch_key()
+        if not flag:
+            return False
+
+        key = json_rsp['data']['key']
+        hash_ = str(json_rsp['data']['hash'])
+
+        pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
+        hashed_password = base64.b64encode(rsa.encrypt((hash_ + password).encode('utf-8'), pubkey))
+        url_password = parse.quote_plus(hashed_password)
+        url_name = parse.quote_plus(account)
+
+        flag, json_rsp = await cls.post_login_req(url_name, url_password)
+        if not flag:
+            return False, json_rsp
+
+        if json_rsp["code"] != 0:
+            return False, json_rsp.get("msg", "unknown error in login!")
+
+        cookies = json_rsp["data"]["cookie_info"]["cookies"]
+        result = []
+        for c in cookies:
+            result.append(f"{c['name']}={c['value']}; ")
+
+        return True, "".join(result).strip()
 
 
 class WsApi(object):
