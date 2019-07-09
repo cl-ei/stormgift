@@ -90,7 +90,7 @@ class CookieFetcher:
             return False, f"Not json response! {e}"
 
         if json_response["code"] != 0:
-            return False, json_response.get("msg", "unknown error!")
+            return False, json_response.get("message", "unknown error!")
 
         return True, json_response
 
@@ -146,7 +146,7 @@ class CookieFetcher:
             return False, json_rsp
 
         if json_rsp["code"] != 0:
-            return False, json_rsp.get("msg", "unknown error in login!")
+            return False, json_rsp.get("message", "unknown error in login!")
 
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = []

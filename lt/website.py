@@ -1,8 +1,9 @@
+import re
 import datetime
 from jinja2 import Template
 from aiohttp import web
-from utils.biliapi import BiliApi
-from utils.dao import CookieOperator, AcceptorBlockedUser
+from utils.biliapi import BiliApi, CookieFetcher
+from utils.dao import CookieOperator, AcceptorBlockedUser, LTWhiteList
 from utils.db_raw_query import AsyncMySQL
 from config import CDN_URL
 
@@ -144,6 +145,32 @@ async def api(request):
             "title": title,
         }
         return render_to_response("lt/website_homepage.html", context=context)
+
+    elif action == "user_login":
+        account = data['account']
+        password = data['password']
+        email = data["email"]
+        if not account or not password:
+            return web.Response(text="输入错误！检查你的输入!")
+
+        if account not in await LTWhiteList.get():
+            return web.Response(text=f"账户 {account} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
+
+        flag, user_cookie = await CookieFetcher.get_cookie(account, password)
+        if not flag:
+            return web.Response(text=f"账户 {account} 配置错误：{user_cookie}")
+
+        uid = re.findall(r"DedeUserID=(\d+)", user_cookie)[0]
+        r, is_vip = await BiliApi.get_if_user_is_live_vip(user_cookie, user_id=uid)
+        if not r:
+            return web.Response(text=f"用户（uid: {uid}）你输入的数据不正确！！请检查后重新配置！！！")
+
+        user_cookie = user_cookie + f"notice_email={email};"
+        if is_vip:
+            CookieOperator.add_cookie(user_cookie, "vip")
+        CookieOperator.add_cookie(user_cookie, "raw")
+        CookieOperator.add_cookie(user_cookie, "valid")
+        return web.Response(text=f"用户（uid: {uid}）配置成功！")
 
     else:
         return web.Response(text=f"X")

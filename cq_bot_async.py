@@ -12,7 +12,7 @@ from aiohttp import web
 from config import CQBOT
 from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
-from utils.dao import CookieOperator, HansyQQGroupUserInfo
+from utils.dao import CookieOperator, HansyQQGroupUserInfo, LTWhiteList
 from utils.biliapi import BiliApi
 
 
@@ -425,6 +425,16 @@ class BotHandler:
                     message = CookieOperator.remove_uid_from_white_list(uid)
 
                 bot.send_private_msg(user_id=80873436, message=message)
+
+            elif msg.startswith("ac"):
+                account = msg[2:]
+                r = await LTWhiteList.add(account)
+                bot.send_private_msg(user_id=80873436, message=f"LTWhiteList add account: {account}, r: {r}")
+
+            elif msg.startswith("dc"):
+                account = msg[2:]
+                r = await LTWhiteList.del_(account)
+                bot.send_private_msg(user_id=80873436, message=f"LTWhiteList del account: {account}, r: {r}")
 
             elif msg.startswith("44"):
                 message = msg[2:]

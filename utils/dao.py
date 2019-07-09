@@ -85,6 +85,10 @@ class RedisCache(object):
         r = await self.execute("LPUSH", name, *[pickle.dumps(e) for e in items])
         return r
 
+    async def list_del(self, name, item):
+        r = await self.execute("LREM", name, 0, pickle.dumps(item))
+        return r
+
     async def list_get_all(self, name):
         # count = await self.execute("LLEN", name)
 
@@ -457,6 +461,24 @@ class MonitorCommands(object):
     async def set(cls, *cmds):
         r = await redis_cache.set(cls._key, [c for c in cmds if isinstance(c, str)])
         return r
+
+
+class LTWhiteList(object):
+    _key = "LT_WHITE_LIST_"
+
+    @classmethod
+    async def add(cls, account):
+        r = await redis_cache.list_push(cls._key, account)
+        return r
+
+    @classmethod
+    async def get(cls):
+        r = await redis_cache.list_get_all(cls._key)
+        return r
+
+    @classmethod
+    async def del_(cls, account):
+        return await redis_cache.list_del(cls._key, account)
 
 
 async def test():
