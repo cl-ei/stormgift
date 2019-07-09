@@ -19,14 +19,14 @@ def render_to_response(template, context=None):
     return web.Response(text=template.render(context or {}), content_type="text/html")
 
 
+async def lt_old(request):
+    context = {"CDN_URL": CDN_URL}
+    return render_to_response("lt/website_homepage_old.html", context=context)
+
+
 async def lt(request):
     context = {"CDN_URL": CDN_URL}
     return render_to_response("lt/website_homepage.html", context=context)
-
-
-async def lt_new(request):
-    context = {"CDN_URL": CDN_URL}
-    return render_to_response("lt/website_homepage_new.html", context=context)
 
 
 async def api(request):
@@ -177,8 +177,8 @@ async def api(request):
 
 app = web.Application()
 app.add_routes([
+    web.get('/lt_old', lt_old),
     web.get('/lt', lt),
-    web.get('/lt_new', lt_new),
     web.post('/lt/api', api),
 ])
 web.run_app(app, port=1024)

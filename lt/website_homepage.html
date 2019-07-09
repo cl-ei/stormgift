@@ -69,19 +69,26 @@
 <body>
 <div>
     <div>
-        <label>B站uid=<input class="redinput" type="number" name="uid"></label>
-        <label>SESSDATA=<input class="redinput" type="text" name="SESSDATA"></label>
-        <label>bili_jct=<input class="redinput" type="text" name="bili_jct"></label>
-        <label>异常情况通知邮箱=<input class="redinput" type="text" name="email"></label>
+        <label>B站登录手机号/邮箱=<input class="redinput" type="text" name="account"></label>
+        <label>密码=<input class="redinput" type="password" name="password"></label>
+        <label>异常情况通知邮箱(可不填)=<input class="redinput" type="text" name="email"></label>
         <button class="button center" id="submit-cookie">我要挂辣条！</button>
     </div>
 </div>
 <div>
     <hr>
     <p><strong>
-        这是一个免费挂辣条的网站。包括每日签到、应援团签到、双端直播任务签到、直播挂机升UL、舰长亲密度、高能/小电视辣条领取。你要先把你的B站uid通过QQ告诉站长，他允许你使用之后，你按照下面的教程，把你账号信息填写在这里就可以了。
+        这是一个免费挂辣条的网站，包括每日签到、应援团签到、双端直播任务签到、直播挂机升UL、舰长亲密度、高能/小电视辣条领取。
     </strong></p>
-    <p><strong style="color: red;">
+    <p><strong>
+        你要先把你的B站账号(登录邮箱/手机号)通过QQ告诉站长，他允许你使用之后，你把账号信息填写在这里就可以了。<br />
+        本站不会保存你的密码。因此登录过期时，你需要重新来这里登录。一般30天需要配置一次。你可以填写上异常情况通知邮箱，如果登录过期了，会给你发邮件通知。
+    </strong></p>
+    <h3><strong>
+        不想输入密码？<button class="button center" id="go-old">点击这里去旧版（不用输入密码，但配置麻烦）</button>。
+    </strong></h3>
+    <p>
+        <strong style="color: red;">
         凡是在这里挂辣条的，都有概率进小黑屋，领取辣条时会提示"访问已拒绝"！
         <br />如果你要在这里挂辣条，就自行承担风险，出现小黑屋、账号封禁等情况本站概不负责，不能接受的同学请自行离开！
         <br />在这里已经正常领辣条的同学，如果不想继续挂了，QQ上联系站长发送你的uid即可。
@@ -95,21 +102,6 @@
         </label>
     </div>
     <hr>
-    <h3>使用说明：想要挂辣条，需要把你的「B站uid」、「SESSDATA」和「bili_jct」填写到上面。</h3>
-    <h3>「SESSDATA」和「bili_jct」要从浏览器中获取，具体方法如下: （请参考最下面的一幅图）</h3>
-    <p>
-        ① 用chrome浏览器（或者百度浏览器、360浏览器都可以）登录到破站
-    </p><p>
-        ② <strong>鼠标指针移动到页面空白的地方，点击鼠标右键</strong>，在弹出的菜单中点击「检查」或者「审查元素」，此时会弹出浏览器的调试框
-    </p><p>
-        ③ 在打开的调试框中，点击标题栏的「Application」或者「应用」
-    </p><p>
-        ④ 在调试框的左侧点击 "Storage"（中文浏览器下显示 "存储"）下的 "Cookies"，选择 "https://www.bilibili.com/"这一项
-    </p><p>
-        ⑤和⑥ 也就是图中箭头指的，就是你要填写到上面的表单中的值。填写完了之后，点击「我要挂辣条」按钮就行了。
-    </p><p>
-        上面表单中的「异常情况通知邮箱」可以不填。但建议填上，这样如果登录过期、挂辣条出现错误，就会给你发送通知邮件。
-    </p>
     <h3>答疑：</h3>
     <p>
         关了浏览器之后，还会领辣条吗？是不是要把这个页面一直开着？答：关了也会领，不需要一直开着。
@@ -132,8 +124,6 @@
     </p><p>
         全免费的吗？为什么？答：免费的。站长的名字叫雷锋。
     </p>
-
-    <img src="{{ CDN_URL }}/static/img/使用说明.png" style="width:100%">
 </div>
 <div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -176,27 +166,17 @@ $(function () {
         });
     }
     function submit(){
-        let uid = $("input[name=uid]").val();
-        let SESSDATA = $("input[name=SESSDATA]").val();
-        let bili_jct = $("input[name=bili_jct]").val();
+        let account = $("input[name=account]").val();
+        let password = $("input[name=password]").val();
         let email = $("input[name=email]").val();
-        if (uid){
-            warning("错误的uid！")
-        }
-        if (!SESSDATA){
-            warning("错误的SESSDATA！")
-        }
-        if (!bili_jct){
-            warning("错误的bili_jct！")
-        }
+
         $.ajax({
             url: "/lt/api",
             type: "post",
             data: {
-                action: "add_cookie",
-                uid: uid,
-                SESSDATA: SESSDATA,
-                bili_jct: bili_jct,
+                action: "user_login",
+                account: account,
+                password: password,
                 email: email,
             },
             success: function (data){warning(data)},
@@ -208,6 +188,9 @@ $(function () {
     });
     $("#submit-cookie").click(submit);
     $("#submit-query").click(query);
+    $("#go-old").click(function () {
+        window.location = "/lt";
+    });
 });
 </script>
 </body>
