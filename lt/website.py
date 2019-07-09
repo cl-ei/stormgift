@@ -23,6 +23,11 @@ async def lt(request):
     return render_to_response("lt/website_homepage.html", context=context)
 
 
+async def lt_new(request):
+    context = {"CDN_URL": CDN_URL}
+    return render_to_response("lt/website_homepage_new.html", context=context)
+
+
 async def api(request):
     data = await request.post()
 
@@ -146,6 +151,7 @@ async def api(request):
 app = web.Application()
 app.add_routes([
     web.get('/lt', lt),
+    web.get('/lt_new', lt_new),
     web.post('/lt/api', api),
 ])
 web.run_app(app, port=1024)
