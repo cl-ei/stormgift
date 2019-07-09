@@ -160,7 +160,9 @@ async def api(request):
         if not flag:
             return web.Response(text=f"账户 {account} 配置错误：{user_cookie}")
 
-        uid = re.findall(r"DedeUserID=(\d+)", user_cookie)[0]
+        uid = int(re.findall(r"DedeUserID=(\d+)", user_cookie)[0])
+        await CookieOperator.add_uid_to_white_list(uid)
+
         r, is_vip = await BiliApi.get_if_user_is_live_vip(user_cookie, user_id=uid)
         if not r:
             return web.Response(text=f"用户（uid: {uid}）你输入的数据不正确！！请检查后重新配置！！！")
