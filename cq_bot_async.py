@@ -12,7 +12,7 @@ from aiohttp import web
 from config import CQBOT
 from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
-from utils.dao import CookieOperator, HansyQQGroupUserInfo, LockUntilTimeout
+from utils.dao import CookieOperator, HansyQQGroupUserInfo
 from utils.biliapi import BiliApi
 
 

@@ -47,8 +47,8 @@ class RedisCache(object):
         r = await self.execute("get", key)
         try:
             return pickle.loads(r)
-        except TypeError:
-            return None
+        except (TypeError, pickle.UnpicklingError):
+            return r
 
     async def hash_map_set(self, name, key_values):
         args = []
@@ -116,6 +116,9 @@ class RedisCache(object):
     async def set_get_count(self, name):
         r = await self.execute("SCARD", name)
         return r
+
+    async def incr(self, key):
+        return await self.execute("INCR", key)
 
 
 redis_cache = RedisCache(**REDIS_CONFIG)
@@ -301,19 +304,6 @@ class HansyQQGroupUserInfo(object):
         key = cls._key.replace("{group_id}", str(group_id)).replace("{user_id}", "*")
         keys = await redis_cache.execute("KEYS", key)
         return [int(k.decode("utf-8").split("_")[-1]) for k in keys]
-
-
-class LockUntilTimeout(object):
-    _key = "LockUntilTimeout_"
-
-    @classmethod
-    async def it_s_busy_now(cls, key, timeout):
-        key = cls._key + key
-        if await redis_cache.get(key) == "existed":
-            return True
-
-        await redis_cache.set(key, value="existed", timeout=timeout)
-        return False
 
 
 class ValuableLiveRoom(object):
