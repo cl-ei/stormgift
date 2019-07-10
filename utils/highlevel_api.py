@@ -191,7 +191,7 @@ class DBCookieOperator:
     async def add_cookie_by_account(cls, account, password, notice_email=None):
         objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.account == account))
         if not objs:
-            return False, "Not in white list."
+            return False, "你不在白名单里。提前联系站长经过允许才可以使用哦。"
 
         lt_user = objs[0]
         if lt_user.available and (lt_user.cookie_expire_time - datetime.datetime.now()).total_seconds() > 3600*24*10:
@@ -213,7 +213,7 @@ class DBCookieOperator:
 
         flag, data, uname = await BiliApi.get_if_user_is_live_vip(cookie, user_id=lt_user.DedeUserID, return_uname=True)
         if not flag:
-            return False, data
+            return False, "无法获取你的个人信息，请稍后再试。"
 
         lt_user.is_vip = data
         lt_user.name = uname
@@ -284,3 +284,25 @@ class DBCookieOperator:
         if not flag:
             send_cookie_invalid_notice(cookie_obj.cookie)
         return flag, data
+
+    @classmethod
+    async def get_by_uid(cls, user_id, available=None):
+        if user_id == "*":
+            objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.available == True))
+            return objs[0]
+
+        if user_id == "DD":
+            user_id = 20932326
+        elif user_id == "LP":
+            user_id = 39748080
+
+        if available is None:
+            query = LTUserCookie.select().where(LTUserCookie.DedeUserID == user_id)
+        else:
+            query = LTUserCookie.select().where(
+                (LTUserCookie.DedeUserID == user_id) & (LTUserCookie.available == available)
+            )
+        objs = await cls.execute(query)
+        if objs:
+            return objs[0]
+        return None

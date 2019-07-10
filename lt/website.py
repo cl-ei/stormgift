@@ -1,11 +1,9 @@
-import re
 import datetime
-from jinja2 import Template
 from aiohttp import web
-from utils.biliapi import BiliApi, CookieFetcher
-from utils.dao import CookieOperator, AcceptorBlockedUser, LTWhiteList
-from utils.db_raw_query import AsyncMySQL
+from jinja2 import Template
 from config import CDN_URL
+from utils.db_raw_query import AsyncMySQL
+from utils.highlevel_api import DBCookieOperator
 
 
 def render_to_response(template, context=None):
@@ -19,11 +17,6 @@ def render_to_response(template, context=None):
     return web.Response(text=template.render(context or {}), content_type="text/html")
 
 
-async def lt_old(request):
-    context = {"CDN_URL": CDN_URL}
-    return render_to_response("lt/website_homepage_old.html", context=context)
-
-
 async def lt(request):
     context = {"CDN_URL": CDN_URL}
     return render_to_response("lt/website_homepage.html", context=context)
@@ -33,69 +26,29 @@ async def api(request):
     data = await request.post()
 
     action = data.get("action")
-    if action == "add_cookie":
+    if action == "query":
         uid = data['uid']
-        try:
-            uid = int("".join(uid.split()))
-        except Exception:
-            return web.Response(text="错误的uid!")
-
-        if uid not in CookieOperator.get_white_uid_list():
-            return web.Response(text=f"uid {uid} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
-
-        SESSDATA = data['SESSDATA']
-        bili_jct = data['bili_jct']
-        email = data["email"]
-
-        _test_char = SESSDATA + bili_jct + email
-        if ";" in _test_char or "=" in _test_char:
-            return web.Response(text="数据配置错误！请仔细阅读说明！")
-
-        user_cookie = f"DedeUserID={uid}; SESSDATA={SESSDATA}; bili_jct={bili_jct}; notice_email={email};"
-        r, is_vip = await BiliApi.get_if_user_is_live_vip(user_cookie, user_id=uid)
-        if not r:
-            return web.Response(text=f"用户（uid: {uid}）你输入的数据不正确！！请检查后重新配置！！！")
-
-        if is_vip:
-            CookieOperator.add_cookie(user_cookie, "vip")
-        CookieOperator.add_cookie(user_cookie, "raw")
-        CookieOperator.add_cookie(user_cookie, "valid")
-        return web.Response(text=f"用户（uid: {uid}）配置成功！")
-
-    elif action == "query":
-        uid = data['uid']
-        # -------------- query ! --------------
         try:
             uid = int("".join(uid.split()))
             assert uid > 0
-        except Exception:
+        except (TypeError, ValueError, AssertionError):
             return web.Response(text=f"错误的uid: {uid}, 重新输入!")
 
-        if uid not in CookieOperator.get_white_uid_list():
-            return web.Response(text=f"{uid} 你没有权限！! 联系站长把你加到白名单才能领辣条哦。")
-
-        user_cookie = CookieOperator.get_cookie_by_uid(uid)
-        if not user_cookie:
+        cookie_obj = await DBCookieOperator.get_by_uid(uid)
+        if cookie_obj is None:
             return web.Response(text=f"用户（uid: {uid}）尚未配置，没开始领辣条。")
 
-        r, data = await BiliApi.do_sign(user_cookie)
-        if not r and "登录" in data:
-            return web.Response(text=f"用户（uid: {uid}）已过期！请重新配置！！！")
-
-        blocked_datetime = await AcceptorBlockedUser.get_blocked_datetime(uid)
-
         most_recently = await AsyncMySQL.execute(
-            (
-                "select created_time from userrafflerecord where user_id = %s order by created_time desc limit 1;"
-            ), (uid,)
+            "select created_time from userrafflerecord where user_id = %s order by created_time desc limit 1;",
+            (uid,)
         )
         if most_recently:
             most_recently = most_recently[0][0]
             interval = (datetime.datetime.now() - most_recently).total_seconds()
             if interval > 3600:
-                most_recently = f"约{interval // 3600}小时前"
+                most_recently = f"约{int(interval // 3600)}小时前"
             elif interval > 60:
-                most_recently = f"约{interval // 60}分钟前"
+                most_recently = f"约{int(interval // 60)}分钟前"
             else:
                 most_recently = f"{int(interval)}秒前"
         else:
@@ -124,6 +77,11 @@ async def api(request):
                 "gift_name": gift_name,
                 "count": count
             })
+        if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * 6:
+            blocked_datetime = cookie_obj.blocked_time
+        else:
+            blocked_datetime = None
+
         if blocked_datetime:
             title = (
                 f"<h3>系统在{str(blocked_datetime)[:19]}发现你被关进了小黑屋</h3>"
@@ -153,33 +111,18 @@ async def api(request):
         if not account or not password:
             return web.Response(text="输入错误！检查你的输入!")
 
-        if account not in await LTWhiteList.get():
-            return web.Response(text=f"账户 {account} 没有权限！! 联系站长把你加到白名单才能领辣条哦。")
-
-        flag, user_cookie = await CookieFetcher.get_cookie(account, password)
-        if not flag:
-            return web.Response(text=f"账户 {account} 配置错误：{user_cookie}")
-
-        uid = int(re.findall(r"DedeUserID=(\d+)", user_cookie)[0])
-        await CookieOperator.add_uid_to_white_list(uid)
-
-        r, is_vip = await BiliApi.get_if_user_is_live_vip(user_cookie, user_id=uid)
-        if not r:
-            return web.Response(text=f"用户（uid: {uid}）你输入的数据不正确！！请检查后重新配置！！！")
-
-        user_cookie = user_cookie + f"notice_email={email};"
-        if is_vip:
-            CookieOperator.add_cookie(user_cookie, "vip")
-        CookieOperator.add_cookie(user_cookie, "raw")
-        CookieOperator.add_cookie(user_cookie, "valid")
-        return web.Response(text=f"用户（uid: {uid}）配置成功！")
+        flag, obj = await DBCookieOperator.add_cookie_by_account(account=account, password=password, notice_email=email)
+        if flag:
+            return web.Response(text=f"用户{obj.name}（uid: {obj.DedeUserID}）配置成功！")
+        else:
+            return web.Response(text=f"配置失败！原因：{obj}")
 
     else:
         return web.Response(text=f"X")
 
+
 app = web.Application()
 app.add_routes([
-    web.get('/lt_old', lt_old),
     web.get('/lt', lt),
     web.post('/lt/api', api),
 ])
