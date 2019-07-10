@@ -1,29 +1,39 @@
 import time
 import asyncio
 from utils.biliapi import BiliApi
+from utils.highlevel_api import DBCookieOperator
 from config.log4 import crontab_task_logger as logging
 
 
 async def main():
     logging.info(f"Start do sign task.")
     start_time = time.time()
+    objs = await DBCookieOperator.get_objs(available=True)
 
-    with open("data/valid_cookies.txt") as f:
-        cookies = [_.strip() for _ in f.readlines()]
+    for obj in objs:
+        cookie = obj.cookie
+        flag, result = await BiliApi.do_sign(cookie)
+        if not flag and "请先登录" in result:
+            await DBCookieOperator.set_invalid(obj)
+            continue
 
-    for index, cookie in enumerate(cookies):
         await asyncio.sleep(0.5)
-        await BiliApi.do_sign(cookie)
+
+        r, is_vip = await BiliApi.get_if_user_is_live_vip(cookie)
+        if r:
+            if is_vip != obj.is_vip:
+                await DBCookieOperator.set_vip(obj, is_vip)
 
         await asyncio.sleep(0.5)
+
         r, data = await BiliApi.do_sign_group(cookie)
         if not r:
-            logging.error(f"Sign group failed, {index}-{cookie.split(';')[0]}: {data}")
+            logging.error(f"Sign group failed, {obj.name}-{obj.DedeUserID}: {data}")
 
         await asyncio.sleep(0.5)
         await BiliApi.do_sign_double_watch(cookie)
 
-        if "20932326" in cookie:
+        if obj.DedeUserID == 20932326:
             await asyncio.sleep(0.5)
             await BiliApi.silver_to_coin(cookie)
 

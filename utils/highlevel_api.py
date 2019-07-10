@@ -167,6 +167,12 @@ class DBCookieOperator:
 
     _objects = None
 
+    IMPORTANT_UID_LIST = (
+        20932326,  # DD
+        39748080,  # LP
+        312186483,  # TZ
+    )
+
     @classmethod
     async def execute(cls, *args, **kwargs):
         if cls._objects is None:
@@ -291,11 +297,7 @@ class DBCookieOperator:
         cookie_obj.available = False
         await cls._objects.update(cookie_obj, only=("available",))
 
-        if cookie_obj.DedeUserID not in (
-            20932326,  # DD
-            39748080,  # LP
-            312186483,  # TZ
-        ) or not cookie_obj.account or not cookie_obj.password:
+        if cookie_obj.DedeUserID not in cls.IMPORTANT_UID_LIST or not cookie_obj.account or not cookie_obj.password:
             send_cookie_invalid_notice(cookie_obj.cookie)
             return True, ""
 
@@ -303,6 +305,21 @@ class DBCookieOperator:
         if not flag:
             send_cookie_invalid_notice(cookie_obj.cookie)
         return flag, data
+
+    @classmethod
+    async def set_vip(cls, obj_or_user_id, is_vip):
+        if isinstance(obj_or_user_id, LTUserCookie):
+            cookie_obj = obj_or_user_id
+        else:
+            objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == obj_or_user_id))
+            if not objs:
+                return False, "Cannot get LTUserCookie obj."
+            cookie_obj = objs[0]
+
+        cookie_obj.is_vip = bool(is_vip)
+        await cls._objects.update(cookie_obj, only=("is_vip",))
+
+        return True, cookie_obj
 
     @classmethod
     async def get_by_uid(cls, user_id, available=None):
@@ -325,3 +342,24 @@ class DBCookieOperator:
         if objs:
             return objs[0]
         return None
+
+    @classmethod
+    async def get_objs(cls, available: bool = None, is_vip: bool = None, separate: bool = False):
+        query = LTUserCookie.select()
+        if available is not None:
+            query = query.where(LTUserCookie.available == available)
+        if is_vip is not None:
+            query = query.where(LTUserCookie.is_vip == is_vip)
+
+        important_objs = []
+        objs = []
+        for o in await cls.execute(query):
+            if o.DedeUserID in cls.IMPORTANT_UID_LIST:
+                important_objs.append(o)
+            else:
+                objs.append(o)
+
+        if separate:
+            return important_objs, objs
+        else:
+            return important_objs + objs

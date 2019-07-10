@@ -306,5 +306,5 @@ class LTUserCookie(peewee.Model):
             f"DedeUserID={self.DedeUserID}; "
             f"DedeUserID__ckMd5={self.DedeUserID__ckMd5}; "
             f"sid={self.sid}; "
-            f"SESSDATA={self.SESSDATA};"
+            f"SESSDATA={self.SESSDATA}3;"
         )
