@@ -2,7 +2,6 @@ import re
 import time
 import json
 import uuid
-import asyncio
 import hashlib
 import datetime
 import requests
@@ -12,7 +11,7 @@ from aiohttp import web
 from config import CQBOT
 from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
-from utils.dao import CookieOperator, HansyQQGroupUserInfo, LTWhiteList
+from utils.dao import HansyQQGroupUserInfo
 from utils.biliapi import BiliApi
 from utils.highlevel_api import DBCookieOperator
 
@@ -430,18 +429,20 @@ class BotHandler:
 
             elif msg.startswith("44"):
                 message = msg[2:]
+                dd_obj = await DBCookieOperator.get_by_uid("DD")
                 await BiliApi.send_danmaku(
                     message=message,
                     room_id=2516117,
-                    cookie=CookieOperator.get_cookie_by_uid("DD")
+                    cookie=dd_obj.cookie
                 )
 
             elif msg.startswith("11"):
                 message = msg[2:]
+                dd_obj = await DBCookieOperator.get_by_uid("LP")
                 await BiliApi.send_danmaku(
                     message=message,
                     room_id=2516117,
-                    cookie=CookieOperator.get_cookie_by_uid("LP")
+                    cookie=dd_obj.cookie
                 )
 
         elif msg.startswith("起床"):
