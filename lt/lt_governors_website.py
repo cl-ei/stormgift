@@ -214,7 +214,8 @@ async def query_raffles(request):
         start_date = datetime.datetime.now() - datetime.timedelta(hours=48)
         records = await AsyncMySQL.execute(
             (
-                "select id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, prize_gift_name, expire_time "
+                "select id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, "
+                "   prize_gift_name, expire_time, sender_name, winner_name "
                 "from raffle "
                 "where expire_time >= %s "
                 "order by id desc ;"
@@ -223,8 +224,10 @@ async def query_raffles(request):
         user_obj_id_list = []
         room_id_list = []
         for row in records:
-
-            id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, prize_gift_name, expire_time = row
+            (
+                id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id,
+                prize_gift_name, expire_time, sender_name, winner_name
+            ) = row
 
             room_id_list.append(room_id)
             user_obj_id_list.append(sender_obj_id)
@@ -248,7 +251,10 @@ async def query_raffles(request):
 
         raffle_data = []
         for row in records:
-            id, real_room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, prize_gift_name, expire_time = row
+            (
+                id, real_room_id, gift_name, gift_type, sender_obj_id, winner_obj_id,
+                prize_gift_name, expire_time, sender_name, winner_name
+            ) = row
 
             short_room_id, master_uname = room_id_map.get(real_room_id, (None, ""))
             if short_room_id is None:
@@ -256,12 +262,8 @@ async def query_raffles(request):
             elif short_room_id == real_room_id:
                 short_room_id = "-"
 
-            if winner_obj_id:
-                user_id, user_name = user_obj_id_map.get(winner_obj_id, ("__SERVER_ERROR__", ""))
-            else:
-                user_id, user_name = "", ""
-
-            sender_uid, sender_name = user_obj_id_map.get(sender_obj_id, ("__SERVER_ERROR__", ""))
+            user_id, user_name = user_obj_id_map.get(winner_obj_id, ("__SERVER_ERROR__", winner_name))
+            sender_uid, sender_name = user_obj_id_map.get(sender_obj_id, ("__SERVER_ERROR__", sender_name))
 
             info = {
                 "short_room_id": short_room_id,
