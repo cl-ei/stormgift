@@ -7,8 +7,7 @@ from cqhttp import CQHttp
 from config import CQBOT
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import RCWebSocketClient
-from utils.dao import CookieOperator
-from utils.highlevel_api import ReqFreLimitApi
+from utils.highlevel_api import ReqFreLimitApi, DBCookieOperator
 from config.log4 import console_logger as logging
 
 MONITOR_ROOM_ID = 13369254
@@ -25,7 +24,7 @@ class TempData:
 
 async def send_danmaku(msg, user=""):
     user = user or "LP"
-    cookie = CookieOperator.get_cookie_by_uid(user_id=user)
+    cookie = await DBCookieOperator.get_by_uid(user_id=user)
 
     if not cookie:
         logging.error(f"Cannot get cookie for user: {user}.")

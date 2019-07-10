@@ -2,7 +2,6 @@ import time
 import asyncio
 import datetime
 from utils.biliapi import BiliApi, CookieFetcher
-from utils.dao import CookieOperator
 from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
@@ -37,10 +36,11 @@ class ReqFreLimitApi(object):
         if flag and isinstance(uid, (int, float)) and uid > 0:
             return uid
 
-        cookie = CookieOperator.get_cookie_by_uid("*")
-        if not cookie:
+        obj = await DBCookieOperator.get_by_uid("*")
+        if not obj:
             return None
 
+        cookie = obj.cookie
         uid = None
         for retry_time in range(3):
             await BiliApi.add_admin(user_name, cookie)
@@ -327,6 +327,20 @@ class DBCookieOperator:
         cookie_obj.is_vip = bool(is_vip)
         await cls._objects.update(cookie_obj, only=("is_vip",))
 
+        return True, cookie_obj
+
+    @classmethod
+    async def set_blocked(cls, obj_or_user_id):
+        if isinstance(obj_or_user_id, LTUserCookie):
+            cookie_obj = obj_or_user_id
+        else:
+            objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == obj_or_user_id))
+            if not objs:
+                return False, "Cannot get LTUserCookie obj."
+            cookie_obj = objs[0]
+
+        cookie_obj.blocked_time = datetime.datetime.now()
+        await cls._objects.update(cookie_obj, only=("blocked_time",))
         return True, cookie_obj
 
     @classmethod

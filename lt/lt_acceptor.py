@@ -1,13 +1,12 @@
-import re
 import time
 import asyncio
 import traceback
 from random import random
-from utils.dao import BiliUserInfoCache, RaffleMessageQ, AcceptorBlockedUser, redis_cache, CookieOperator
 from utils.biliapi import BiliApi
-from utils.email import send_cookie_invalid_notice
-from utils.reconstruction_model import UserRaffleRecord, objects
+from utils.highlevel_api import DBCookieOperator
+from utils.dao import RaffleMessageQ, redis_cache
 from config.log4 import acceptor_logger as logging
+from utils.reconstruction_model import UserRaffleRecord, objects
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
@@ -21,10 +20,11 @@ NON_SKIP_USER_ID = [
 class Acceptor(object):
     def __init__(self):
         self.__busy_time = 0
-
-        self.cookie_file = "data/valid_cookies.txt"
-        self.__block_list = {}
         self.accepted_keys = []
+
+        self._cookie_objs_non_skip = []
+        self._cookie_objs = []
+        self._cookie_objs_update_time = 0
 
     def _is_new_gift(self, *args):
         key = "$".join([str(_) for _ in args])
@@ -38,74 +38,21 @@ class Acceptor(object):
 
         return True
 
-    async def add_to_block_list(self, cookie):
-        user_id = int(re.findall(r"DedeUserID=(\d+)", cookie)[0])
-        await AcceptorBlockedUser.add(user_id)
-
-        self.__block_list[cookie] = time.time()
-        user_ids = re.findall(r"DedeUserID=(\d+)", "".join(self.__block_list.keys()))
-        block_display_str = ", ".join([
-            f"{await BiliUserInfoCache.get_user_name_by_user_id(uid)}({uid})" for uid in user_ids
-        ])
-        logging.critical(f"Black list updated. current {len(user_ids)}: [{block_display_str}].")
-
     async def load_uid_and_cookie(self):
-        """
+        if time.time() - self._cookie_objs_update_time > 100:
+            objs = await DBCookieOperator.get_objs(available=True, separate=True)
+            self._cookie_objs_non_skip, self._cookie_objs = objs
+            self._cookie_objs_update_time = time.time()
 
-                :return: [  # non_skip
-                    (uid, cookie),
-                    ...
-                ],
+        return self._cookie_objs_non_skip, self._cookie_objs
 
-                [       # normal
+    async def accept_tv(self, index, user_cookie_obj, room_id, gift_id):
 
-                    (uid, cookie),
-                    ...
-                ]
-                """
-        try:
-            with open(self.cookie_file, "r") as f:
-                cookies = [c.strip() for c in f.readlines()]
-        except Exception as e:
-            logging.exception(f"Cannot load cookie, e: {str(e)}.", exc_info=True)
-            return []
+        cookie = user_cookie_obj.cookie
+        user_id = user_cookie_obj.DedeUserID
+        user_name = user_cookie_obj.name
 
-        non_skip_cookies = []
-        white_cookies = []
-        blocked_list = []
-
-        now = time.time()
-        t_12_hours = 3600 * 12
-        for cookie in cookies:
-            user_id = int(re.findall(r"DedeUserID=(\d+)", cookie)[0])
-            block_time = self.__block_list.get(cookie)
-            if isinstance(block_time, (int, float)) and now - block_time < t_12_hours:
-                blocked_list.append(user_id)
-                continue
-
-            if user_id in NON_SKIP_USER_ID:
-                non_skip_cookies.append((user_id, cookie))
-            else:
-                white_cookies.append((user_id, cookie))
-
-        user_display_info = ", ".join([
-            f"{await BiliUserInfoCache.get_user_name_by_user_id(uid)}({uid})" for uid in blocked_list
-        ])
-        logging.info(f"Blocked users: [{user_display_info}], now skip.")
-
-        # GC
-        if len(self.__block_list) > len(cookies):
-            new_block_list = {}
-            for cookie in self.__block_list:
-                if cookie in cookies:
-                    new_block_list[cookie] = self.__block_list[cookie]
-            self.__block_list = new_block_list
-
-        return non_skip_cookies, white_cookies
-
-    async def accept_tv(self, index, user_id, room_id, gift_id, cookie):
         r, msg = await BiliApi.join_tv(room_id, gift_id, cookie)
-        user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
         if r:
             try:
                 info = await redis_cache.get(f"T${room_id}${gift_id}")
@@ -117,15 +64,16 @@ class Acceptor(object):
             logging.info(f"TV SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
 
         else:
-            if "访问被拒绝" in msg:
-                await self.add_to_block_list(cookie)
-
-            elif "412" in msg:
+            if "412" in msg:
                 self.__busy_time = time.time()
 
+            elif "访问被拒绝" in msg:
+                await DBCookieOperator.set_blocked(user_cookie_obj)
+                self._cookie_objs_update_time = 0
+
             elif "请先登录哦" in msg:
-                CookieOperator.delete_cookie_by_uid(user_id)
-                send_cookie_invalid_notice(cookie)
+                await DBCookieOperator.set_invalid(user_cookie_obj)
+                self._cookie_objs_update_time = 0
 
             if index != 0:
                 msg = msg[:100]
@@ -134,9 +82,13 @@ class Acceptor(object):
 
         return r, msg
 
-    async def accept_guard(self, index, user_id, room_id, gift_id, cookie):
+    async def accept_guard(self, index, user_cookie_obj, room_id, gift_id):
+
+        cookie = user_cookie_obj.cookie
+        user_id = user_cookie_obj.DedeUserID
+        user_name = user_cookie_obj.name
+
         r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
-        user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
         if r:
             try:
                 info = await redis_cache.get(f"G${room_id}${gift_id}")
@@ -157,15 +109,16 @@ class Acceptor(object):
             logging.info(f"GUARD SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
 
         else:
-            if "访问被拒绝" in msg:
-                await self.add_to_block_list(cookie)
-
-            elif "412" in msg or "Not json response" in msg:
+            if "412" in msg or "Not json response" in msg:
                 self.__busy_time = time.time()
 
+            elif "访问被拒绝" in msg:
+                await DBCookieOperator.set_blocked(user_cookie_obj)
+                self._cookie_objs_update_time = 0
+
             elif "请先登录哦" in msg:
-                CookieOperator.delete_cookie_by_uid(user_id)
-                send_cookie_invalid_notice(cookie)
+                await DBCookieOperator.set_invalid(user_cookie_obj)
+                self._cookie_objs_update_time = 0
 
             if index != 0:
                 msg = msg[:100]
@@ -194,28 +147,29 @@ class Acceptor(object):
         if not self._is_new_gift(key_type, room_id, gift_id):
             return "Repeated gift, skip it."
 
-        non_skip_cookies, white_cookies = await self.load_uid_and_cookie()
+        non_skip, normal_objs = await self.load_uid_and_cookie()
 
         display_index = -1
-        for user_id, cookie in non_skip_cookies:
+        for obj in non_skip:
             display_index += 1
-            await process_fn(display_index, user_id, room_id, gift_id, cookie)
+            await process_fn(display_index, obj, room_id, gift_id)
 
         busy_412 = bool(time.time() - self.__busy_time < 60 * 20)
-        for user_id, cookie in white_cookies:
+        for user_cookie_obj in normal_objs:
+
             display_index += 1
+            user_id = user_cookie_obj.DedeUserID
+            user_name = user_cookie_obj.name
 
             if busy_412:
                 if random() < 0.5:
-                    user_name = await BiliUserInfoCache.get_user_name_by_user_id(user_id)
                     logging.info(f"Too busy, user {display_index}-{user_name}({user_id}) skip. reason: 412.")
                     continue
-
                 await asyncio.sleep(0.5)
 
-            flag, msg = await process_fn(display_index, user_id, room_id, gift_id, cookie)
+            flag, msg = await process_fn(display_index, user_id, room_id, gift_id)
             if not flag and ("抽奖已过期" in msg or "已经过期啦" in msg):
-                logging.warn(f"Prize expired! now skip all!")
+                logging.warning(f"Prize expired! now skip all!")
                 return
 
     async def run(self):
