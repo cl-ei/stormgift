@@ -1,7 +1,6 @@
-import sys
-import json
-from config.log4 import crontab_task_logger as logging
 import asyncio
+from utils.highlevel_api import DBCookieOperator
+from config.log4 import crontab_task_logger as logging
 
 
 async def post_heartbeat(cookie):
@@ -21,11 +20,9 @@ async def post_heartbeat(cookie):
 
 
 async def main():
-    with open("data/vip_cookies.txt") as f:
-        cookies = [c.strip() for c in f.readlines()]
-
-    for c in cookies:
-        await post_heartbeat(c)
+    objs = await DBCookieOperator.get_objs(available=True, is_vip=True)
+    for obj in objs:
+        await post_heartbeat(obj.cookie)
         await asyncio.sleep(5)
     logging.info("Post heart beat task done.\n\n")
 

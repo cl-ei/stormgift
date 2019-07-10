@@ -1,6 +1,7 @@
 import sys
-from config.log4 import crontab_task_logger as logging
 import asyncio
+from config.log4 import crontab_task_logger as logging
+from utils.highlevel_api import DBCookieOperator
 
 
 async def send_gift(cookie, medal, user_name=""):
@@ -86,15 +87,13 @@ async def send_gift(cookie, medal, user_name=""):
 
 
 async def main():
-    with open("data/valid_cookies.txt", "r") as f:
-        cookies = f.readlines()
+    obj = await DBCookieOperator.get_by_uid(20932326)
+    if obj:
+        await send_gift(cookie=obj.cookie, medal="姫sama", user_name="打盹")
 
-    for c in cookies:
-        if "20932326" in c:
-            await send_gift(cookie=c.strip(), medal="姫sama", user_name="打盹")
-
-        if "39748080" in c:
-            await send_gift(cookie=c.strip(), medal="电磁泡", user_name="录屏")
+    obj = await DBCookieOperator.get_by_uid(39748080)
+    if obj:
+        await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="录屏")
 
 
 loop = asyncio.get_event_loop()

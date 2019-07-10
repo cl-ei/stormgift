@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import jinja2
-from utils.dao import CookieOperator
+from utils.highlevel_api import DBCookieOperator
 from utils.biliapi import BiliApi
 from utils.db_raw_query import AsyncMySQL
 
@@ -115,7 +115,7 @@ async def gen_intro():
 
 async def main():
     intro = await gen_intro()
-    cookie = CookieOperator.get_cookie_by_uid(user_id="DD")
+    cookie = await DBCookieOperator.get_by_uid(user_id="DD")
     r = await BiliApi.update_brief_intro(cookie=cookie, description=intro)
     print(r)
 
