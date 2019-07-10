@@ -3,8 +3,9 @@ import time
 import asyncio
 import traceback
 from random import random
-from utils.dao import BiliUserInfoCache, RaffleMessageQ, AcceptorBlockedUser, redis_cache
+from utils.dao import BiliUserInfoCache, RaffleMessageQ, AcceptorBlockedUser, redis_cache, CookieOperator
 from utils.biliapi import BiliApi
+from utils.email import send_cookie_invalid_notice
 from utils.reconstruction_model import UserRaffleRecord, objects
 from config.log4 import acceptor_logger as logging
 
@@ -122,6 +123,10 @@ class Acceptor(object):
             elif "412" in msg:
                 self.__busy_time = time.time()
 
+            elif "请先登录哦" in msg:
+                CookieOperator.delete_cookie_by_uid(user_id)
+                send_cookie_invalid_notice(cookie)
+
             if index != 0:
                 msg = msg[:100]
 
@@ -157,6 +162,10 @@ class Acceptor(object):
 
             elif "412" in msg or "Not json response" in msg:
                 self.__busy_time = time.time()
+
+            elif "请先登录哦" in msg:
+                CookieOperator.delete_cookie_by_uid(user_id)
+                send_cookie_invalid_notice(cookie)
 
             if index != 0:
                 msg = msg[:100]

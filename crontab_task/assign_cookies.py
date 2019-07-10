@@ -52,7 +52,7 @@ async def check_single_cookie(c):
                 break
 
         if email_addr:
-            flag, err_msg = send_email(f"辣条-登录信息已过期：\n{cookie.split(';')[0]}", email_addr)
+            flag, err_msg = send_email(f"辣条-登录信息已过期：\n{cookie}", email_addr)
             if not flag:
                 logging.error(err_msg)
 
