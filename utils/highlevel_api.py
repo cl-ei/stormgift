@@ -301,11 +301,11 @@ class DBCookieOperator:
             send_cookie_invalid_notice(cookie_obj.cookie)
             return True, ""
 
-        logging.info(f"Re login user: {cookie_obj.name}(uid: {cookie_obj.DedeUserID})")
-
         flag, data = await cls.add_cookie_by_account(account=cookie_obj.account, password=cookie_obj.password)
         if not flag:
             send_cookie_invalid_notice(cookie_obj.cookie)
+
+        logging.info(f"Re login user: {cookie_obj.name}(uid: {cookie_obj.DedeUserID}), result: {flag}, data: {data}")
         return flag, data
 
     @classmethod
