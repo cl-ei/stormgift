@@ -274,3 +274,37 @@ class UserRaffleRecord(peewee.Model):
             raffle_id=raffle_id,
             created_time=created_time or datetime.datetime.now()
         )
+
+
+class LTUserCookie(peewee.Model):
+    name = peewee.CharField(index=True, null=True)
+    assign_machine = peewee.IntegerField(default=0)
+
+    DedeUserID = peewee.IntegerField(unique=True, index=True, null=True)
+    SESSDATA = peewee.CharField(null=True)
+    bili_jct = peewee.CharField(null=True)
+    sid = peewee.CharField(null=True)
+    DedeUserID__ckMd5 = peewee.CharField(null=True)
+    cookie_expire_time = peewee.DateTimeField(default=datetime.datetime.now)
+
+    notice_email = peewee.IntegerField(null=True)
+    is_vip = peewee.BooleanField(default=False)
+    blocked_time = peewee.DateTimeField(default=random_datetime)
+
+    account = peewee.CharField(null=True)
+    password = peewee.CharField(null=True)
+
+    available = peewee.BooleanField(default=False)
+
+    class Meta:
+        database = mysql_db
+
+    @property
+    def cookie(self):
+        return (
+            f"bili_jct={self.bili_jct}; "
+            f"DedeUserID={self.DedeUserID}; "
+            f"DedeUserID__ckMd5={self.DedeUserID__ckMd5}; "
+            f"sid={self.sid}; "
+            f"SESSDATA={self.SESSDATA};"
+        )

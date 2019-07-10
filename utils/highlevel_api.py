@@ -1,10 +1,11 @@
 import time
 import asyncio
 import datetime
-from utils.biliapi import BiliApi
+from utils.biliapi import BiliApi, CookieFetcher
 from utils.dao import CookieOperator
 from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
+from utils.reconstruction_model import LTUserCookie
 
 
 class ReqFreLimitApi(object):
@@ -160,3 +161,68 @@ class ReqFreLimitApi(object):
             "gift_list": gift_list
         }
         return return_data
+
+
+class DBCookieOperator:
+
+    _objects = None
+
+    @classmethod
+    async def execute(cls, *args, **kwargs):
+        if cls._objects is None:
+            from utils.reconstruction_model import objects
+            await objects.connect()
+            cls._objects = objects
+        if args or kwargs:
+            return await cls._objects.execute(*args, **kwargs)
+        else:
+            return None
+
+    @classmethod
+    async def add_uid_or_account_to_white_list(cls, uid=None, account=None):
+        await cls.execute()
+
+        if uid is not None:
+            return await cls._objects.get_or_create(LTUserCookie, DedeUserID=uid)
+        else:
+            return await cls._objects.get_or_create(LTUserCookie, account=account)
+
+    @classmethod
+    async def add_cookie_by_account(cls, account, password, notice_email=None):
+        objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.account == account))
+        if not objs:
+            return False, "Not in white list."
+
+        lt_user = objs[0]
+        if lt_user.available and (lt_user.cookie_expire_time - datetime.datetime.now()).total_seconds() > 3600*24*10:
+            return True, lt_user
+
+        flag, cookie = await CookieFetcher.get_cookie(account, password)
+        if not flag:
+            return False, cookie
+
+        lt_user.password = password
+        lt_user.cookie_expire_time = datetime.datetime.now() + datetime.timedelta(days=30)
+        lt_user.available = True
+        attrs = ["password", "cookie_expire_time", "available"]
+
+        cookie_kv = [_.strip() for _ in cookie.split(";")]
+        for k, v in [_.split("=", 1) for _ in cookie_kv if "=" in _]:
+            setattr(lt_user, k, v)
+            attrs.append(k)
+
+        flag, data, uname = await BiliApi.get_if_user_is_live_vip(cookie, user_id=lt_user.DedeUserID, return_uname=True)
+        if not flag:
+            return False, data
+
+        lt_user.is_vip = data
+        lt_user.name = uname
+        attrs.extend(["is_vip", "name"])
+
+        if notice_email is not None:
+            lt_user.notice_email = notice_email
+            attrs.append("notice_email")
+
+        await cls._objects.update(lt_user, only=attrs)
+
+        return True, lt_user
