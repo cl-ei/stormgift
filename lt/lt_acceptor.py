@@ -167,7 +167,7 @@ class Acceptor(object):
                     continue
                 await asyncio.sleep(0.5)
 
-            flag, msg = await process_fn(display_index, user_id, room_id, gift_id)
+            flag, msg = await process_fn(display_index, user_cookie_obj, room_id, gift_id)
             if not flag and ("抽奖已过期" in msg or "已经过期啦" in msg):
                 logging.warning(f"Prize expired! now skip all!")
                 return
