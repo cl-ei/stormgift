@@ -191,13 +191,13 @@ class DBCookieOperator:
     async def del_uid_or_account_from_white_list(cls, uid=None, account=None):
         count = 0
         if uid:
-            objs = cls._objects.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == uid))
+            objs = await cls._objects.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == uid))
             for obj in objs:
                 count += 1
                 await cls._objects.delete(obj)
 
         if account:
-            objs = cls._objects.execute(LTUserCookie.select().where(LTUserCookie.account == account))
+            objs = await cls._objects.execute(LTUserCookie.select().where(LTUserCookie.account == account))
             for obj in objs:
                 count += 1
                 await cls._objects.delete(obj)
