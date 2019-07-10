@@ -33,7 +33,6 @@ class SyncTool(object):
 
     @staticmethod
     async def fix_user_record_missed_uid():
-        await objects.connect()
 
         non_uid_users = await objects.execute(BiliUser.select().where(BiliUser.uid == None))
         logging.info(f"non_uid_users count: {len(non_uid_users)}")
