@@ -95,6 +95,13 @@ async def main():
     if obj:
         await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="录屏")
 
+    obj = await DBCookieOperator.get_by_uid(312186483)
+    if obj:
+        await send_gift(cookie=obj.cookie, medal="小夭精", user_name="桃子")
+
+    obj = await DBCookieOperator.get_by_uid(87301592)
+    if obj:
+        await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="村长")
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
