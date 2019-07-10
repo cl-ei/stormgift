@@ -128,39 +128,6 @@ class RedisCache(object):
 redis_cache = RedisCache(**REDIS_CONFIG)
 
 
-class AcceptorBlockedUser(object):
-    _key = "ACCEPTOR_BLOCKED_USER_"
-
-    @classmethod
-    async def add(cls, user_id):
-        key = cls._key + str(user_id)
-        return await redis_cache.set(key, datetime.datetime.now(), timeout=3600*12)
-
-    @classmethod
-    async def get_blocked_datetime(cls, user_id):
-        key = cls._key + str(user_id)
-        return await redis_cache.get(key)
-
-
-class BiliUserInfoCache(object):
-    timeout = 3600 * 12
-
-    __update_time = 0
-    __cache_data = {}
-    __cache_key = "BILI_LT_USER_ID_TO_NAME"
-
-    @classmethod
-    async def get_user_name_by_user_id(cls, uid):
-        if cls.__update_time == 0 or time.time() - cls.__update_time > cls.timeout:
-            cls.__cache_data = await redis_cache.hash_map_get(cls.__cache_key)
-            cls.__update_time = time.time()
-        return cls.__cache_data.get(uid)
-
-    @classmethod
-    async def set_user_name(cls, uid, name):
-        return await redis_cache.hash_map_set(cls.__cache_key, key_values={uid: name})
-
-
 class HansyGiftRecords(object):
     gift_key = "HANSY_GIFT_{year}_{month}"
 
@@ -353,24 +320,6 @@ class MonitorCommands(object):
     async def set(cls, *cmds):
         r = await redis_cache.set(cls._key, [c for c in cmds if isinstance(c, str)])
         return r
-
-
-class LTWhiteList(object):
-    _key = "LT_WHITE_LIST_"
-
-    @classmethod
-    async def add(cls, account):
-        r = await redis_cache.list_push(cls._key, account)
-        return r
-
-    @classmethod
-    async def get(cls):
-        r = await redis_cache.list_get_all(cls._key)
-        return r
-
-    @classmethod
-    async def del_(cls, account):
-        return await redis_cache.list_del(cls._key, account)
 
 
 async def test():
