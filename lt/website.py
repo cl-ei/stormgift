@@ -36,11 +36,14 @@ async def api(request):
 
         cookie_obj = await DBCookieOperator.get_by_uid(uid)
         if cookie_obj is None:
-            return web.Response(text=f"用户（uid: {uid}）尚未配置，没开始领辣条。")
+            return web.Response(text=f"用户（uid: {uid}）没有加入到白名单，尚未配置。")
+
+        if not cookie_obj.available:
+            return web.Response(text=f"用户{cookie_obj.name}（uid: {uid}）的登录已过期，请重新登录。")
 
         most_recently = await AsyncMySQL.execute(
             "select created_time from userrafflerecord where user_id = %s order by created_time desc limit 1;",
-            (uid,)
+            (uid, )
         )
         if most_recently:
             most_recently = most_recently[0][0]
