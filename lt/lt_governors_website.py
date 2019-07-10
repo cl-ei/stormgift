@@ -304,7 +304,6 @@ async def query_raffles(request):
             <style>
             table{
                 width: 100%;
-                max-width: 1600px;
                 margin-bottom: 20px;
                 border: 1px solid #7a7a7a;
                 border-collapse: collapse;
