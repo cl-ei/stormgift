@@ -287,7 +287,7 @@ class LTUserCookie(peewee.Model):
     DedeUserID__ckMd5 = peewee.CharField(null=True)
     cookie_expire_time = peewee.DateTimeField(default=datetime.datetime.now)
 
-    notice_email = peewee.IntegerField(null=True)
+    notice_email = peewee.CharField(null=True)
     is_vip = peewee.BooleanField(default=False)
     blocked_time = peewee.DateTimeField(default=random_datetime)
 
