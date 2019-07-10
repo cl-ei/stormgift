@@ -14,7 +14,7 @@ async def get_live_rooms_from_api():
 
     flag, total = await BiliApi.get_all_lived_room_count()
     if not flag:
-        logging.error(f"Cannot get lived room count! try times: {_}, msg: {total}")
+        logging.error(f"Cannot get lived room count! msg: {total}")
         return
 
     await asyncio.sleep(1)
