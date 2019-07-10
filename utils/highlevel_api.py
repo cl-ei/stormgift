@@ -366,12 +366,22 @@ class DBCookieOperator:
         return None
 
     @classmethod
-    async def get_objs(cls, available: bool = None, is_vip: bool = None, separate: bool = False):
+    async def get_objs(
+            cls,
+            available: bool = None,
+            is_vip: bool = None,
+            non_blocked: bool = None,
+            separate: bool = False
+    ):
         query = LTUserCookie.select()
         if available is not None:
             query = query.where(LTUserCookie.available == available)
         if is_vip is not None:
             query = query.where(LTUserCookie.is_vip == is_vip)
+
+        if non_blocked is not None:
+            eight_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=8)
+            query = query.where(LTUserCookie.blocked_time < eight_hour_ago)
 
         important_objs = []
         objs = []

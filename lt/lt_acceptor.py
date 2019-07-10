@@ -38,9 +38,12 @@ class Acceptor(object):
 
         return True
 
-    async def load_uid_and_cookie(self):
+    async def load_cookie(self):
         if time.time() - self._cookie_objs_update_time > 100:
-            objs = await DBCookieOperator.get_objs(available=True, separate=True)
+
+            logging.info("Now update cached user_cookie_objs.")
+
+            objs = await DBCookieOperator.get_objs(available=True, non_blocked=True, separate=True)
             self._cookie_objs_non_skip, self._cookie_objs = objs
             self._cookie_objs_update_time = time.time()
 
@@ -123,7 +126,7 @@ class Acceptor(object):
             if index != 0:
                 msg = msg[:100]
 
-            logging.critical(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
+            logging.warning(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
 
         return r, msg
 
@@ -147,7 +150,7 @@ class Acceptor(object):
         if not self._is_new_gift(key_type, room_id, gift_id):
             return "Repeated gift, skip it."
 
-        non_skip, normal_objs = await self.load_uid_and_cookie()
+        non_skip, normal_objs = await self.load_cookie()
 
         display_index = -1
         for obj in non_skip:
