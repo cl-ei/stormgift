@@ -185,7 +185,7 @@ class DBCookieOperator:
         if uid is not None:
             obj, is_new = await cls._objects.get_or_create(LTUserCookie, DedeUserID=uid)
         else:
-            obj, is_new = cls._objects.get_or_create(LTUserCookie, account=account)
+            obj, is_new = await cls._objects.get_or_create(LTUserCookie, account=account)
 
         return obj
 
