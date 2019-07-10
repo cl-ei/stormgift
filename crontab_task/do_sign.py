@@ -11,6 +11,9 @@ async def main():
     objs = await DBCookieOperator.get_objs(available=True)
 
     for obj in objs:
+
+        logging.info(f"Now proc {obj.name}(uid: {obj.DedeUserID}).")
+
         cookie = obj.cookie
         flag, result = await BiliApi.do_sign(cookie)
         if not flag and "请先登录" in result:
