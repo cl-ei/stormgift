@@ -257,11 +257,11 @@ async def query_raffles(request):
                 short_room_id = "-"
 
             if winner_obj_id:
-                user_id, user_name = user_obj_id_map[winner_obj_id]
+                user_id, user_name = user_obj_id_map.get(winner_obj_id, ("__SERVER_ERROR__", ""))
             else:
                 user_id, user_name = "", ""
 
-            sender_uid, sender_name = user_obj_id_map[sender_obj_id]
+            sender_uid, sender_name = user_obj_id_map.get(winner_obj_id, ("__SERVER_ERROR__", ""))
 
             info = {
                 "short_room_id": short_room_id,
