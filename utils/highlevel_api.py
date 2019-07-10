@@ -226,3 +226,35 @@ class DBCookieOperator:
         await cls._objects.update(lt_user, only=attrs)
 
         return True, lt_user
+
+    @classmethod
+    async def add_cookie_by_cookie(cls, DedeUserID, SESSDATA, bili_jct, notice_email=None):
+        objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == DedeUserID))
+        if not objs:
+            return False, "Not in white list."
+
+        lt_user = objs[0]
+        if lt_user.available and (lt_user.cookie_expire_time - datetime.datetime.now()).total_seconds() > 3600*24*10:
+            return True, lt_user
+
+        cookie = f"bili_jct={bili_jct}; DedeUserID={DedeUserID}; SESSDATA={SESSDATA};"
+        flag, data, uname = await BiliApi.get_if_user_is_live_vip(cookie, user_id=lt_user.DedeUserID, return_uname=True)
+        if not flag:
+            return False, data
+
+        lt_user.bili_jct = bili_jct
+        lt_user.DedeUserID = DedeUserID
+        lt_user.SESSDATA = SESSDATA
+        lt_user.cookie_expire_time = datetime.datetime.now() + datetime.timedelta(days=30)
+        lt_user.available = True
+        lt_user.is_vip = data
+        lt_user.name = uname
+        attrs = ["bili_jct", "DedeUserID", "SESSDATA", "cookie_expire_time", "available", "is_vip", "name"]
+
+        if notice_email is not None:
+            lt_user.notice_email = notice_email
+            attrs.append("notice_email")
+
+        await cls._objects.update(lt_user, only=attrs)
+
+        return True, lt_user
