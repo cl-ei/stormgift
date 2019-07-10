@@ -17,7 +17,7 @@ async def main():
         cookie = obj.cookie
         flag, result = await BiliApi.do_sign(cookie)
         if not flag and "请先登录" in result:
-            logging.warn(f"Do sign failed, user: {obj.name} - {obj.DedeUserID} flag: {flag}, result: {result}")
+            logging.warning(f"Do sign failed, user: {obj.name} - {obj.DedeUserID} flag: {flag}, result: {result}")
             await DBCookieOperator.set_invalid(obj)
             continue
 
@@ -28,7 +28,7 @@ async def main():
             if is_vip != obj.is_vip:
                 await DBCookieOperator.set_vip(obj, is_vip)
         else:
-            logging.warn(f"Get if it is vip failed, user: {obj.name} - {obj.DedeUserID} flag: {flag}, is_vip: {is_vip}")
+            logging.warning(f"Get if it is vip failed, user: {obj.name} - {obj.DedeUserID} flag: {flag}, is_vip: {is_vip}")
 
         await asyncio.sleep(0.5)
 
