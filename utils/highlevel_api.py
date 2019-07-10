@@ -183,9 +183,11 @@ class DBCookieOperator:
         await cls.execute()
 
         if uid is not None:
-            return await cls._objects.get_or_create(LTUserCookie, DedeUserID=uid)
+            obj, is_new = await cls._objects.get_or_create(LTUserCookie, DedeUserID=uid)
         else:
-            return await cls._objects.get_or_create(LTUserCookie, account=account)
+            obj, is_new = cls._objects.get_or_create(LTUserCookie, account=account)
+
+        return obj
 
     @classmethod
     async def del_uid_or_account_from_white_list(cls, uid=None, account=None):
