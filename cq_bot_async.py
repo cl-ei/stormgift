@@ -481,7 +481,12 @@ class BotHandler:
             return await cls.handle_group_message(context)
 
         elif context["message_type"] == "private":
-            return await cls.handle_private_message(context)
+            try:
+                return await cls.handle_private_message(context)
+            except Exception as e:
+                message = f"Error happened in handle_message: {e}\n{traceback.format_exc()}"
+                bot.send_private_msg(user_id=80873436, message=message)
+                return None
 
     @classmethod
     async def handle_notice(cls, context):
@@ -594,7 +599,7 @@ async def handler(request):
     else:
         response = None
 
-    if isinstance(response, dict):
+    if isinstance(response, dict) and response:
         return web.Response(text=json.dumps(response), content_type="application/json")
     else:
         return web.Response(text="", status=204)
