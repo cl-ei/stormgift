@@ -1,4 +1,5 @@
 import datetime
+import traceback
 from aiohttp import web
 from jinja2 import Template
 from config import CDN_URL
@@ -113,8 +114,11 @@ async def api(request):
         email = data["email"]
         if not account or not password:
             return web.Response(text="输入错误！检查你的输入!")
+        try:
+            flag, obj = await DBCookieOperator.add_cookie_by_account(account=account, password=password, notice_email=email)
+        except Exception as e:
+            return web.Response(text=f"Internal server error: {e}\n {traceback.format_exc()}")
 
-        flag, obj = await DBCookieOperator.add_cookie_by_account(account=account, password=password, notice_email=email)
         if flag:
             return web.Response(text=f"用户{obj.name}（uid: {obj.DedeUserID}）配置成功！")
         else:
