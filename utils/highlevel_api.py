@@ -202,7 +202,7 @@ class DBCookieOperator:
                 count += 1
                 await cls._objects.delete(obj)
 
-        return True
+        return count
 
     @classmethod
     async def add_cookie_by_account(cls, account, password, notice_email=None):
