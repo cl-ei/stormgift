@@ -188,6 +188,23 @@ class DBCookieOperator:
             return await cls._objects.get_or_create(LTUserCookie, account=account)
 
     @classmethod
+    async def del_uid_or_account_from_white_list(cls, uid=None, account=None):
+        count = 0
+        if uid:
+            objs = cls._objects.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == uid))
+            for obj in objs:
+                count += 1
+                await cls._objects.delete(obj)
+
+        if account:
+            objs = cls._objects.execute(LTUserCookie.select().where(LTUserCookie.account == account))
+            for obj in objs:
+                count += 1
+                await cls._objects.delete(obj)
+
+        return True
+
+    @classmethod
     async def add_cookie_by_account(cls, account, password, notice_email=None):
         objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.account == account))
         if not objs:

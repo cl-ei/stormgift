@@ -14,6 +14,7 @@ from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
 from utils.dao import CookieOperator, HansyQQGroupUserInfo, LTWhiteList
 from utils.biliapi import BiliApi
+from utils.highlevel_api import DBCookieOperator
 
 
 bot = CQHttp(**CQBOT)
@@ -414,26 +415,17 @@ class BotHandler:
                     r = f"E: {e}"
                 bot.send_private_msg(user_id=80873436, message=f"Result: {r}")
 
-            elif msg.startswith("add") or msg.startswith("del"):
-                uid = int(msg[3:])
-                if not uid > 0:
-                    bot.send_private_msg(user_id=80873436, message=f"Error uid! {uid}")
-
-                if msg.startswith("add"):
-                    message = CookieOperator.add_uid_to_white_list(uid)
-                else:
-                    message = CookieOperator.remove_uid_from_white_list(uid)
-
-                bot.send_private_msg(user_id=80873436, message=message)
-
             elif msg.startswith("ac"):
                 account = msg[2:]
-                r = await LTWhiteList.add(account)
-                bot.send_private_msg(user_id=80873436, message=f"LTWhiteList add account: {account}, r: {r}")
+                cookie_obj = await DBCookieOperator.add_uid_or_account_to_white_list(account=account)
+                bot.send_private_msg(
+                    user_id=80873436,
+                    message=f"LTWhiteList add account: {account}, r: {cookie_obj.id}"
+                )
 
             elif msg.startswith("dc"):
                 account = msg[2:]
-                r = await LTWhiteList.del_(account)
+                r = await DBCookieOperator.del_uid_or_account_from_white_list(account=account)
                 bot.send_private_msg(user_id=80873436, message=f"LTWhiteList del account: {account}, r: {r}")
 
             elif msg.startswith("44"):
