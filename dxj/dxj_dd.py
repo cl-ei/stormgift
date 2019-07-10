@@ -23,16 +23,15 @@ class TempData:
 
 async def send_danmaku(msg, user=""):
     user = user or "LP"
-    cookie = await DBCookieOperator.get_by_uid(user_id=user)
-
-    if not cookie:
+    cookie_obj = await DBCookieOperator.get_by_uid(user_id=user)
+    if not cookie_obj:
         logging.error(f"Cannot get cookie for user: {user}.")
         return
 
     flag, msg = await BiliApi.send_danmaku(
         message=msg,
         room_id=MONITOR_ROOM_ID,
-        cookie=cookie
+        cookie=cookie_obj.cookie
     )
     if not flag:
         logging.error(f"Danmaku [{msg}] send failed, msg: {msg}, user: {user}.")
