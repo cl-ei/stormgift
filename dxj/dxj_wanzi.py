@@ -3,6 +3,7 @@ import sys
 import asyncio
 from utils.ws import RCWebSocketClient
 from utils.biliapi import WsApi, BiliApi
+from utils.highlevel_api import DBCookieOperator
 from config.log4 import dxj_wanzi_logger as logging
 
 try:
@@ -90,12 +91,8 @@ class TempData:
 
 
 async def get_cookie():
-    uid = "12298306;"  # WZ
-    with open("data/valid_cookies.txt") as f:
-        for c in f.readlines():
-            if uid in c:
-                return c.strip()
-    return ""
+    obj = await DBCookieOperator.get_by_uid(user_id=12298306)
+    return obj.cookie if obj else ""
 
 
 async def send_danmaku(msg):

@@ -5,13 +5,13 @@ import logging
 import asyncio
 import datetime
 import requests
+from config import CQBOT
 from cqhttp import CQHttp
 from random import choice, random
-
-from config import CQBOT
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import RCWebSocketClient
 from utils.dao import HansyGiftRecords
+from utils.highlevel_api import DBCookieOperator
 from config.log4 import dxj_hansy_logger as logging
 
 
@@ -129,12 +129,8 @@ def send_qq_notice_message(test=False):
 
 
 async def get_cookie(user="LP"):
-    uid = "20932326;" if user == "DD" else "39748080;"
-    with open("data/valid_cookies.txt") as f:
-        for c in f.readlines():
-            if uid in c:
-                return c.strip()
-    return ""
+    user_cookie_obj = await DBCookieOperator.get_by_uid(user)
+    return user_cookie_obj.cookie if user_cookie_obj else ""
 
 
 async def send_hansy_danmaku(msg, user=""):

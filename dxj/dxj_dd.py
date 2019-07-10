@@ -3,7 +3,6 @@ import logging
 import asyncio
 import datetime
 from cqhttp import CQHttp
-
 from config import CQBOT
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import RCWebSocketClient
