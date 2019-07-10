@@ -6,6 +6,7 @@ from utils.dao import CookieOperator
 from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
+from utils.email import send_cookie_invalid_notice
 
 
 class ReqFreLimitApi(object):
@@ -257,3 +258,29 @@ class DBCookieOperator:
         await cls._objects.update(lt_user, only=attrs)
 
         return True, lt_user
+
+    @classmethod
+    async def set_invalid(cls, obj_or_user_id):
+        if isinstance(obj_or_user_id, LTUserCookie):
+            cookie_obj = obj_or_user_id
+        else:
+            objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == obj_or_user_id))
+            if not objs:
+                return False, "Cannot get LTUserCookie obj."
+            cookie_obj = objs[0]
+
+        cookie_obj.available = False
+        await cls._objects.update(cookie_obj, only=("available",))
+
+        if cookie_obj.DedeUserID not in (
+            20932326,  # DD
+            39748080,  # LP
+            312186483,  # TZ
+        ) or not cookie_obj.account or not cookie_obj.password:
+            send_cookie_invalid_notice(cookie_obj.cookie)
+            return True, ""
+
+        flag, data = await cls.add_cookie_by_account(account=cookie_obj.account, password=cookie_obj.password)
+        if not flag:
+            send_cookie_invalid_notice(cookie_obj.cookie)
+        return flag, data
