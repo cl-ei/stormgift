@@ -18,7 +18,6 @@ class ReqFreLimitApi(object):
             cls.__req_time[f] = time.time()
         else:
             interval = time.time() - last_req_time
-            print(interval)
             if interval < wait_time:
                 sleep_time = wait_time - interval
                 logging.warn(f"High level api request frequency control: f: {f}, sleep_time: {sleep_time:.3f}")
