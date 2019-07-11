@@ -308,3 +308,12 @@ class LTUserCookie(peewee.Model):
             f"sid={self.sid}; "
             f"SESSDATA={self.SESSDATA};"
         )
+
+    @property
+    def uid(self):
+        return self.DedeUserID
+
+    @property
+    def user_id(self):
+        return self.DedeUserID
+

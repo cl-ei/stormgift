@@ -303,12 +303,12 @@ class DBCookieOperator:
         await cls._objects.update(cookie_obj, only=("available",))
 
         if cookie_obj.DedeUserID not in cls.IMPORTANT_UID_LIST or not cookie_obj.account or not cookie_obj.password:
-            send_cookie_invalid_notice(cookie_obj.cookie)
+            send_cookie_invalid_notice(cookie_obj)
             return True, ""
 
         flag, data = await cls.add_cookie_by_account(account=cookie_obj.account, password=cookie_obj.password)
         if not flag:
-            send_cookie_invalid_notice(cookie_obj.cookie)
+            send_cookie_invalid_notice(cookie_obj)
 
         logging.info(f"Re login user: {cookie_obj.name}(uid: {cookie_obj.DedeUserID}), result: {flag}, data: {data}")
         return flag, data
