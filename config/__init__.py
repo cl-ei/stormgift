@@ -66,21 +66,6 @@ except KeyError:
     MYSQL_CONFIG["database"] = "bilibili"
 
 
-try:
-    PRIZE_HANDLER_SERVE_ADDR = (
-        config["stormgift"]["PRIZE_SOURCE_PUSH_HOST"],
-        int(config["stormgift"]["PRIZE_SOURCE_PUSH_PORT"])
-    )
-
-    PRIZE_SOURCE_PUSH_ADDR = (
-        config["stormgift"]["PRIZE_HANDLER_SERVE_HOST"],
-        int(config["stormgift"]["PRIZE_HANDLER_SERVE_PORT"])
-    )
-except KeyError:
-    PRIZE_HANDLER_SERVE_ADDR = ("localhost", 11111)
-    PRIZE_SOURCE_PUSH_ADDR = ("localhost", 11112)
-
-
 CQBOT = {}
 try:
     CQBOT["api_root"] = config["cqbot"]["api_root"]
@@ -91,17 +76,6 @@ except KeyError:
     CQBOT["access_token"] = ""
     CQBOT["secret"] = ""
 
-try:
-    LT_ACCEPTOR_HOST = config["stormgift"]["LT_ACCEPTOR_HOST"]
-    LT_ACCEPTOR_PORT = int(config["stormgift"]["LT_ACCEPTOR_PORT"])
-    LT_RAFFLE_ID_GETTER_HOST = config["stormgift"]["LT_RAFFLE_ID_GETTER_HOST"]
-    LT_RAFFLE_ID_GETTER_PORT = int(config["stormgift"]["LT_RAFFLE_ID_GETTER_PORT"])
-
-except KeyError:
-    LT_ACCEPTOR_HOST = "127.0.0.1"
-    LT_ACCEPTOR_PORT = 30000
-    LT_RAFFLE_ID_GETTER_HOST = "127.0.0.1"
-    LT_RAFFLE_ID_GETTER_PORT = 30001
 
 try:
     mail_auth_pass = config["mail"]["mail_auth_pass"]

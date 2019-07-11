@@ -40,9 +40,9 @@ class WsManager(object):
                     r = await DanmakuMessageQ.put((msg, time.time(), room_id))
                     logging.info(f"RECEIVED: {cmd}, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
 
-                elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":
-                    r = await DanmakuMessageQ.put((msg, time.time(), room_id))
-                    logging.info(f"RECEIVED: {cmd}-节奏风暴, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
+                # elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":
+                #     r = await DanmakuMessageQ.put((msg, time.time(), room_id))
+                #     logging.info(f"RECEIVED: {cmd}-节奏风暴, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
