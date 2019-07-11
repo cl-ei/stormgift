@@ -533,6 +533,24 @@ class BiliApi:
             return False, r.get("msg", "-")
 
     @classmethod
+    async def join_storm(cls, room_id, raffle_id, cookie, timeout=5):
+        req_url = "https://api.live.bilibili.com/lottery/v1/Storm/join"
+        csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        headers = {"Cookie": cookie}
+        data = {
+            "id": raffle_id,
+            "color": 16777215,
+            "captcha_token": "",
+            "captcha_phrase": "",
+            "roomid": room_id,
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "visit_id": "",
+        }
+        flag, data = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_response_json=True)
+        print(flag, data)
+
+    @classmethod
     async def send_danmaku(cls, message, room_id, cookie, color=0xffffff, timeout=5):
         csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
         if not csrf_token_list:
@@ -952,7 +970,8 @@ class BiliApi:
     async def get_storm_raffle_id(cls, room_id, timeout=10):
         url = f"https://api.live.bilibili.com/lottery/v1/Storm/check?roomid={room_id}"
         flag, data = await cls.get(url=url, timeout=timeout, check_error_code=True)
-        print(flag, data)
+        if flag:
+            return True, data["data"]["id"]
         return flag, data
 
 
