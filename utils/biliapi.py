@@ -227,7 +227,7 @@ class BiliApi:
             "Chrome/70.0.3538.110 Safari/537.36"
         ),
     }
-    USE_ASYNC_REQUEST_METHOD = False
+    USE_ASYNC_REQUEST_METHOD = True
 
     @classmethod
     async def _request_async(cls, method, url, headers, data, timeout):
@@ -947,6 +947,13 @@ class BiliApi:
         }
         headers = {"Cookie": cookie}
         return await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+
+    @classmethod
+    async def get_storm_raffle_id(cls, room_id, timeout=10):
+        url = f"https://api.live.bilibili.com/lottery/v1/Storm/check?roomid={room_id}"
+        flag, data = await cls.get(url=url, timeout=timeout, check_error_code=True)
+        print(flag, data)
+        return flag, data
 
 
 async def test():

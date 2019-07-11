@@ -16,7 +16,6 @@ class WsManager(object):
     def __init__(self):
         self._clients = {}
         self.monitor_live_rooms = {}
-        self.monitor_commands = ["GUARD_BUY"]
 
         self.msg_count = 0
         self._broken_live_rooms = []
@@ -33,14 +32,17 @@ class WsManager(object):
                 self.msg_count += 1
 
                 cmd = msg["cmd"]
-                if cmd.startswith("DANMU_MSG"):
-                    uid = msg["info"][2][0]
-                    if uid == 39748080 or uid == 65568410:
-                        await DanmakuMessageQ.put((msg, time.time(), room_id))
+                if cmd == "DANMU_MSG" and msg["info"][2][0] in (39748080, 65568410):
+                    # uid = msg["info"][2][0]
+                    await DanmakuMessageQ.put((msg, time.time(), room_id))
 
-                elif cmd in self.monitor_commands:
+                elif cmd in ("GUARD_BUY", "RAFFLE_END", "TV_END"):
                     r = await DanmakuMessageQ.put((msg, time.time(), room_id))
                     logging.info(f"RECEIVED: {cmd}, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
+
+                elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":
+                    r = await DanmakuMessageQ.put((msg, time.time(), room_id))
+                    logging.info(f"RECEIVED: {cmd}-节奏风暴, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
@@ -69,9 +71,6 @@ class WsManager(object):
             del self._clients[room_id]
 
     async def update_connections(self):
-        commands = await MonitorCommands.get()
-        if commands:
-            self.monitor_commands = commands
 
         expected = await MonitorLiveRooms.get()
         if not expected:
@@ -84,8 +83,7 @@ class WsManager(object):
         need_add = expected - existed
         need_del = existed - expected
         logging.info(
-            f"Ws monitor settings read finished, Need add: {len(need_add)}, need del: {len(need_del)}, "
-            f"monitor cmd: {self.monitor_commands}, cmds from redis: {commands}."
+            f"Ws monitor settings read finished, Need add: {len(need_add)}, need del: {len(need_del)}."
         )
 
         count = 0
