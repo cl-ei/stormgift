@@ -13,7 +13,7 @@ class Executor(object):
     _cached_cookies = None
 
     async def load_cookie(self):
-        if time.time() - self._update_time > 10:
+        if time.time() - self._update_time > 300:
             self._cached_cookies = await DBCookieOperator.get_by_uid("DD")
             self._update_time = time.time()
         return self._cached_cookies
