@@ -262,8 +262,8 @@ async def query_raffles(request):
             elif short_room_id == real_room_id:
                 short_room_id = "-"
 
-            user_id, user_name = user_obj_id_map.get(winner_obj_id, ("__SERVER_ERROR__", winner_name))
-            sender_uid, sender_name = user_obj_id_map.get(sender_obj_id, ("__SERVER_ERROR__", sender_name))
+            user_id, user_name = user_obj_id_map.get(winner_obj_id, ("", winner_name))
+            sender_uid, sender_name = user_obj_id_map.get(sender_obj_id, ("", sender_name))
 
             info = {
                 "short_room_id": short_room_id,
