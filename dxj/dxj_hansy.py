@@ -134,6 +134,8 @@ async def get_cookie(user="LP"):
 
 
 async def send_hansy_danmaku(msg, user=""):
+    if not user:
+        user = "LP"
     cookie = await get_cookie(user)
 
     if not cookie:
