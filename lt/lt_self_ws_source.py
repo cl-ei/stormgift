@@ -3,7 +3,7 @@ import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
-from utils.dao import MonitorLiveRooms, MonitorCommands, DanmakuMessageQ
+from utils.dao import MonitorLiveRooms, DanmakuMessageQ
 from config.log4 import lt_ws_source_logger as logging
 from utils.model import objects, MonitorWsClient
 

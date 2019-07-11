@@ -308,20 +308,6 @@ class MonitorLiveRooms(object):
         return r, r2
 
 
-class MonitorCommands(object):
-    _key = "MonitorCommands"
-
-    @classmethod
-    async def get(cls):
-        r = await redis_cache.get(cls._key)
-        return r if isinstance(r, (list, tuple, set)) else []
-
-    @classmethod
-    async def set(cls, *cmds):
-        r = await redis_cache.set(cls._key, [c for c in cmds if isinstance(c, str)])
-        return r
-
-
 async def test():
     key = "test"
     value = None
