@@ -32,6 +32,9 @@
     <link rel="stylesheet" href="{{ CDN_URL }}/static/notebook/jstree.custom.css">
     <link rel="stylesheet" href="{{ CDN_URL }}/static/notebook/main.css">
     <style>
+        body{
+            margin: 20px;
+        }
         table{
             width: 100%;
             max-width: 1600px;
@@ -61,6 +64,10 @@
         }button:hover{
             background: #777;
             color: #fff;
+        }
+        #live-room{
+            border: 1px solid;
+            width: 480px;
         }
     </style>
     <script>window.CDN_URL = "{{ CDN_URL }}";</script>
@@ -123,13 +130,24 @@
     <hr>
     <h3>喜欢的话，来这里点个关注吧！⬇️</h3>
     <div id="live-room">
-        <div class="section i-live"><h3 class="section-title">直播间</h3><div class="content"><!----><div class="i-live-on"><a href="//live.bilibili.com/13369254" target="_blank" class="i-live-link"><img src="//i0.hdslb.com/bfs/live/room_cover/bc89ad5c2689fe3391dd5edb8c5885747cad1da3.jpg@100Q.webp" class="i-live-cover"><div class="i-live-text"><span class="i-live-m">
-            9
-          </span><p class="i-live-title">
-            不要等失去之后 才发现他是真的爱你
-          </p></div><div class="i-live-flag"></div><div class="i-live-hover"><div class="i-live-hover-icon"></div></div></a></div><!----><!----></div></div>
+        <div class="section i-live"><h3 class="section-title">偷闲一天打个盹的直播间</h3>
+            <div class="content">
+                <div class="i-live-on">
+                    <a href="//live.bilibili.com/13369254" target="_blank" class="i-live-link">
+                        <img src="//i0.hdslb.com/bfs/live/room_cover/bc89ad5c2689fe3391dd5edb8c5885747cad1da3.jpg@100Q.webp" class="i-live-cover">
+                        <div class="i-live-text">
+                            <span class="i-live-m"></span>
+                            <p class="i-live-title">不要等失去之后 才发现他是真的爱你</p>
+                        </div>
+                        <div class="i-live-flag"></div>
+                        <div class="i-live-hover">
+                            <div class="i-live-hover-icon"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 <div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
