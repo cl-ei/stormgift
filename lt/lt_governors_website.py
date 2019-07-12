@@ -272,11 +272,11 @@ async def query_raffles(request):
                 "gift_name": (gift_name.replace("抽奖", "") + "-" + gift_type) or "",
                 "prize_gift_name": prize_gift_name or "",
                 "created_time": expire_time,
-                "user_id": user_id,
-                "user_name": user_name,
-                "master_uname": master_uname,
-                "sender_uid": sender_uid,
-                "sender_name": sender_name,
+                "user_id": user_id or "",
+                "user_name": user_name or "",
+                "master_uname": master_uname or "",
+                "sender_uid": sender_uid or "",
+                "sender_name": sender_name or "",
             }
             raffle_data.append(info)
 
