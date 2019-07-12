@@ -531,12 +531,15 @@ async def default_middle_ware(app, handler):
         except Exception as e:
             status_code = getattr(e, "status_code", 500)
             reason = getattr(e, "reason", "Internal Server Error")
+            content = f"<center><h3>{status_code} {reason}!</h3></center>"
+
             if status_code == 500:
                 error_message = str(e)
-                traceback_info = traceback.format_exc()
-                # logging.error("Error happend: %s\n%s\n" % (error_message, traceback_info))
-            content = f"<center><h3>{status_code} {reason}!</h3></center>"
-            response = web.Response(text=content, status=status_code, reason=reason)
+                tb = traceback.format_exc()
+                content += f"<br><h4>{error_message}</h4><pre>{tb}</pre>"
+
+            response = web.Response(text=content, status=status_code, reason=reason, content_type="text/html")
+
         response.headers.add("Server", "madliar")
         return response
     return wrapper
