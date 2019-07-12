@@ -523,7 +523,26 @@ async def query_raffles_by_user(request):
     return web.Response(text=text, content_type="text/html")
 
 
-app = web.Application()
+async def default_middle_ware(app, handler):
+    async def wrapper(request):
+        print(request.headers)
+        try:
+            response = await handler(request)
+        except Exception as e:
+            status_code = getattr(e, "status_code", 500)
+            reason = getattr(e, "reason", "Internal Server Error")
+            if status_code == 500:
+                error_message = str(e)
+                traceback_info = traceback.format_exc()
+                # logging.error("Error happend: %s\n%s\n" % (error_message, traceback_info))
+            content = f"<center><h3>{status_code} {reason}!</h3></center>"
+            response = web.Response(text=content, status=status_code, reason=reason)
+        response.headers.add("Server", "madliar")
+        return response
+    return wrapper
+
+
+app = web.Application(middlewares=(default_middle_ware, ))
 app.add_routes([
     web.get('/query_gifts', query_gifts),
     web.get('/query_raffles', query_raffles),
