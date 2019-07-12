@@ -2,13 +2,14 @@ import time
 import json
 import copy
 import jinja2
+import asyncio
 import traceback
 import datetime
 from aiohttp import web
-from utils.highlevel_api import ReqFreLimitApi
-from utils.model import objects as db_objects
-from utils.db_raw_query import AsyncMySQL
 from config import CDN_URL
+from utils.db_raw_query import AsyncMySQL
+from utils.highlevel_api import ReqFreLimitApi
+from config.log4 import website_logger as logging
 
 
 gift_price_map = {
@@ -31,18 +32,6 @@ class Cache:
 
     last_time_of_get_raffle = time.time()
     last_time_of_query_raffles_by_user = time.time()
-
-
-class objects:
-
-    _objects = None
-
-    @classmethod
-    async def execute(cls, *args, **kwargs):
-        if cls._objects is None:
-            await db_objects.connect()
-            cls._objects = db_objects
-        return await cls._objects.execute(*args, **kwargs)
 
 
 async def query_gifts(request):
@@ -525,7 +514,10 @@ async def query_raffles_by_user(request):
 
 async def default_middle_ware(app, handler):
     async def wrapper(request):
-        print(request.headers)
+        host = request.headers.get("Host", "governors")
+        ua = request.headers.get("User-Agent", "NON_UA")
+        logging.info(f"{host}->{request.remote}->{request.method}:{request.url}->\n\t{ua}")
+
         try:
             response = await handler(request)
         except Exception as e:
@@ -545,7 +537,14 @@ async def default_middle_ware(app, handler):
     return wrapper
 
 
+async def on_web_startup(app):
+    pass
+
+
 app = web.Application(middlewares=(default_middle_ware, ))
+app.on_startup.extend([
+    on_web_startup,
+])
 app.add_routes([
     web.get('/query_gifts', query_gifts),
     web.get('/query_raffles', query_raffles),
