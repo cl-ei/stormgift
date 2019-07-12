@@ -8,6 +8,7 @@ from aiohttp import web
 from utils.highlevel_api import ReqFreLimitApi
 from utils.model import objects as db_objects
 from utils.db_raw_query import AsyncMySQL
+from config import CDN_URL
 
 
 gift_price_map = {
@@ -373,7 +374,7 @@ async def query_raffles(request):
             </tr>
             {% endfor %}
             </table>
-            <script type="text/javascript" src="http://49.234.17.23/static/js/jquery.min.js"></script>
+            <script type="text/javascript" src="{{ CDN_URL }}/static/js/jquery.min.js"></script>
             <script>
                 $("#submit-query").click(function(){
                     let uid = $("input[name=uid]").val();
@@ -389,6 +390,7 @@ async def query_raffles(request):
         "e_tag": f"{hash(Cache.raffle_e_tag):0x}",
         "raffle_data": raffle_data,
         "raffle_count": len(raffle_data),
+        "CDN_URL": CDN_URL,
     }
 
     text = jinja2.Template(template_text).render(context)
