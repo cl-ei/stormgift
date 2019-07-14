@@ -135,9 +135,9 @@
 
 <div>
     <div>
-        <label>B站登录手机号/邮箱=<input class="redinput" type="text" name="account"></label>
+        <label>B站登录手机号/邮箱=<input class="redinput" type="text" name="user-name"></label>
         <label>密码=<input class="redinput" type="password" name="password"></label>
-        <label>异常情况通知邮箱(可不填)=<input class="redinput" type="text" name="email"></label>
+        <label>异常情况通知邮箱(可不填)=<input class="redinput" type="text" name="identification"></label>
         <button class="button center" id="submit-cookie">我要挂辣条！</button>
     </div>
 </div>
@@ -224,9 +224,9 @@ $(function () {
         });
     }
     function submit(){
-        let account = $("input[name=account]").val();
+        let account = $("input[name=user-name]").val();
         let password = $("input[name=password]").val();
-        let email = $("input[name=email]").val();
+        let email = $("input[name=identification]").val();
 
         $.ajax({
             url: "/lt/api",
