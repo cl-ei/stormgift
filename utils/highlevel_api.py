@@ -259,9 +259,9 @@ class DBCookieOperator:
             lt_user.notice_email = notice_email
             attrs.append("notice_email")
 
-        for obj in await cls._objects.execute(
-                LTUserCookie.select().where(LTUserCookie.DedeUserID == lt_user.DedeUserID)
-        ):
+        for obj in await cls._objects.execute(LTUserCookie.select().where(
+            (LTUserCookie.DedeUserID == lt_user.DedeUserID) & (LTUserCookie.id != lt_user.id)
+        )):
             await cls._objects.delete(obj)
 
         await cls._objects.update(lt_user, only=attrs)
