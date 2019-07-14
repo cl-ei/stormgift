@@ -47,7 +47,7 @@ def request_frequency_control(time_interval=4):
                     break
 
             if time.time() - last_req_time < time_interval:
-                return web.Response(text="拒绝服务：你的请求过于频繁。", content_type="text/html")
+                return web.Response(text="拒绝服务：你的请求过于频繁。请3秒钟后再试。", content_type="text/html")
 
             result = await f(request)
 
