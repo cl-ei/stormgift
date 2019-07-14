@@ -12,7 +12,7 @@ template_text = """
 <div class="room-introduction">
 <div class="room-introduction-scroll-wrapper">
 <div class="room-introduction-content p-relative">
-<div style="height: 100%; width: 25%; float: right;">
+<div style="height: 100%;width: 160px;margin-right: 100px;float: right;">
 <a href="https://space.bilibili.com/20932326" target="_blank">
   <span style="
     background: url('https://i0.hdslb.com/bfs/face/e0928eee0443ea39c3e0e30ffd01f3bf5ceec9cd.jpg') no-repeat; 
@@ -25,13 +25,16 @@ template_text = """
     border-radius: 50%;">
   </span>
 </a>
-<span style="float: right; margin: 4% 4% 0%; 
-  font-size: 12px; font-weight: bold;
-  width: 100%; text-align: center; 
-  text-shadow: 1px 1px 1px #FFF;"
+<span style="float: left;
+  margin-top: 15px;
+  font-size: 12px;
+  font-weight: bold;
+  width: 190px;
+  text-align: center;
+  text-shadow: 1px 1px 3px #9c9c9c;"
 >
   <span>机器人开发者:</span>
-  <a style="color: #7a91f3; text-shadow: 1px 1px 1px #FFF;" 
+  <a style="color: #7a91f3;" 
     title="←◡←" 
     href="https://space.bilibili.com/20932326" 
     target="_blank">偷闲一天打个盹
