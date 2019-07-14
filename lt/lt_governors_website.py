@@ -417,12 +417,22 @@ async def query_raffles(request):
 async def query_raffles_by_user(request):
     uid = request.query.get("uid")
     day_range = request.query.get("day_range")
+    now = datetime.datetime.now()
+    raffle_start_record_time = now.replace(year=2019, month=7, day=2, hour=0, minute=0, second=0, microsecond=0)
 
     try:
         day_range = int(day_range)
-        assert 0 < day_range < 180
-    except Exception:
-        return web.Response(text="day_range参数错误。1~180天", content_type="text/html")
+        assert day_range > 1
+    except (ValueError, TypeError, AssertionError):
+        return web.Response(text="day_range参数错误。", content_type="text/html")
+
+    end_date = now - datetime.timedelta(days=day_range)
+    if end_date < raffle_start_record_time:
+        total_days = int((now - raffle_start_record_time).total_seconds() / 3600 / 24)
+        return web.Response(
+            text=f"day_range参数超出范围。最早可以查询2019年7月2日之后的记录，day_range范围 1 ~ {total_days}。",
+            content_type="text/html"
+        )
 
     if not uid or len(uid) > 50:
         return web.Response(text="请输入正确的用户。", content_type="text/html")
@@ -436,7 +446,7 @@ async def query_raffles_by_user(request):
         "select id, uid, name from biliuser where uid = %s;", (uid, )
     )
     if not user_record:
-        return web.Response(text="未查询到该用户。", content_type="text/html")
+        return web.Response(text="未收录该用户。", content_type="text/html")
 
     winner_obj_id, uid, user_name = user_record[0]
     records = await AsyncMySQL.execute(
