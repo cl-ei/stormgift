@@ -2,12 +2,14 @@ import time
 import json
 import copy
 import jinja2
+import asyncio
 import traceback
 import datetime
 from aiohttp import web
-from utils.highlevel_api import ReqFreLimitApi
-from utils.model import objects as db_objects
+from config import CDN_URL
 from utils.db_raw_query import AsyncMySQL
+from utils.highlevel_api import ReqFreLimitApi
+from config.log4 import website_logger as logging
 
 
 gift_price_map = {
@@ -30,18 +32,6 @@ class Cache:
 
     last_time_of_get_raffle = time.time()
     last_time_of_query_raffles_by_user = time.time()
-
-
-class objects:
-
-    _objects = None
-
-    @classmethod
-    async def execute(cls, *args, **kwargs):
-        if cls._objects is None:
-            await db_objects.connect()
-            cls._objects = db_objects
-        return await cls._objects.execute(*args, **kwargs)
 
 
 async def query_gifts(request):
@@ -272,11 +262,11 @@ async def query_raffles(request):
                 "gift_name": (gift_name.replace("抽奖", "") + "-" + gift_type) or "",
                 "prize_gift_name": prize_gift_name or "",
                 "created_time": expire_time,
-                "user_id": user_id,
-                "user_name": user_name,
-                "master_uname": master_uname,
-                "sender_uid": sender_uid,
-                "sender_name": sender_name,
+                "user_id": user_id or "",
+                "user_name": user_name or "",
+                "master_uname": master_uname or "",
+                "sender_uid": sender_uid or "",
+                "sender_name": sender_name or "",
             }
             raffle_data.append(info)
 
@@ -373,7 +363,7 @@ async def query_raffles(request):
             </tr>
             {% endfor %}
             </table>
-            <script type="text/javascript" src="http://49.234.17.23/static/js/jquery.min.js"></script>
+            <script type="text/javascript" src="{{ CDN_URL }}/static/js/jquery.min.js"></script>
             <script>
                 $("#submit-query").click(function(){
                     let uid = $("input[name=uid]").val();
@@ -389,6 +379,7 @@ async def query_raffles(request):
         "e_tag": f"{hash(Cache.raffle_e_tag):0x}",
         "raffle_data": raffle_data,
         "raffle_count": len(raffle_data),
+        "CDN_URL": CDN_URL,
     }
 
     text = jinja2.Template(template_text).render(context)
@@ -521,7 +512,39 @@ async def query_raffles_by_user(request):
     return web.Response(text=text, content_type="text/html")
 
 
-app = web.Application()
+async def default_middle_ware(app, handler):
+    async def wrapper(request):
+        host = request.headers.get("Host", "governors")
+        ua = request.headers.get("User-Agent", "NON_UA")
+        logging.info(f"{host}->{request.remote}->{request.method}:{request.url}->\n\t{ua}")
+
+        try:
+            response = await handler(request)
+        except Exception as e:
+            status_code = getattr(e, "status_code", 500)
+            reason = getattr(e, "reason", "Internal Server Error")
+            content = f"<center><h3>{status_code} {reason}!</h3></center>"
+
+            if status_code == 500:
+                error_message = str(e)
+                tb = traceback.format_exc()
+                content += f"<br><h4>{error_message}</h4><pre>{tb}</pre>"
+
+            response = web.Response(text=content, status=status_code, reason=reason, content_type="text/html")
+
+        response.headers.add("Server", "madliar")
+        return response
+    return wrapper
+
+
+async def on_web_startup(app):
+    pass
+
+
+app = web.Application(middlewares=(default_middle_ware, ))
+app.on_startup.extend([
+    on_web_startup,
+])
 app.add_routes([
     web.get('/query_gifts', query_gifts),
     web.get('/query_raffles', query_raffles),

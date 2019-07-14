@@ -50,6 +50,12 @@ cqbot_logger.setLevel(logging.DEBUG)
 cqbot_logger.addHandler(console)
 cqbot_logger.addHandler(file_handler)
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "website.log"))
+file_handler.setFormatter(log_format)
+website_logger = logging.getLogger("website")
+website_logger.setLevel(logging.DEBUG)
+website_logger.addHandler(console)
+website_logger.addHandler(file_handler)
 
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_raffle_id_getter.log"))
 file_handler.setFormatter(log_format)
@@ -132,6 +138,7 @@ __all__ = (
     "status_logger",
     "crontab_task_logger",
     "cqbot_logger",
+    "website_logger",
     "lt_source_logger",
     "lt_ws_source_logger",
     "lt_raffle_id_getter_logger",

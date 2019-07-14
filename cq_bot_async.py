@@ -394,9 +394,6 @@ class BotHandler:
             elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
                 return BotUtils.proc_help(msg, group_id)
 
-        # elif "欢迎" in msg and group_id in (436496941, 159855203):
-        #     BotUtils.check_new_member(msg, group_id=436496941)
-
     @classmethod
     async def handle_private_message(cls, context):
         user_id = context["sender"]["user_id"]
@@ -469,7 +466,7 @@ class BotHandler:
             )
             bot.send_private_msg(user_id=user_id, message=message)
 
-        elif user_id not in (80873436, 310300788):
+        elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", ):
             bot.send_private_msg(
                 user_id=80873436,
                 message=f"来自{user_nickname}(QQ: {user_id}) -> \n\n{msg}",

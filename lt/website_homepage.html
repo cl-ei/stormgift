@@ -32,6 +32,10 @@
     <link rel="stylesheet" href="{{ CDN_URL }}/static/notebook/jstree.custom.css">
     <link rel="stylesheet" href="{{ CDN_URL }}/static/notebook/main.css">
     <style>
+        body{
+            margin: 20px;
+            background: #eee;
+        }
         table{
             width: 100%;
             max-width: 1600px;
@@ -47,8 +51,12 @@
             border: 1px solid #7a7a7a;
             text-align: center;
         }
+        hr{
+            border-top: 1px solid #444;
+        }
         input{
             text-align: center;
+            background: #eee;
         }
         button{
             border: none;
@@ -62,11 +70,59 @@
             background: #777;
             color: #fff;
         }
+        #live-room{
+            border: 1px solid #ccc;
+            width: 480px;
+            margin-bottom: 50px;
+            background: white;
+            padding: 15px 30px 18px;
+            border-radius: 4px;
+            box-shadow: 4px 4px 20px 2px rgba(0, 0, 0, 0.22);
+        }
+        #live-room h3{
+            height: 24px;
+            line-height: 24px;
+            font-size: 16px;
+            text-align: left;
+            margin: 0 0 10px 0;
+        }
+        #live-room .content{
+            width: 420px;
+            height: 310px;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        #live-room img{
+            width: 420px;
+            height: 260px;
+            border-radius: 16px;
+            margin-bottom: 6px;
+            opacity: 0.8;
+            transition: all 0.3s ease-out;
+        }
+        #live-room img:hover{
+            opacity: 1;
+        }
+        #live-logo{
+            color: white;
+            position: absolute;
+            margin: 50px 20px 0 335px;
+            z-index: 9999999;
+            background: #929292;
+            line-height: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 2px 8px 2px 8px;
+        }
+        #live-icon{
+            color: #e85790;
+            padding-right: 4px;
+        }
     </style>
     <script>window.CDN_URL = "{{ CDN_URL }}";</script>
 </head>
 <body>
-    <h3><strong>这是一个免费挂辣条的网站<strong></h3>
+    <h3><strong>这是一个免费挂辣条的网站</strong></h3>
     <p><strong>
         包括每日签到、应援团签到、双端直播任务签到、直播挂机升UL、舰长亲密度、高能/小电视辣条领取。
     </strong></p>
@@ -120,7 +176,16 @@
     </p><p>
         全免费的吗？为什么？答：免费的。站长的名字叫雷锋。
     </p>
-</div>
+    <hr>
+    <h3>喜欢的话，来这里点个关注吧！⬇️</h3>
+    <div id="live-room">
+        <div id="live-logo"><span id="live-icon">●</span><span id="live-title">LIVE</span></div>
+        <h3 class="section-title">偷闲一天打个盹的直播间</h3>
+        <a href="https://live.bilibili.com/13369254" target="_blank" class="content">
+            <img src="https://media.madliar.com/static/grafana/img/20170218230140_YvUdt.png" class="i-live-cover">
+        </a>
+        <div class="i-live-text">不要等失去之后 才发现他是真的爱你</div>
+    </div>
 <div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
