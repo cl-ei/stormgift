@@ -30,8 +30,35 @@ class Cache:
     raffle_e_tag = 0
     raffle_data = None
 
-    last_time_of_get_raffle = time.time()
-    last_time_of_query_raffles_by_user = time.time()
+
+def request_frequency_control(time_interval=4):
+    user_requests_records = []  # [(uniq, time), ... ]
+
+    def deco(f):
+        async def wrapped(request):
+            host = request.headers.get("Host", "governors")
+            ua = request.headers.get("User-Agent", "NON_UA")
+            unique_identification = hash((host, ua))
+
+            last_req_time = 0
+            for _ in user_requests_records:
+                if _[0] == unique_identification:
+                    last_req_time = _[1]
+                    break
+
+            if time.time() - last_req_time < time_interval:
+                return web.Response(text="拒绝服务：你的请求过于频繁。", content_type="text/html")
+
+            result = await f(request)
+
+            user_requests_records.insert(0, (unique_identification, time.time()))
+
+            while len(user_requests_records) > 2000:
+                user_requests_records.pop()
+
+            return result
+        return wrapped
+    return deco
 
 
 async def query_gifts(request):
@@ -386,6 +413,7 @@ async def query_raffles(request):
     return web.Response(text=text, content_type="text/html")
 
 
+@request_frequency_control(time_interval=4)
 async def query_raffles_by_user(request):
     uid = request.query.get("uid")
     day_range = request.query.get("day_range")
@@ -398,10 +426,6 @@ async def query_raffles_by_user(request):
 
     if not uid or len(uid) > 50:
         return web.Response(text="请输入正确的用户。", content_type="text/html")
-
-    if time.time() - Cache.last_time_of_query_raffles_by_user < 4:
-        return web.Response(text="系统繁忙。", content_type="text/html")
-    Cache.last_time_of_query_raffles_by_user = time.time()
 
     try:
         uid = int(uid)
