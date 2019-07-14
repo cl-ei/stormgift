@@ -73,9 +73,9 @@ async def proc_message(message):
             if interval < 3600:
                 date_time_str = "刚刚"
             elif interval < 3600*24:
-                date_time_str = f"{interval // 3600}小时前"
+                date_time_str = f"{int(interval/3600)}小时前"
             else:
-                date_time_str = f"{interval // (3600*24)}天前"
+                date_time_str = f"{int(interval/(3600*24))}天前"
 
             msg = f"{latest[0]}在7天内中奖{count}次，最后一次{date_time_str}在{latest[1]}直播间获得{latest[2]}."
             if len(msg) <= 30:
