@@ -7,8 +7,9 @@ import datetime
 import requests
 import traceback
 from random import choice
+import aiohttp
 from aiohttp import web
-from config import CQBOT
+from config import CQBOT, TULING
 from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
 from utils.dao import HansyQQGroupUserInfo
@@ -21,6 +22,22 @@ bot = CQHttp(**CQBOT)
 
 
 class BotUtils:
+
+    @classmethod
+    async def proc_tuling_response(cls, msg, group_id, user_id):
+        url = "http://openapi.tuling123.com/openapi/api/v2"
+        data = {"reqType": 0, "perception": {"inputText": {"text": msg}}, "userInfo": TULING}
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+                async with session.post(url, data=data) as resp:
+                    status_code = resp.status
+                    if status_code != 200:
+                        return
+                    content = await resp.json()
+                    return bot.send_group_msg(group_id=group_id, message=content)
+        except Exception as e:
+            message = f"Error happened: {e}\n {traceback.format_exc()}"
+            return bot.send_group_msg(group_id=group_id, message=message)
 
     @classmethod
     def post_word_audio(cls, word, group_id):
@@ -394,6 +411,16 @@ class BotHandler:
 
             elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
                 return BotUtils.proc_help(msg, group_id)
+
+        if "[CQ:at,qq=2254494518]" in msg:
+            special = re.findall(r"\[([^]]+)\]", msg)
+            for c in special:
+                msg = msg.replace(c, "")
+            msg = msg.replace("[", "").replace("]", "").strip()
+            if not msg:
+                return
+
+            return await BotUtils.proc_tuling_response(msg, group_id, user_id)
 
     @classmethod
     async def handle_private_message(cls, context):
