@@ -35,7 +35,7 @@ class BotUtils:
 
                     content = await resp.json(content_type='text/json', encoding='utf-8')
                     message = content["data"]["info"]["text"]
-                    bot.send_group_msg(group_id=group_id, message=f"[CQ:at,qq={user_id}]" + message)
+                    bot.send_group_msg(group_id=group_id, message=f"[CQ:at,qq={user_id}]  " + message)
 
         except Exception as e:
             message = f"Error happened: {e}\n {traceback.format_exc()}"
