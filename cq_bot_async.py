@@ -29,12 +29,15 @@ class BotUtils:
         data = {"reqType": 0, "perception": {"inputText": {"text": msg}}, "userInfo": TULING}
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-                async with session.post(url, data=data) as resp:
+                async with session.post(url, json=data) as resp:
                     status_code = resp.status
                     if status_code != 200:
                         return
-                    content = await resp.text()
-                    return bot.send_group_msg(group_id=group_id, message=content)
+
+                    content = await resp.json(content_type='text/plain', encoding='utf-8')
+                    message = content["results"][0]["values"]["text"]
+                    bot.send_group_msg(group_id=group_id, message=f"[CQ:at,qq={user_id}]" + message)
+
         except Exception as e:
             message = f"Error happened: {e}\n {traceback.format_exc()}"
             return bot.send_group_msg(group_id=group_id, message=message)
