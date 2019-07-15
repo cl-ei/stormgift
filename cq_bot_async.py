@@ -13,6 +13,7 @@ from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
 from utils.dao import HansyQQGroupUserInfo
 from utils.biliapi import BiliApi
+from utils.highlevel_api import ReqFreLimitApi
 from utils.highlevel_api import DBCookieOperator
 
 
@@ -441,6 +442,32 @@ class BotHandler:
                     room_id=2516117,
                     cookie=dd_obj.cookie
                 )
+
+            elif msg.startswith("小电视"):
+                int_str = msg.replace("小电视", "").strip()
+                try:
+                    int_str = int(int_str)
+                except (TypeError, ValueError):
+                    int_str = 0
+
+                result = await ReqFreLimitApi.get_raffle_count(day_range=int_str)
+
+                r = "、".join([f"{v}个{k}" for k, v in result["gift_list"].items()])
+                miss = result['miss']
+                miss_raffle = result['miss_raffle']
+                if miss == 0 and miss_raffle == 0:
+                    path_prompt = "全部记录"
+                elif miss > 0 and miss_raffle == 0:
+                    path_prompt = f"高能遗漏{miss}个"
+                elif miss == 0 and miss_raffle > 0:
+                    path_prompt = f"高能全部记录，中奖记录漏{miss_raffle}个"
+                else:
+                    path_prompt = f"高能漏{miss}个，中奖记录漏{miss_raffle}个"
+                message = (
+                    f"{'今日' if int_str == 0 else str(int_str) + '天前'}统计到{r}, "
+                    f"共{result['total']}个，{path_prompt}。"
+                )
+                bot.send_private_msg(user_id=80873436, message=message)
 
         elif msg.startswith("起床"):
             try:
