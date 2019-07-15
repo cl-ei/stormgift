@@ -45,11 +45,6 @@ CQBOT = {
 
 mail_auth_pass = config["mail"]["mail_auth_pass"]
 
-TULING = {
-    "apiKey": config["tuling"]["apiKey"],
-    "userId": int(config["tuling"]["userId"])
-}
-
 local_keys = sorted([_ for _ in dir() if not _.startswith("_") and _ not in ("config", "configparser")])
 local_vars = locals()
 display_str = "\n".join([f"{k}: {local_vars[k]}" for k in local_keys])

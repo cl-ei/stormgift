@@ -9,7 +9,7 @@ import traceback
 from random import choice
 import aiohttp
 from aiohttp import web
-from config import CQBOT, TULING
+from config import CQBOT
 from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
 from utils.dao import HansyQQGroupUserInfo
@@ -25,17 +25,16 @@ class BotUtils:
 
     @classmethod
     async def proc_tuling_response(cls, msg, group_id, user_id):
-        url = "http://openapi.tuling123.com/openapi/api/v2"
-        data = {"reqType": 0, "perception": {"inputText": {"text": msg}}, "userInfo": TULING}
+        url = f"https://api.ownthink.com/bot?spoken={msg}"
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-                async with session.post(url, json=data) as resp:
+                async with session.get(url) as resp:
                     status_code = resp.status
                     if status_code != 200:
                         return
 
-                    content = await resp.json(content_type='text/plain', encoding='utf-8')
-                    message = content["results"][0]["values"]["text"]
+                    content = await resp.json(content_type='text/json', encoding='utf-8')
+                    message = content["data"]["info"]["text"]
                     bot.send_group_msg(group_id=group_id, message=f"[CQ:at,qq={user_id}]" + message)
 
         except Exception as e:
