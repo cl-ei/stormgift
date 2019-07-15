@@ -33,7 +33,7 @@ class BotUtils:
                     status_code = resp.status
                     if status_code != 200:
                         return
-                    content = await resp.json()
+                    content = await resp.text()
                     return bot.send_group_msg(group_id=group_id, message=content)
         except Exception as e:
             message = f"Error happened: {e}\n {traceback.format_exc()}"
