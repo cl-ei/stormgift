@@ -3,7 +3,7 @@ import logging
 import asyncio
 
 from config.log4 import crontab_task_logger as logging
-from utils.dao import ValuableLiveRoom
+from utils.dao import ValuableLiveRoom, redis_cache
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import ReqFreLimitApi
 from utils.reconstruction_model import objects, BiliUser, Raffle, Guard
@@ -42,8 +42,14 @@ class SyncTool(object):
 
             lastest_user_name = non_uid_user_obj.name
 
+            fix_failed_key = f"FIX_MISSED_USER_{lastest_user_name}"
+            if await redis_cache.get(fix_failed_key):
+                logging.info(f"Found failed key: {fix_failed_key}, now skip.")
+                continue
+
             uid = await ReqFreLimitApi.get_uid_by_name(lastest_user_name)
             if not uid:
+                await redis_cache.set(fix_failed_key, "f", 3600*72)
                 logging.warning(f"Cannot get uid by name: `{non_uid_user_obj.name}`")
                 continue
 
