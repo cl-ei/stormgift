@@ -49,7 +49,8 @@ async def proc_message(message):
         d = info[3]
         dl = d[0] if d else "-"
         deco = d[1] if d else "undefined"
-        logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
+        msg_record = f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
+        logging.info(msg_record)
 
         if msg in ("总督", "提督", "舰长", "低保"):
             await send_danmaku("|･ω･｀) 查看下方的主播简介哦")
@@ -125,6 +126,9 @@ async def proc_message(message):
                 await send_danmaku(danmaku[:30])
                 danmaku = danmaku[30:]
                 await asyncio.sleep(0.5)
+
+        else:
+            bot.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
 
     elif cmd == "SEND_GIFT":
         data = message.get("data")
