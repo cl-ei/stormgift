@@ -5,7 +5,8 @@ from utils.biliapi import BiliApi, CookieFetcher
 from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
-from utils.email import send_cookie_invalid_notice
+from utils.email import send_cookie_invalid_notice, send_cookie_relogin_notice
+from utils.dao import LtUserLoginPeriodOfValidity
 
 
 class ReqFreLimitApi(object):
@@ -313,16 +314,21 @@ class DBCookieOperator:
         cookie_obj.available = False
         await cls._objects.update(cookie_obj, only=("available",))
 
-        if cookie_obj.DedeUserID not in cls.IMPORTANT_UID_LIST or not cookie_obj.account or not cookie_obj.password:
-            send_cookie_invalid_notice(cookie_obj)
-            return True, ""
+        user_in_period = await LtUserLoginPeriodOfValidity.in_period(user_id=cookie_obj.DedeUserID)
+        user_in_iptt_list = cookie_obj.DedeUserID in cls.IMPORTANT_UID_LIST
 
-        flag, data = await cls.add_cookie_by_account(account=cookie_obj.account, password=cookie_obj.password)
-        if not flag:
-            send_cookie_invalid_notice(cookie_obj)
+        if (user_in_iptt_list or user_in_period) and cookie_obj.account and cookie_obj.password:
 
-        logging.info(f"Re login user: {cookie_obj.name}(uid: {cookie_obj.DedeUserID}), result: {flag}, data: {data}")
-        return flag, data
+            flag, data = await cls.add_cookie_by_account(account=cookie_obj.account, password=cookie_obj.password)
+            if flag:
+                send_cookie_relogin_notice(cookie_obj)
+                return True, ""
+
+            else:
+                logging.error(f"Cannot relogin user {cookie_obj.name}(uid: {cookie_obj.user_id}), msg: {data}")
+
+        send_cookie_invalid_notice(cookie_obj)
+        return True, ""
 
     @classmethod
     async def set_vip(cls, obj_or_user_id, is_vip):

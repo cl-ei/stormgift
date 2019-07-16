@@ -308,6 +308,21 @@ class MonitorLiveRooms(object):
         return r, r2
 
 
+class LtUserLoginPeriodOfValidity(object):
+    _key = "LT_USER_LOGIN_PERIOD_"
+
+    @classmethod
+    async def update(cls, user_id, timeout=3600*24*40):
+        key = cls._key + str(user_id)
+        return await redis_cache.set(key=key, value="IN_PERIOD", timeout=timeout)
+
+    @classmethod
+    async def in_period(cls, user_id):
+        key = cls._key + str(user_id)
+        r = await redis_cache.get(key=key)
+        return r == "IN_PERIOD"
+
+
 async def test():
     key = "test"
     value = None

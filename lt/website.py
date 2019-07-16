@@ -5,6 +5,7 @@ from jinja2 import Template
 from config import CDN_URL
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import DBCookieOperator
+from utils.dao import LtUserLoginPeriodOfValidity
 
 
 def render_to_response(template, context=None):
@@ -120,6 +121,7 @@ async def api(request):
             return web.Response(text=f"Internal server error: {e}\n {traceback.format_exc()}")
 
         if flag:
+            await LtUserLoginPeriodOfValidity.update(obj.DedeUserID)
             return web.Response(text=f"用户{obj.name}（uid: {obj.DedeUserID}）配置成功！")
         else:
             return web.Response(text=f"配置失败！原因：{obj}")

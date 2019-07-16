@@ -37,6 +37,16 @@ def send_cookie_invalid_notice(cookie_obj):
     send_email(subject=subject, content=content, to=to)
 
 
+def send_cookie_relogin_notice(cookie_obj):
+    user_name = cookie_obj.name
+    uid = cookie_obj.user_id
+
+    subject = f"{user_name}(uid: {uid}): 已重新登录。"
+    content = f"{user_name}, 已重新登录。"
+    to = ("80873436@qq.com", )
+    send_email(subject=subject, content=content, to=to)
+
+
 def test():
     email_addr = "310300788@qq.com"
     user_name = "test"
