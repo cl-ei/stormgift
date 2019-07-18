@@ -431,7 +431,56 @@ class BotHandler:
         msg = context["raw_message"]
         logging.info("Private message received: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))
 
-        if user_id == 80873436:
+        if msg.startswith("起床"):
+            try:
+                group_id = int(msg[2:])
+            except Exception:
+                group_id = 0
+
+            if group_id in cls.NOTICE_GROUP_ID_LIST:
+                bot.set_group_ban(group_id=group_id, user_id=user_id, duration=0)
+            else:
+                message = "您输入的口令有误。若要解除禁言，请输入“起床+群号”， 如：“起床436496941”"
+                bot.send_private_msg(user_id=user_id, message=message)
+
+        elif msg.lower() in ("#help", "#h", "#帮助"):
+            message = (
+                "珩心初号机支持的指令：(QQ群内可用)\n\n"
+                "1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床436496941``。)\n"
+                "2.#点歌 北上 管珩心\n"
+                "3.#一言\n"
+                "4.#北京天气\n"
+                "5.#狮子座运势\n"
+                "6.#历史上的今天"
+            )
+            bot.send_private_msg(user_id=user_id, message=message)
+
+        elif msg.startswith("ML"):
+            if msg.startswith("ML_BIND_"):
+                # ML_BIND_QQ_BILI
+                try:
+                    *_, qq_uid, bili_uid = msg.split("_")
+                    qq_uid = int(qq_uid)
+                    bili_uid = int(bili_uid)
+                except Exception as e:
+                    return bot.send_private_msg(
+                        user_id=user_id,
+                        message=f"命令错误。正确格式：ML_BIND_QQUID_BILIUID",
+                        auto_escape=True,
+                    )
+                r = await RaffleToCQPushList.add(bili_uid=bili_uid, qq_uid=qq_uid)
+                return bot.send_private_msg(user_id=user_id, message=f"{r}")
+
+            elif msg.startswith("ML_GET"):
+                result = await RaffleToCQPushList.get_all()
+                message = "\n".join(str(item) for item in result)
+                return bot.send_private_msg(
+                    user_id=user_id,
+                    message=f"已绑定如下：\n\n(bili_uid, qq_uid)\n{message}",
+                    auto_escape=True,
+                )
+
+        elif user_id == 80873436:
             if msg.startswith("r"):
                 msg = msg[1:]
                 relay_user_id, raw_msg = msg.split("-", 1)
@@ -497,55 +546,6 @@ class BotHandler:
                     f"共{result['total']}个，{path_prompt}。"
                 )
                 bot.send_private_msg(user_id=80873436, message=message)
-
-        elif msg.startswith("起床"):
-            try:
-                group_id = int(msg[2:])
-            except Exception:
-                group_id = 0
-
-            if group_id in cls.NOTICE_GROUP_ID_LIST:
-                bot.set_group_ban(group_id=group_id, user_id=user_id, duration=0)
-            else:
-                message = "您输入的口令有误。若要解除禁言，请输入“起床+群号”， 如：“起床436496941”"
-                bot.send_private_msg(user_id=user_id, message=message)
-
-        elif msg.lower() in ("#help", "#h", "#帮助"):
-            message = (
-                "珩心初号机支持的指令：(QQ群内可用)\n\n"
-                "1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床436496941``。)\n"
-                "2.#点歌 北上 管珩心\n"
-                "3.#一言\n"
-                "4.#北京天气\n"
-                "5.#狮子座运势\n"
-                "6.#历史上的今天"
-            )
-            bot.send_private_msg(user_id=user_id, message=message)
-
-        elif msg.startswith("ML"):
-            if msg.startswith("ML_BIND_"):
-                # ML_BIND_QQ_BILI
-                try:
-                    *_, qq_uid, bili_uid = msg.split("_")
-                    qq_uid = int(qq_uid)
-                    bili_uid = int(bili_uid)
-                except Exception as e:
-                    return bot.send_private_msg(
-                        user_id=user_id,
-                        message=f"命令错误。正确格式：ML_BIND_QQUID_BILIUID",
-                        auto_escape=True,
-                    )
-                r = await RaffleToCQPushList.add(bili_uid=bili_uid, qq_uid=qq_uid)
-                return bot.send_private_msg(user_id=user_id, message=f"{r}")
-
-            elif msg.startswith("ML_GET"):
-                result = await RaffleToCQPushList.get_all()
-                message = "\n".join(str(item) for item in result)
-                return bot.send_private_msg(
-                    user_id=user_id,
-                    message=f"已绑定如下：\n\n(bili_uid, qq_uid)\n{message}",
-                    auto_escape=True,
-                )
 
         elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", ):
             bot.send_private_msg(
