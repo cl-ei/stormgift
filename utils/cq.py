@@ -1,5 +1,6 @@
 import aiohttp
 from config import CQBOT
+from cqhttp import CQHttp
 
 
 class CQClient:
@@ -32,4 +33,5 @@ class CQClient:
                 return status_code, resp_json
 
 
+bot = CQHttp(**CQBOT)
 qq = CQClient(api_root=CQBOT["api_root"], access_token=CQBOT["access_token"])

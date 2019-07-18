@@ -9,7 +9,7 @@ import traceback
 from random import choice
 import aiohttp
 from aiohttp import web
-from utils.cq import qq as bot
+from utils.cq import bot
 from config.log4 import cqbot_logger as logging
 from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList
 from utils.biliapi import BiliApi
