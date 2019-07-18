@@ -7,9 +7,9 @@ class CQClient:
     def __init__(self, api_root, access_token=None, timeout=5):
         self.api_root = api_root.strip().rstrip("/") + "/"
         self.timeout = timeout
-        self.headers = {
-            "User-Authorization": f"Bearer {access_token or ''}",
-        }
+        self.headers = {}
+        if access_token:
+            self.headers["Authorization"] = f"Bearer {access_token or ''}"
 
     def __getattr__(self, item):
         url = self.api_root + item
@@ -19,7 +19,11 @@ class CQClient:
                 status, resp_json = await self.request(url, data)
             except Exception as e:
                 return False, f"Error: {e}"
-            return True, resp_json
+
+            if resp_json["status"] == "failed":
+                return False, resp_json["retcode"]
+
+            return True, resp_json.get("data")
 
         return parse
 
