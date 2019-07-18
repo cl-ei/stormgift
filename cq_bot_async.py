@@ -9,16 +9,12 @@ import traceback
 from random import choice
 import aiohttp
 from aiohttp import web
-from config import CQBOT
-from cqhttp import CQHttp
+from utils.cq import qq as bot
 from config.log4 import cqbot_logger as logging
 from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList
 from utils.biliapi import BiliApi
 from utils.highlevel_api import ReqFreLimitApi
 from utils.highlevel_api import DBCookieOperator
-
-
-bot = CQHttp(**CQBOT)
 
 
 class BotUtils:
