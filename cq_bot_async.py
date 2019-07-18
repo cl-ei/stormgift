@@ -456,10 +456,10 @@ class BotHandler:
             bot.send_private_msg(user_id=user_id, message=message)
 
         elif msg.startswith("ML"):
-            if msg.startswith("ML_BIND_BILI_TO_QQ_"):
-                # ML_BIND_QQ_BILI
+            if msg.startswith("ML_BIND_BILI_"):
+                # ML_BIND_BILI_123_TO_QQ_456
                 try:
-                    *_, bili_uid, qq_uid = msg.split("_")
+                    *_, bili_uid, a, b, qq_uid = msg.split("_")
                     qq_uid = int(qq_uid)
                     bili_uid = int(bili_uid)
                 except Exception as e:
@@ -500,7 +500,7 @@ class BotHandler:
 
             return bot.send_private_msg(
                 user_id=user_id,
-                message=f"ML_BIND_BILI_TO_QQ_123_456\nML_GET\nML_DEL_BY_QQ_123\nML_DEL_BY_BILI_456"
+                message=f"ML_BIND_BILI_123_TO_QQ_456\nML_GET\nML_DEL_BY_BILI_123\nML_DEL_BY_QQ_456"
             )
 
         elif user_id == 80873436:
