@@ -354,8 +354,9 @@ class RaffleToCQPushList(object):
         result = []
         index = 0
         for qq_uid in qq_uid_list:
-            bili_uid = int(keys[index][len(cls._key): ])
+            bili_uid = int(keys[index][len(cls._key):])
             result.append((bili_uid, qq_uid))
+            index += 1
         return result
 
     @classmethod
