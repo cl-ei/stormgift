@@ -456,16 +456,16 @@ class BotHandler:
             bot.send_private_msg(user_id=user_id, message=message)
 
         elif msg.startswith("ML"):
-            if msg.startswith("ML_BIND_"):
+            if msg.startswith("ML_BIND_BILI_TO_QQ_"):
                 # ML_BIND_QQ_BILI
                 try:
-                    *_, qq_uid, bili_uid = msg.split("_")
+                    *_, bili_uid, qq_uid = msg.split("_")
                     qq_uid = int(qq_uid)
                     bili_uid = int(bili_uid)
                 except Exception as e:
                     return bot.send_private_msg(
                         user_id=user_id,
-                        message=f"命令错误。正确格式：ML_BIND_QQUID_BILIUID",
+                        message=f"命令错误。",
                         auto_escape=True,
                     )
                 r = await RaffleToCQPushList.add(bili_uid=bili_uid, qq_uid=qq_uid)
@@ -479,6 +479,29 @@ class BotHandler:
                     message=f"已绑定如下：\n\n(bili_uid, qq_uid)\n{message}",
                     auto_escape=True,
                 )
+
+            elif msg.startswith("ML_DEL_BY_QQ_"):
+                try:
+                    qq_uid = int(msg.split("_")[-1])
+                except Exception:
+                    return bot.send_private_msg(user_id=user_id, message=f"命令错误")
+
+                result = await RaffleToCQPushList.del_by_qq_uid(qq_uid)
+                return bot.send_private_msg(user_id=user_id, message=f"{msg} -> {result}")
+
+            elif msg.startswith("ML_DEL_BY_BILI_"):
+                try:
+                    bili_uid = int(msg.split("_")[-1])
+                except Exception:
+                    return bot.send_private_msg(user_id=user_id, message=f"命令错误")
+
+                result = await RaffleToCQPushList.del_by_bili_uid(bili_uid)
+                return bot.send_private_msg(user_id=user_id, message=f"{msg} -> {result}")
+
+            return bot.send_private_msg(
+                user_id=user_id,
+                message=f"ML_BIND_BILI_TO_QQ_123_456\nML_GET\nML_DEL_BY_QQ_123\nML_DEL_BY_BILI_456"
+            )
 
         elif user_id == 80873436:
             if msg.startswith("r"):
