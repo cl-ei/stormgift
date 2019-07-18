@@ -50,6 +50,17 @@ class RedisCache(object):
         except (TypeError, pickle.UnpicklingError):
             return r
 
+    async def mget(self, *keys):
+        r = await self.execute("MGET", *keys)
+        result = []
+        for _ in r:
+            try:
+                _ = pickle.loads(_)
+            except (TypeError, pickle.UnpicklingError):
+                _ = TypeError("UnpicklingError")
+            result.append(_)
+        return result
+
     async def hash_map_set(self, name, key_values):
         args = []
         for key, value in key_values.items():
@@ -321,6 +332,48 @@ class LtUserLoginPeriodOfValidity(object):
         key = cls._key + str(user_id)
         r = await redis_cache.get(key=key)
         return r == "IN_PERIOD"
+
+
+class RaffleToCQPushList(object):
+    _key = "RAFFLE_TO_CQ_"
+
+    @classmethod
+    async def add(cls, bili_uid, qq_uid):
+        key = cls._key + str(bili_uid)
+        value = qq_uid
+        return await redis_cache.set(key, value)
+
+    @classmethod
+    async def get_all(cls, return_raw_keys=False):
+        key = cls._key + "*"
+        keys = await redis_cache.execute("keys", key)
+        if return_raw_keys or not keys:
+            return keys
+
+        qq_uid_list = await redis_cache.mget(*keys)
+        result = []
+        index = 0
+        for qq_uid in qq_uid_list:
+            bili_uid = int(keys[index][len(cls._key): ])
+            result.append((bili_uid, qq_uid))
+        return result
+
+    @classmethod
+    async def del_by_bili_uid(cls, bili_uid):
+        key = cls._key + str(bili_uid)
+        return await redis_cache.delete(key)
+
+    @classmethod
+    async def del_by_qq_uid(cls, qq_uid):
+        keys = await cls.get_all(return_raw_keys=True)
+        if keys:
+            qq_uids = await redis_cache.mget(*keys)
+            index = 0
+            for _ in qq_uids:
+                if _ == qq_uid:
+                    return await redis_cache.delete(keys[index])
+                index += 1
+        return 0
 
 
 async def test():

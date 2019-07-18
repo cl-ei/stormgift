@@ -12,7 +12,7 @@ from aiohttp import web
 from config import CQBOT
 from cqhttp import CQHttp
 from config.log4 import cqbot_logger as logging
-from utils.dao import HansyQQGroupUserInfo
+from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList
 from utils.biliapi import BiliApi
 from utils.highlevel_api import ReqFreLimitApi
 from utils.highlevel_api import DBCookieOperator
@@ -528,6 +528,31 @@ class BotHandler:
                 message=f"来自{user_nickname}(QQ: {user_id}) -> \n\n{msg}",
                 auto_escape=True,
             )
+
+        elif msg.startswith("ML"):
+            if msg.startswith("ML_BIND_"):
+                # ML_BIND_QQ_BILI
+                try:
+                    *_, qq_uid, bili_uid = msg.split("_")
+                    qq_uid = int(qq_uid)
+                    bili_uid = int(bili_uid)
+                except Exception as e:
+                    return bot.send_private_msg(
+                        user_id=user_id,
+                        message=f"命令错误。正确格式：ML_BIND_QQUID_BILIUID",
+                        auto_escape=True,
+                    )
+                r = await RaffleToCQPushList.add(bili_uid=bili_uid, qq_uid=qq_uid)
+                return bot.send_private_msg(user_id=user_id, message=f"{r}")
+
+            elif msg.startswith("ML_GET"):
+                result = await RaffleToCQPushList.get_all()
+                message = "\n".join(str(item) for item in result)
+                return bot.send_private_msg(
+                    user_id=user_id,
+                    message=f"已绑定如下：\n\n(bili_uid, qq_uid)\n{message}",
+                    auto_escape=True,
+                )
 
     @classmethod
     async def handle_message(cls, context):
