@@ -522,13 +522,6 @@ class BotHandler:
             )
             bot.send_private_msg(user_id=user_id, message=message)
 
-        elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", ):
-            bot.send_private_msg(
-                user_id=80873436,
-                message=f"来自{user_nickname}(QQ: {user_id}) -> \n\n{msg}",
-                auto_escape=True,
-            )
-
         elif msg.startswith("ML"):
             if msg.startswith("ML_BIND_"):
                 # ML_BIND_QQ_BILI
@@ -553,6 +546,13 @@ class BotHandler:
                     message=f"已绑定如下：\n\n(bili_uid, qq_uid)\n{message}",
                     auto_escape=True,
                 )
+
+        elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", ):
+            bot.send_private_msg(
+                user_id=80873436,
+                message=f"来自{user_nickname}(QQ: {user_id}) -> \n\n{msg}",
+                auto_escape=True,
+            )
 
     @classmethod
     async def handle_message(cls, context):
