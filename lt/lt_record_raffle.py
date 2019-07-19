@@ -9,6 +9,16 @@ from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.dao import DanmakuMessageQ, redis_cache
 from utils.reconstruction_model import objects, Raffle
 
+from config import config
+from utils.cq import CQClient
+from utils.dao import RaffleToCQPushList
+
+
+api_root = config["ml_bot"]["api_root"]
+access_token = config["ml_bot"]["access_token"]
+ml_qq = CQClient(api_root=api_root, access_token=access_token)
+
+
 GIFT_TYPE_TO_NAME = {
     "small_tv": "小电视飞船抽奖",
     "GIFT_30035": "任意门抽奖",
@@ -64,7 +74,15 @@ class Executor(object):
                 "danmaku_json_str": json.dumps(danmaku),
             }
             await Raffle.update_raffle_result(raffle_obj, **update_param)
-            logging.info(f"Raffle saved! cmd: {cmd}, save result: id: {raffle_obj.id}, obj: {raffle_obj}")
+            log_msg = f"Raffle saved! cmd: {cmd}, save result: id: {raffle_obj.id}. "
+
+            qq = await RaffleToCQPushList.get(bili_uid=winner_uid)
+            if qq:
+                message = f"恭喜{winner_name}[{winner_uid}]中了{prize_gift_name}！\n[CQ:at,qq={qq}]"
+                r = await ml_qq.send_group_msg(group_id=981983464, message=message)
+                log_msg += f"__ML NOTICE__ r: {r}"
+
+            logging.info(log_msg)
 
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"

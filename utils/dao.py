@@ -344,6 +344,11 @@ class RaffleToCQPushList(object):
         return await redis_cache.set(key, value)
 
     @classmethod
+    async def get(cls, bili_uid):
+        key = cls._key + str(bili_uid)
+        return await redis_cache.get(key)
+
+    @classmethod
     async def get_all(cls, return_raw_keys=False):
         key = cls._key + "*"
         keys = await redis_cache.execute("keys", key)
