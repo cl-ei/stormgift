@@ -178,6 +178,8 @@ class Acceptor(object):
     async def run(self):
         while True:
             msg = await RaffleMessageQ.get(timeout=50)
+            continue
+
             if msg is None:
                 continue
 
