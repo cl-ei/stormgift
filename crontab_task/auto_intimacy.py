@@ -11,8 +11,6 @@ async def send_gift(cookie, medal, user_name=""):
     if not r:
         return
 
-    print(r)
-
     uid = r[0]["uid"]
     target_model = [_ for _ in r if _["medal_name"] == medal]
     if not target_model:
@@ -20,7 +18,7 @@ async def send_gift(cookie, medal, user_name=""):
     target_model = target_model[0]
     logging.info(f"{uid} {user_name} -> {target_model['medal_name']}")
 
-    live_room_id = target_model["roomid"]
+    live_room_id = await BiliApi.force_get_real_room_id(target_model["roomid"])
     ruid = target_model["anchorInfo"]["uid"]
 
     today_feed = target_model["todayFeed"]
@@ -83,7 +81,6 @@ async def send_gift(cookie, medal, user_name=""):
         flag, data = await BiliApi.send_gift(
             gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
         )
-        print(data)
         if not flag:
             logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
     logging.info(f"{user_name} final left intimacy: {left_intimacy}")
