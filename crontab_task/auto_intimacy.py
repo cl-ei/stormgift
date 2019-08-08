@@ -81,6 +81,7 @@ async def send_gift(cookie, medal, user_name=""):
         flag, data = await BiliApi.send_gift(
             gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
         )
+        print(data)
         if not flag:
             logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
     logging.info(f"{user_name} final left intimacy: {left_intimacy}")
