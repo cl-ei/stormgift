@@ -725,7 +725,6 @@ class BiliApi:
             "ruid": ruid,
             "send_ruid": 0,
             "gift_num": gift_num,
-            "coin_type": coin_type,
             "bag_id": bag_id,
             "platform": "pc",
             "biz_code": "live",
@@ -738,6 +737,9 @@ class BiliApi:
             "csrf": csrf_token,
             "visit_id": ""
         }
+        if coin_type is not None:
+            data["coin_type"] = coin_type
+
         return await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
 
     @classmethod
