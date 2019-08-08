@@ -2,8 +2,9 @@ log
 data
 node_modules
 .idea
-__pychache__
+__pycache__
 .DS_Store
 package-lock.json
 config/proj_config.json
 madliar.settings.ini
+test*
