@@ -164,6 +164,14 @@ class Acceptor(object):
             user_id = user_cookie_obj.DedeUserID
             user_name = user_cookie_obj.name
 
+            if user_id not in (
+                20932326,  # DD
+                39748080,  # 录屏
+                312186483,  # TZ
+                87301592,  # 村长
+            ):
+                continue
+
             if busy_412:
                 if random() < 0.5:
                     logging.info(f"Too busy, user {display_index}-{user_name}({user_id}) skip. reason: 412.")
@@ -178,7 +186,6 @@ class Acceptor(object):
     async def run(self):
         while True:
             msg = await RaffleMessageQ.get(timeout=50)
-            continue
 
             if msg is None:
                 continue
