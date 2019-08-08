@@ -723,6 +723,7 @@ class BiliApi:
             "uid": uid,
             "gift_id": gift_id,
             "ruid": ruid,
+            "send_ruid": 0,
             "gift_num": gift_num,
             "coin_type": coin_type,
             "bag_id": bag_id,
