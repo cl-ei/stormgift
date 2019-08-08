@@ -739,7 +739,7 @@ class BiliApi:
         }
         if coin_type is not None:
             data["coin_type"] = coin_type
-
+        print(data)
         return await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
 
     @classmethod
