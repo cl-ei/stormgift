@@ -9,8 +9,10 @@ async def send_gift(cookie, medal, user_name=""):
 
     r = await BiliApi.get_medal_info_list(cookie)
     if not r:
-
         return
+
+    print(r)
+
     uid = r[0]["uid"]
     target_model = [_ for _ in r if _["medal_name"] == medal]
     if not target_model:
