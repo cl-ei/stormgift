@@ -92,6 +92,11 @@ class Executor(object):
         elif danmaku["cmd"] == "GUARD_BUY":
             key_type = "G"
             room_id = msg_from_room_id
+
+        elif danmaku["cmd"] == "PK_LOTTERY_START":
+            key_type = "P"
+            room_id = msg_from_room_id
+
         else:
             return f"Error cmd `{danmaku['cmd']}`!"
 
@@ -132,8 +137,15 @@ class Executor(object):
             for user_name, gift_list in result.items():
                 await self.proc_tv_gifts_by_single_user(user_name, gift_list)
 
+        elif key_type == "P":
+            raffle_id = danmaku["data"]["id"]
+            key = f"P${room_id}${raffle_id}"
+            info = {"room_id": room_id, "raffle_id": raffle_id}
+            if await redis_cache.set_if_not_exists(key, info):
+                await RaffleMessageQ.put((key, time.time()))
+
     async def run(self):
-        monitor_commands = ["GUARD_MSG", "NOTICE_MSG", "GUARD_BUY"]
+        monitor_commands = ["GUARD_MSG", "NOTICE_MSG", "GUARD_BUY", "PK_LOTTERY_START"]
         while True:
             msg = await DanmakuMessageQ.get(*monitor_commands, timeout=50)
             if msg is None:

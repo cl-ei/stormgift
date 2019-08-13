@@ -551,6 +551,24 @@ class BiliApi:
         print(flag, data)
 
     @classmethod
+    async def join_pk(cls, room_id, raffle_id, cookie, timeout=5):
+        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/pk/join"
+        csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        headers = {"Cookie": cookie}
+        data = {
+            "roomid": room_id,
+            "id": raffle_id,
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "visit_id": ""
+        }
+        flag, data = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_response_json=True)
+        if flag:
+            return True, data["data"]["tittle"]
+        else:
+            return False, data.get("message")
+
+    @classmethod
     async def send_danmaku(cls, message, room_id, cookie, color=0xffffff, timeout=5):
         csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
         if not csrf_token_list:

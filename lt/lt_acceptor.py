@@ -130,6 +130,35 @@ class Acceptor(object):
 
         return r, msg
 
+    async def accept_pk(self, index, user_cookie_obj, room_id, gift_id):
+
+        cookie = user_cookie_obj.cookie
+        user_id = user_cookie_obj.DedeUserID
+        user_name = user_cookie_obj.name
+
+        r, msg = await BiliApi.join_pk(room_id, gift_id, cookie)
+        if r:
+            logging.info(f"GUARD SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
+
+        else:
+            if "412" in msg or "Not json response" in msg:
+                self.__busy_time = time.time()
+
+            elif "访问被拒绝" in msg:
+                await DBCookieOperator.set_blocked(user_cookie_obj)
+                self._cookie_objs_update_time = 0
+
+            elif "请先登录哦" in msg:
+                await DBCookieOperator.set_invalid(user_cookie_obj)
+                self._cookie_objs_update_time = 0
+
+            if index != 0:
+                msg = msg[:100]
+
+            logging.warning(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
+
+        return r, msg
+
     async def proc_single(self, msg):
         key, created_time, *_ = msg
         if time.time() - created_time > 20:
@@ -144,6 +173,8 @@ class Acceptor(object):
             process_fn = self.accept_tv
         elif key_type == "G":
             process_fn = self.accept_guard
+        elif key_type == "P":
+            process_fn = self.accept_pk
         else:
             return "Error Key."
 
@@ -163,14 +194,6 @@ class Acceptor(object):
             display_index += 1
             user_id = user_cookie_obj.DedeUserID
             user_name = user_cookie_obj.name
-
-            if user_id not in (
-                20932326,  # DD
-                39748080,  # 录屏
-                312186483,  # TZ
-                87301592,  # 村长
-            ):
-                continue
 
             if busy_412:
                 if random() < 0.5:
