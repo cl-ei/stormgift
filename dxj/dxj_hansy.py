@@ -24,12 +24,12 @@ class DanmakuSetting(object):
 
     MSG_INTERVAL = 120
     MSG_LIST = [
-        "📢 想要观看直播回放的小伙伴，记得关注录屏组哦~",
-        "📢 喜欢泡泡的小伙伴，加粉丝群436496941来玩耍呀~",
-        "📢 更多好听的原创歌和翻唱作品，网易云音乐搜索「管珩心」~",
-        "📢 你的关注和弹幕是直播的动力，小伙伴们多粗来聊天掰头哇~",
-        "📢 赠送1个B坷垃，就可以领取珩心专属「电磁泡」粉丝勋章啦~",
-        "📢 有能力的伙伴上船支持一下主播鸭~还能获赠纪念礼品OvO",
+        "◄∶想要观看直播回放的小伙伴，记得关注录屏组哦~",
+        "◄∶喜欢泡泡的小伙伴，加粉丝群436496941来玩耍呀~",
+        "◄∶更多好听的原创歌和翻唱作品，网易云音乐搜索「管珩心」~",
+        "◄∶你的关注和弹幕是直播的动力，小伙伴们多粗来聊天掰头哇~",
+        "◄∶赠送1个B坷垃，就可以领取珩心专属「电磁泡」粉丝勋章啦~",
+        "◄∶有能力的伙伴上船支持一下主播鸭~还能获赠纪念礼品OvO",
     ]
     MSG_INDEX = 0
 
@@ -195,7 +195,7 @@ async def proc_message(message):
         deco = d[1] if d else "undefined"
         logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
 
-        if msg.startswith("📢") or msg.startswith("🤖"):
+        if msg.startswith("◄∶"):
             return
 
         DanmakuSetting.flush_last_active_time()
@@ -203,61 +203,58 @@ async def proc_message(message):
         if is_admin or uid == 39748080:
             if msg == "开启答谢":
                 DanmakuSetting.THANK_GIFT = True
-                await send_hansy_danmaku("🤖 弹幕答谢已开启。房管发送「关闭答谢」即可关闭。")
+                await send_hansy_danmaku("◄∶弹幕答谢已开启。房管发送「关闭答谢」即可关闭。")
 
             elif msg == "关闭答谢":
                 DanmakuSetting.THANK_GIFT = False
-                await send_hansy_danmaku("🤖 弹幕答谢已关闭。房管发送「开启答谢」即可再次打开。")
+                await send_hansy_danmaku("◄∶弹幕答谢已关闭。房管发送「开启答谢」即可再次打开。")
 
             elif msg == "开启答谢关注":
                 DanmakuSetting.THANK_FOLLOWER = True
-                await send_hansy_danmaku("🤖 答谢关注已开启。房管发送「关闭答谢关注」即可关闭。")
+                await send_hansy_danmaku("◄∶答谢关注已开启。房管发送「关闭答谢关注」即可关闭。")
 
             elif msg == "关闭答谢关注":
                 DanmakuSetting.THANK_FOLLOWER = False
                 TempData.fans_id_set = None
-                await send_hansy_danmaku("🤖 答谢关注已关闭。房管发送「开启答谢关注」即可再次打开。")
+                await send_hansy_danmaku("◄∶答谢关注已关闭。房管发送「开启答谢关注」即可再次打开。")
 
             elif msg == "清空缓存":
                 TempData.fans_id_set = None
-                await send_hansy_danmaku("🤖 完成。")
+                await send_hansy_danmaku("◄∶完成。")
 
             elif msg == "状态":
                 await send_hansy_danmaku(
                     f"礼物{'开' if DanmakuSetting.THANK_GIFT else '关'}-"
-                    f"关注{'开' if DanmakuSetting.THANK_FOLLOWER else '关'}-"
+                    f"关注{'开' if DanmakuSetting.THANK_FOLLOWER else '关'}"
                 )
 
         if "好听" in msg and random() > 0.7:
             await send_hansy_danmaku(choice([
-                "🤖 φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
-                "🤖 好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
-                "🤖 好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
-                "🤖 觉得好听的话，就按个关注别走好吗…(๑˘ ˘๑) ♥",
+                "◄∶φ(≧ω≦*)♪好听好听！ 打call ᕕ( ᐛ )ᕗ",
+                "◄∶好听！给跪了! ○|￣|_ (这么好听还不摁个关注？！",
+                "◄∶好听! 我的大仙泡最美最萌最好听 ´･∀･)乂(･∀･｀",
+                "◄∶觉得好听的话，就按个关注别走好吗…(๑˘ ˘๑) ♥",
             ]))
-
-        elif "点歌" in msg and "吗" in msg:
-            await send_hansy_danmaku("🤖 可以点歌哦，等这首唱完直接发歌名就行啦╰(*°▽°*)╯")
 
         elif msg[:4] == "#粉丝数":
             query = "".join(msg[4:].split())
             if not query:
-                return await send_hansy_danmaku(f"🤖 指令错误。示例： #粉丝数 2516117。")
+                return await send_hansy_danmaku(f"◄∶指令错误。示例： #粉丝数 2516117。")
 
             if query.isdigit():
                 live_room_id = query
                 user_id = await BiliApi.get_uid_by_live_room_id(live_room_id)
                 if user_id <= 0:
-                    return await send_hansy_danmaku(f"🤖 查询失败，错误的直播间号{live_room_id}")
+                    return await send_hansy_danmaku(f"◄∶查询失败，错误的直播间号{live_room_id}")
                 fans_count = await BiliApi.get_fans_count_by_uid(user_id)
-                await send_hansy_danmaku(f"🤖 {live_room_id}直播间有{fans_count}个粉丝。")
+                await send_hansy_danmaku(f"◄∶{live_room_id}直播间有{fans_count}个粉丝。")
             else:
                 user_name = query
                 flag, user_id = await BiliApi.get_user_id_by_search_way(user_name)
                 if not flag or not user_id or user_id <= 0:
-                    return await send_hansy_danmaku(f"🤖 查询失败，错误的up主名字{user_name}")
+                    return await send_hansy_danmaku(f"◄∶查询失败，错误的up主名字{user_name}")
                 fans_count = await BiliApi.get_fans_count_by_uid(user_id)
-                await send_hansy_danmaku(f"🤖 {user_name}有{fans_count}个粉丝。")
+                await send_hansy_danmaku(f"◄∶{user_name}有{fans_count}个粉丝。")
 
         if uid == 20932326 and msg == "测试通知":
             send_qq_notice_message(test=True)
@@ -327,25 +324,14 @@ async def proc_message(message):
 
         DanmakuSetting.THANK_GIFT = False
         DanmakuSetting.THANK_FOLLOWER = True
-        await send_hansy_danmaku("状态")
+        await send_hansy_danmaku("小仙泡！！！！")
 
     elif cmd == "PREPARING":
         bot.send_private_msg(user_id=291020256, message="小仙女记得把歌单发我昂~\n [CQ:image,file=1.gif]")
 
         DanmakuSetting.THANK_GIFT = True
         DanmakuSetting.THANK_FOLLOWER = False
-        await send_hansy_danmaku("状态")
-
-    # elif cmd == "COMBO_END":
-    #     data = message.get("data")
-    #     uname = data.get("uname", "")
-    #     gift_name = data.get("gift_name", "")
-    #     price = data.get("price")
-    #     count = data.get("combo_num", 0)
-    #
-    #     logging.info(f"COMBO_END: [ ----- ] [{uname}] -> {gift_name}*{count} (price: {price})")
-    #     if DanmakuSetting.THANK_GIFT:
-    #         await send_hansy_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
+        await send_hansy_danmaku("晚安安啊大坏蛋！")
 
 
 async def send_carousel_msg():
