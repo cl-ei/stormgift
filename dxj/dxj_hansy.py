@@ -147,7 +147,9 @@ async def send_hansy_danmaku(msg, user=""):
         room_id=DanmakuSetting.MONITOR_ROOM_ID,
         cookie=cookie
     )
-    if not flag:
+    if flag:
+        logging.info(f"Danmaku [{msg}] sent, msg: {err_msg}, user: {user}.")
+    else:
         logging.error(f"Danmaku [{msg}] send failed, msg: {err_msg}, user: {user}.")
 
 
