@@ -563,8 +563,11 @@ class BiliApi:
             "visit_id": ""
         }
         flag, data = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_response_json=True)
-        if flag:
-            return True, data["data"]["title"]
+        if not flag:
+            return False, data.get("message")
+
+        if data.get("code") == 0:
+            return True, data.get("data", {}).get("title", "unknown tittle")
         else:
             return False, data.get("message")
 
