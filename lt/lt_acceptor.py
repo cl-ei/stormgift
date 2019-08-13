@@ -140,6 +140,13 @@ class Acceptor(object):
         if r:
             logging.info(f"GUARD SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
 
+            try:
+                gift_name = "PK"
+                r = await UserRaffleRecord.create(user_id, gift_name, gift_id)
+                r = f"obj.id: {r.id}"
+            except Exception as e:
+                r = f"UserRaffleRecord create Error: {e}"
+
         else:
             if "412" in msg or "Not json response" in msg:
                 self.__busy_time = time.time()
