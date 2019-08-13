@@ -36,7 +36,7 @@ class WsManager(object):
                     # uid = msg["info"][2][0]
                     await DanmakuMessageQ.put((msg, time.time(), room_id))
 
-                elif cmd in ("GUARD_BUY", "RAFFLE_END", "TV_END"):
+                elif cmd in ("GUARD_BUY", "RAFFLE_END", "TV_END", "PK_LOTTERY_START"):
                     r = await DanmakuMessageQ.put((msg, time.time(), room_id))
                     logging.info(f"RECEIVED: {cmd}, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
 
