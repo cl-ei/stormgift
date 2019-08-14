@@ -540,6 +540,15 @@ class BotHandler:
                     cookie=dd_obj.cookie
                 )
 
+            elif msg.startswith("33"):
+                message = msg[2:]
+                dd_obj = await DBCookieOperator.get_by_uid("DD")
+                await BiliApi.send_danmaku(
+                    message=message,
+                    room_id=13369254,
+                    cookie=dd_obj.cookie
+                )
+
             elif msg.startswith("小电视"):
                 int_str = msg.replace("小电视", "").strip()
                 try:
@@ -566,7 +575,7 @@ class BotHandler:
                 )
                 bot.send_private_msg(user_id=80873436, message=message)
 
-        elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", ):
+        elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", "QQ看点"):
             bot.send_private_msg(
                 user_id=80873436,
                 message=f"来自{user_nickname}(QQ: {user_id}) -> \n\n{msg}",
