@@ -564,7 +564,7 @@ class BiliApi:
         }
         flag, data = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_response_json=True)
         if not flag:
-            return False, data.get("message")
+            return False, data
 
         if data.get("code") == 0:
             return True, data.get("data", {}).get("title", "unknown tittle")
