@@ -74,8 +74,6 @@ async def search_short_number():
                 logging.error(f"Error! e: {guard_response}")
                 continue
             guard_count = guard_response["data"]["info"]["num"]
-
-            guard_count = guard_count
             room_info_update_time = datetime.datetime.now()
 
             obj = await BiliUser.full_create_or_update(
