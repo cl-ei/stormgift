@@ -234,7 +234,7 @@ class BiliApi:
         if url in (
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
             "https://api.live.bilibili.com/guard/topList?page=1",
-            "https://api.live.bilibili.com/AppRoom/index?platform=android",
+            # "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
             req_json = {
                 "method": method,
@@ -346,7 +346,7 @@ class BiliApi:
             return False, f"Response data error: {r}"
 
     @classmethod
-    async def check_live_status(cls, room_id, area=None, timeout=5):
+    async def check_live_status(cls, room_id, area=None, timeout=5, retry_times=2):
         if not room_id:
             return True, False
 
@@ -362,6 +362,10 @@ class BiliApi:
         if not flag:
             if "房间已经被锁定" in r:
                 return True, False
+
+            if "Not json response" in r and "维护中 - live.bilibili.com" in r and retry_times > 0:
+                return await cls.check_live_status(room_id, area=area, timeout=timeout, retry_times=retry_times-1)
+
             return False, r
 
         data = r.get("data", {})
