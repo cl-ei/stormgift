@@ -233,6 +233,8 @@ class BiliApi:
     async def _request_async(cls, method, url, headers, data, timeout):
         if url in (
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
+            "https://api.live.bilibili.com/guard/topList?page=1",
+            "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
             req_json = {
                 "method": method,

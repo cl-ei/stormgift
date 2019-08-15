@@ -6,8 +6,6 @@ from utils.reconstruction_model import BiliUser
 from config.log4 import lt_valuable_live_room_scanner_logger as logging
 from utils.db_raw_query import AsyncMySQL
 
-BiliApi.USE_ASYNC_REQUEST_METHOD = True
-
 
 async def search_short_number():
     logging.info("Get room id list from db...")
@@ -50,8 +48,8 @@ async def search_short_number():
 
     logging.info(f"Start searching, total count: {len(search_list)}")
     for room_id in search_list:
-        req_url = F"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
-        flag, response = await BiliApi.get(req_url, timeout=10, check_error_code=True)
+        req_url = "https://api.live.bilibili.com/AppRoom/index?platform=android"
+        flag, response = await BiliApi.get(req_url, timeout=10, data={"room_id": room_id}, check_error_code=True)
         if flag and response["code"] in (0, "0"):
 
             data = response["data"]
@@ -65,8 +63,13 @@ async def search_short_number():
             create_at = data["create_at"]
             attention = data["attention"]
 
-            req_url = f"https://api.live.bilibili.com/guard/topList?roomid={real_room_id}&page=1&ruid={uid}"
-            flag, guard_response = await BiliApi.get(req_url, timeout=10, check_error_code=True)
+            req_url = f"https://api.live.bilibili.com/guard/topList?page=1"
+            flag, guard_response = await BiliApi.get(
+                req_url,
+                data={"roomid": real_room_id, "ruid": uid},
+                timeout=10,
+                check_error_code=True
+            )
             if not flag:
                 logging.error(f"Error! e: {guard_response}")
                 continue
