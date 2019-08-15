@@ -232,7 +232,6 @@ class BiliApi:
     @classmethod
     async def _request_async(cls, method, url, headers, data, timeout):
         if url in (
-            "https://live.bilibili.com/msg/send",
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
         ):
             req_json = {
@@ -596,7 +595,7 @@ class BiliApi:
             return False, f"Cannot get csrf_token!"
 
         csrf_token = csrf_token_list[0]
-        req_url = "https://live.bilibili.com/msg/send"
+        req_url = "https://api.live.bilibili.com/msg/send"
         headers = {"Cookie": cookie}
         data = {
             "color": color,
@@ -605,7 +604,9 @@ class BiliApi:
             "msg": message,
             "rnd": int(time.time()),
             "roomid": room_id,
+            "bubble": 0,
             "csrf_token": csrf_token,
+            "csrf": csrf_token,
         }
         flag, r = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
         if not flag:
