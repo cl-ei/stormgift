@@ -22,7 +22,7 @@ def main_handler(event, context):
         headers = request_params["headers"]
         timeout = request_params["timeout"]
         data = request_params.get("data", {})
-        params = request_params("params", {})
+        params = request_params.get("params", {})
 
     except Exception as e:
         return {

@@ -13,7 +13,7 @@ from urllib import parse
 from random import random
 from utils.dao import redis_cache
 from config.log4 import bili_api_logger as logging
-
+from config import cloud_function_url
 
 class CookieFetcher:
     appkey = "1d8b6e7d45233436"
@@ -231,6 +231,23 @@ class BiliApi:
 
     @classmethod
     async def _request_async(cls, method, url, headers, data, timeout):
+        if url not in (
+
+        ):
+            req_json = {
+                "method": method,
+                "url": url,
+                "headers": headers,
+                "data": data if method.lower() == "post" else {},
+                "params": data if method.lower() != "post" else {},
+                "timeout": timeout
+            }
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+                async with session.post(cloud_function_url, json=req_json) as resp:
+                    status_code = resp.status
+                    content = await resp.text()
+                    return status_code, content
+
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
             if method == "get":
                 async with session.get(url, params=data, headers=headers) as resp:
