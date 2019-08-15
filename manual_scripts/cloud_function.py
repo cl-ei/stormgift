@@ -3,6 +3,7 @@ import sys
 import json
 import logging
 import requests
+import traceback
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger()
@@ -15,23 +16,28 @@ def main_handler(event, context):
         request_params = json.loads(event["body"])
         if not request_params:
             raise ValueError("Bad request_params: `%s`." % request_params)
+
+        method = request_params["method"].lower()
+        url = request_params["url"]
+        headers = request_params["headers"]
+        timeout = request_params["timeout"]
+        data = request_params.get("data", {})
+        params = request_params("params", {})
+
     except Exception as e:
         return {
             "headers": {"Content-Type": "text"},
             "statusCode": 403,
-            "body": "Request Param Error: %s" % e
+            "body": "Request Param Error: %s\n\n%s" % (e, traceback.format_exc())
         }
 
-    url = "https://www.madliar.com/log"
-    r = requests.post(url=url, params={"msg": json.dumps(request_params)})
-
-    response = {
-        "result": r.status_code == 200,
-        "data": r.content,
-    }
+    if method == "post":
+        r = requests.post(url=url, data=data, headers=headers, timeout=timeout)
+    else:
+        r = requests.get(url=url, params=params, headers=headers, timeout=timeout)
 
     return {
-        "headers": {"Content-Type": "application/json"},
-        "statusCode": 200,
-        "body": json.dumps(response)
+        "headers": {"Content-Type": "text"},
+        "statusCode": r.status_code,
+        "body": r.content.decode("utf-8")
     }
