@@ -231,8 +231,9 @@ class BiliApi:
 
     @classmethod
     async def _request_async(cls, method, url, headers, data, timeout):
-        if url not in (
-
+        if url in (
+            "https://live.bilibili.com/msg/send",
+            "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
         ):
             req_json = {
                 "method": method,
@@ -666,8 +667,8 @@ class BiliApi:
 
     @classmethod
     async def get_fans_list(cls, uid, timeout=10):
-        req_url = f"https://api.bilibili.com/x/relation/followers?vmid={uid}&pn=1&ps=50&order=desc&jsonp=jsonp"
-        flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        req_url = f"https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp"
+        flag, data = await cls.get(req_url, timeout=timeout, data={"vmid": uid}, check_error_code=True)
         result = []
         if not flag:
             return result
@@ -677,8 +678,8 @@ class BiliApi:
 
     @classmethod
     async def get_fans_count_by_uid(cls, uid, timeout=10):
-        req_url = f"https://api.bilibili.com/x/relation/followers?vmid={uid}&pn=1&ps=50&order=desc&jsonp=jsonp"
-        flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        req_url = f"https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp"
+        flag, data = await cls.get(req_url, timeout=timeout, data={"vmid": uid}, check_error_code=True)
         result = 0
         if not flag:
             return result
@@ -1018,7 +1019,7 @@ class BiliApi:
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_lived_room_id_list()
+    r = await BiliApi.get_fans_list(731556)
     print(r)
 
 
