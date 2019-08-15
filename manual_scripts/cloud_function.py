@@ -31,6 +31,8 @@ def main_handler(event, context):
             "body": "Request Param Error: %s\n\n%s" % (e, traceback.format_exc())
         }
 
+    logger.info("%s: request_url: %s, data: %s, param: %s" % (method, url, data, params))
+
     if method == "post":
         r = requests.post(url=url, data=data, headers=headers, timeout=timeout)
     else:
