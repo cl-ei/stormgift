@@ -10,8 +10,20 @@ logger.setLevel(level=logging.INFO)
 
 
 def main_handler(event, context):
+
+    try:
+        request_params = json.loads(event["body"])
+        if not request_params:
+            raise ValueError("Bad request_params: `%s`." % request_params)
+    except Exception as e:
+        return {
+            "headers": {"Content-Type": "text"},
+            "statusCode": 403,
+            "body": "Request Param Error: %s" % e
+        }
+
     url = "https://www.madliar.com/log"
-    r = requests.get(url=url, params={"event": event, "context": context})
+    r = requests.post(url=url, params={"msg": json.dumps(request_params)})
 
     response = {
         "result": r.status_code == 200,
@@ -19,10 +31,7 @@ def main_handler(event, context):
     }
 
     return {
-        "headers": {
-            "Content-Type": "text",
-            "Access-Control-Allow-Origin": "*"
-        },
+        "headers": {"Content-Type": "application/json"},
         "statusCode": 200,
         "body": json.dumps(response)
     }
