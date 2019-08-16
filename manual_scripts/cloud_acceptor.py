@@ -10,7 +10,7 @@ logger = logging.getLogger()
 logger.setLevel(level=logging.INFO)
 
 
-def request(method, url, headers, data=None, params=None, timeout=5):
+def request(method, url, headers, data=None, params=None, timeout=10):
     import requests
     default_headers = {
         "Accept": (

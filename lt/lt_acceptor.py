@@ -202,7 +202,7 @@ class Acceptor(object):
             "gift_id": gift_id,
             "cookies": cookies
         }
-        r = requests.post(url=acceptor_url, json=req_json, timeout=5)
+        r = requests.post(url=acceptor_url, json=req_json, timeout=20)
         if r.status_code != 200:
             return logging.error(f"Accept Failed! e: {r.content.decode('utf-8')}")
 
