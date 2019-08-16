@@ -176,15 +176,24 @@ class Acceptor(object):
         room_id = int(room_id)
         gift_id = int(gift_id)
 
-        if key_type in "TG":
+        if key_type in "TGP":
             non_skip, normal_objs = await self.load_cookie()
             cookies = []
             for c in non_skip + normal_objs:
                 cookies.append(c.cookie)
 
             req_url = "https://service-ir5wks32-1251734549.gz.apigw.tencentcs.com/release/test"
+            if key_type == "T":
+                act = "join_tv"
+            elif key_type == "G":
+                act = "join_guard"
+            elif key_type == "P":
+                act = "join_pk"
+            else:
+                return
+
             req_json = {
-                "act": "join_tv" if key_type == "T" else "join_guard",
+                "act": act,
                 "room_id": room_id,
                 "gift_id": gift_id,
                 "cookies": cookies
