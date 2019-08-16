@@ -176,6 +176,25 @@ class Acceptor(object):
         room_id = int(room_id)
         gift_id = int(gift_id)
 
+        if key_type in "TG":
+            non_skip, normal_objs = await self.load_cookie()
+            cookies = []
+            for c in non_skip + normal_objs:
+                cookies.append(c.cookie)
+
+            req_url = "https://service-ir5wks32-1251734549.gz.apigw.tencentcs.com/release/test"
+            req_json = {
+                "act": "join_tv" if key_type == "T" else "join_guard",
+                "room_id": room_id,
+                "gift_id": gift_id,
+                "cookies": cookies
+            }
+
+            import requests
+            r = requests.post(url=req_url, json=req_json)
+            logging.info(f"User new method acceptor: code: {r.status_code}, result: {r.content.decode('utf-8')}")
+            return
+
         if key_type == "T":
             process_fn = self.accept_tv
         elif key_type == "G":
