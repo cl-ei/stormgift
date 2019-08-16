@@ -39,7 +39,7 @@ def request(method, url, headers, data=None, params=None, timeout=5):
     return status_code, content
 
 
-def join_tv(room_id, gift_id, cookie, q):
+def join_tv(room_id, gift_id, cookie):
     csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
     req_url = "https://api.live.bilibili.com/gift/v3/smalltv/join"
     headers = {"Cookie": cookie}
