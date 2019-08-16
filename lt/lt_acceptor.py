@@ -236,7 +236,7 @@ class Acceptor(object):
                 if act == "join_pk":
                     try:
                         r = await UserRaffleRecord.create(cookie_obj.uid, "PK", gift_id)
-                        r = f"obj.id: {r.id}"
+                        r = f"{r.id}"
                     except Exception as e:
                         r = f"UserRaffleRecord create Error: {e}"
 
@@ -253,7 +253,7 @@ class Acceptor(object):
                         else:
                             gift_name = "大航海"
                         r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
-                        r = f"obj.id: {r.id}"
+                        r = f"{r.id}"
                     except Exception as e:
                         r = f"UserRaffleRecord create Error: {e}"
 
@@ -262,7 +262,7 @@ class Acceptor(object):
                         info = await redis_cache.get(f"T${room_id}${gift_id}")
                         gift_name = info["gift_name"]
                         r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
-                        r = f"obj.id: {r.id}"
+                        r = f"{r.id}"
                     except Exception as e:
                         r = f"UserRaffleRecord create Error: {e}"
 
@@ -270,8 +270,8 @@ class Acceptor(object):
                     r = f"UserRaffleRecord create Error: Key Error."
 
                 logging.info(
-                    f"{act.upper()} SUCCESS! {index}-{cookie_obj.uid}-{cookie_obj.name} "
-                    f"@{room_id}${gift_id}. message: {message}. db-r: {r}"
+                    f"{act.upper()} OK! {index}-{cookie_obj.uid}-{cookie_obj.name} "
+                    f"@{room_id}${gift_id}. message: {message}. p: {r}"
                 )
 
     async def run(self):
