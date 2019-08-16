@@ -1,5 +1,7 @@
 import time
+import json
 import asyncio
+import requests
 import traceback
 from random import random
 from utils.biliapi import BiliApi
@@ -175,71 +177,83 @@ class Acceptor(object):
         key_type, room_id, gift_id = key.split("$")
         room_id = int(room_id)
         gift_id = int(gift_id)
-
-        if key_type in "TGP":
-            non_skip, normal_objs = await self.load_cookie()
-            cookies = []
-            for c in non_skip + normal_objs:
-                cookies.append(c.cookie)
-
-            req_url = "https://service-ir5wks32-1251734549.gz.apigw.tencentcs.com/release/test"
-            if key_type == "T":
-                act = "join_tv"
-            elif key_type == "G":
-                act = "join_guard"
-            elif key_type == "P":
-                act = "join_pk"
-            else:
-                return
-
-            req_json = {
-                "act": act,
-                "room_id": room_id,
-                "gift_id": gift_id,
-                "cookies": cookies
-            }
-
-            import requests
-            r = requests.post(url=req_url, json=req_json)
-            logging.info(f"User new method acceptor: code: {r.status_code}, result: {r.content.decode('utf-8')}")
-            return
-
-        if key_type == "T":
-            process_fn = self.accept_tv
-        elif key_type == "G":
-            process_fn = self.accept_guard
-        elif key_type == "P":
-            process_fn = self.accept_pk
-        else:
-            return "Error Key."
-
         if not self._is_new_gift(key_type, room_id, gift_id):
             return "Repeated gift, skip it."
 
         non_skip, normal_objs = await self.load_cookie()
+        user_cookie_objs = non_skip + normal_objs
+        cookies = []
+        for c in user_cookie_objs:
+            cookies.append(c.cookie)
 
-        display_index = -1
-        for obj in non_skip:
-            display_index += 1
-            await process_fn(display_index, obj, room_id, gift_id)
+        acceptor_url = "https://service-ir5wks32-1251734549.gz.apigw.tencentcs.com/release/test"
+        if key_type == "T":
+            act = "join_tv"
+        elif key_type == "G":
+            act = "join_guard"
+        elif key_type == "P":
+            act = "join_pk"
+        else:
+            return
 
-        busy_412 = bool(time.time() - self.__busy_time < 60 * 20)
-        for user_cookie_obj in normal_objs:
+        req_json = {
+            "act": act,
+            "room_id": room_id,
+            "gift_id": gift_id,
+            "cookies": cookies
+        }
+        r = requests.post(url=acceptor_url, json=req_json, timeout=5)
+        if r.status_code != 200:
+            return logging.error(f"Accept Failed! e: {r.content.decode('utf-8')}")
 
-            display_index += 1
-            user_id = user_cookie_obj.DedeUserID
-            user_name = user_cookie_obj.name
+        result_list = json.loads(r.content.decode('utf-8'))
+        index = 0
+        for cookie_obj in user_cookie_objs:
+            result = result_list[index]
+            index += 1
 
-            if busy_412:
-                if random() < 0.5:
-                    logging.info(f"Too busy, user {display_index}-{user_name}({user_id}) skip. reason: 412.")
-                    continue
-                await asyncio.sleep(0.5)
+            if result[0] is True:
 
-            flag, msg = await process_fn(display_index, user_cookie_obj, room_id, gift_id)
-            if not flag and ("抽奖已过期" in msg or "已经过期啦" in msg):
-                logging.warning(f"Prize expired! now skip all!")
-                return
+                if act == "join_pk":
+                    try:
+                        r = await UserRaffleRecord.create(cookie_obj.uid, "PK", gift_id)
+                        r = f"obj.id: {r.id}"
+                    except Exception as e:
+                        r = f"UserRaffleRecord create Error: {e}"
+
+                elif act == "join_guard":
+                    try:
+                        info = await redis_cache.get(f"G${room_id}${gift_id}")
+                        privilege_type = info["privilege_type"]
+                        if privilege_type == 3:
+                            gift_name = "舰长"
+                        elif privilege_type == 2:
+                            gift_name = "提督"
+                        elif privilege_type == 1:
+                            gift_name = "总督"
+                        else:
+                            gift_name = "大航海"
+                        r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
+                        r = f"obj.id: {r.id}"
+                    except Exception as e:
+                        r = f"UserRaffleRecord create Error: {e}"
+
+                elif act == "join_tv":
+                    try:
+                        info = await redis_cache.get(f"T${room_id}${gift_id}")
+                        gift_name = info["gift_name"]
+                        r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
+                        r = f"obj.id: {r.id}"
+                    except Exception as e:
+                        r = f"UserRaffleRecord create Error: {e}"
+
+                else:
+                    r = f"UserRaffleRecord create Error: Key Error."
+
+                logging.info(
+                    f"{act.upper()} SUCCESS! {index}-{cookie_obj.uid}-{cookie_obj.name} "
+                    f"@{room_id}${gift_id}. msg: {result[1]}. db-r: {r}"
+                )
 
     async def run(self):
         while True:
