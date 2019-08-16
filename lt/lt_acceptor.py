@@ -224,7 +224,7 @@ class Acceptor(object):
                     message = message[:100]
                 logging.warning(
                     f"{act.upper()} FAILED! {index}-{cookie_obj.name}({cookie_obj.uid}) "
-                    f"@{room_id}${gift_id}, message: {message[1]}"
+                    f"@{room_id}${gift_id}, message: {message}"
                 )
 
             else:
