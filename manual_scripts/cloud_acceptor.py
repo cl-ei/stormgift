@@ -39,7 +39,7 @@ def request(method, url, headers, data=None, params=None, timeout=5):
     return status_code, content
 
 
-def join_tv(room_id, gift_id, cookie):
+def join_tv(room_id, gift_id, cookie, q):
     csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
     req_url = "https://api.live.bilibili.com/gift/v3/smalltv/join"
     headers = {"Cookie": cookie}
@@ -95,6 +95,19 @@ def join_guard(room_id, gift_id, cookie):
     return True, "%s, from %s" % (message, from_user)
 
 
+def accept_handler(q, act, room_id, gift_id, cookie):
+    if act == "join_tv":
+        f = join_tv
+    elif act == "join_guard":
+        f = join_guard
+    else:
+        q.put(None)
+        return
+
+    result = f(room_id=room_id, gift_id=gift_id, cookie=cookie)
+    q.put(result)
+
+
 def main_handler(event, context):
     try:
         request_params = json.loads(event["body"])
@@ -102,13 +115,6 @@ def main_handler(event, context):
             raise ValueError("Bad request_params: `%s`." % request_params)
 
         act = request_params["act"]
-        if act == "join_tv":
-            target = join_tv
-        elif act == "join_guard":
-            target = join_guard
-        else:
-            raise ValueError("Bad value `act`: %s" % act)
-
         room_id = request_params["room_id"]
         gift_id = request_params["gift_id"]
         cookies = request_params["cookies"]
@@ -128,7 +134,7 @@ def main_handler(event, context):
     queues = [Queue(maxsize=1) for _ in range(count)]
 
     threads = [
-        Thread(target=target, args=(room_id, gift_id, cookies[_]))
+        Thread(target=accept_handler, args=(queues[_], act, room_id, gift_id, cookies[_]))
         for _ in range(count)
     ]
 
@@ -143,5 +149,5 @@ def main_handler(event, context):
     return {
         "headers": {"Content-Type": "text"},
         "statusCode": 200,
-        "body": json.dumps(result)
+        "body": json.dumps(result, ensure_ascii=False)
     }
