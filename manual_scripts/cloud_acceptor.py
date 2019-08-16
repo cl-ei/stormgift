@@ -95,11 +95,39 @@ def join_guard(room_id, gift_id, cookie):
     return True, "%s, from %s" % (message, from_user)
 
 
+def join_pk(room_id, gift_id, cookie):
+    csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+    req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/pk/join"
+    headers = {"Cookie": cookie}
+    data = {
+        "roomid": room_id,
+        "id": gift_id,
+        "csrf_token": csrf_token,
+        "csrf": csrf_token,
+        "visit_id": ""
+    }
+    status_code, content = request(method="post", url=req_url, headers=headers, data=data)
+    if status_code != 200:
+        return False, "Status code is not 200! content: %s" % content
+
+    try:
+        r = json.loads(content)
+    except Exception as e:
+        return False, "Not json response: %s, content: %s" % (e, content)
+
+    if r.get("code") != 0:
+        return False, r.get("message")
+
+    return True, r.get("data", {}).get("title", "unknown tittle")
+
+
 def accept_handler(q, act, room_id, gift_id, cookie):
     if act == "join_tv":
         f = join_tv
     elif act == "join_guard":
         f = join_guard
+    elif act == "join_pk":
+        f = join_pk
     else:
         q.put(None)
         return
