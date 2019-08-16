@@ -9,6 +9,7 @@ from utils.highlevel_api import DBCookieOperator
 from utils.dao import RaffleMessageQ, redis_cache
 from config.log4 import acceptor_logger as logging
 from utils.reconstruction_model import UserRaffleRecord, objects
+from config import cloud_acceptor_url
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
@@ -186,7 +187,6 @@ class Acceptor(object):
         for c in user_cookie_objs:
             cookies.append(c.cookie)
 
-        acceptor_url = "https://service-ir5wks32-1251734549.gz.apigw.tencentcs.com/release/test"
         if key_type == "T":
             act = "join_tv"
         elif key_type == "G":
@@ -202,7 +202,12 @@ class Acceptor(object):
             "gift_id": gift_id,
             "cookies": cookies
         }
-        r = requests.post(url=acceptor_url, json=req_json, timeout=20)
+        try:
+            r = requests.post(url=cloud_acceptor_url, json=req_json, timeout=20)
+        except Exception as e:
+            logging.error(f"Cannot access cloud acceptor! e: {e}")
+            return
+
         if r.status_code != 200:
             return logging.error(f"Accept Failed! e: {r.content.decode('utf-8')}")
 
