@@ -209,11 +209,25 @@ class Acceptor(object):
         result_list = json.loads(r.content.decode('utf-8'))
         index = 0
         for cookie_obj in user_cookie_objs:
-            result = result_list[index]
+            flag, message = result_list[index]
             index += 1
 
-            if result[0] is True:
+            if flag is not True:
+                if "访问被拒绝" in message:
+                    await DBCookieOperator.set_blocked(cookie_obj)
+                    self._cookie_objs_update_time = 0
+                elif "请先登录哦" in message:
+                    await DBCookieOperator.set_invalid(cookie_obj)
+                    self._cookie_objs_update_time = 0
 
+                if index != 0:
+                    message = message[:100]
+                logging.warning(
+                    f"{act.upper()} FAILED! {index}-{cookie_obj.name}({cookie_obj.uid}) "
+                    f"@{room_id}${gift_id}, message: {message[1]}"
+                )
+
+            else:
                 if act == "join_pk":
                     try:
                         r = await UserRaffleRecord.create(cookie_obj.uid, "PK", gift_id)
@@ -252,7 +266,7 @@ class Acceptor(object):
 
                 logging.info(
                     f"{act.upper()} SUCCESS! {index}-{cookie_obj.uid}-{cookie_obj.name} "
-                    f"@{room_id}${gift_id}. msg: {result[1]}. db-r: {r}"
+                    f"@{room_id}${gift_id}. message: {message}. db-r: {r}"
                 )
 
     async def run(self):
