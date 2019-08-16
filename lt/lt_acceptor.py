@@ -171,7 +171,7 @@ class Acceptor(object):
 
     async def proc_single(self, msg):
         key, created_time, *_ = msg
-        if time.time() - created_time > 20:
+        if time.time() - created_time > 60:
             logging.error(f"Message Expired ! created_time: {created_time}")
             return
 
