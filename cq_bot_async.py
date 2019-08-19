@@ -6,7 +6,7 @@ import hashlib
 import datetime
 import requests
 import traceback
-from random import choice
+from random import choice, randint
 import aiohttp
 from aiohttp import web
 from utils.cq import bot
@@ -237,6 +237,11 @@ class BotUtils:
         bot.set_group_ban(group_id=group_id, user_id=user_id, duration=min(duration, 720*3600))
 
     @classmethod
+    def proc_random_ban(cls, msg, group_id, user_id):
+        duration = randint(10, 3600*24*30)
+        bot.set_group_ban(group_id=group_id, user_id=user_id, duration=min(duration, 720*3600))
+
+    @classmethod
     def proc_whether(cls, msg, group_id):
         if "西雅图" in msg or "seattle" in msg.lower():
             url = "http://www.weather.com.cn/weather/401100101.shtml"
@@ -383,6 +388,9 @@ class BotHandler:
         )
 
         msg = msg.replace("＃", "#")
+
+        if msg in ("打盹", "打个盹", "#打盹"):
+            return BotUtils.proc_random_ban(msg, group_id, user_id)
 
         if msg in ("#一言", "一言"):
             return BotUtils.proc_one_sentence(msg, group_id)
