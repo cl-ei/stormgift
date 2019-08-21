@@ -90,6 +90,7 @@ async def main():
     obj = await DBCookieOperator.get_by_uid(20932326)
     if obj:
         await send_gift(cookie=obj.cookie, medal="小孩梓", user_name="打盹")
+        await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="打盹")
 
     obj = await DBCookieOperator.get_by_uid(39748080)
     if obj:
