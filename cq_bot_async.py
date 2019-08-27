@@ -389,7 +389,7 @@ class BotHandler:
 
         msg = msg.replace("＃", "#")
 
-        if msg in ("打盹", "打个盹", "#打盹"):
+        if msg in ("#打盹儿", "#打盹"):
             return BotUtils.proc_random_ban(msg, group_id, user_id)
 
         if msg in ("#一言", "一言"):
