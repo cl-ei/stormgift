@@ -6,7 +6,7 @@ import hashlib
 import datetime
 import requests
 import traceback
-from random import choice, randint
+from random import choice, randint, random
 import aiohttp
 from aiohttp import web
 from utils.cq import bot
@@ -238,7 +238,11 @@ class BotUtils:
 
     @classmethod
     def proc_random_ban(cls, msg, group_id, user_nickname, user_id):
-        duration = randint(10, 3600*24*7)
+        if random() < 0.6:
+            duration = randint(10, 3600)
+        else:
+            duration = randint(3600, 3600*12)
+
         bot.send_group_msg(
             group_id=group_id,
             message=f"恭喜{user_nickname}获得随机禁言。私聊发送「起床{group_id}」解除禁言。"
