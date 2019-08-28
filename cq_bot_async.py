@@ -237,8 +237,12 @@ class BotUtils:
         bot.set_group_ban(group_id=group_id, user_id=user_id, duration=min(duration, 720*3600))
 
     @classmethod
-    def proc_random_ban(cls, msg, group_id, user_id):
-        duration = randint(10, 3600*24*30)
+    def proc_random_ban(cls, msg, group_id, user_nickname, user_id):
+        duration = randint(10, 3600*24*7)
+        bot.send_group_msg(
+            group_id=group_id,
+            message=f"恭喜{user_nickname}获得随机禁言。私聊发送「起床{group_id}」解除禁言。"
+        )
         bot.set_group_ban(group_id=group_id, user_id=user_id, duration=min(duration, 720*3600))
 
     @classmethod
@@ -390,7 +394,7 @@ class BotHandler:
         msg = msg.replace("＃", "#")
 
         if msg in ("#打盹儿", "#打盹"):
-            return BotUtils.proc_random_ban(msg, group_id, user_id)
+            return BotUtils.proc_random_ban(msg, group_id, user_nickname, user_id)
 
         if msg in ("#一言", "一言"):
             return BotUtils.proc_one_sentence(msg, group_id)
