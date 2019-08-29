@@ -351,7 +351,21 @@ class BiliApi:
             return True, False
 
         req_url = f"https://live.bilibili.com/{room_id}"
-        status_code, content = await cls._request_async("get", url=req_url, headers=None, data=None, timeout=timeout)
+        try:
+            status_code, content = await cls._request_async(
+                method="get",
+                url=req_url,
+                headers=cls.headers,
+                data=None,
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            return False, "Bili api HTTP request timeout!"
+        except Exception as e:
+            error_message = f"Async _request Error: {e}, {traceback.format_exc()}"
+            logging.error(error_message)
+            return False, error_message
+
         if status_code != 200:
             return False, f"Status code not 200! status code: {status_code}, content: {content}"
 
