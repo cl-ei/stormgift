@@ -346,34 +346,34 @@ class BiliApi:
             return False, f"Response data error: {r}"
 
     @classmethod
-    async def check_live_status(cls, room_id, area=None, timeout=5, retry_times=2):
+    async def check_live_status(cls, room_id, area=None, timeout=20):
         if not room_id:
             return True, False
 
-        req_url = f"https://api.live.bilibili.com/AppRoom/index?platform=android"
-        flag, r = await cls.get(
-            req_url,
-            data={"room_id": room_id},
-            timeout=timeout,
-            check_response_json=True,
-            check_error_code=True
-        )
+        req_url = f"https://live.bilibili.com/{room_id}"
+        status_code, content = await cls._request_async("get", url=req_url, headers=None, data=None, timeout=timeout)
+        if status_code != 200:
+            return False, f"Status code not 200! status code: {status_code}, content: {content}"
 
-        if not flag:
-            if "房间已经被锁定" in r:
-                return True, False
+        json_str = content.split("<script>window.__NEPTUNE_IS_MY_WAIFU__=", 1)[-1].split("</script>", 1)[0]
+        try:
+            r = json.loads(json_str)
+        except json.decoder.JSONDecodeError:
+            return False, f"Cannot decode response! content: \n\n{'-'*80}\n{content}{'-'*80}\n\n"
 
-            if "Not json response" in r and "维护中 - live.bilibili.com" in r and retry_times > 0:
-                return await cls.check_live_status(room_id, area=area, timeout=timeout, retry_times=retry_times-1)
+        is_locked = r["roomInitRes"]["data"]["is_locked"]
+        if is_locked:
+            return True, False
 
-            return False, r
+        live_status = r["baseInfoRes"]["data"]["live_status"]
+        if not live_status:
+            return True, False
 
-        data = r.get("data", {})
-        is_lived = data.get("status") == "LIVE"
         if area is None:
-            return True, is_lived
-        else:
-            return True, is_lived and data.get("area_v2_parent_id") == area
+            return True, True
+
+        live_area = r["baseInfoRes"]["data"]["parent_area_id"]
+        return True, live_area == area
 
     @classmethod
     async def get_tv_raffle_id(cls, room_id, timeout=5):
@@ -1033,8 +1033,9 @@ class BiliApi:
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_fans_list(731556)
-    print(r)
+    for _ in range(20):
+        r = await BiliApi.check_live_status(92450, area=0, timeout=5)
+        print(r)
 
 
 if __name__ == "__main__":
