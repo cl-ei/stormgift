@@ -15,6 +15,7 @@ from utils.dao import redis_cache
 from config.log4 import bili_api_logger as logging
 from config import cloud_function_url
 
+
 class CookieFetcher:
     appkey = "1d8b6e7d45233436"
     actionKey = "appkey"
@@ -233,6 +234,7 @@ class BiliApi:
     async def _request_async(cls, method, url, headers, data, timeout):
         if url in (
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
+            "https://api.live.bilibili.com/gift/v3/smalltv/check",
             # "https://api.live.bilibili.com/guard/topList?page=1",
             # "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
@@ -391,8 +393,14 @@ class BiliApi:
 
     @classmethod
     async def get_tv_raffle_id(cls, room_id, timeout=5):
-        req_url = "https://api.live.bilibili.com/gift/v3/smalltv/check?roomid=%s" % room_id
-        flag, r = await cls.get(req_url, timeout=timeout, check_response_json=True, check_error_code=True)
+        req_url = "https://api.live.bilibili.com/gift/v3/smalltv/check"
+        flag, r = await cls.get(
+            url=req_url,
+            data={"roomid": room_id},
+            timeout=timeout,
+            check_response_json=True,
+            check_error_code=True
+        )
         if not flag:
             return False, r
 
