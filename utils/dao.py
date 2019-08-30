@@ -244,62 +244,6 @@ class InLotteryLiveRooms(object):
         return set(result.keys())
 
 
-class DanmakuMessageQ(object):
-    _key = "DANMAKU_MQ_OF_CMD_"
-
-    @classmethod
-    async def put(cls, message):
-        """
-        message 必须是 tuple，第一个是DANMAKU的 python dict.
-
-        :param message:
-        :return:
-        """
-        danmaku = message[0]
-        cmd = danmaku["cmd"]
-        key = cls._key + cmd
-        return await redis_cache.list_push(key, message)
-
-    @classmethod
-    async def get(cls, *cmds, timeout):
-        keys = [cls._key + cmd for cmd in cmds]
-        r = await redis_cache.list_br_pop(*keys, timeout=timeout)
-        if r is None:
-            return None
-        return r[1]
-
-
-class TVPrizeMessageQ(object):
-    _list_name = "DANMAKU_MQ_OF_TVCMD"
-
-    @classmethod
-    async def put(cls, key):
-        await redis_cache.list_del(cls._list_name, key)
-        return await redis_cache.list_push(cls._list_name, key)
-
-    @classmethod
-    async def get(cls, timeout=60):
-        r = await redis_cache.list_br_pop(cls._list_name, timeout=timeout)
-        if r is None:
-            return None
-        return r[1]
-
-
-class RaffleMessageQ(object):
-    _key = "RAFFLE_MESSAGE"
-
-    @classmethod
-    async def put(cls, item):
-        return await redis_cache.list_push(cls._key, item)
-
-    @classmethod
-    async def get(cls, timeout):
-        r = await redis_cache.list_br_pop(cls._key, timeout=timeout)
-        if r is None:
-            return None
-        return r[1]
-
-
 class MonitorLiveRooms(object):
     """
 
@@ -399,23 +343,8 @@ class RaffleToCQPushList(object):
 
 
 async def test():
+    pass
 
-    mq = TVPrizeMessageQ()
-
-    r = await mq.put("test")
-    print(r)
-
-    r = await mq.put("test2")
-    print(r)
-    r = await mq.put("test")
-    print(r)
-
-    r = await mq.get()
-    print(r)
-    r = await mq.get()
-    print(r)
-    r = await mq.get()
-    print(r)
 
 if __name__ == "__main__":
     import asyncio
