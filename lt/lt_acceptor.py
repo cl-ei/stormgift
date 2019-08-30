@@ -256,8 +256,7 @@ class Worker(object):
                 elif act == "join_tv":
                     try:
                         info = await redis_cache.get(f"T${room_id}${gift_id}")
-                        logging.info(f"""redis_cache.get(f"T${room_id}${gift_id}"): {info}""")
-                        gift_name = info["gift_name"]
+                        gift_name = info["title"]
                         r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
                         r = f"{r.id}"
                     except Exception as e:
