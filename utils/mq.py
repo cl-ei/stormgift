@@ -7,7 +7,7 @@ class SourceToRaffleMQ(object):
     req_url = "http://127.0.0.1:40000/lt/local/proc_raffle"
 
     @classmethod
-    async def _request(cls, url, message, timeout=1):
+    async def _request(cls, url, message, timeout=10):
         client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
         try:
             async with client_session as session:
@@ -35,7 +35,7 @@ class RaffleToAcceptorMQ(object):
     @classmethod
     async def put(cls, key):
         req_url = f"http://127.0.0.1:40001/lt/local/acceptor/{key}"
-        timeout = aiohttp.ClientTimeout(total=1)
+        timeout = aiohttp.ClientTimeout(total=10)
         client_session = aiohttp.ClientSession(timeout=timeout)
         try:
             async with client_session as session:
