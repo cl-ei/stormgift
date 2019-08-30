@@ -2,9 +2,9 @@ import time
 import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
-from utils.biliapi import BiliApi, WsApi
 from utils.dao import MonitorLiveRooms
-from utils.mq import SourceToRaffleMQ
+from utils.mq import mq_source_to_raffle
+from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_ws_source_logger as logging
 from utils.model import objects, MonitorWsClient
 
@@ -35,10 +35,10 @@ class WsManager(object):
                 cmd = msg["cmd"]
                 if cmd == "DANMU_MSG" and msg["info"][2][0] in (39748080, 65568410):
                     # uid = msg["info"][2][0]
-                    await SourceToRaffleMQ.put(danmaku=msg, created_time=time.time(), msg_from_room_id=room_id)
+                    await mq_source_to_raffle.put((msg, time.time(), room_id))
 
                 elif cmd in ("GUARD_BUY", "RAFFLE_END", "TV_END", "PK_LOTTERY_START"):
-                    r = await SourceToRaffleMQ.put(danmaku=msg, created_time=time.time(), msg_from_room_id=room_id)
+                    r = await mq_source_to_raffle.put((msg, time.time(), room_id))
                     logging.info(f"RECEIVED: {cmd}, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
 
                 # elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":

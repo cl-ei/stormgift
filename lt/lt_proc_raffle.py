@@ -3,14 +3,12 @@ import json
 import asyncio
 import datetime
 import traceback
-from aiohttp import web
 from random import random
 from config import config
-from utils.cq import CQClient, qq
-from asyncio.queues import Queue
 from utils.biliapi import BiliApi
+from utils.cq import CQClient, qq
 from utils.dao import redis_cache, RaffleToCQPushList
-from utils.mq import RaffleToAcceptorMQ
+from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.reconstruction_model import Guard, Raffle, objects
@@ -28,8 +26,7 @@ ml_qq = CQClient(api_root=api_root, access_token=access_token)
 
 
 class Worker(object):
-    def __init__(self, q, index):
-        self.q_from_main = q
+    def __init__(self, index):
         self.index = index
 
     @staticmethod
@@ -121,7 +118,7 @@ class Worker(object):
         if not await redis_cache.set_if_not_exists(key, gift_info):
             return
 
-        await RaffleToAcceptorMQ.put(key=key)
+        await mq_raffle_to_acceptor.put(key)
 
         privilege_type = gift_info["privilege_type"]
         if privilege_type == 3:
@@ -168,9 +165,7 @@ class Worker(object):
             await Raffle.record_raffle_before_result(**create_param)
 
     async def proc_single_msg(self, msg):
-        danmaku = msg["danmaku"]
-        created_time = msg["created_time"]
-        msg_from_room_id = msg["msg_from_room_id"]
+        danmaku, created_time, msg_from_room_id, *_ = msg
 
         if danmaku["cmd"] in ('RAFFLE_END', 'TV_END'):
             return await self.record_raffle_info(danmaku, created_time, msg_from_room_id)
@@ -239,7 +234,7 @@ class Worker(object):
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
 
-                await RaffleToAcceptorMQ.put(key=key)
+                await mq_raffle_to_acceptor.put(key)
 
             for user_name, gift_list in result.items():
                 await self.proc_tv_gifts_by_single_user(user_name, gift_list)
@@ -249,11 +244,11 @@ class Worker(object):
             key = f"P${room_id}${raffle_id}"
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
-                await RaffleToAcceptorMQ.put(key=key)
+                await mq_raffle_to_acceptor.put(key)
 
     async def run_forever(self):
         while True:
-            msg = await self.q_from_main.get()
+            msg, has_read = await mq_source_to_raffle.get()
             if not (
                     isinstance(msg, dict)
                     and "danmaku" in msg
@@ -261,6 +256,8 @@ class Worker(object):
                     and "msg_from_room_id" in msg
             ):
                 logging.error(f"RAFFLE WORKER received a bad msg: {msg}")
+
+                await has_read()
                 continue
 
             start_time = time.time()
@@ -274,32 +271,17 @@ class Worker(object):
             else:
                 cost_time = time.time() - start_time
                 logging.info(f"RAFFLE Task {self.index}-[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
+            finally:
+                await has_read()
 
 
 async def main():
     logging.info("-" * 80)
+    logging.info("LT PROC_RAFFLE started!")
+    logging.info("-" * 80)
     await objects.connect()
 
-    q = Queue()
-    worker_tasks = [asyncio.create_task(Worker(q, index).run_forever()) for index in range(4)]
-
-    async def handler(request):
-        if request.method.lower() != "post":
-            return web.HTTPMethodNotAllowed(method=request.method, allowed_methods=("POST", ))
-
-        body = await request.json()
-        await q.put(body)
-        return web.HTTPNoContent()
-
-    app = web.Application()
-    app.add_routes([web.route('*', '/lt/local/proc_raffle', handler)])
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    site = web.TCPSite(runner, '127.0.0.1', 40000)
-    await site.start()
-    logging.info("Lt proc raffle website started.")
-
+    worker_tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(4)]
     for task in worker_tasks:
         await task
 

@@ -7,7 +7,7 @@ from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
 from utils.dao import InLotteryLiveRooms
-from utils.mq import SourceToRaffleMQ
+from utils.mq import mq_source_to_raffle
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
@@ -165,7 +165,7 @@ class TvScanner(object):
 
             if matched_notice_area:
                 real_room_id = message['real_roomid']
-                r = await SourceToRaffleMQ.put(danmaku=message, created_time=time.time(), msg_from_room_id=real_room_id)
+                r = await mq_source_to_raffle.put((message, time.time(), real_room_id))
                 r2 = await InLotteryLiveRooms.add(real_room_id)
 
                 logging.info(
@@ -186,7 +186,7 @@ class TvScanner(object):
 
             prize_room_id = message['roomid']  # TODO: need find real room id.
             logging.info(f"PRIZE 总督 room id: {prize_room_id}, msg: {message.get('msg_new')}")
-            await SourceToRaffleMQ.put(danmaku=message, created_time=time.time(), msg_from_room_id=room_id)
+            await mq_source_to_raffle.put((message, time.time(), room_id))
 
     async def parse_message(self):
         while True:

@@ -3,18 +3,15 @@ import json
 import asyncio
 import requests
 import traceback
-from aiohttp import web
-from asyncio.queues import Queue
 from random import random
 from utils.biliapi import BiliApi
-from utils.highlevel_api import DBCookieOperator
 from utils.dao import redis_cache
+from config import cloud_acceptor_url
+from utils.mq import mq_raffle_to_acceptor
+from utils.highlevel_api import DBCookieOperator
 from config.log4 import acceptor_logger as logging
 from utils.reconstruction_model import UserRaffleRecord, objects
-from config import cloud_acceptor_url
 
-
-BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
 NON_SKIP_USER_ID = [
     20932326,  # DD
@@ -23,8 +20,7 @@ NON_SKIP_USER_ID = [
 
 
 class Worker(object):
-    def __init__(self, q, index):
-        self.q_from_main = q
+    def __init__(self, index):
         self.worker_index = index
         self.__busy_time = 0
         self.accepted_keys = []
@@ -276,46 +272,32 @@ class Worker(object):
 
     async def run_forever(self):
         while True:
-            key = await self.q_from_main.get()
+            message, has_read = await mq_raffle_to_acceptor.get()
 
             start_time = time.time()
             task_id = f"{int(str(random())[2:]):x}"
             logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] start...")
 
             try:
-                r = await self.proc_single(key)
+                r = await self.proc_single(message)
             except Exception as e:
                 logging.error(f"Acceptor Task {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
             else:
                 cost_time = time.time() - start_time
-                logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
+                logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
+            finally:
+                await has_read()
 
 
 async def main():
     logging.info("-" * 80)
+    logging.info("LT ACCEPTOR started!")
+    logging.info("-" * 80)
     await objects.connect()
 
-    q = Queue()
-    worker_tasks = [asyncio.create_task(Worker(q, index).run_forever()) for index in range(4)]
-
-    async def handler(request):
-        key = request.match_info['key']
-        await q.put(key)
-        return web.HTTPNoContent()
-
-    app = web.Application()
-    app.add_routes([web.route('*', '/lt/local/acceptor/{key}', handler)])
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    site = web.TCPSite(runner, '127.0.0.1', 40001)
-    await site.start()
-    logging.info("Lt Acceptor website started.")
-
-    for task in worker_tasks:
-        await task
-
+    tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(4)]
+    for t in tasks:
+        await t
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

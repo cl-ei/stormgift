@@ -1,7 +1,6 @@
 import time
 import aiohttp
 import asyncio
-import traceback
 from aiohttp import web
 from random import random
 from asyncio.queues import Queue
@@ -9,67 +8,8 @@ from utils.dao import redis_cache
 from config.log4 import lt_source_logger as logging
 
 
-class SourceToRaffleMQ(object):
-    req_url = "http://127.0.0.1:40000/lt/local/proc_raffle"
-
-    @classmethod
-    async def _request(cls, url, message, timeout=10):
-        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
-        try:
-            async with client_session as session:
-                async with session.post(url, json=message) as resp:
-                    status_code = resp.status
-                    if status_code in (200, 204, 206):
-                        return True, ""
-
-                    content = await resp.text()
-                    return False, content
-
-        except asyncio.TimeoutError:
-            return False, f"Request timeout({timeout} second(s).)."
-
-        except Exception as e:
-            return False, f"Error happend: {e}\n {traceback.format_exc()}"
-
-    @classmethod
-    async def put(cls, danmaku, created_time, msg_from_room_id):
-        s = time.time()
-        message = {"danmaku": danmaku, "created_time": created_time, "msg_from_room_id": msg_from_room_id}
-        r = await cls._request(url=cls.req_url, message=message)
-
-        spend = time.time() - s
-        logging.info(f">>> SourceToRaffleMQ PUT time: {spend:.3f}")
-
-        return r
-
-
-class RaffleToAcceptorMQ(object):
-    @classmethod
-    async def put(cls, key):
-        s = time.time()
-
-        req_url = f"http://127.0.0.1:40001/lt/local/acceptor/{key}"
-        timeout = aiohttp.ClientTimeout(total=10)
-        client_session = aiohttp.ClientSession(timeout=timeout)
-        try:
-            async with client_session as session:
-                async with session.post(req_url) as resp:
-                    status_code = resp.status
-                    if status_code in (200, 204, 206):
-                        result = True, ""
-                    else:
-                        result = False, ""
-        except Exception as e:
-            result = False, f"Error happened in RaffleToAcceptorMQ: {e}"
-
-        spend = time.time() - s
-        logging.info(f">>> RaffleToAcceptorMQ PUT time: {spend:.3f}")
-
-        return result
-
-
 class CLMessageQServer:
-    server_port = 44488
+    server_port = 40000
     path = "/lt/local/mq"
 
     def __init__(self):
@@ -200,7 +140,7 @@ class CLMessageQ:
                         if status_code != 200:
                             continue
             except Exception as e:
-                logging.error(f"Error: {e}")
+                logging.error(f"Warning happened when waiting for triggering: {e}")
                 await asyncio.sleep(0.5)
                 continue
 
