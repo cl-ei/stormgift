@@ -96,6 +96,12 @@ class RedisCache(object):
         r = await self.execute("LPUSH", name, *[pickle.dumps(e) for e in items])
         return r
 
+    async def list_rpop_to_another_lpush(self, source_list_name, dist_list_name):
+        r = await self.execute("RPOPLPUSH", source_list_name, dist_list_name)
+        if not r:
+            return None
+        return pickle.loads(r)
+
     async def list_del(self, name, item):
         r = await self.execute("LREM", name, 0, pickle.dumps(item))
         return r
@@ -343,6 +349,16 @@ class RaffleToCQPushList(object):
 
 
 async def test():
+    await redis_cache.list_push("test_list", "1")
+    await redis_cache.list_push("test_list", "2")
+
+    print(await redis_cache.list_get_all("test_list"))
+    print(await redis_cache.list_get_all("test_list2"))
+    r = await redis_cache.list_rpop_to_another_lpush("test_list", "test_list2")
+    print(await redis_cache.list_get_all("test_list"))
+    print(await redis_cache.list_get_all("test_list2"))
+    print(f"r: -{r}-")
+
     pass
 
 

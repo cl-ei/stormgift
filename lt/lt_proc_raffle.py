@@ -28,8 +28,9 @@ ml_qq = CQClient(api_root=api_root, access_token=access_token)
 
 
 class Worker(object):
-    def __init__(self, q):
+    def __init__(self, q, index):
         self.q_from_main = q
+        self.index = index
 
     @staticmethod
     async def tracking(danmaku, created_time, msg_from_room_id):
@@ -251,9 +252,6 @@ class Worker(object):
                 await RaffleToAcceptorMQ.put(key=key)
 
     async def run_forever(self):
-        logging.info("Lt proc raffle worker started.")
-        logging.info("-" * 80)
-
         while True:
             msg = await self.q_from_main.get()
             if not (
@@ -267,15 +265,15 @@ class Worker(object):
 
             start_time = time.time()
             task_id = f"{int(str(random())[2:]):x}"
-            logging.info(f"RAFFLE Task[{task_id}] start...")
+            logging.info(f"RAFFLE Task {self.index}-[{task_id}] start...")
 
             try:
                 r = await self.proc_single_msg(msg)
             except Exception as e:
-                logging.error(f"RAFFLE Task[{task_id}] error: {e}, {traceback.format_exc()}")
+                logging.error(f"RAFFLE Task {self.index}-[{task_id}] error: {e}, {traceback.format_exc()}")
             else:
                 cost_time = time.time() - start_time
-                logging.info(f"RAFFLE Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
+                logging.info(f"RAFFLE Task {self.index}-[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
 
 
 async def main():
@@ -283,6 +281,7 @@ async def main():
     await objects.connect()
 
     q = Queue()
+    worker_tasks = [asyncio.create_task(Worker(q, index).run_forever()) for index in range(4)]
 
     async def handler(request):
         if request.method.lower() != "post":
@@ -294,16 +293,11 @@ async def main():
 
     app = web.Application()
     app.add_routes([web.route('*', '/lt/local/proc_raffle', handler)])
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    site = web.TCPSite(runner, '127.0.0.1', 40000)
-    await site.start()
     logging.info("Lt proc raffle website started.")
+    web.run_app(app, host="127.0.0.1", port=40000)
 
-    worker = Worker(q)
-    await worker.run_forever()
+    for task in worker_tasks:
+        await task
 
 
 loop = asyncio.get_event_loop()
