@@ -70,9 +70,41 @@ class RaffleToAcceptorMQ(object):
 
 class CLMessageQServer:
     server_port = 44488
+    path = "/lt/local/mq"
 
     def __init__(self):
         self.queue_list = []
+
+    @staticmethod
+    async def replace_unread_message():
+        async def proc_single_queue(name):
+            queue_origin_name = name.replace("_R_", "_", 1)
+            message_id_list = await redis_cache.list_get_all(name)
+
+            for message_id in message_id_list:
+                value = await redis_cache.get(message_id)
+                if not isinstance(value, dict):
+                    continue
+
+                read_time = value.get("read_time", time.time())
+                interval = time.time() - read_time
+                if interval < 20:
+                    continue
+
+                elif interval < 55:
+                    logging.info(f"Return message: {message_id}: {value}")
+                    del value["read_time"]
+                    await redis_cache.set(message_id, value, timeout=3600)
+                    await redis_cache.list_del(name, message_id)
+                    await redis_cache.list_push(queue_origin_name, message_id)
+
+                else:
+                    await redis_cache.delete(message_id)
+                    await redis_cache.list_del(name, message_id)
+
+        reading_queues = await redis_cache.keys("CLMQ_R_*")
+        for q_name in reading_queues:
+            await proc_single_queue(q_name)
 
     async def run(self):
         queue_list = self.queue_list
@@ -102,7 +134,7 @@ class CLMessageQServer:
             return web.Response(text=message_id)
 
         app = web.Application()
-        app.add_routes([web.route('*', '/lt/local/mq', handler)])
+        app.add_routes([web.route('*', self.path, handler)])
         runner = web.AppRunner(app)
         await runner.setup()
 
@@ -110,39 +142,77 @@ class CLMessageQServer:
         await site.start()
 
         while True:
-            await asyncio.sleep(20)
+            await self.replace_unread_message()
+            await asyncio.sleep(10)
 
 
 class CLMessageQ:
     def __init__(self, queue_name):
         self.queue_name = f"CLMQ_{queue_name}"
-        self.reading_queue_name = f"CLMQ_{queue_name}_reading"
+        self.reading_queue_name = f"CLMQ_R_{queue_name}"
 
     async def put(self, message):
+        value = {
+            "body": message,
+            "created_time": time.time(),
+        }
         while True:
-            message_id = f"{int(time.time())}_{int(str(random())[2:]):x}"
-
-            detail_key = f"{self.queue_name}_{message_id}"
-            existed = await redis_cache.set_if_not_exists(key=detail_key, value=message)
-            if not existed:
+            message_id = f"M_{int(time.time())}_{int(str(random())[2:]):x}"
+            set_success = await redis_cache.set_if_not_exists(key=message_id, value=value)
+            if set_success:
                 break
 
         await redis_cache.list_push(self.queue_name, message_id)
+
+        req_url = F"http://127.0.0.1:{CLMessageQServer.server_port}{CLMessageQServer.path}"
+        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=1))
+        try:
+            async with client_session as session:
+                async with session.put(req_url, headers={"message_id": message_id}) as resp:
+                    return message_id
+        except Exception as e:
+            logging.error(f"Error: {e}")
+
         return message_id
 
     async def get(self):
-        message_id = await redis_cache.list_rpop_to_another_lpush(self.queue_name, self.reading_queue_name)
-        if message_id:
-            detail_key = f"{self.queue_name}_{message_id}"
-            message = await redis_cache.get(detail_key)
-            if message:
-                reading_time_key = f"{self.queue_name}_{message_id}_rt"
-                await redis_cache.set(reading_time_key, time.time())
-            else:
-                await redis_cache.list_del(self.reading_queue_name, message_id)
-            return message
-        return None
+        while True:
+            message_id = await redis_cache.list_rpop_to_another_lpush(self.queue_name, self.reading_queue_name)
+            if message_id:
+                value = await redis_cache.get(message_id)
+                value["read_time"] = time.time()
+                await redis_cache.set(key=message_id, value=value, timeout=3600)
 
-    async def has_read(self, message_id):
-        return await redis_cache.list_del(self.reading_queue_name, message_id)
+                q_name = self.reading_queue_name
 
+                async def has_read():
+                    await redis_cache.list_del(q_name, message_id)
+
+                return value["body"], has_read
+
+            req_url = F"http://127.0.0.1:{CLMessageQServer.server_port}{CLMessageQServer.path}"
+            timeout = aiohttp.ClientTimeout(total=60)
+            client_session = aiohttp.ClientSession(timeout=timeout)
+            try:
+                async with client_session as session:
+                    async with session.get(req_url) as resp:
+                        status_code = resp.status
+                        if status_code != 200:
+                            continue
+            except Exception as e:
+                logging.error(f"Error: {e}")
+                await asyncio.sleep(0.5)
+                continue
+
+
+mq_source_to_raffle = CLMessageQ("STOR")
+mq_raffle_to_acceptor = CLMessageQ("RTOA")
+
+
+if __name__ == "__main__":
+    async def server():
+        s = CLMessageQServer()
+        await s.run()
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(server())

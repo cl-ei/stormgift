@@ -26,6 +26,10 @@ class RedisCache(object):
     async def non_repeated_save(self, key, info, ex=3600*24*7):
         return await self.execute("set", key, json.dumps(info), "ex", ex, "nx")
 
+    async def keys(self, pattern):
+        keys = await self.execute("keys", pattern)
+        return [k.decode("utf-8") for k in keys]
+
     async def set(self, key, value, timeout=0):
         v = pickle.dumps(value)
         if timeout > 0:
@@ -113,6 +117,12 @@ class RedisCache(object):
         if isinstance(r, list):
             return [pickle.loads(e) for e in r]
         return []
+
+    async def list_rpop(self, name):
+        v = await self.execute("RPOP", name)
+        if v is None:
+            return None
+        return pickle.loads(v)
 
     async def list_br_pop(self, *names, timeout=10):
         r = await self.execute("BRPOP", *names, "LISTN", timeout)
@@ -349,15 +359,8 @@ class RaffleToCQPushList(object):
 
 
 async def test():
-    await redis_cache.list_push("test_list", "1")
-    await redis_cache.list_push("test_list", "2")
-
-    print(await redis_cache.list_get_all("test_list"))
-    print(await redis_cache.list_get_all("test_list2"))
-    r = await redis_cache.list_rpop_to_another_lpush("test_list", "test_list2")
-    print(await redis_cache.list_get_all("test_list"))
-    print(await redis_cache.list_get_all("test_list2"))
-    print(f"r: -{r}-")
+    r = await redis_cache.keys("test_*")
+    print(r)
 
     pass
 
