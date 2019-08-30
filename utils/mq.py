@@ -58,7 +58,7 @@ class RaffleToAcceptorMQ(object):
                     if status_code in (200, 204, 206):
                         result = True, ""
                     else:
-                        result = return False, ""
+                        result = False, ""
         except Exception as e:
             result = False, f"Error happened in RaffleToAcceptorMQ: {e}"
 
