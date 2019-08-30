@@ -6,6 +6,7 @@ from aiohttp import web
 from random import random
 from asyncio.queues import Queue
 from utils.dao import redis_cache
+from config.log4 import lt_source_logger as logging
 
 
 class SourceToRaffleMQ(object):
@@ -32,13 +33,21 @@ class SourceToRaffleMQ(object):
 
     @classmethod
     async def put(cls, danmaku, created_time, msg_from_room_id):
+        s = time.time()
         message = {"danmaku": danmaku, "created_time": created_time, "msg_from_room_id": msg_from_room_id}
-        return await cls._request(url=cls.req_url, message=message)
+        r = await cls._request(url=cls.req_url, message=message)
+
+        spend = time.time() - s
+        logging.info(f">>> SourceToRaffleMQ PUT time: {spend:.3f}")
+
+        return r
 
 
 class RaffleToAcceptorMQ(object):
     @classmethod
     async def put(cls, key):
+        s = time.time()
+
         req_url = f"http://127.0.0.1:40001/lt/local/acceptor/{key}"
         timeout = aiohttp.ClientTimeout(total=10)
         client_session = aiohttp.ClientSession(timeout=timeout)
@@ -47,11 +56,16 @@ class RaffleToAcceptorMQ(object):
                 async with session.post(req_url) as resp:
                     status_code = resp.status
                     if status_code in (200, 204, 206):
-                        return True, ""
+                        result = True, ""
                     else:
-                        return False, ""
+                        result = return False, ""
         except Exception as e:
-            return False, f"Error happened in RaffleToAcceptorMQ: {e}"
+            result = False, f"Error happened in RaffleToAcceptorMQ: {e}"
+
+        spend = time.time() - s
+        logging.info(f">>> RaffleToAcceptorMQ PUT time: {spend:.3f}")
+
+        return result
 
 
 class CLMessageQServer:
