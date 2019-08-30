@@ -174,6 +174,9 @@ class Worker(object):
         if danmaku["cmd"] in ('RAFFLE_END', 'TV_END'):
             return await self.record_raffle_info(danmaku, created_time, msg_from_room_id)
 
+        elif danmaku["cmd"] == "DANMU_MSG":
+            return await self.tracking(danmaku, created_time, msg_from_room_id)
+
         elif time.time() - created_time > 30:
             return "EXPIRED DANMAKU !"
 
