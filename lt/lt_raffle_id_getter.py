@@ -152,7 +152,7 @@ class Executor(object):
 
             start_time = time.time()
             task_id = str(random())[2:]
-            logging.info(f"RAFFLE Task[{task_id}] start...")
+            logging.info(f"RAFFLE Task of TV[{task_id}] start...")
 
             try:
                 danmaku = {"cmd": "NOTICE_MSG", "real_roomid": msg_from_room_id}
@@ -160,10 +160,10 @@ class Executor(object):
 
                 r = await self.proc_single_msg((danmaku, created_time, msg_from_room_id))
             except Exception as e:
-                logging.error(f"RAFFLE Task[{task_id}] error: {e}, {traceback.format_exc()}")
+                logging.error(f"RAFFLE Task of TV[{task_id}] error: {e}, {traceback.format_exc()}")
             else:
                 cost_time = time.time() - start_time
-                logging.info(f"RAFFLE Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
+                logging.info(f"RAFFLE Task of TV[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
 
     async def get_raffle_id_of_others(self):
         monitor_commands = ["GUARD_MSG", "NOTICE_MSG", "GUARD_BUY", "PK_LOTTERY_START"]
