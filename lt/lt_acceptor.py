@@ -23,8 +23,9 @@ NON_SKIP_USER_ID = [
 
 
 class Worker(object):
-    def __init__(self, q):
+    def __init__(self, q, index):
         self.q_from_main = q
+        self.worker_index = index
         self.__busy_time = 0
         self.accepted_keys = []
 
@@ -274,22 +275,20 @@ class Worker(object):
                 )
 
     async def run_forever(self):
-        logging.info("Lt Acceptor worker started.")
-        logging.info("-" * 80)
         while True:
             key = await self.q_from_main.get()
 
             start_time = time.time()
             task_id = f"{int(str(random())[2:]):x}"
-            logging.info(f"Acceptor Task[{task_id}] start...")
+            logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] start...")
 
             try:
                 r = await self.proc_single(key)
             except Exception as e:
-                logging.error(f"Acceptor Task[{task_id}] error: {e}, {traceback.format_exc()}")
+                logging.error(f"Acceptor Task {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
             else:
                 cost_time = time.time() - start_time
-                logging.info(f"Acceptor Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
+                logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
 
 
 async def main():
@@ -297,6 +296,7 @@ async def main():
     await objects.connect()
 
     q = Queue()
+    worker_tasks = [asyncio.create_task(Worker(q, index).run_forever()) for index in range(4)]
 
     async def handler(request):
         key = request.match_info['key']
@@ -313,8 +313,8 @@ async def main():
     await site.start()
     logging.info("Lt Acceptor website started.")
 
-    worker = Worker(q)
-    await worker.run_forever()
+    for task in worker_tasks:
+        await task
 
 
 loop = asyncio.get_event_loop()
