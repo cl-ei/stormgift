@@ -293,8 +293,12 @@ async def main():
 
     app = web.Application()
     app.add_routes([web.route('*', '/lt/local/proc_raffle', handler)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    site = web.TCPSite(runner, '127.0.0.1', 40000)
+    await site.start()
     logging.info("Lt proc raffle website started.")
-    web.run_app(app, host="127.0.0.1", port=40000)
 
     for task in worker_tasks:
         await task
