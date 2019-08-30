@@ -52,26 +52,17 @@ class Executor(object):
 
         for info in gift_list:
             info["uid"] = uid
-            room_id = info["room_id"]
-            gift_id = info["gift_id"]
 
-            key = f"T${room_id}${gift_id}"
-            if not await redis_cache.set_if_not_exists(key, info):
-                return
-
-            await RaffleMessageQ.put((key, time.time()))
-
-            expire_time = info["created_time"] + datetime.timedelta(seconds=info["time"])
             create_param = {
-                "raffle_id": gift_id,
-                "room_id": room_id,
+                "raffle_id": info["gift_id"],
+                "room_id": info["room_id"],
                 "gift_name": info["gift_name"],
                 "gift_type": info["gift_type"],
                 "sender_uid": uid,
                 "sender_name": info["name"],
                 "sender_face": info["face"],
                 "created_time": info["created_time"],
-                "expire_time": expire_time
+                "expire_time": info["created_time"] + datetime.timedelta(seconds=info["time"])
             }
             await Raffle.record_raffle_before_result(**create_param)
 
@@ -120,11 +111,12 @@ class Executor(object):
             result = {}
             for info in gift_info_list:
                 user_name = info.get("from_user").get("uname")
+                gift_id = info.get("raffleId", 0)
                 i = {
                     "name": user_name,
                     "face": info.get("from_user").get("face"),
                     "room_id": room_id,
-                    "gift_id": info.get("raffleId", 0),
+                    "gift_id": gift_id,
                     "gift_name": info.get("title"),
                     "gift_type": info.get("type"),
                     "sender_type": info.get("sender_type"),
@@ -133,6 +125,12 @@ class Executor(object):
                     "time": info.get("time"),
                 }
                 result.setdefault(user_name, []).append(i)
+
+                key = f"T${room_id}${gift_id}"
+                if not await redis_cache.set_if_not_exists(key, info):
+                    continue
+
+                await RaffleMessageQ.put((key, time.time()))
 
             for user_name, gift_list in result.items():
                 await self.proc_tv_gifts_by_single_user(user_name, gift_list)
