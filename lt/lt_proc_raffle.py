@@ -249,16 +249,6 @@ class Worker(object):
     async def run_forever(self):
         while True:
             msg, has_read = await mq_source_to_raffle.get()
-            if not (
-                    isinstance(msg, dict)
-                    and "danmaku" in msg
-                    and "created_time" in msg
-                    and "msg_from_room_id" in msg
-            ):
-                logging.error(f"RAFFLE WORKER received a bad msg: {msg}")
-
-                await has_read()
-                continue
 
             start_time = time.time()
             task_id = f"{int(str(random())[2:]):x}"
