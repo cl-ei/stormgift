@@ -269,6 +269,22 @@ class DanmakuMessageQ(object):
         return r[1]
 
 
+class TVPrizeMessageQ(object):
+    _list_name = "DANMAKU_MQ_OF_TVCMD"
+
+    @classmethod
+    async def put(cls, key):
+        await redis_cache.list_del(cls._list_name, key)
+        return await redis_cache.list_push(cls._list_name, key)
+
+    @classmethod
+    async def get(cls, timeout=60):
+        r = await redis_cache.list_br_pop(cls._list_name, timeout=timeout)
+        if r is None:
+            return None
+        return r[1]
+
+
 class RaffleMessageQ(object):
     _key = "RAFFLE_MESSAGE"
 
@@ -383,19 +399,22 @@ class RaffleToCQPushList(object):
 
 
 async def test():
-    key = "test"
-    value = None
 
-    r = await redis_cache.set(key, value)
+    mq = TVPrizeMessageQ()
+
+    r = await mq.put("test")
     print(r)
 
-    r = await redis_cache.ttl(key)
+    r = await mq.put("test2")
+    print(r)
+    r = await mq.put("test")
     print(r)
 
-    r = await redis_cache.get(key)
+    r = await mq.get()
     print(r)
-
-    r = await redis_cache.get("abc")
+    r = await mq.get()
+    print(r)
+    r = await mq.get()
     print(r)
 
 if __name__ == "__main__":

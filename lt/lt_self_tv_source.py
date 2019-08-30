@@ -6,7 +6,7 @@ from random import random
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import lt_source_logger as logging
-from utils.dao import DanmakuMessageQ, InLotteryLiveRooms
+from utils.dao import DanmakuMessageQ, InLotteryLiveRooms, TVPrizeMessageQ
 
 
 BiliApi.USE_ASYNC_REQUEST_METHOD = True
@@ -163,9 +163,9 @@ class TvScanner(object):
                 matched_notice_area = True
 
             if matched_notice_area:
-                r = await DanmakuMessageQ.put((message, time.time(), room_id))
-
                 real_room_id = message['real_roomid']
+                # r = await DanmakuMessageQ.put((message, time.time(), room_id))
+                r = await TVPrizeMessageQ.put(key=real_room_id)
                 r2 = await InLotteryLiveRooms.add(real_room_id)
 
                 logging.info(
@@ -194,8 +194,13 @@ class TvScanner(object):
             await self.parse_single_message(area_id, room_id, message)
 
     async def run(self):
+        tasks = (
+            self.parse_message(),
+            self.check_status(),
+        )
+
         try:
-            await asyncio.gather(self.parse_message(), self.check_status())
+            await asyncio.gather(*tasks)
         except Exception as e:
             logging.error(f"Process Error! e: {e} {traceback.format_exc()}\nNow exit!\n")
             sys.exit(1)

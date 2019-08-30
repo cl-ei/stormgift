@@ -5,7 +5,7 @@ import traceback
 from random import random
 from utils.biliapi import BiliApi
 from config.log4 import lt_raffle_id_getter_logger as logging
-from utils.dao import DanmakuMessageQ, RaffleMessageQ, redis_cache
+from utils.dao import DanmakuMessageQ, RaffleMessageQ, TVPrizeMessageQ, redis_cache
 from utils.highlevel_api import ReqFreLimitApi
 from utils.reconstruction_model import objects, Guard, Raffle
 
@@ -144,7 +144,28 @@ class Executor(object):
             if await redis_cache.set_if_not_exists(key, info):
                 await RaffleMessageQ.put((key, time.time()))
 
-    async def run(self):
+    async def get_raffle_id_of_tv(self):
+        while True:
+            msg_from_room_id = await TVPrizeMessageQ.get(timeout=50)
+            if msg_from_room_id is None:
+                continue
+
+            start_time = time.time()
+            task_id = str(random())[2:]
+            logging.info(f"RAFFLE Task[{task_id}] start...")
+
+            try:
+                danmaku = {"cmd": "NOTICE_MSG", "real_roomid": msg_from_room_id}
+                created_time = time.time()
+
+                r = await self.proc_single_msg((danmaku, created_time, msg_from_room_id))
+            except Exception as e:
+                logging.error(f"RAFFLE Task[{task_id}] error: {e}, {traceback.format_exc()}")
+            else:
+                cost_time = time.time() - start_time
+                logging.info(f"RAFFLE Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
+
+    async def get_raffle_id_of_others(self):
         monitor_commands = ["GUARD_MSG", "NOTICE_MSG", "GUARD_BUY", "PK_LOTTERY_START"]
         while True:
             msg = await DanmakuMessageQ.get(*monitor_commands, timeout=50)
@@ -163,14 +184,21 @@ class Executor(object):
                 cost_time = time.time() - start_time
                 logging.info(f"RAFFLE Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
 
+    async def run(self):
+        tasks = (
+            self.get_raffle_id_of_tv(),
+            self.get_raffle_id_of_others()
+        )
+        await asyncio.gather(*tasks)
+
 
 async def main():
     logging.info("Starting raffle id getter process...")
 
     await objects.connect()
 
+    executor = Executor()
     try:
-        executor = Executor()
         await executor.run()
     except Exception as e:
         logging.error(f"Raffle id getter process shutdown! e: {e}, {traceback.format_exc()}")
