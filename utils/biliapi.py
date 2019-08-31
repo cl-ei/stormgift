@@ -352,43 +352,25 @@ class BiliApi:
         if not room_id:
             return True, False
 
-        req_url = f"https://live.bilibili.com/{room_id}"
-        try:
-            status_code, content = await cls._request_async(
-                method="get",
-                url=req_url,
-                headers=cls.headers,
-                data=None,
-                timeout=timeout
-            )
-        except asyncio.TimeoutError:
-            return False, "Bili api HTTP request timeout!"
-        except Exception as e:
-            error_message = f"Async _request Error: {e}, {traceback.format_exc()}"
-            logging.error(error_message)
-            return False, error_message
+        req_url = f"https://api.live.bilibili.com/room/v1/Room/get_info"
+        flag, response = await cls.get(
+            url=req_url,
+            timeout=timeout,
+            data={"room_id": room_id},
+            check_response_json=True,
+            check_error_code=True
+        )
+        if not flag:
+            return False, response
 
-        if status_code != 200:
-            return False, f"Status code not 200! status code: {status_code}, content: {content}"
-
-        json_str = content.split("<script>window.__NEPTUNE_IS_MY_WAIFU__=", 1)[-1].split("</script>", 1)[0]
-        try:
-            r = json.loads(json_str)
-        except json.decoder.JSONDecodeError:
-            return False, f"Cannot decode response! content: \n\n{'-'*80}\n{content}{'-'*80}\n\n"
-
-        is_locked = r["roomInitRes"]["data"]["is_locked"]
-        if is_locked:
-            return True, False
-
-        live_status = r["baseInfoRes"]["data"]["live_status"]
-        if not live_status:
+        live_status = response["data"]["live_status"]
+        if live_status != 1:
             return True, False
 
         if area is None:
             return True, True
 
-        live_area = r["baseInfoRes"]["data"]["parent_area_id"]
+        live_area = response["data"]["parent_area_id"]
         return True, live_area == area
 
     @classmethod
