@@ -406,7 +406,7 @@ class BotUtils:
 
         if len(msg_list) > 10:
             msg_list = msg_list[:10]
-            msg_list.append("\n为保护号主个人隐私，当前只展示前10枚勋章。")
+            msg_list.append("\n（为保护号主个人隐私，当前只展示前10枚勋章）")
         message = "\n".join(msg_list)
         bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}拥有的勋章如下：\n\n{message}")
 
