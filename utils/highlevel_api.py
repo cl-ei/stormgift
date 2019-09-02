@@ -318,14 +318,20 @@ class DBCookieOperator:
         user_in_iptt_list = cookie_obj.DedeUserID in cls.IMPORTANT_UID_LIST
 
         if (user_in_iptt_list or user_in_period) and cookie_obj.account and cookie_obj.password:
-
-            flag, data = await cls.add_cookie_by_account(account=cookie_obj.account, password=cookie_obj.password)
-            if flag:
-                send_cookie_relogin_notice(cookie_obj)
-                return True, ""
-
-            else:
-                logging.error(f"Cannot relogin user {cookie_obj.name}(uid: {cookie_obj.user_id}), msg: {data}")
+            for try_times in range(3):
+                flag, data = await cls.add_cookie_by_account(
+                    account=cookie_obj.account,
+                    password=cookie_obj.password
+                )
+                if flag:
+                    send_cookie_relogin_notice(cookie_obj)
+                    return True, ""
+                else:
+                    logging.error(
+                        f"Failed to login user: {cookie_obj.name}(uid: {cookie_obj.user_id}), "
+                        f"try times: {try_times}, error msg: {data}"
+                    )
+                    await asyncio.sleep(1)
 
         send_cookie_invalid_notice(cookie_obj)
         return True, ""
