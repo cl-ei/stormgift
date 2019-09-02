@@ -363,7 +363,7 @@ class BotUtils:
 
         raffle_list = await ReqFreLimitApi.get_raffle_record(uid)
         if not raffle_list:
-            bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}: 七天内没有中奖纪录。")
+            bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}: 七天内没有中奖。")
             return
 
         count = len(raffle_list)
@@ -379,13 +379,40 @@ class BotUtils:
         msg = f"{latest[0]}: 在7天内中奖{count}次，最后一次{date_time_str}在{latest[1]}直播间获得{latest[2]}."
         bot.send_group_msg(group_id=group_id, message=msg)
 
+    @staticmethod
+    async def proc_query_medal(msg, group_id):
+        raw_uid_or_uname = msg[5:].strip()
+        if not raw_uid_or_uname:
+            return
+
+        try:
+            uid = int(raw_uid_or_uname)
+        except (ValueError, TypeError):
+            uid = await ReqFreLimitApi.get_uid_by_name(user_name=raw_uid_or_uname)
+
+        flag, r = await BiliApi.get_user_medal_list(uid=uid)
+        if not flag or not isinstance(r, list):
+            bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}查询失败：{r}")
+            return
+
+        medal_list = sorted(r, key=lambda x: x["intimacy"], reverse=True)
+        msg_list = []
+        for m in medal_list:
+            name = m["medal_name"]
+            level = m["level"]
+            current = m["intimacy"]
+            total = m["next_intimacy"]
+            msg_list.append(f"[{name}] {level}级，{current}/{total}")
+        message = "\n".join(medal_list)
+        bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}拥有的勋章如下：\n\n{message}")
+
     @classmethod
     def proc_help(cls, msg, group_id):
         message = (
             "珩心初号机支持的指令：\n\n"
             f"1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床{group_id}``。)\n"
             "2.#点歌 北上 管珩心\n"
-            "3.#中奖查询20932326 或 #中奖查询偷闲一天打个盹\n\t(查询用户在b站7天内的中奖纪录。)\n"
+            "3.#中奖查询 20932326 或 #中奖查询 偷闲一天打个盹\n\t(查询用户在b站7天内的中奖纪录。)\n"
             "4.#一言\n"
             "5.#北京天气\n"
             "6.#狮子座运势\n"
@@ -455,6 +482,9 @@ class BotHandler:
 
             elif msg.startswith("#中奖查询"):
                 return await BotUtils.proc_query_raffle(msg, group_id)
+
+            elif msg.startswith("#勋章查询"):
+                return await BotUtils.proc_query_medal(msg, group_id)
 
             elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
                 return BotUtils.proc_help(msg, group_id)

@@ -1034,12 +1034,19 @@ class BiliApi:
             return True, data["data"]["id"]
         return flag, data
 
+    @classmethod
+    async def get_user_medal_list(cls, uid, timeout=10):
+        url = f"http://api.live.bilibili.com/AppUser/medal?uid={uid}"
+        flag, r = await cls.get(url=url, timeout=timeout, check_error_code=True)
+        if flag:
+            return True, r["data"]
+        return flag, r
+
 
 async def test():
     print("Running test.")
-    for _ in range(20):
-        r = await BiliApi.check_live_status(92450, area=0, timeout=5)
-        print(r)
+    r = await BiliApi.get_user_medal_list(731556)
+    print(r)
 
 
 if __name__ == "__main__":
