@@ -5,14 +5,13 @@ import requests
 import traceback
 from random import random
 from utils.biliapi import BiliApi
+from utils.dao import redis_cache
+from config import cloud_acceptor_url
+from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
-from utils.dao import RaffleMessageQ, redis_cache
 from config.log4 import acceptor_logger as logging
 from utils.reconstruction_model import UserRaffleRecord, objects
-from config import cloud_acceptor_url
 
-
-BiliApi.USE_ASYNC_REQUEST_METHOD = True
 
 NON_SKIP_USER_ID = [
     20932326,  # DD
@@ -20,8 +19,9 @@ NON_SKIP_USER_ID = [
 ]
 
 
-class Acceptor(object):
-    def __init__(self):
+class Worker(object):
+    def __init__(self, index):
+        self.worker_index = index
         self.__busy_time = 0
         self.accepted_keys = []
 
@@ -169,11 +169,7 @@ class Acceptor(object):
 
         return r, msg
 
-    async def proc_single(self, msg):
-        key, created_time, *_ = msg
-        if time.time() - created_time > 60:
-            logging.error(f"Message Expired ! created_time: {created_time}")
-            return
+    async def proc_single(self, key):
 
         key_type, room_id, gift_id = key.split("$")
         room_id = int(room_id)
@@ -260,7 +256,7 @@ class Acceptor(object):
                 elif act == "join_tv":
                     try:
                         info = await redis_cache.get(f"T${room_id}${gift_id}")
-                        gift_name = info["gift_name"]
+                        gift_name = info["title"]
                         r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
                         r = f"{r.id}"
                     except Exception as e:
@@ -274,33 +270,37 @@ class Acceptor(object):
                     f"@{room_id}${gift_id}. message: {message}. p: {r}"
                 )
 
-    async def run(self):
+    async def run_forever(self):
         while True:
-            msg = await RaffleMessageQ.get(timeout=50)
-
-            if msg is None:
-                continue
+            message, has_read = await mq_raffle_to_acceptor.get()
 
             start_time = time.time()
-            task_id = str(random())[2:]
-            logging.info(f"Acceptor Task[{task_id}] start...")
+            task_id = f"{int(str(random())[2:]):x}"
+            logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] start...")
 
             try:
-                r = await self.proc_single(msg)
+                r = await self.proc_single(message)
             except Exception as e:
-                logging.error(f"Acceptor Task[{task_id}] error: {e}, {traceback.format_exc()}")
+                logging.error(f"Acceptor Task {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
             else:
                 cost_time = time.time() - start_time
-                logging.info(f"Acceptor Task[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
+                logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
+            finally:
+                await has_read()
 
 
 async def main():
-    logging.warning("Starting LT acceptor process...")
+    logging.info("-" * 80)
+    logging.info("LT ACCEPTOR started!")
+    logging.info("-" * 80)
     await objects.connect()
 
-    acceptor = Acceptor()
-    await acceptor.run()
-    logging.warning("LT acceptor process shutdown!")
+    tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(4)]
+    for t in tasks:
+        await t
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
 
 
 asyncio.get_event_loop().run_until_complete(main())

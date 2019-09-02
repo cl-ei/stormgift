@@ -26,6 +26,10 @@ class RedisCache(object):
     async def non_repeated_save(self, key, info, ex=3600*24*7):
         return await self.execute("set", key, json.dumps(info), "ex", ex, "nx")
 
+    async def keys(self, pattern):
+        keys = await self.execute("keys", pattern)
+        return [k.decode("utf-8") for k in keys]
+
     async def set(self, key, value, timeout=0):
         v = pickle.dumps(value)
         if timeout > 0:
@@ -96,6 +100,12 @@ class RedisCache(object):
         r = await self.execute("LPUSH", name, *[pickle.dumps(e) for e in items])
         return r
 
+    async def list_rpop_to_another_lpush(self, source_list_name, dist_list_name):
+        r = await self.execute("RPOPLPUSH", source_list_name, dist_list_name)
+        if not r:
+            return None
+        return pickle.loads(r)
+
     async def list_del(self, name, item):
         r = await self.execute("LREM", name, 0, pickle.dumps(item))
         return r
@@ -107,6 +117,12 @@ class RedisCache(object):
         if isinstance(r, list):
             return [pickle.loads(e) for e in r]
         return []
+
+    async def list_rpop(self, name):
+        v = await self.execute("RPOP", name)
+        if v is None:
+            return None
+        return pickle.loads(v)
 
     async def list_br_pop(self, *names, timeout=10):
         r = await self.execute("BRPOP", *names, "LISTN", timeout)
@@ -244,62 +260,6 @@ class InLotteryLiveRooms(object):
         return set(result.keys())
 
 
-class DanmakuMessageQ(object):
-    _key = "DANMAKU_MQ_OF_CMD_"
-
-    @classmethod
-    async def put(cls, message):
-        """
-        message 必须是 tuple，第一个是DANMAKU的 python dict.
-
-        :param message:
-        :return:
-        """
-        danmaku = message[0]
-        cmd = danmaku["cmd"]
-        key = cls._key + cmd
-        return await redis_cache.list_push(key, message)
-
-    @classmethod
-    async def get(cls, *cmds, timeout):
-        keys = [cls._key + cmd for cmd in cmds]
-        r = await redis_cache.list_br_pop(*keys, timeout=timeout)
-        if r is None:
-            return None
-        return r[1]
-
-
-class TVPrizeMessageQ(object):
-    _list_name = "DANMAKU_MQ_OF_TVCMD"
-
-    @classmethod
-    async def put(cls, key):
-        await redis_cache.list_del(cls._list_name, key)
-        return await redis_cache.list_push(cls._list_name, key)
-
-    @classmethod
-    async def get(cls, timeout=60):
-        r = await redis_cache.list_br_pop(cls._list_name, timeout=timeout)
-        if r is None:
-            return None
-        return r[1]
-
-
-class RaffleMessageQ(object):
-    _key = "RAFFLE_MESSAGE"
-
-    @classmethod
-    async def put(cls, item):
-        return await redis_cache.list_push(cls._key, item)
-
-    @classmethod
-    async def get(cls, timeout):
-        r = await redis_cache.list_br_pop(cls._key, timeout=timeout)
-        if r is None:
-            return None
-        return r[1]
-
-
 class MonitorLiveRooms(object):
     """
 
@@ -399,23 +359,11 @@ class RaffleToCQPushList(object):
 
 
 async def test():
-
-    mq = TVPrizeMessageQ()
-
-    r = await mq.put("test")
+    r = await redis_cache.keys("test_*")
     print(r)
 
-    r = await mq.put("test2")
-    print(r)
-    r = await mq.put("test")
-    print(r)
+    pass
 
-    r = await mq.get()
-    print(r)
-    r = await mq.get()
-    print(r)
-    r = await mq.get()
-    print(r)
 
 if __name__ == "__main__":
     import asyncio
