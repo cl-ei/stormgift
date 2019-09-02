@@ -390,9 +390,24 @@ class BotUtils:
         except (ValueError, TypeError):
             uid = await ReqFreLimitApi.get_uid_by_name(user_name=raw_uid_or_uname)
 
+        if uid in (
+            20932326,
+            65568410,
+            176483,
+            410527405,
+            162652,
+            7693088,
+            1686348,
+            17272443,
+            1444116,
+            7706705,
+        ) and group_id != 159855203:
+            bot.send_group_msg(group_id=group_id, message=f"出于隐私保护目的，不允许查询用户{raw_uid_or_uname}。")
+            return
+
         flag, r = await BiliApi.get_user_medal_list(uid=uid)
-        if not flag or not isinstance(r, list):
-            bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}查询失败：{r}")
+        if not flag or not isinstance(r, list) or not r:
+            bot.send_group_msg(group_id=group_id, message=f"未查询到{raw_uid_or_uname}拥有的勋章。检查用户名或uid是否正确。")
             return
 
         medal_list = sorted(r, key=lambda x: (x["level"], x["intimacy"]), reverse=True)
@@ -416,11 +431,12 @@ class BotUtils:
             "珩心初号机支持的指令：\n\n"
             f"1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床{group_id}``。)\n"
             "2.#点歌 北上 管珩心\n"
-            "3.#中奖查询 20932326 或 #中奖查询 偷闲一天打个盹\n\t(查询用户在b站7天内的中奖纪录。)\n"
-            "4.#一言\n"
-            "5.#北京天气\n"
-            "6.#狮子座运势\n"
-            "7.#历史上的今天"
+            "3.#勋章查询 20932326 或 #勋章查询 偷闲一天打个盹\n\t(查询用户拥有的勋章。)\n"
+            "4.#中奖查询 20932326 或 #中奖查询 偷闲一天打个盹\n\t(查询用户在b站7天内的中奖纪录。)\n"
+            "5.#一言\n"
+            "6.#北京天气\n"
+            "7.#狮子座运势\n"
+            "8.#历史上的今天"
         )
         return bot.send_group_msg(group_id=group_id, message=message)
 
@@ -523,14 +539,17 @@ class BotHandler:
                 bot.send_private_msg(user_id=user_id, message=message)
 
         elif msg.lower() in ("#help", "#h", "#帮助"):
+            group_id = 436496941
             message = (
-                "珩心初号机支持的指令：(QQ群内可用)\n\n"
-                "1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床436496941``。)\n"
+                "珩心初号机支持的指令：\n\n"
+                f"1.#睡觉10h\n\t(你将被禁言10小时。私聊初号机发送 起床 + 群号即可解除禁言，如``起床{group_id}``。)\n"
                 "2.#点歌 北上 管珩心\n"
-                "3.#一言\n"
-                "4.#北京天气\n"
-                "5.#狮子座运势\n"
-                "6.#历史上的今天"
+                "3.#勋章查询 20932326 或 #勋章查询 偷闲一天打个盹\n\t(查询用户拥有的勋章。)\n"
+                "4.#中奖查询 20932326 或 #中奖查询 偷闲一天打个盹\n\t(查询用户在b站7天内的中奖纪录。)\n"
+                "5.#一言\n"
+                "6.#北京天气\n"
+                "7.#狮子座运势\n"
+                "8.#历史上的今天"
             )
             bot.send_private_msg(user_id=user_id, message=message)
 
