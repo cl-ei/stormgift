@@ -396,7 +396,7 @@ class BotUtils:
             return
 
         try:
-            medal_list = sorted(r, key=lambda x: x["intimacy"], reverse=True)
+            medal_list = sorted(r, key=lambda x: (m["level"], x["intimacy"]), reverse=True)
             msg_list = []
             for m in medal_list:
                 name = m["medal_name"]
