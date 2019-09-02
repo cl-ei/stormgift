@@ -351,7 +351,7 @@ class BotUtils:
         bot.send_group_msg(group_id=group_id, message=message)
 
     @classmethod
-    def proc_query_raffle(cls, msg, group_id):
+    async def proc_query_raffle(cls, msg, group_id):
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
             return
@@ -454,7 +454,7 @@ class BotHandler:
                 return BotUtils.proc_translation(msg, group_id)
 
             elif msg.startswith("#中奖查询"):
-                return BotUtils.proc_query_raffle(msg, group_id)
+                return await BotUtils.proc_query_raffle(msg, group_id)
 
             elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
                 return BotUtils.proc_help(msg, group_id)
