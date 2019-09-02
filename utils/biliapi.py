@@ -1045,8 +1045,8 @@ class BiliApi:
 
 async def test():
     print("Running test.")
-    r = await BiliApi.get_user_medal_list(731556)
-    print(r)
+    flag, r = await BiliApi.get_user_medal_list(731556)
+    print(flag, r)
 
 
 if __name__ == "__main__":

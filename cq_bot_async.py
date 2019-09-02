@@ -395,16 +395,19 @@ class BotUtils:
             bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}查询失败：{r}")
             return
 
-        medal_list = sorted(r, key=lambda x: x["intimacy"], reverse=True)
-        msg_list = []
-        for m in medal_list:
-            name = m["medal_name"]
-            level = m["level"]
-            current = m["intimacy"]
-            total = m["next_intimacy"]
-            msg_list.append(f"[{name}] {level}级，{current}/{total}")
-        message = "\n".join(medal_list)
-        bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}拥有的勋章如下：\n\n{message}")
+        try:
+            medal_list = sorted(r, key=lambda x: x["intimacy"], reverse=True)
+            msg_list = []
+            for m in medal_list:
+                name = m["medal_name"]
+                level = m["level"]
+                current = m["intimacy"]
+                total = m["next_intimacy"]
+                msg_list.append(f"[{name}] {level}级，{current}/{total}")
+            message = "\n".join(medal_list)
+            bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}拥有的勋章如下：\n\n{message}")
+        except Exception as e:
+            logging.error(f"Error in proc medal: {e}\n{traceback.format_exc()}")
 
     @classmethod
     def proc_help(cls, msg, group_id):
