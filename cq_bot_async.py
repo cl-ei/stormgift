@@ -419,7 +419,7 @@ class BotUtils:
             total = m["next_intimacy"]
             msg_list.append(f"[{name}] {level}级，{current}/{total}")
 
-        if len(msg_list) > 10:
+        if group_id != 159855203 and len(msg_list) > 10:
             msg_list = msg_list[:10]
             msg_list.append("\n（为保护号主个人隐私，当前只展示前10枚勋章）")
         message = "\n".join(msg_list)
