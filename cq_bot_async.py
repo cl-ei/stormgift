@@ -404,7 +404,7 @@ class BotUtils:
                 current = m["intimacy"]
                 total = m["next_intimacy"]
                 msg_list.append(f"[{name}] {level}级，{current}/{total}")
-            message = "\n".join(medal_list)
+            message = "\n".join(msg_list)
             bot.send_group_msg(group_id=group_id, message=f"{raw_uid_or_uname}拥有的勋章如下：\n\n{message}")
         except Exception as e:
             logging.error(f"Error in proc medal: {e}\n{traceback.format_exc()}")
