@@ -132,7 +132,7 @@ class BotUtils:
             self.bot.send_group_msg(group_id=group_id, message=f"未找到“{word}”的释义 。")
 
     @staticmethod
-    def get_song_id(song_name):
+    async def get_song_id(song_name):
         songs = []
         no_salt_songs = []
         try:
@@ -282,7 +282,7 @@ class BotUtils:
 
         self.bot.send_group_msg(group_id=group_id, message="%s: %s" % (constellation, result))
 
-    def proc_song(self, msg, group_id):
+    async def proc_song(self, msg, group_id):
         song_name = msg.split("点歌")[-1].strip()
         if not song_name:
             return {}
@@ -291,7 +291,7 @@ class BotUtils:
         song_name = strip_name if strip_name else song_name
 
         try:
-            song_id = BotUtils.get_song_id(song_name)
+            song_id = await BotUtils.get_song_id(song_name)
         except Exception as e:
             tb = traceback.format_exc()
             error_msg = f"Error happened in BotUtils.get_song_id: {e}\n{tb}"
@@ -423,7 +423,7 @@ class BotHandler:
                 return BotUtils(bot=qq).proc_lucky(msg, group_id)
 
             elif msg.startswith("#点歌"):
-                return BotUtils(bot=qq).proc_song(msg, group_id)
+                return await BotUtils(bot=qq).proc_song(msg, group_id)
 
             elif msg.startswith("#翻译"):
                 return BotUtils(bot=qq).proc_translation(msg, group_id)
