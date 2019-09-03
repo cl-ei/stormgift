@@ -735,7 +735,6 @@ async def handler(request):
     context = await request.json()
     context["qq_bot"] = qq_bot
 
-    context = await request.json()
     if context["post_type"] == "message":
         response = await BotHandler.handle_message(context)
 
