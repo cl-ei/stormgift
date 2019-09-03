@@ -471,7 +471,7 @@ class BotHandler:
 
         p = BotUtils(bot=qq_zy)
         if msg.startswith("#点歌"):
-            return p.proc_song(msg, group_id)
+            return await p.proc_song(msg, group_id)
 
         elif msg.startswith("#翻译"):
             return p.proc_translation(msg, group_id)
