@@ -11,6 +11,7 @@ from aiohttp import web
 from utils.cq import bot as qq
 from random import randint, random
 from utils.cq import bot_zy as qq_zy
+from config import cloud_function_url
 from config.log4 import cqbot_logger as logging
 from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList
 from utils.biliapi import BiliApi
@@ -132,22 +133,49 @@ class BotUtils:
 
     @staticmethod
     def get_song_id(song_name):
-
         songs = []
         no_salt_songs = []
         try:
-            url = "http://music.163.com/api/search/pc"
-            r = requests.post(url, data={"s": song_name, "type": 1, "limit": 50, "offset": 0})
-            if r.status_code == 200:
-                r = json.loads(r.content.decode("utf-8")).get("result", {}).get("songs", []) or []
+            headers = {
+                "Accept": (
+                    "text/html,application/xhtml+xml,application/xml;"
+                    "q=0.9,image/webp,image/apng,*/*;q=0.8"
+                ),
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/70.0.3538.110 Safari/537.36"
+                ),
+            }
+            req_json = {
+                "method": "post",
+                "url": "http://music.163.com/api/search/pc",
+                "headers": headers,
+                "data": {"s": song_name, "type": 1, "limit": 50, "offset": 0},
+                "params": {},
+                "timeout": 10
+            }
+            timeout = aiohttp.ClientTimeout(total=60)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(cloud_function_url, json=req_json) as resp:
+                    status_code = resp.status
+                    content = await resp.text()
+
+            if status_code == 200:
+                r = json.loads(content).get("result", {}).get("songs", []) or []
                 if isinstance(r, list):
                     no_salt_songs = r
                     songs.extend(r)
 
             time.sleep(0.3)
-            r = requests.post(url, data={"s": song_name + " 管珩心", "type": 1, "limit": 50, "offset": 0})
-            if r.status_code == 200:
-                r = json.loads(r.content.decode("utf-8")).get("result", {}).get("songs", [])
+            req_json["data"]["s"] = song_name + " 管珩心"
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(cloud_function_url, json=req_json) as resp:
+                    status_code = resp.status
+                    content = await resp.text()
+
+            if status_code == 200:
+                r = json.loads(content).get("result", {}).get("songs", [])
                 if isinstance(r, list):
                     songs.extend(r)
 
