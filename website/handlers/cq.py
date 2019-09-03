@@ -305,9 +305,9 @@ class BotUtils:
             msg_list.append(f"{date_time_str}在{room_id}直播间获得{gift_name}")
         message = (
             f"「{query_user_name}」在7天内中奖{count}次，详细如下：\n\n" +
-            f"{'-'*20}" +
+            f"{'-'*20}\n" +
             f"\n{'-'*20}\n".join(msg_list) +
-            f"{'-' * 20}"
+            f"\n{'-' * 20}"
         )
         self.bot.send_group_msg(group_id=group_id, message=message)
 
