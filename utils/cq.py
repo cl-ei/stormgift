@@ -38,5 +38,6 @@ class CQClient:
 
 
 bot = CQHttp(**CQBOT)
+bot_zy = CQHttp(**CQBOT_ZY)
 qq = CQClient(api_root=CQBOT["api_root"], access_token=CQBOT["access_token"])
 qq_zy = CQClient(api_root=CQBOT_ZY["api_root"], access_token=CQBOT_ZY["access_token"])
