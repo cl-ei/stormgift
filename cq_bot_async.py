@@ -794,7 +794,7 @@ class BotHandler:
 
 
 async def handler(request):
-
+    logging.info(f"request.headers: {request.headers}")
     context = await request.json()
     if context["post_type"] == "message":
         response = await BotHandler.handle_message(context)
