@@ -1,5 +1,5 @@
 import aiohttp
-from config import CQBOT
+from config import CQBOT, CQBOT_ZY
 from cqhttp import CQHttp
 
 
@@ -39,3 +39,4 @@ class CQClient:
 
 bot = CQHttp(**CQBOT)
 qq = CQClient(api_root=CQBOT["api_root"], access_token=CQBOT["access_token"])
+qq_zy = CQClient(api_root=CQBOT_ZY["api_root"], access_token=CQBOT_ZY["access_token"])

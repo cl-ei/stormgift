@@ -43,6 +43,12 @@ CQBOT = {
     "secret": config["cqbot"]["secret"],
 }
 
+CQBOT_ZY = {
+    "api_root": config["cqbot_zy"]["api_root"],
+    "access_token": config["cqbot_zy"]["access_token"],
+    "secret": config["cqbot_zy"]["secret"],
+}
+
 mail_auth_pass = config["mail"]["mail_auth_pass"]
 cloud_function_url = config["cloud_function"]["url"]
 cloud_acceptor_url = config["cloud_function"]["acceptor"]

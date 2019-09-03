@@ -62,7 +62,7 @@ def render_to_response(template, context=None):
 
 async def lt(request):
     context = {"CDN_URL": CDN_URL}
-    return render_to_response("lt/website_homepage.html", context=context)
+    return render_to_response("website/templates/website_homepage.html", context=context)
 
 
 async def api(request):
@@ -148,7 +148,7 @@ async def api(request):
             "raffle_result": raffle_result,
             "title": title,
         }
-        return render_to_response("lt/website_homepage.html", context=context)
+        return render_to_response("website/templates/website_homepage.html", context=context)
 
     elif action == "user_login":
         account = data['account']
@@ -274,7 +274,7 @@ async def query_gifts(request):
         "proc_time": f"{(time.time() - start_time):.3f}",
         "db_query_time": f"{db_query_time:.3f}",
     }
-    return render_to_response("lt/website_query_gifts.html", context=context)
+    return render_to_response("website/templates/website_query_gifts.html", context=context)
 
 
 async def query_raffles(request):
@@ -379,7 +379,7 @@ async def query_raffles(request):
         "raffle_count": len(raffle_data),
         "CDN_URL": CDN_URL,
     }
-    return render_to_response("lt/website_query_raffles.html", context=context)
+    return render_to_response("website/templates/website_query_raffles.html", context=context)
 
 
 @request_frequency_control(time_interval=4)
@@ -462,15 +462,5 @@ async def query_raffles_by_user(request):
         "day_range": day_range,
         "raffle_data": raffle_data,
     }
-    return render_to_response("lt/website_query_raffles_by_user.html", context=context)
+    return render_to_response("website/templates/website_query_raffles_by_user.html", context=context)
 
-
-app = web.Application()
-app.add_routes([
-    web.get('/lt', lt),
-    web.post('/lt/api', api),
-    web.get('/lt/query_gifts', query_gifts),
-    web.get('/lt/query_raffles', query_raffles),
-    web.get('/lt/query_raffles_by_user', query_raffles_by_user),
-])
-web.run_app(app, port=1024)
