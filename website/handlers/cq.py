@@ -303,7 +303,12 @@ class BotUtils:
             else:
                 date_time_str = f"{int(interval / (3600 * 24))}天前"
             msg_list.append(f"{date_time_str}在{room_id}直播间获得{gift_name}")
-        message = f"「{query_user_name}」在7天内中奖{count}次，详细如下：\n\n" + f"\n{'-'*10}\n".join(msg_list)
+        message = (
+            f"「{query_user_name}」在7天内中奖{count}次，详细如下：\n\n" +
+            f"{'-'*20}" +
+            f"\n{'-'*20}\n".join(msg_list) +
+            f"{'-' * 20}"
+        )
         self.bot.send_group_msg(group_id=group_id, message=message)
 
     async def proc_query_medal(self, msg, group_id):
