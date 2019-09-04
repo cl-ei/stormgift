@@ -1,4 +1,3 @@
-import sys
 import asyncio
 from config.log4 import crontab_task_logger as logging
 from utils.highlevel_api import DBCookieOperator
@@ -78,12 +77,11 @@ async def send_gift(cookie, medal, user_name=""):
             left_intimacy -= supplement_lt_num
 
     for gift in send_list:
-        # flag, data = await BiliApi.send_gift(
-        #     gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
-        # )
-        # if not flag:
-        #     logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
-        pass
+        flag, data = await BiliApi.send_gift(
+            gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
+        )
+        if not flag:
+            logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
 
     send_msg = "\n".join([f"{s['corner_mark']}辣条 * {s['gift_num']}" for s in send_list])
     logging.info(
@@ -98,7 +96,6 @@ async def main():
     obj = await DBCookieOperator.get_by_uid(20932326)
     if obj:
         await send_gift(cookie=obj.cookie, medal="小孩梓", user_name="打盹")
-        await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="打盹")
 
     obj = await DBCookieOperator.get_by_uid(39748080)
     if obj:
