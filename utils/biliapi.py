@@ -1042,10 +1042,28 @@ class BiliApi:
             return True, r["data"]
         return flag, r
 
+    @classmethod
+    async def wear_medal(cls, cookie, medal_id, timeout=10):
+        url = "https://api.live.bilibili.com/i/ajaxWearFansMedal"
+        headers = {"Cookie": cookie}
+        flag, r = await cls.get(
+            url=url,
+            data={"medal_id": medal_id},
+            headers=headers,
+            timeout=timeout,
+            check_error_code=True
+        )
+        return flag, r
+
 
 async def test():
+    from utils.reconstruction_model import objects
+    await objects.connect()
+    from utils.highlevel_api import DBCookieOperator
+    dd_cookie = await DBCookieOperator.get_by_uid("DD")
+
     print("Running test.")
-    flag, r = await BiliApi.get_user_medal_list(731556)
+    flag, r = await BiliApi.wear_medal(dd_cookie.cookie, medal_id=138667)
     print(flag, r)
 
 
