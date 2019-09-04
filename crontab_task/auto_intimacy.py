@@ -17,7 +17,7 @@ async def send_gift(cookie, medal, user_name=""):
         return
     target_model = target_model[0]
     logging.info(
-        f"{'-'*80}\n"
+        f"\n{'-'*80}\n"
         f"开始处理：{uid} {user_name} -> {target_model['medal_name']}"
     )
 
@@ -87,10 +87,10 @@ async def send_gift(cookie, medal, user_name=""):
 
     send_msg = "\n".join([f"{s['corner_mark']}辣条 * {s['gift_num']}" for s in send_list])
     logging.info(
-        f"赠送礼物列表:\n"
-        f"{send_msg}\n"
+        f"赠送礼物列表:\n\n"
+        f"{send_msg}\n\n"
         f"{user_name} 剩余亲密度: {left_intimacy}\n"
-        f"{'-'}*80"
+        f"{'-'*80}"
     )
 
 
