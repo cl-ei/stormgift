@@ -57,36 +57,36 @@ class CookieFetcher:
 
     @classmethod
     async def _request(cls, method, url, params=None, data=None, headers=None, timeout=5):
-        req_json = {
-            "method": method,
-            "url": url,
-            "headers": headers,
-            "data": data or {},
-            "params": params or {},
-            "timeout": timeout
-        }
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-            async with session.post(cloud_function_url, json=req_json) as resp:
-                status_code = resp.status
-                content = await resp.text()
-                return status_code, content
+        # req_json = {
+        #     "method": method,
+        #     "url": url,
+        #     "headers": headers,
+        #     "data": data or {},
+        #     "params": params or {},
+        #     "timeout": timeout
+        # }
+        # async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+        #     async with session.post(cloud_function_url, json=req_json) as resp:
+        #         status_code = resp.status
+        #         content = await resp.text()
+        #         return status_code, content
 
-        # client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
-        # try:
-        #     async with client_session as session:
-        #         if method.lower() == "get":
-        #             async with session.get(url, params=params, data=data, headers=headers) as resp:
-        #                 status_code = resp.status
-        #                 content = await resp.text()
-        #                 return status_code, content
-        #
-        #         else:
-        #             async with session.post(url, data=data, params=params, headers=headers) as resp:
-        #                 status_code = resp.status
-        #                 content = await resp.text()
-        #                 return status_code, content
-        # except Exception as e:
-        #     return 5000, f"Error happend: {e}\n {traceback.format_exc()}"
+        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
+        try:
+            async with client_session as session:
+                if method.lower() == "get":
+                    async with session.get(url, params=params, data=data, headers=headers) as resp:
+                        status_code = resp.status
+                        content = await resp.text()
+                        return status_code, content
+
+                else:
+                    async with session.post(url, data=data, params=params, headers=headers) as resp:
+                        status_code = resp.status
+                        content = await resp.text()
+                        return status_code, content
+        except Exception as e:
+            return 5000, f"Error happend: {e}\n {traceback.format_exc()}"
 
     @classmethod
     async def fetch_key(cls):
