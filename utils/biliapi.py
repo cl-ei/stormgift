@@ -131,7 +131,7 @@ class CookieFetcher:
             status_code, content = await cls._request('POST', url, params=payload)
             if status_code == 200 and content:
                 break
-            await asyncio.sleep(4)
+            await asyncio.sleep(1)
         else:
             return False, f"Try too many times! last content: {content}"
 
