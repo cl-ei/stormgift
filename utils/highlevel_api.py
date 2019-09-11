@@ -475,13 +475,13 @@ class DBCookieOperator:
             title = (
                 f"系统在{str(blocked_datetime)[:19]}发现你被关进了小黑屋，目前挂辣条暂停中。\n\n"
                 f"最后一次抽奖时间：{str(most_recently)}，"
-                f"最近24小时内的领奖统计（24小时内累计获得亲密度：{total_intimacy}）\n\n"
+                f"最近24小时内的领奖统计（24小时内累计获得亲密度：{total_intimacy}）\n"
             )
         else:
             title = (
                 f"你现在正常领取辣条中\n\n"
                 f"最后一次抽奖时间：{str(most_recently)}，"
-                f"<p>最近24小时内的领奖统计（24小时内累计获得亲密度：{total_intimacy}）\n\n"
+                f"最近24小时内的领奖统计（24小时内累计获得亲密度：{total_intimacy}）\n"
             )
         postfix = []
         for r in raffle_result:
