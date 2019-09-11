@@ -39,6 +39,9 @@ template_text = """
     href="https://space.bilibili.com/20932326" 
     target="_blank">偷闲一天打个盹
   </a>
+  <br>
+  <a href="https://jq.qq.com/?_wv=1027&k=5rxXTM7">点击加入宝藏站点交流群:159855203
+  </a>
 </span>
 </div>
 
