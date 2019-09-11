@@ -4,6 +4,7 @@ import asyncio
 import datetime
 from cqhttp import CQHttp
 from config import CQBOT
+from utils.dao import redis_cache, BiliToQQBindInfo
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import RCWebSocketClient
 from utils.highlevel_api import ReqFreLimitApi, DBCookieOperator
@@ -126,6 +127,22 @@ async def proc_message(message):
                 await send_danmaku(danmaku[:30])
                 danmaku = danmaku[30:]
                 await asyncio.sleep(0.5)
+
+        elif msg.startswith("绑定"):
+            try:
+                number = int(msg[2:])
+                assert 1000 <= number <= 9999
+            except (ValueError, TypeError, IndexError, AssertionError):
+                await send_danmaku("指令不正确。")
+                return
+
+            key = f"BILI_BIND_CHECK_KEY_{number}"
+            qq = await redis_cache.get(key)
+            if not qq:
+                await send_danmaku("超时了。请重新绑定")
+
+            await BiliToQQBindInfo.bind(qq=qq, bili=uid)
+            await send_danmaku(f"已为你绑定到QQ：{qq}")
 
         else:
             bot.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
