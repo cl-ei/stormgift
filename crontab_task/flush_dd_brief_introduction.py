@@ -40,7 +40,7 @@ template_text = """
     target="_blank">偷闲一天打个盹
   </a>
   <br>
-  <a href="https://jq.qq.com/?_wv=1027&k=5rxXTM7">点击加入宝藏站点交流群:159855203
+  <a href="https://jq.qq.com/?_wv=1027&k=5rxXTM7">加入宝藏站点交流群:159855203
   </a>
 </span>
 </div>
