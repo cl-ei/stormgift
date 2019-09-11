@@ -485,7 +485,7 @@ class DBCookieOperator:
             )
         postfix = []
         for r in raffle_result:
-            postfix.append("-\n"*20)
+            postfix.append("-"*20 + "\n")
             postfix.append(f"{r['gift_name']}: {r['count']}\n")
         postfix.append("-" * 20)
         return True, title + "".join(postfix)
