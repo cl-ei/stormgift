@@ -142,7 +142,7 @@ async def proc_message(message):
                 await send_danmaku("超时了。请重新绑定")
 
             await BiliToQQBindInfo.bind(qq=qq, bili=uid)
-            await send_danmaku(f"已为你绑定到QQ：{qq}")
+            await send_danmaku(f"已为你绑定到QQ：{str(qq)[:-3]}***")
 
         else:
             bot.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
