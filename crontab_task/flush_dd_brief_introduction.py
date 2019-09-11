@@ -33,14 +33,11 @@ template_text = """
   text-align: center;
   text-shadow: 1px 1px 3px #9c9c9c;"
 >
-  <span>机器人开发者:</span>
+  偷闲一天打个盹<br>
   <a style="color: #7a91f3;" 
     title="←◡←" 
-    href="https://space.bilibili.com/20932326" 
-    target="_blank">偷闲一天打个盹
-  </a>
-  <br>
-  <a href="https://jq.qq.com/?_wv=1027&k=5rxXTM7">加入宝藏站点交流群:159855203
+    href="https://jq.qq.com/?_wv=1027&k=5rxXTM7">
+    加入宝藏站点交流群:159855203
   </a>
 </span>
 </div>
