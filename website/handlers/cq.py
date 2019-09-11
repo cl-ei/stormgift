@@ -715,8 +715,11 @@ class BotHandler:
     @classmethod
     async def handle_request(cls, context):
         bot = context["qq_bot"]
-        if bot != qq:
-            return
+        if bot == qq_zy:
+            if context["request_type"] == "group":
+                return
+            else:
+                return {'approve': True}
 
         logging.info(f"Received request context: {context}")
         if context["request_type"] != "group":
