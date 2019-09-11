@@ -393,8 +393,9 @@ class BotUtils:
             message = f"你尚未绑定B站账号。请你现在去13369254直播间发送以下指令： 绑定{number}"
             self.bot.send_private_msg(user_id=user_id, message=message)
             return
-        message = f"正在开发中：你的b站账号是：{bili_uid}"
-        self.bot.send_private_msg(user_id=user_id, message=message)
+
+        flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
+        self.bot.send_private_msg(user_id=user_id, message=msg)
 
 
 class BotHandler:
