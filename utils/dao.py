@@ -358,8 +358,46 @@ class RaffleToCQPushList(object):
         return 0
 
 
+class BiliToQQBindInfo(object):
+    key = "BINDINFO_BILI_TO_QQ"
+
+    @classmethod
+    async def bind(cls, qq, bili):
+        r = await redis_cache.get(cls.key)
+
+        if not isinstance(r, (list, tuple)):
+            r = []
+        r = [_ for _ in r if _[0] != qq]
+        r.append((qq, bili))
+
+        return await redis_cache.set(key=cls.key, value=r)
+
+    @classmethod
+    async def get_by_qq(cls, qq):
+        r = await redis_cache.get(cls.key)
+        print(r)
+        for qq_num, bili in r:
+            if qq_num == qq:
+                return bili
+        return None
+
+    @classmethod
+    async def get_by_bili(cls, bili):
+        r = await redis_cache.get(cls.key)
+        for qq, b in r:
+            if b == bili:
+                return qq
+        return None
+
+
 async def test():
-    r = await redis_cache.keys("test_*")
+    r = await BiliToQQBindInfo.bind(qq=123, bili=121)
+    print(r)
+
+    r = await BiliToQQBindInfo.get_by_qq(qq=123)
+    print(r)
+
+    r = await BiliToQQBindInfo.get_by_bili(111)
     print(r)
 
     pass

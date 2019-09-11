@@ -13,7 +13,7 @@ from random import randint, random
 from utils.cq import bot_zy as qq_zy
 from config import cloud_function_url
 from config.log4 import cqbot_logger as logging
-from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList
+from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList, redis_cache, BiliToQQBindInfo
 from utils.biliapi import BiliApi
 from utils.highlevel_api import ReqFreLimitApi
 from utils.highlevel_api import DBCookieOperator
@@ -384,6 +384,18 @@ class BotUtils:
         )
         self.bot.send_group_msg(group_id=group_id, message=message)
 
+    async def proc_lt_status(self, user_id):
+        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        if not bili_uid:
+            number = randint(1000, 9999)
+            key = f"BILI_BIND_CHECK_KEY_{number}"
+            await redis_cache.set(key=key, value=user_id, timeout=3600)
+            message = f"你尚未绑定B站账号。请你现在去13369254直播间发送以下指令： 绑定{number}"
+            self.bot.send_private_msg(user_id=user_id, message=message)
+            return
+        message = f"正在开发中：你的b站账号是：{bili_uid}"
+        self.bot.send_private_msg(user_id=user_id, message=message)
+
 
 class BotHandler:
     NOTICE_GROUP_ID_LIST = [
@@ -485,12 +497,17 @@ class BotHandler:
     @classmethod
     async def handle_private_message(cls, context):
         bot = context["qq_bot"]
-        if bot != qq:
-            return
-
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
+
+        if bot == qq_zy:
+            msg = context["raw_message"]
+            if msg == "挂机状态":
+                p = BotUtils(bot=qq_zy)
+                return await p.proc_lt_status(user_id)
+            return
+
         logging.info("Private message received: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))
 
         if msg.startswith("起床"):
