@@ -13,7 +13,7 @@ template_text = """
 <div class="room-introduction-scroll-wrapper">
 <div class="room-introduction-content p-relative">
 <div style="height: 100%;width: 160px;margin-right: 100px;float: right;">
-<a href="https://space.bilibili.com/20932326" target="_blank">
+<a href="https://jq.qq.com/?_wv=1027&k=5rxXTM7" target="_blank">
   <span style="
     background: url('https://i0.hdslb.com/bfs/face/e0928eee0443ea39c3e0e30ffd01f3bf5ceec9cd.jpg') no-repeat; 
     margin: 5% 10% 0%; 
