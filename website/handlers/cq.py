@@ -504,7 +504,7 @@ class BotHandler:
 
         if bot == qq_zy:
             msg = context["raw_message"]
-            if msg == "挂机状态":
+            if msg == "挂机查询":
                 p = BotUtils(bot=qq_zy)
                 return await p.proc_lt_status(user_id)
             return
