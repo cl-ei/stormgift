@@ -88,7 +88,7 @@ class TempData:
         return None
 
 
-def send_qq_notice_message():
+def send_qq_notice_message(test=False):
     url = "https://api.live.bilibili.com/room/v1/Room/get_info?room_id=2516117"
     headers = {
         "Accept": (
@@ -116,6 +116,11 @@ def send_qq_notice_message():
     content = "这里是一只易燃易咆哮的小狮子，宝物是糖果锤！嗷呜(っ*´□`)っ~不关注我的通通都要被一！口！吃！掉！"
     message_1 = f"[CQ:share,url=https://live.bilibili.com/2516117,title={title},content={content},image={image}]"
     message_2 = f"[CQ:at,qq=all] \n直播啦！！快来听泡泡唱歌咯，本次直播主题：\n{title}"
+    if test:
+        bot.send_private_msg(user_id=80873436, message=message_1)
+        bot.send_private_msg(user_id=80873436, message=message_2)
+        return
+
     for group_id in DanmakuSetting.NOTICE_GROUP_ID_LIST:
         bot.send_group_msg(group_id=group_id, message=message_1)
         bot.send_group_msg(group_id=group_id, message=message_2)
@@ -250,6 +255,7 @@ async def proc_message(message):
                 await send_hansy_danmaku(f"◄∶{user_name}有{fans_count}个粉丝。")
 
         if uid == 20932326 and msg == "测试通知":
+            send_qq_notice_message(test=True)
             time_interval = time.time() - DanmakuSetting.LAST_LIVE_TIME
             message = (
                 f"上次开播{time_interval / 60}分钟前，"
