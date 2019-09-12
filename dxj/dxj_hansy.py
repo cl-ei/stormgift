@@ -50,9 +50,7 @@ class DanmakuSetting(object):
         cls.LAST_ACTIVE_TIME = time.time()
 
     # notice
-    TEST_GROUP_ID_LIST = [159855203, ]
     NOTICE_GROUP_ID_LIST = [
-        159855203,  # test
         883237694,  # guard
         436496941,
         591691708,
@@ -90,8 +88,8 @@ class TempData:
         return None
 
 
-def send_qq_notice_message(test=False):
-    url = "https://api.live.bilibili.com/AppRoom/index?platform=android&room_id=2516117"
+def send_qq_notice_message():
+    url = "https://api.live.bilibili.com/room/v1/Room/get_info?room_id=2516117"
     headers = {
         "Accept": (
             "text/html,application/xhtml+xml,application/xml;"
@@ -109,23 +107,18 @@ def send_qq_notice_message(test=False):
             raise Exception("Error status code!")
         result = json.loads(r.content.decode("utf-8"))
         title = result.get("data", {}).get("title")
-        image = result.get("data", {}).get("cover")
+        image = result.get("data", {}).get("keyframe")
     except Exception as e:
         logging.exception("Error when get live room info: %s" % e, exc_info=True)
         title = "珩心小姐姐开播啦！快来围观"
         image = "https://i1.hdslb.com/bfs/archive/a6a3d6f3d3582fd5172f6f829c0fe5522705e399.jpg"
 
     content = "这里是一只易燃易咆哮的小狮子，宝物是糖果锤！嗷呜(っ*´□`)っ~不关注我的通通都要被一！口！吃！掉！"
-
-    groups = DanmakuSetting.TEST_GROUP_ID_LIST if test else DanmakuSetting.NOTICE_GROUP_ID_LIST
-    for group_id in groups:
-        message = "[CQ:share,url=https://live.bilibili.com/2516117,title=%s,content=%s,image=%s]" % (
-            title, content, image
-        )
-        bot.send(context={"message_type": "group", "group_id": group_id}, message=message)
-
-        message = "[CQ:at,qq=all] \n直播啦！！快来听泡泡唱歌咯，本次直播主题：\n%s" % title
-        bot.send(context={"message_type": "group", "group_id": group_id}, message=message)
+    message_1 = f"[CQ:share,url=https://live.bilibili.com/2516117,title={title},content={content},image={image}]"
+    message_2 = f"[CQ:at,qq=all] \n直播啦！！快来听泡泡唱歌咯，本次直播主题：\n{title}"
+    for group_id in DanmakuSetting.NOTICE_GROUP_ID_LIST:
+        bot.send_group_msg(group_id=group_id, message=message_1)
+        bot.send_group_msg(group_id=group_id, message=message_2)
 
 
 async def get_cookie(user="LP"):
@@ -257,8 +250,6 @@ async def proc_message(message):
                 await send_hansy_danmaku(f"◄∶{user_name}有{fans_count}个粉丝。")
 
         if uid == 20932326 and msg == "测试通知":
-            send_qq_notice_message(test=True)
-
             time_interval = time.time() - DanmakuSetting.LAST_LIVE_TIME
             message = (
                 f"上次开播{time_interval / 60}分钟前，"
