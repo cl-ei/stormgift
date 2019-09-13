@@ -488,4 +488,4 @@ class DBCookieOperator:
             postfix.append("-"*20 + "\n")
             postfix.append(f"{r['gift_name']}: {r['count']}\n")
         postfix.append("-" * 20)
-        return True, title + "".join(postfix)
+        return True, f"{cookie_obj.name}(uid: {cookie_obj.uid})\n" + title + "".join(postfix)

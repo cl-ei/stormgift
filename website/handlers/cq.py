@@ -384,7 +384,7 @@ class BotUtils:
         )
         self.bot.send_group_msg(group_id=group_id, message=message)
 
-    async def proc_lt_status(self, user_id):
+    async def proc_lt_status(self, user_id, msg):
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
             number = randint(1000, 9999)
@@ -394,8 +394,17 @@ class BotUtils:
             self.bot.send_private_msg(user_id=user_id, message=message)
             return
 
+        try:
+            postfix = int(msg[4:])
+            assert postfix > 0
+            bili_uid = postfix
+        except (ValueError, TypeError, AssertionError):
+            pass
+
         flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
         self.bot.send_private_msg(user_id=user_id, message=msg)
+        if user_id != 80873436:
+            self.bot.send_private_msg(user_id=80873436, message=msg)
 
 
 class BotHandler:
@@ -504,9 +513,9 @@ class BotHandler:
 
         if bot == qq_zy:
             msg = context["raw_message"]
-            if msg == "挂机查询":
+            if msg.startswith("挂机查询"):
                 p = BotUtils(bot=qq_zy)
-                return await p.proc_lt_status(user_id)
+                return await p.proc_lt_status(user_id, msg=msg)
             return
 
         logging.info("Private message received: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))

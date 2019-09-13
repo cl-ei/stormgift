@@ -106,6 +106,14 @@ dxj_xiaoke_logger.setLevel(logging.DEBUG)
 dxj_xiaoke_logger.addHandler(console)
 dxj_xiaoke_logger.addHandler(file_handler)
 
+file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_dd.log"))
+file_handler.setFormatter(log_format)
+dxj_dd_logger = logging.getLogger("dxj_dd")
+dxj_dd_logger.setLevel(logging.DEBUG)
+dxj_dd_logger.addHandler(console)
+dxj_dd_logger.addHandler(file_handler)
+
+
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_wanzi.log"))
 file_handler.setFormatter(log_format)
 dxj_wanzi_logger = logging.getLogger("dxj_wanzi")
@@ -146,6 +154,7 @@ __all__ = (
     "dxj_hansy_logger",
     "dxj_xiaoke_logger",
     "dxj_wanzi_logger",
+    "dxj_dd_logger",
     "bili_api_logger",
     "model_operation_logger",
 )

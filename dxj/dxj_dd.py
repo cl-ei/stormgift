@@ -8,7 +8,7 @@ from utils.dao import redis_cache, BiliToQQBindInfo
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import RCWebSocketClient
 from utils.highlevel_api import ReqFreLimitApi, DBCookieOperator
-from config.log4 import console_logger as logging
+from config.log4 import dxj_dd_logger as logging
 
 MONITOR_ROOM_ID = 13369254
 bot = CQHttp(**CQBOT)
