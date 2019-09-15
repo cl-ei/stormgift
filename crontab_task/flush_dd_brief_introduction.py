@@ -52,22 +52,19 @@ template_text = """
   <p>想看看都谁中奖了？➟ 
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
       href="https://www.madliar.com/lt/query_raffles" target="_blank">获奖记录</a>
-    <br />
-  </p><p>
+    <br />  
     收藏歌单？➟
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
       href="https://www.madliar.com/music" target="_blank">音乐列表</a>
+    <br />
+    加入宝藏站点交流群<a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;"
+    href="https://jq.qq.com/?_wv=1027&k=5rxXTM7">
+    159 855 203</a>
   </p><p>
     提供房管助手代挂服务，24h*365超稳定不掉线，包括答谢关注、答谢礼物、<br />
     自动回复、轮播弹幕（自动锁门）等，请参见
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
       href="https://live.bilibili.com/2516117" target="_blank">管珩心的直播间</a>。
-  </p><p>
-    <a style="color: #7a91f3;" 
-    title="←◡←" 
-    href="https://jq.qq.com/?_wv=1027&k=5rxXTM7">
-    加入宝藏站点交流群:159855203
-  </a>
   </p>
 </div>
 
