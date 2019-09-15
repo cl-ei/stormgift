@@ -52,10 +52,15 @@ template_text = """
   <p>想看看都谁中奖了？➟ 
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
       href="https://www.madliar.com/lt/query_raffles" target="_blank">获奖记录</a>
-  </p>
-  <p>收藏歌单？➟ 
+    <br />
+    收藏歌单？➟
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
       href="https://www.madliar.com/music" target="_blank">音乐列表</a>
+    <br />
+    提供房管助手代挂服务，24h*365超稳定不掉线，包括答谢关注、答谢礼物、自动回复、轮播弹幕（自动锁门）<br />
+    等，请参见<a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
+      href="https://live.bilibili.com/2516117" target="_blank">管珩心的直播间</a>。
+    
   </p>
 </div>
 
