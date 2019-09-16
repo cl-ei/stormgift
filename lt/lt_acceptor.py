@@ -180,6 +180,11 @@ class Worker(object):
 
                 end_time = time.time()
                 sleep_time = start_time + exec_interval - end_time
+                if total > 0:
+                    logging.debug(
+                        f"delay_raffles {self.worker_index}-sleep: {sleep_time:.3f}, "
+                        f"exec: {execute_count}/{total}"
+                    )
                 await asyncio.sleep(max(sleep_time, 0))
         except Exception as e:
             logging.exception(f"Error happened in waiting_delay_raffles: {e}", exc_info=True)
