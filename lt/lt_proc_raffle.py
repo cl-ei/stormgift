@@ -47,7 +47,7 @@ class Worker(object):
 
         qq_msg = f"{msg_from_room_id}: {'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
         logging.info(qq_msg)
-        qq.send_private_msg(user_id=80873436, message=qq_msg)
+        await qq.send_private_msg(user_id=80873436, message=qq_msg)
 
     @staticmethod
     async def record_raffle_info(danmaku, created_time, msg_from_room_id):
