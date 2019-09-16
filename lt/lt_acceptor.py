@@ -115,7 +115,11 @@ class Worker(object):
                 gift_name = "大航海"
         else:
             gift_name = "未知"
+        gift_name = gift_name.replace("抽奖", "")
+
         index = 0
+        success = []
+        last_raffle_id = None
         for cookie_obj in user_cookie_objs:
             flag, message = result_list[index]
             index += 1
@@ -137,10 +141,18 @@ class Worker(object):
                 continue
 
             r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
-            logging.info(
-                f"{act.upper()} OK! {index}-{cookie_obj.uid}-{cookie_obj.name} "
-                f"@{room_id}${gift_id}. message: {message}. p: {r.id}"
-            )
+            last_raffle_id = r.id
+            success.append(f"{index}-{cookie_obj.uid}-{cookie_obj.name} -> {message}")
+
+        success_users = "\n".join(success)
+        title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"
+        split_char_count = max(0, (80 - len(title)) // 2)
+        logging.info(
+            f"{'-'*split_char_count}{title}{'-'*split_char_count}\n"
+            f"{success_users}\n\n"
+            f"last_raffle_id: {last_raffle_id}\n"
+            f"{'-'*80}"
+        )
 
     async def waiting_delay_raffles(self):
         exec_interval = 5
