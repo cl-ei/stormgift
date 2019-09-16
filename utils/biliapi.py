@@ -1069,6 +1069,24 @@ class BiliApi:
         )
         return flag, r
 
+    @classmethod
+    async def block_user(cls, cookie, room_id, user_id, timeout=5):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.live.bilibili.com/banned_service/v2/Silent/add_block_user"
+        data = {
+            "roomid": room_id,
+            "block_uid": user_id,
+            "hour": 720,
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+        }
+        headers = {"Cookie": cookie}
+        return await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+
 
 async def test():
     from utils.reconstruction_model import objects

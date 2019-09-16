@@ -8,29 +8,9 @@ from config.log4 import console_logger as logging
 MONITOR_ROOM_ID = 4063935
 
 
-async def get_cookie(user="LP"):
+async def get_cookie(user="DD"):
     user_cookie_obj = await DBCookieOperator.get_by_uid(user)
     return user_cookie_obj.cookie if user_cookie_obj else ""
-
-
-async def send_danmaku(msg, user=""):
-    if not user:
-        user = "LP"
-    cookie = await get_cookie(user)
-
-    if not cookie:
-        logging.error(f"Cannot get cookie for user: {user}.")
-        return
-
-    flag, err_msg = await BiliApi.send_danmaku(
-        message=msg,
-        room_id=MONITOR_ROOM_ID,
-        cookie=cookie
-    )
-    if flag:
-        logging.info(f"Danmaku [{msg}] sent, msg: {err_msg}, user: {user}.")
-    else:
-        logging.error(f"Danmaku [{msg}] send failed, msg: {err_msg}, user: {user}.")
 
 
 async def proc_danmaku(danmaku):
@@ -46,7 +26,31 @@ async def proc_danmaku(danmaku):
         dl = d[0] if d else "-"
         deco = d[1] if d else "undefined"
         logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
-        return
+        if not is_admin:
+            return
+
+        # if msg[0] == "R":
+        #     try:
+        #         uid = int(msg[1:].strip(), 16)
+        #     except (ValueError, IndexError, TypeError):
+        #         return
+
+    elif cmd.startswith("ROOM_BLOCK_MSG"):
+        # {
+        # 'cmd': 'ROOM_BLOCK_MSG',
+        # 'uid': '473518981',
+        # 'uname': '劳c挡焙岸',
+        # 'data': {
+        #       'uid': '473518981',
+        #       'uname': '劳c挡焙岸',
+        #       'operator': 1
+        # },
+        # 'roomid': 4063935
+        # }
+        cookie = await get_cookie("DD")
+        roomid = 2516117
+        user_id = int(danmaku["uid"])
+        await BiliApi.block_user(cookie, roomid, user_id)
 
     print(danmaku)
 
