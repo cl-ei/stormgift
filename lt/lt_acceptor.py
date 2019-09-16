@@ -86,6 +86,7 @@ class Worker(object):
             "cookies": cookies,
             "gift_type": gift_type,
         }
+        logging.info(f"req_json: {req_json}")
         try:
             r = requests.post(url=cloud_acceptor_url, json=req_json, timeout=20)
         except Exception as e:
