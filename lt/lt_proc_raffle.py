@@ -216,21 +216,23 @@ class Worker(object):
             for info in gift_info_list:
                 user_name = info.get("from_user").get("uname")
                 gift_id = info.get("raffleId", 0)
+                gift_type = info.get("type")
+                time_accept = int(time.time() + 5 + info.get("time_wait"))
+
                 i = {
                     "name": user_name,
                     "face": info.get("from_user").get("face"),
                     "room_id": room_id,
                     "gift_id": gift_id,
                     "gift_name": info.get("title"),
-                    "gift_type": info.get("type"),
+                    "gift_type": gift_type,
                     "sender_type": info.get("sender_type"),
                     "created_time": created_time,
                     "status": info.get("status"),
                     "time": info.get("time"),
                 }
                 result.setdefault(user_name, []).append(i)
-
-                key = f"T${room_id}${gift_id}"
+                key = f"T${room_id}${gift_id}${gift_type}${time_accept}"
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
 

@@ -17,6 +17,7 @@ NON_SKIP_USER_ID = [
     20932326,  # DD
     39748080,  # LP
 ]
+delay_accept_q = asyncio.Queue()
 
 
 class Worker(object):
@@ -52,139 +53,21 @@ class Worker(object):
 
         return self._cookie_objs_non_skip, self._cookie_objs
 
-    async def accept_tv(self, index, user_cookie_obj, room_id, gift_id):
-
-        cookie = user_cookie_obj.cookie
-        user_id = user_cookie_obj.DedeUserID
-        user_name = user_cookie_obj.name
-
-        r, msg = await BiliApi.join_tv(room_id, gift_id, cookie)
-        if r:
-            try:
-                info = await redis_cache.get(f"T${room_id}${gift_id}")
-                gift_name = info["gift_name"]
-                r = await UserRaffleRecord.create(user_id, gift_name, gift_id)
-                r = f"obj.id: {r.id}"
-            except Exception as e:
-                r = f"UserRaffleRecord create Error: {e}"
-            logging.info(f"TV SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
-
-        else:
-            if "412" in msg:
-                self.__busy_time = time.time()
-
-            elif "访问被拒绝" in msg:
-                await DBCookieOperator.set_blocked(user_cookie_obj)
-                self._cookie_objs_update_time = 0
-
-            elif "请先登录哦" in msg:
-                await DBCookieOperator.set_invalid(user_cookie_obj)
-                self._cookie_objs_update_time = 0
-
-            if index != 0:
-                msg = msg[:100]
-
-            logging.warn(f"TV AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
-
-        return r, msg
-
-    async def accept_guard(self, index, user_cookie_obj, room_id, gift_id):
-
-        cookie = user_cookie_obj.cookie
-        user_id = user_cookie_obj.DedeUserID
-        user_name = user_cookie_obj.name
-
-        r, msg = await BiliApi.join_guard(room_id, gift_id, cookie)
-        if r:
-            try:
-                info = await redis_cache.get(f"G${room_id}${gift_id}")
-                privilege_type = info["privilege_type"]
-                if privilege_type == 3:
-                    gift_name = "舰长"
-                elif privilege_type == 2:
-                    gift_name = "提督"
-                elif privilege_type == 1:
-                    gift_name = "总督"
-                else:
-                    gift_name = "大航海"
-                r = await UserRaffleRecord.create(user_id, gift_name, gift_id)
-                r = f"obj.id: {r.id}"
-            except Exception as e:
-                r = f"UserRaffleRecord create Error: {e}"
-
-            logging.info(f"GUARD SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
-
-        else:
-            if "412" in msg or "Not json response" in msg:
-                self.__busy_time = time.time()
-
-            elif "访问被拒绝" in msg:
-                await DBCookieOperator.set_blocked(user_cookie_obj)
-                self._cookie_objs_update_time = 0
-
-            elif "请先登录哦" in msg:
-                await DBCookieOperator.set_invalid(user_cookie_obj)
-                self._cookie_objs_update_time = 0
-
-            if index != 0:
-                msg = msg[:100]
-
-            logging.warning(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
-
-        return r, msg
-
-    async def accept_pk(self, index, user_cookie_obj, room_id, gift_id):
-
-        cookie = user_cookie_obj.cookie
-        user_id = user_cookie_obj.DedeUserID
-        user_name = user_cookie_obj.name
-
-        r, msg = await BiliApi.join_pk(room_id, gift_id, cookie)
-        if r:
-            logging.info(f"GUARD SUCCESS! {index}-{user_name}({user_id}) - {room_id}${gift_id}, msg: {msg}, db r: {r}")
-
-            try:
-                gift_name = "PK"
-                r = await UserRaffleRecord.create(user_id, gift_name, gift_id)
-                r = f"obj.id: {r.id}"
-            except Exception as e:
-                r = f"UserRaffleRecord create Error: {e}"
-
-        else:
-            if "412" in msg or "Not json response" in msg:
-                self.__busy_time = time.time()
-
-            elif "访问被拒绝" in msg:
-                await DBCookieOperator.set_blocked(user_cookie_obj)
-                self._cookie_objs_update_time = 0
-
-            elif "请先登录哦" in msg:
-                await DBCookieOperator.set_invalid(user_cookie_obj)
-                self._cookie_objs_update_time = 0
-
-            if index != 0:
-                msg = msg[:100]
-
-            logging.warning(f"GUARD AC FAILED! {index}-{user_name}({user_id}), key: {room_id}${gift_id}, msg: {msg}")
-
-        return r, msg
-
     async def proc_single(self, key):
-
-        key_type, room_id, gift_id = key.split("$")
+        key_type, room_id, gift_id, *other_args = key.split("$")
         room_id = int(room_id)
         gift_id = int(gift_id)
         if not self._is_new_gift(key_type, room_id, gift_id):
             return "Repeated gift, skip it."
-
-        non_skip, normal_objs = await self.load_cookie()
-        user_cookie_objs = non_skip + normal_objs
-        cookies = []
-        for c in user_cookie_objs:
-            cookies.append(c.cookie)
+        gift_type = ""
 
         if key_type == "T":
-            act = "join_tv"
+            gift_type, accept_time, *_ = other_args
+            delay_accept_q.put_nowait((room_id, gift_id, gift_type, int(accept_time)))
+            return
+        elif key_type == "T_NOW":
+            gift_type, *_ = other_args
+            act = "join_tv_v5"
         elif key_type == "G":
             act = "join_guard"
         elif key_type == "P":
@@ -192,11 +75,16 @@ class Worker(object):
         else:
             return
 
+        non_skip, normal_objs = await self.load_cookie()
+        user_cookie_objs = non_skip + normal_objs
+        cookies = [c.cookie for c in user_cookie_objs]
+
         req_json = {
             "act": act,
             "room_id": room_id,
             "gift_id": gift_id,
-            "cookies": cookies
+            "cookies": cookies,
+            "gift_type": gift_type,
         }
         try:
             r = requests.post(url=cloud_acceptor_url, json=req_json, timeout=20)
@@ -253,7 +141,7 @@ class Worker(object):
                     except Exception as e:
                         r = f"UserRaffleRecord create Error: {e}"
 
-                elif act == "join_tv":
+                elif act == "join_tv_v5":
                     try:
                         info = await redis_cache.get(f"T${room_id}${gift_id}")
                         gift_name = info["title"]
@@ -269,6 +157,31 @@ class Worker(object):
                     f"{act.upper()} OK! {index}-{cookie_obj.uid}-{cookie_obj.name} "
                     f"@{room_id}${gift_id}. message: {message}. p: {r}"
                 )
+
+    async def waiting_delay_raffles(self):
+        exec_interval = 5
+        while True:
+            start_time = time.time()
+
+            tasks = [delay_accept_q.get_nowait() for _ in range(delay_accept_q.qsize())]
+            execute_count = 0
+            total = len(tasks)
+            for task in tasks:
+                room_id, gift_id, gift_type, exec_time, *_ = task
+
+                if exec_time < start_time:
+                    key = f"T_NOW${room_id}${gift_id}${gift_type}"
+                    await mq_raffle_to_acceptor.put(key)
+                    execute_count += 1
+                else:
+                    delay_accept_q.put_nowait(task)
+
+            end_time = time.time()
+            sleep_time = start_time + exec_interval - end_time
+            if exec_interval > 0:
+                logging.debug(
+                    f"delay_raffles {self.worker_index}-sleep: {sleep_time:.3f}, exec: {execute_count}/{total}")
+            await asyncio.sleep(max(sleep_time, 0))
 
     async def run_forever(self):
         while True:
@@ -296,6 +209,7 @@ async def main():
     await objects.connect()
 
     tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(4)]
+    tasks.append(asyncio.create_task(Worker(99).waiting_delay_raffles()))
     for t in tasks:
         await t
 
