@@ -178,9 +178,7 @@ class Worker(object):
 
             end_time = time.time()
             sleep_time = start_time + exec_interval - end_time
-            if exec_interval > 0:
-                logging.debug(
-                    f"delay_raffles {self.worker_index}-sleep: {sleep_time:.3f}, exec: {execute_count}/{total}")
+            logging.debug(f"delay_raffles {self.worker_index}-sleep: {sleep_time:.3f}, exec: {execute_count}/{total}")
             await asyncio.sleep(max(sleep_time, 0))
 
     async def run_forever(self):
