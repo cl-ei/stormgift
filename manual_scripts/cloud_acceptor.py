@@ -39,7 +39,7 @@ def request(method, url, headers, data=None, params=None, timeout=10):
     return status_code, content
 
 
-def join_tv(room_id, gift_id, cookie):
+def join_tv(room_id, gift_id, cookie, gift_type=None):
     csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
     req_url = "https://api.live.bilibili.com/gift/v3/smalltv/join"
     headers = {"Cookie": cookie}
@@ -66,7 +66,34 @@ def join_tv(room_id, gift_id, cookie):
     return True, f"OK gift_type: {r.get('data', {}).get('type')}"
 
 
-def join_guard(room_id, gift_id, cookie):
+def join_tv_v5(room_id, gift_id, cookie, gift_type=None):
+    csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+    req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v5/smalltv/join"
+    headers = {"Cookie": cookie}
+    data = {
+        "id": gift_id,
+        "roomid": room_id,
+        "type": gift_type,
+        "csrf_token": csrf_token,
+        "csrf": csrf_token,
+        "visit_id": ""
+    }
+    status_code, content = request(method="post", url=req_url, headers=headers, data=data)
+    if status_code != 200:
+        return False, "Status code is not 200! content: %s" % content
+
+    try:
+        r = json.loads(content)
+    except Exception as e:
+        return False, "Not json response: %s, content: %s" % (e, content)
+
+    if r.get("code") != 0:
+        return False, r.get("msg", "-")
+
+    return True, f"OK gift_type: {r.get('data', {}).get('award_name')}"
+
+
+def join_guard(room_id, gift_id, cookie, gift_type=None):
     csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
     req_url = "https://api.live.bilibili.com/lottery/v2/Lottery/join"
     headers = {"Cookie": cookie}
@@ -95,7 +122,7 @@ def join_guard(room_id, gift_id, cookie):
     return True, "%s, from %s" % (message, from_user)
 
 
-def join_pk(room_id, gift_id, cookie):
+def join_pk(room_id, gift_id, cookie, gift_type=None):
     csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
     req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/pk/join"
     headers = {"Cookie": cookie}
@@ -121,9 +148,11 @@ def join_pk(room_id, gift_id, cookie):
     return True, r.get("data", {}).get("title", "unknown tittle")
 
 
-def accept_handler(q, act, room_id, gift_id, cookie):
+def accept_handler(q, act, room_id, gift_id, cookie, gift_type=None):
     if act == "join_tv":
         f = join_tv
+    elif act == "join_tv_v5":
+        f = join_tv_v5
     elif act == "join_guard":
         f = join_guard
     elif act == "join_pk":
@@ -146,6 +175,7 @@ def main_handler(event, context):
         room_id = request_params["room_id"]
         gift_id = request_params["gift_id"]
         cookies = request_params["cookies"]
+        gift_type = request_params.get("gift_type", "")
 
         assert isinstance(cookies, list) and len(cookies) > 0
     except Exception as e:
@@ -162,7 +192,7 @@ def main_handler(event, context):
     queues = [Queue(maxsize=1) for _ in range(count)]
 
     threads = [
-        Thread(target=accept_handler, args=(queues[_], act, room_id, gift_id, cookies[_]))
+        Thread(target=accept_handler, args=(queues[_], act, room_id, gift_id, cookies[_], gift_type))
         for _ in range(count)
     ]
 
