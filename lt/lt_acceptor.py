@@ -1,3 +1,4 @@
+import sys
 import time
 import json
 import asyncio
@@ -86,7 +87,6 @@ class Worker(object):
             "cookies": cookies,
             "gift_type": gift_type,
         }
-        logging.info(f"req_json: {req_json}")
         try:
             r = requests.post(url=cloud_acceptor_url, json=req_json, timeout=20)
         except Exception as e:
@@ -161,26 +161,29 @@ class Worker(object):
 
     async def waiting_delay_raffles(self):
         exec_interval = 5
-        while True:
-            start_time = time.time()
+        try:
+            while True:
+                start_time = time.time()
 
-            tasks = [delay_accept_q.get_nowait() for _ in range(delay_accept_q.qsize())]
-            execute_count = 0
-            total = len(tasks)
-            for task in tasks:
-                room_id, gift_id, gift_type, exec_time, *_ = task
+                tasks = [delay_accept_q.get_nowait() for _ in range(delay_accept_q.qsize())]
+                execute_count = 0
+                total = len(tasks)
+                for task in tasks:
+                    room_id, gift_id, gift_type, exec_time, *_ = task
 
-                if exec_time < start_time:
-                    key = f"T_NOW${room_id}${gift_id}${gift_type}"
-                    await mq_raffle_to_acceptor.put(key)
-                    execute_count += 1
-                else:
-                    delay_accept_q.put_nowait(task)
+                    if exec_time < start_time:
+                        key = f"T_NOW${room_id}${gift_id}${gift_type}"
+                        await mq_raffle_to_acceptor.put(key)
+                        execute_count += 1
+                    else:
+                        delay_accept_q.put_nowait(task)
 
-            end_time = time.time()
-            sleep_time = start_time + exec_interval - end_time
-            logging.debug(f"delay_raffles {self.worker_index}-sleep: {sleep_time:.3f}, exec: {execute_count}/{total}")
-            await asyncio.sleep(max(sleep_time, 0))
+                end_time = time.time()
+                sleep_time = start_time + exec_interval - end_time
+                await asyncio.sleep(max(sleep_time, 0))
+        except Exception as e:
+            logging.exception(f"Error happened in waiting_delay_raffles: {e}", exc_info=True)
+            sys.exit(-1)
 
     async def run_forever(self):
         while True:

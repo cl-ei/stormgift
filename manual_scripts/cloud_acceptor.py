@@ -24,13 +24,11 @@ def request(method, url, headers, data=None, params=None, timeout=10):
         ),
     }
     if headers:
-        headers.update(default_headers)
-    else:
-        headers = default_headers
+        default_headers.update(headers)
 
     f = requests.post if method.lower() == "post" else requests.get
     try:
-        r = f(url=url, headers=headers, data=data, params=params, timeout=timeout)
+        r = f(url=url, headers=default_headers, data=data, params=params, timeout=timeout)
         status_code = r.status_code
         content = r.content.decode("utf-8")
     except Exception as e:
@@ -66,10 +64,16 @@ def join_tv(room_id, gift_id, cookie, gift_type=None):
     return True, f"OK gift_type: {r.get('data', {}).get('type')}"
 
 
-def join_tv_v5(room_id, gift_id, cookie, gift_type=None):
+def join_tv_v5(room_id, gift_id, cookie, gift_type):
     csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
     req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v5/smalltv/join"
-    headers = {"Cookie": cookie}
+    headers = {
+        "Cookie": cookie,
+        "Accept": "application/json, text/plain, */*",
+        "Origin": "https://live.bilibili.com",
+        "Referer": "https://live.bilibili.com/%s" % room_id,
+        "Sec-Fetch-Mode": "cors",
+    }
     data = {
         "id": gift_id,
         "roomid": room_id,
@@ -161,7 +165,7 @@ def accept_handler(q, act, room_id, gift_id, cookie, gift_type=None):
         q.put(None)
         return
 
-    result = f(room_id=room_id, gift_id=gift_id, cookie=cookie)
+    result = f(room_id=room_id, gift_id=gift_id, cookie=cookie, gift_type=gift_type)
     q.put(result)
 
 
