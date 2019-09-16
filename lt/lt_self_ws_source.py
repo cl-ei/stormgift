@@ -33,8 +33,9 @@ class WsManager(object):
                 self.msg_count += 1
 
                 cmd = msg["cmd"]
-                if cmd == "DANMU_MSG" and msg["info"][2][0] in (39748080, 65568410):
+                if cmd.startswith("DANMU_MSG") and msg["info"][2][0] in (39748080, 65568410):
                     # uid = msg["info"][2][0]
+                    logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
                     await mq_source_to_raffle.put((msg, time.time(), room_id))
 
                 elif cmd in ("GUARD_BUY", "RAFFLE_END", "TV_END", "PK_LOTTERY_START"):
