@@ -36,8 +36,6 @@ class Worker(object):
 
         info = danmaku["info"]
         uid = info[2][0]
-        if uid != 65568410:
-            return
 
         msg = str(info[1])
         user_name = info[2][1]

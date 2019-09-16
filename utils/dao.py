@@ -391,8 +391,8 @@ class BiliToQQBindInfo(object):
 
 
 async def test():
-    r = await ValuableLiveRoom.get_all()
-    print(21537937 in r)
+    r = await MonitorLiveRooms.get()
+    print(852528 in r)
     pass
 
 
