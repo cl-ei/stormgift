@@ -391,8 +391,9 @@ class BiliToQQBindInfo(object):
 
 
 async def test():
-    r = await MonitorLiveRooms.get()
-    print(852528 in r)
+    gift_type = "123"
+    r = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
+    print(r)
     pass
 
 

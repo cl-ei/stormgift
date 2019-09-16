@@ -116,48 +116,34 @@ class Worker(object):
                     f"{act.upper()} FAILED! {index}-{cookie_obj.name}({cookie_obj.uid}) "
                     f"@{room_id}${gift_id}, message: {message}"
                 )
+                continue
 
-            else:
-                if act == "join_pk":
-                    try:
-                        r = await UserRaffleRecord.create(cookie_obj.uid, "PK", gift_id)
-                        r = f"{r.id}"
-                    except Exception as e:
-                        r = f"UserRaffleRecord create Error: {e}"
+            if act == "join_pk":
+                gift_name = "PK"
 
-                elif act == "join_guard":
-                    try:
-                        info = await redis_cache.get(f"G${room_id}${gift_id}")
-                        privilege_type = info["privilege_type"]
-                        if privilege_type == 3:
-                            gift_name = "舰长"
-                        elif privilege_type == 2:
-                            gift_name = "提督"
-                        elif privilege_type == 1:
-                            gift_name = "总督"
-                        else:
-                            gift_name = "大航海"
-                        r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
-                        r = f"{r.id}"
-                    except Exception as e:
-                        r = f"UserRaffleRecord create Error: {e}"
+            elif act == "join_tv_v5":
+                gift_name = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
+                gift_name = gift_name or "高能"
 
-                elif act == "join_tv_v5":
-                    try:
-                        info = await redis_cache.get(f"T${room_id}${gift_id}")
-                        gift_name = info["title"]
-                        r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
-                        r = f"{r.id}"
-                    except Exception as e:
-                        r = f"UserRaffleRecord create Error: {e}"
-
+            elif act == "join_guard":
+                info = await redis_cache.get(f"G${room_id}${gift_id}")
+                privilege_type = info["privilege_type"]
+                if privilege_type == 3:
+                    gift_name = "舰长"
+                elif privilege_type == 2:
+                    gift_name = "提督"
+                elif privilege_type == 1:
+                    gift_name = "总督"
                 else:
-                    r = f"UserRaffleRecord create Error: Key Error."
+                    gift_name = "大航海"
+            else:
+                continue
 
-                logging.info(
-                    f"{act.upper()} OK! {index}-{cookie_obj.uid}-{cookie_obj.name} "
-                    f"@{room_id}${gift_id}. message: {message}. p: {r}"
-                )
+            r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id)
+            logging.info(
+                f"{act.upper()} OK! {index}-{cookie_obj.uid}-{cookie_obj.name} "
+                f"@{room_id}${gift_id}. message: {message}. p: {r.id}"
+            )
 
     async def waiting_delay_raffles(self):
         exec_interval = 5

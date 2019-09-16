@@ -213,10 +213,13 @@ class Worker(object):
                 return
 
             result = {}
+            gift_type = "default"
+            gift_name = "default"
             for info in gift_info_list:
                 user_name = info.get("from_user").get("uname")
                 gift_id = info.get("raffleId", 0)
                 gift_type = info.get("type")
+                gift_name = info.get("title")
                 time_accept = int(time.time() + 5 + info.get("time_wait"))
 
                 i = {
@@ -224,7 +227,7 @@ class Worker(object):
                     "face": info.get("from_user").get("face"),
                     "room_id": room_id,
                     "gift_id": gift_id,
-                    "gift_name": info.get("title"),
+                    "gift_name": gift_name,
                     "gift_type": gift_type,
                     "sender_type": info.get("sender_type"),
                     "created_time": created_time,
@@ -237,6 +240,8 @@ class Worker(object):
                     continue
 
                 await mq_raffle_to_acceptor.put(key)
+
+            await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)
 
             for user_name, gift_list in result.items():
                 await self.proc_tv_gifts_by_single_user(user_name, gift_list)
