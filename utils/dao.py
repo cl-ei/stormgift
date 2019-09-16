@@ -391,15 +391,8 @@ class BiliToQQBindInfo(object):
 
 
 async def test():
-    r = await BiliToQQBindInfo.bind(qq=123, bili=121)
-    print(r)
-
-    r = await BiliToQQBindInfo.get_by_qq(qq=123)
-    print(r)
-
-    r = await BiliToQQBindInfo.get_by_bili(111)
-    print(r)
-
+    r = await ValuableLiveRoom.get_all()
+    print(21537937 in r)
     pass
 
 

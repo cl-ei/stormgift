@@ -9,10 +9,6 @@ from utils.highlevel_api import ReqFreLimitApi
 from utils.reconstruction_model import objects, BiliUser, Raffle, Guard
 
 loop = asyncio.get_event_loop()
-SPECIFIED_ROOM_ID_SET = {
-    2516117,
-    21537937,  # 带慈善
-}
 
 
 class SyncTool(object):
@@ -24,7 +20,7 @@ class SyncTool(object):
             "where guard_count > 20 or attention > 10000 or real_room_id != short_room_id "
             "order by guard_count desc, attention desc ;"
         )
-        room_id = {row[0] for row in query} | SPECIFIED_ROOM_ID_SET
+        room_id = {row[0] for row in query}
 
         logging.info(F"Valuable live rooms get from db success, count: {len(room_id)}")
         existed = set(await ValuableLiveRoom.get_all())

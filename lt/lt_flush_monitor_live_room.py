@@ -8,6 +8,11 @@ from utils.model import MonitorWsClient
 MONITOR_COUNT = 15000
 VALUABLE_ROOM_COUNT_LIMIT = 3000
 
+SPECIFIED_ROOM_ID_SET = {
+    2516117,
+    21537937,  # 带慈善
+}
+
 
 async def get_live_rooms_from_api():
     logging.info("Flush monitor live rooms...")
@@ -31,7 +36,7 @@ async def get_live_rooms_from_api():
     valuable_count = len(valuable_live_rooms)
 
     api_count = len(room_id_list)
-    monitor_live_rooms = set(room_id_list + valuable_live_rooms)
+    monitor_live_rooms = SPECIFIED_ROOM_ID_SET | set(room_id_list + valuable_live_rooms)
     total_count = len(monitor_live_rooms)
     cache_hit_rate = 100 * (api_count + valuable_count - total_count) / valuable_count
 
