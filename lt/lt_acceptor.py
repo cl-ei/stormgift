@@ -148,7 +148,7 @@ class Worker(object):
         title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"
         split_char_count = max(0, (80 - len(title)) // 2)
         logging.info(
-            f"{'-'*split_char_count}{title}{'-'*split_char_count}\n"
+            f"\n{'-'*split_char_count}{title}{'-'*split_char_count}\n"
             f"{success_users}\n\n"
             f"last_raffle_id: {last_raffle_id}\n"
             f"{'-'*80}"
