@@ -403,8 +403,6 @@ class BotUtils:
 
         flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
         self.bot.send_private_msg(user_id=user_id, message=msg)
-        if user_id != 80873436:
-            self.bot.send_private_msg(user_id=80873436, message=msg)
 
 
 class BotHandler:
