@@ -6,6 +6,7 @@ import traceback
 from aiohttp import web
 from jinja2 import Template
 from config import CDN_URL
+from utils.dao import redis_cache
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import DBCookieOperator, ReqFreLimitApi
 from utils.dao import LtUserLoginPeriodOfValidity
@@ -467,10 +468,12 @@ async def query_raffles_by_user(request):
 
 async def trends_qq_notice(request):
     token = request.query.get("token")
-    message = request.query.get("message")
     if token == "BXzgeJTWxGtd6b5F":
-        from utils.cq import bot_zy
-        bot_zy.send_private_msg(user_id=80873436, message=message)
-        # bot_zy.send_private_msg(user_id=user_id, message=message)
+        post_data = request.query.get("post_data")
+        print(post_data)
+
+        # from utils.cq import bot_zy
+        # bot_zy.send_private_msg(user_id=80873436, message=message)
+        # # bot_zy.send_private_msg(user_id=user_id, message=message)
         return web.Response(text="OK")
     return web.Response(status=206)
