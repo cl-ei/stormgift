@@ -464,3 +464,13 @@ async def query_raffles_by_user(request):
     }
     return render_to_response("website/templates/website_query_raffles_by_user.html", context=context)
 
+
+async def trends_qq_notice(request):
+    token = request.query.get("token")
+    message = request.query.get("message")
+    if token == "BXzgeJTWxGtd6b5F":
+        from utils.cq import bot_zy
+        bot_zy.send_private_msg(user_id=80873436, message=message)
+        # bot_zy.send_private_msg(user_id=user_id, message=message)
+        return web.Response(text="OK")
+    return web.Response(status=206)
