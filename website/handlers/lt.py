@@ -6,6 +6,7 @@ import traceback
 from aiohttp import web
 from jinja2 import Template
 from config import CDN_URL
+from utils.cq import bot_zy
 from utils.dao import redis_cache
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import DBCookieOperator, ReqFreLimitApi
@@ -470,10 +471,12 @@ async def trends_qq_notice(request):
     token = request.query.get("token")
     if token == "BXzgeJTWxGtd6b5F":
         post_data = request.query.get("post_data")
-        print(post_data)
-
-        # from utils.cq import bot_zy
-        # bot_zy.send_private_msg(user_id=80873436, message=message)
-        # # bot_zy.send_private_msg(user_id=user_id, message=message)
-        return web.Response(text=post_data)
-    return web.Response(status=206)
+        uid_to_dynamic = json.loads(post_data, encoding="utf-8")
+        for uid, dynamic_id in uid_to_dynamic.items():
+            key = f"MONITOR_BILI_UID_{uid}_{dynamic_id}"
+            if await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600):
+                message = f"BILI用户(uid: {uid}) 发布新动态啦！"
+                bot_zy.send_private_msg(user_id=80873436, message=message)
+                bot_zy.send_private_msg(user_id=171660901, message=message)
+        return web.Response(status=206)
+    return web.Response(status=403)
