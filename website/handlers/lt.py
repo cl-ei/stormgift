@@ -476,7 +476,7 @@ async def trends_qq_notice(request):
             key = f"MONITOR_BILI_UID_{uid}_{dynamic_id}"
             if await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600*24):
 
-                if uid in (3232, ):  # 管珩心
+                if uid in (1600113, ):  # 管珩心
                     notice_users = await HansyDynamicNotic.get()
                     notice_users = "".join([f"[CQ:at,qq={qq}]" for qq in notice_users])
                     message = (
@@ -488,7 +488,7 @@ async def trends_qq_notice(request):
 
                 else:
                     message = f"BILI用户(uid: {uid}) 发布新动态啦！"
-                    bot_zy.send_private_msg(user_id=171660901, message=message)
+                    # bot_zy.send_private_msg(user_id=171660901, message=message)
 
         return web.Response(status=206)
     return web.Response(status=403)
