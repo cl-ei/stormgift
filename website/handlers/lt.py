@@ -497,6 +497,8 @@ async def trends_qq_notice(request):
                     #     f"title={title},content={content},image={image}]"
                     # )
                     # bot_zy.send_private_msg(user_id=171660901, message=message)
+            else:
+                await redis_cache.expire(key=key, timeout=3600*24)
 
         return web.Response(status=206)
     return web.Response(status=403)
