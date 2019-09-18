@@ -496,9 +496,6 @@ class BotHandler:
         if msg in ("#一言", "一言"):
             return BotUtils(bot=qq_zy).proc_one_sentence(msg, group_id)
 
-        if not msg.startswith("#"):
-            return
-
         p = BotUtils(bot=qq_zy)
         if msg.startswith("#点歌"):
             return await p.proc_song(msg, group_id)
