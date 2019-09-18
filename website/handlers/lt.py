@@ -475,5 +475,5 @@ async def trends_qq_notice(request):
         # from utils.cq import bot_zy
         # bot_zy.send_private_msg(user_id=80873436, message=message)
         # # bot_zy.send_private_msg(user_id=user_id, message=message)
-        return web.Response(text="OK")
+        return web.Response(text=post_data)
     return web.Response(status=206)
