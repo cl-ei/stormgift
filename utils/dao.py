@@ -390,10 +390,31 @@ class BiliToQQBindInfo(object):
         return None
 
 
+class HansyDynamicNotic(object):
+    key = "HANSY_DYNAMIC_NOTICE"
+
+    @classmethod
+    async def add(cls, qq):
+        await redis_cache.set_add(cls.key, qq)
+
+    @classmethod
+    async def remove(cls, qq):
+        await redis_cache.set_remove(cls.key, qq)
+
+    @classmethod
+    async def get(cls):
+        return await redis_cache.set_get_all(cls.key)
+
+
 async def test():
-    gift_type = "123"
-    r = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
+    r = await HansyDynamicNotic.add(80873436)
     print(r)
+
+    r = await HansyDynamicNotic.get()
+    print(r)
+    # for i in r:
+    #     await HansyDynamicNotic.remove(i)
+
     pass
 
 
