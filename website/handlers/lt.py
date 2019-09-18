@@ -475,21 +475,8 @@ async def trends_qq_notice(request):
         for uid, dynamic_id in uid_to_dynamic.items():
             key = f"MONITOR_BILI_UID_{uid}_{dynamic_id}"
             if await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600*24):
-                message = f"BILI用户(uid: {uid}) 发布新动态啦！"
-                bot_zy.send_private_msg(user_id=171660901, message=message)
 
-        return web.Response(status=206)
-
-    elif token == "91w6dPvzxFXfcVAm":
-        post_data = request.query.get("post_data")
-        uid_to_dynamic = json.loads(post_data, encoding="utf-8")
-        for uid, dynamic_id in uid_to_dynamic.items():
-            key = f"MONITOR_BILI_UID_{uid}_{dynamic_id}"
-            if await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600 * 24):
-                message = f"BILI用户(uid: {uid}) 发布新动态啦！"
-                bot_zy.send_private_msg(user_id=80873436, message=message)
-
-                if uid == 333:  # 65568410:  # 管珩心
+                if uid in (3232, ):  # 管珩心
                     notice_users = await HansyDynamicNotic.get()
                     notice_users = "".join([f"[CQ:at,qq={qq}]" for qq in notice_users])
                     message = (
@@ -498,6 +485,10 @@ async def trends_qq_notice(request):
                     )
                     # bot.send_group_msg(group_id=883237694, message=message)
                     bot_zy.send_private_msg(user_id=80873436, message=message)
+
+                else:
+                    message = f"BILI用户(uid: {uid}) 发布新动态啦！"
+                    bot_zy.send_private_msg(user_id=171660901, message=message)
 
         return web.Response(status=206)
     return web.Response(status=403)
