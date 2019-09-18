@@ -43,11 +43,3 @@ def main_handler(event, context):
     logging.info("Post data: %s, result: %s" % (post_data, r.content))
 
     return {"headers": {"Content-Type": "text"}, "statusCode": 200, "body": "OK"}
-
-
-def main():
-    main_handler(123, 0)
-
-
-if __name__ == "__main__":
-    main()
