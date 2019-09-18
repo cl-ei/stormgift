@@ -489,7 +489,7 @@ async def trends_qq_notice(request):
                 message = f"BILI用户(uid: {uid}) 发布新动态啦！"
                 bot_zy.send_private_msg(user_id=80873436, message=message)
 
-                if uid == 731556:  # 65568410:  # 管珩心
+                if uid == 333:  # 65568410:  # 管珩心
                     notice_users = await HansyDynamicNotic.get()
                     notice_users = "".join([f"[CQ:at,qq={qq}]" for qq in notice_users])
                     message = (
