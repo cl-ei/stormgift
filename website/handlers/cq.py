@@ -19,6 +19,9 @@ from utils.highlevel_api import ReqFreLimitApi
 from utils.highlevel_api import DBCookieOperator
 
 
+QQ_GROUP_STAR_LIGHT = 159855203
+
+
 class BotUtils:
     def __init__(self, bot):
         self.bot = bot
@@ -384,9 +387,13 @@ class BotUtils:
         )
         self.bot.send_group_msg(group_id=group_id, message=message)
 
-    async def proc_lt_status(self, user_id, msg):
+    async def proc_lt_status(self, user_id, msg, group=False):
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
+            if group is True:
+                message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
+                return self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+
             number = randint(1000, 9999)
             key = f"BILI_BIND_CHECK_KEY_{number}"
             await redis_cache.set(key=key, value=user_id, timeout=3600)
@@ -402,7 +409,10 @@ class BotUtils:
             pass
 
         flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
-        self.bot.send_private_msg(user_id=user_id, message=msg)
+        if group is True:
+            return self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=msg)
+        else:
+            self.bot.send_private_msg(user_id=user_id, message=msg)
 
 
 class BotHandler:
@@ -501,6 +511,9 @@ class BotHandler:
 
         elif msg.startswith("#勋章查询"):
             return await p.proc_query_medal(msg, group_id)
+
+        elif msg.startswith("挂机查询") and group_id == QQ_GROUP_STAR_LIGHT:
+            return await p.proc_lt_status(user_id, msg=msg, group=True)
 
     @classmethod
     async def handle_private_message(cls, context):
