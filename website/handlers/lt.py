@@ -492,5 +492,11 @@ async def trends_qq_notice(request):
                     message = f"BILI用户(uid: {uid}) 发布新动态啦！"
                     bot_zy.send_private_msg(user_id=171660901, message=message)
 
+                    # message = (
+                    #     f"[CQ:share,url=https://t.bilibili.com/{dynamic_id},"
+                    #     f"title={title},content={content},image={image}]"
+                    # )
+                    # bot_zy.send_private_msg(user_id=171660901, message=message)
+
         return web.Response(status=206)
     return web.Response(status=403)
