@@ -476,8 +476,18 @@ async def trends_qq_notice(request):
             key = f"MONITOR_BILI_UID_{uid}_{dynamic_id}"
             if await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600*24):
                 message = f"BILI用户(uid: {uid}) 发布新动态啦！"
-                bot_zy.send_private_msg(user_id=80873436, message=message)
                 bot_zy.send_private_msg(user_id=171660901, message=message)
+
+        return web.Response(status=206)
+
+    elif token == "91w6dPvzxFXfcVAm":
+        post_data = request.query.get("post_data")
+        uid_to_dynamic = json.loads(post_data, encoding="utf-8")
+        for uid, dynamic_id in uid_to_dynamic.items():
+            key = f"MONITOR_BILI_UID_{uid}_{dynamic_id}"
+            if await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600 * 24):
+                message = f"BILI用户(uid: {uid}) 发布新动态啦！"
+                bot_zy.send_private_msg(user_id=80873436, message=message)
 
                 if uid == 65568410:  # 管珩心
                     notice_users = await HansyDynamicNotic.get()
@@ -486,8 +496,8 @@ async def trends_qq_notice(request):
                         f"{notice_users} \n可爱的大仙泡发布B站动态啦！快来围观打call！\n\n"
                         "(如果你也想第一时间获取泡泡的动态、活捉可爱的大仙泡，请发送指令\"我要24小时守护泡泡\")"
                     )
-                    bot_zy.send_private_msg(user_id=80873436, message=message)
                     # bot.send_group_msg(group_id=883237694, message=message)
+                    bot_zy.send_private_msg(user_id=80873436, message=message)
 
         return web.Response(status=206)
     return web.Response(status=403)
