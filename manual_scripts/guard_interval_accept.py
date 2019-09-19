@@ -26,7 +26,7 @@ class Core:
         r = await HYMCookies.get(return_dict=True)
         self.cookies = []
         for account, data in r.items():
-            if not isinstance(data, dict) or "cookie" not in data:
+            if not isinstance(data, dict) or "cookie" not in data or "invalid" in data:
                 continue
 
             self.cookies.append(
@@ -57,6 +57,7 @@ class Core:
             else:
                 chance = 0.6
 
+            cookie_need_update = False
             for accounts_data in self.cookies:
                 if random.random() > chance:
                     continue
@@ -70,8 +71,16 @@ class Core:
                     # logging.info(f"SUCCESS: account: {account}-{success_count}, message: {message}.")
                 else:
                     logging.error(F"Account Failed: {account}, message: {message}")
+
                 if "过期" in message:
                     break
+                elif "请先登录哦" in message:
+                    await HYMCookies.set_invalid(account)
+                    cookie_need_update = True
+
+            if cookie_need_update:
+                await self.load_cookies()
+
             logging.info(f"Gift: {gift_name} @{room_id} $ {raffle_id} Done. result: {success_count}/{try_count}.")
 
     async def run(self):
