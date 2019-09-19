@@ -74,7 +74,7 @@ class Core:
 
                 if "过期" in message:
                     break
-                elif "请先登录哦" in message:
+                elif "登录" in message:
                     await HYMCookies.set_invalid(account)
                     cookie_need_update = True
 
