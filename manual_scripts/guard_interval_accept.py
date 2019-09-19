@@ -1,16 +1,19 @@
+import os
 import time
 import random
 import logging
 import asyncio
 import requests
+from config import LOG_PATH
 from utils.dao import redis_cache
 from utils.dao import HYMCookies
 from utils.biliapi import BiliApi
-from config.log4 import console_logger
+from config.log4 import console_logger, log_format
 
-log_format = logging.Formatter("%(asctime)s %(filename)s [%(levelname)s]: %(message)s")
-for h in console_logger.handlers:
-    h.setFormatter(log_format)
+
+log_fh = logging.FileHandler(os.path.join(LOG_PATH, "guard_interval_accept.log"))
+log_fh.setFormatter(log_format)
+console_logger.addHandler(log_fh)
 logging = console_logger
 
 

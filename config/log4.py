@@ -140,6 +140,7 @@ model_operation_logger.addHandler(stormgift_file_handler)
 
 
 __all__ = (
+    "log_format",
     "console_logger",
     "acceptor_logger",
     "status_logger",
