@@ -52,11 +52,16 @@ class Core:
 
             success_count = 0
             try_count = 0
-            chance = 0.05 if gift_name == "舰长" else 0.6
+            if gift_name == "舰长":
+                chance = 0.1
+            else:
+                chance = 0.6
+
             for accounts_data in self.cookies:
                 if random.random() > chance:
                     continue
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.1)
+
                 try_count += 1
                 account, cookie = accounts_data
                 flag, message = await BiliApi.join_guard(room_id=room_id, gift_id=raffle_id, cookie=cookie, timeout=5)
