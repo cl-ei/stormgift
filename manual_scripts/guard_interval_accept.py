@@ -1,49 +1,17 @@
 import time
-import json
+import random
+import logging
 import asyncio
-import aiohttp
 import requests
-import traceback
 from utils.dao import redis_cache
 from utils.dao import HYMCookies
-from config import cloud_acceptor_url
-from config.log4 import console_logger as logging
+from utils.biliapi import BiliApi
+from config.log4 import console_logger
 
-
-async def join_guard(room_id, gift_id, accounts_data):
-    inner_cookies = [_[1] for _ in accounts_data]
-    req_json = {
-        "act": "join_guard",
-        "room_id": room_id,
-        "gift_id": gift_id,
-        "cookies": inner_cookies,
-        "gift_type": "",
-    }
-    timeout = aiohttp.ClientTimeout(total=50)
-    client_session = aiohttp.ClientSession(timeout=timeout)
-    try:
-        async with client_session as session:
-            async with session.post(cloud_acceptor_url, json=req_json) as resp:
-                status_code = resp.status
-                content = await resp.text()
-    except Exception as e:
-        logging.error(f"Cannot access cloud acceptor! e: {e}\n{traceback.format_exc()}")
-        return
-
-    if status_code != 200:
-        return logging.error(f"Accept Failed! e: {content}")
-
-    result_list = json.loads(content)
-    success_count = 0
-    for index in range(len(result_list)):
-        flag, message = result_list[index]
-        account, cookie = accounts_data[index]
-        if not flag:
-            logging.error(f"Cannot accept guard: {flag}, account: {account}, message: {message}")
-        else:
-            success_count += 1
-
-    logging.info(f"Accept success! @{room_id} ${gift_id}. count: {success_count}.")
+log_format = logging.Formatter("%(asctime)s %(filename)s [%(levelname)s]: %(message)s")
+for h in console_logger.handlers:
+    h.setFormatter(log_format)
+logging = console_logger
 
 
 class Core:
@@ -66,36 +34,48 @@ class Core:
     async def get_raffles_and_accept(self):
         url = "https://www.madliar.com/lt/query_gifts?json=true"
         r = requests.get(url).json()
-
-        tasks = []
+        logging.info(f"Gift list: {len(r['list'])}.")
         for raffle in r["list"]:
-            if raffle["gift_name"] not in ("提督", "舰长", "总督"):
+            gift_name = raffle["gift_name"]
+            if gift_name not in ("提督", "舰长", "总督"):
                 continue
-
+            room_id = raffle["real_room_id"]
             raffle_id = raffle["raffle_id"]
             key = f"HYM_GUARD_ACCEPT_{raffle_id}"
             if not await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600*25):
                 continue
 
-            offset = 0
-            page_count = 100
-            while True:
-                accounts_data = self.cookies[offset: offset + page_count]
-                if not accounts_data:
+            logging.info(f"Now accept: {gift_name} @{room_id} ${raffle_id}...")
+
+            success_count = 0
+            try_count = 0
+            chance = 0.05 if gift_name == "舰长" else 0.6
+            for accounts_data in self.cookies:
+                if random.random() > chance:
+                    continue
+                await asyncio.sleep(0.3)
+                try_count += 1
+                account, cookie = accounts_data
+                flag, message = await BiliApi.join_guard(room_id=room_id, gift_id=raffle_id, cookie=cookie, timeout=5)
+                if flag:
+                    success_count += 1
+                    # logging.info(f"SUCCESS: account: {account}-{success_count}, message: {message}.")
+                else:
+                    logging.error(F"Account Failed: {account}, message: {message}")
+                if "过期" in message:
                     break
-
-                t = join_guard(room_id=raffle["real_room_id"], gift_id=raffle_id, accounts_data=accounts_data)
-                tasks.append(loop.create_task(t))
-
-                offset += page_count
-
-        for t in tasks:
-            await t
-        logging.info("Finished!")
+            logging.info(f"Gift: {gift_name} @{room_id} $ {raffle_id} Done. result: {success_count}/{try_count}.")
 
     async def run(self):
-        await self.load_cookies()
-        await self.get_raffles_and_accept()
+        while True:
+            start_time = time.time()
+            await self.load_cookies()
+            await self.get_raffles_and_accept()
+
+            cost_time = time.time() - start_time
+            sleep_time = 60*5 - int(cost_time)
+            logging.info(f"Finished! Enter sleep: {sleep_time}.\n")
+            await asyncio.sleep(max(0, sleep_time))
 
 
 app = Core()

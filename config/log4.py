@@ -6,7 +6,6 @@ from config import LOG_PATH
 
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
-
 console = logging.StreamHandler(sys.stdout)
 console.setFormatter(log_format)
 stormgift_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "stormgift.log"))
