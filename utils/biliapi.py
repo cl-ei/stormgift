@@ -56,32 +56,21 @@ class CookieFetcher:
         return hashlib.md5(text.encode('utf-8')).hexdigest()
 
     @classmethod
-    async def _request(cls, method, url, params=None, data=None, headers=None, timeout=5):
-        # req_json = {
-        #     "method": method,
-        #     "url": url,
-        #     "headers": headers,
-        #     "data": data or {},
-        #     "params": params or {},
-        #     "timeout": timeout
-        # }
-        # async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-        #     async with session.post(cloud_function_url, json=req_json) as resp:
-        #         status_code = resp.status
-        #         content = await resp.text()
-        #         return status_code, content
-
+    async def _request(cls, method, url, params=None, data=None, json=None, headers=None, timeout=5, binary_rsp=False):
         client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
         try:
             async with client_session as session:
                 if method.lower() == "get":
-                    async with session.get(url, params=params, data=data, headers=headers) as resp:
+                    async with session.get(url, params=params, data=data, json=json, headers=headers) as resp:
                         status_code = resp.status
-                        content = await resp.text()
+                        if binary_rsp is True:
+                            content = await resp.read()
+                        else:
+                            content = await resp.text()
                         return status_code, content
 
                 else:
-                    async with session.post(url, data=data, params=params, headers=headers) as resp:
+                    async with session.post(url, data=data, params=params, json=json, headers=headers) as resp:
                         status_code = resp.status
                         content = await resp.text()
                         return status_code, content
@@ -126,27 +115,38 @@ class CookieFetcher:
         payload = f'{temp_params}&sign={sign}'
         url = "https://passport.bilibili.com/api/v2/oauth2/login"
 
-        content = ""
         for _ in range(10):
             status_code, content = await cls._request('POST', url, params=payload)
-            if status_code == 200 and content:
-                break
-            await asyncio.sleep(1)
-        else:
-            return False, f"Try too many times! last content: {content}"
+            if status_code != 200:
+                await asyncio.sleep(0.75)
+                continue
+            try:
+                json_response = json.loads(content)
+            except json.JSONDecodeError:
+                continue
+            return True, json_response
 
+        return False, "Cannot login. Tried too many times."
+
+    @classmethod
+    async def fetch_captcha(cls):
+        url = "https://passport.bilibili.com/captcha"
+        status, content = await cls._request(method="get", url=url, binary_rsp=True)
+
+        url = "http://152.32.186.69:19951/captcha/v1"
+        str_img = base64.b64encode(content).decode(encoding='utf-8')
+        _, json_rsp = await cls._request("post", url=url, json={"image": str_img})
         try:
-            json_response = json.loads(content)
-        except Exception as e:
-            return False, f"Not json response! {e}"
-
-        return True, json_response
+            captcha = json.loads(json_rsp)['message']
+        except json.JSONDecodeError:
+            captcha = None
+        return captcha
 
     @classmethod
     async def get_cookie(cls, account, password):
         flag, json_rsp = await cls.fetch_key()
         if not flag:
-            return False
+            return False, "Cannot fetch key."
 
         key = json_rsp['data']['key']
         hash_ = str(json_rsp['data']['hash'])
@@ -159,6 +159,15 @@ class CookieFetcher:
         flag, json_rsp = await cls.post_login_req(url_name, url_password)
         if not flag:
             return False, json_rsp
+
+        for _try_fetch_captcha_times in range(20):
+            if json_rsp["code"] != -105:
+                break
+
+            captcha = await cls.fetch_captcha()
+            if not captcha:
+                continue
+            flag, json_rsp = await cls.post_login_req(url_name, url_password, captcha)
 
         if json_rsp["code"] != 0:
             return False, json_rsp.get("message", "unknown error in login!")

@@ -406,6 +406,35 @@ class HansyDynamicNotic(object):
         return await redis_cache.set_get_all(cls.key)
 
 
+class HYMCookies:
+    key = "HYM_COOKIES_"
+
+    @classmethod
+    async def add(cls, account, password, cookie):
+        key = cls.key + str(account)
+        value = {"cookie": cookie, "password": password}
+        await redis_cache.set(key=key, value=value)
+
+    @classmethod
+    async def get(cls, account=None, return_dict=False):
+        if account is None:
+            keys = await redis_cache.keys(cls.key + "*")
+            r = await redis_cache.mget(*keys)
+            if not return_dict:
+                return r
+
+            result = {}
+            for index in range(len(keys)):
+                key = keys[index]
+                account = key[len(cls.key):]
+                data = r[index]
+                result[account] = data
+            return result
+
+        r = await redis_cache.get(cls.key + str(account))
+        return {account: r} if return_dict else r
+
+
 async def test():
     r = await HansyDynamicNotic.add(80873436)
     print(r)
