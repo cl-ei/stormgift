@@ -36,7 +36,7 @@ class H:
         try_times = -1
         while try_times < 3:
             cookie = await HYMCookies.get(account=account)
-            if isinstance(cookie, dict) and "cookie" in cookie:
+            if isinstance(cookie, dict) and "cookie" in cookie and not cookie.get("invalid"):
                 cookie = cookie["cookie"]
             else:
                 await self.login(account=account, password=password)
