@@ -38,7 +38,7 @@ class Core:
             self.cookies.append(
                 (account, data["cookie"])
             )
-        logging.info(f"Got cookies: {len(r)}, Cost: {(time.time() - start):.3f}")
+        logging.info(f"Got cookies: {len(self.cookies)}/{len(r)}, Cost: {(time.time() - start):.3f}")
 
     async def get_raffles_and_accept(self):
         url = "https://www.madliar.com/lt/query_gifts?json=true"
