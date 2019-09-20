@@ -446,6 +446,14 @@ class HYMCookies:
         await redis_cache.set(key, data)
         return True
 
+    @classmethod
+    async def set_blocked(cls, account):
+        key = cls.key + str(account)
+        data = await redis_cache.get(key)
+        data["blocked"] = int(time.time())
+        await redis_cache.set(key, data)
+        return True
+
 
 async def test():
     r = await HansyDynamicNotic.add(80873436)

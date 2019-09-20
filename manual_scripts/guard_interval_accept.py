@@ -26,7 +26,13 @@ class Core:
         r = await HYMCookies.get(return_dict=True)
         self.cookies = []
         for account, data in r.items():
-            if not isinstance(data, dict) or "cookie" not in data or "invalid" in data:
+            if not isinstance(data, dict):
+                continue
+            if "cookie" not in data:
+                continue
+            if "invalid" in data:
+                continue
+            if int(time.time()) - data.get("blocked", 0) < 3600*3:
                 continue
 
             self.cookies.append(
@@ -74,8 +80,13 @@ class Core:
 
                 if "过期" in message:
                     break
+
                 elif "登录" in message:
                     await HYMCookies.set_invalid(account)
+                    cookie_need_update = True
+
+                elif "访问被拒绝" in message:
+                    await HYMCookies.set_blocked(account)
                     cookie_need_update = True
 
             if cookie_need_update:
