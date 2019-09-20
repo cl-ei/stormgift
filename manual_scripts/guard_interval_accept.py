@@ -25,20 +25,27 @@ class Core:
         start = time.time()
         r = await HYMCookies.get(return_dict=True)
         self.cookies = []
+        invalid_count = 0
+        blocked_count = 0
         for account, data in r.items():
             if not isinstance(data, dict):
                 continue
             if "cookie" not in data:
                 continue
             if "invalid" in data:
+                invalid_count += 1
                 continue
             if int(time.time()) - data.get("blocked", 0) < 3600*3:
+                blocked_count += 1
                 continue
 
             self.cookies.append(
                 (account, data["cookie"])
             )
-        logging.info(f"Got cookies: {len(self.cookies)}/{len(r)}, Cost: {(time.time() - start):.3f}")
+        logging.info(
+            f"Got cookies: {len(self.cookies)}/{len(r)},"
+            f" invalid: {invalid_count}, blocked: {blocked_count}, Cost: {(time.time() - start):.3f}"
+        )
 
     async def get_raffles_and_accept(self):
         url = "https://www.madliar.com/lt/query_gifts?json=true"
