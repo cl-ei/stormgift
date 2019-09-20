@@ -324,7 +324,7 @@ class DBCookieOperator:
                     password=cookie_obj.password
                 )
                 if flag:
-                    send_cookie_relogin_notice(cookie_obj)
+                    # send_cookie_relogin_notice(cookie_obj)
                     return True, ""
                 else:
                     logging.error(
@@ -402,8 +402,8 @@ class DBCookieOperator:
             query = query.where(LTUserCookie.is_vip == is_vip)
 
         if non_blocked is not None:
-            eight_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=8)
-            query = query.where(LTUserCookie.blocked_time < eight_hour_ago)
+            three_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=3)
+            query = query.where(LTUserCookie.blocked_time < three_hour_ago)
 
         important_objs = []
         objs = []

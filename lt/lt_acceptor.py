@@ -45,9 +45,6 @@ class Worker(object):
 
     async def load_cookie(self):
         if time.time() - self._cookie_objs_update_time > 100:
-
-            logging.info("Now update cached user_cookie_objs.")
-
             objs = await DBCookieOperator.get_objs(available=True, non_blocked=True, separate=True)
             self._cookie_objs_non_skip, self._cookie_objs = objs
             self._cookie_objs_update_time = time.time()
@@ -217,6 +214,3 @@ async def main():
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
-
-
-asyncio.get_event_loop().run_until_complete(main())
