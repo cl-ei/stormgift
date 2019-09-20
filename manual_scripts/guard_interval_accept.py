@@ -43,16 +43,25 @@ class Core:
     async def get_raffles_and_accept(self):
         url = "https://www.madliar.com/lt/query_gifts?json=true"
         r = requests.get(url).json()
-        logging.info(f"Gift list: {len(r['list'])}.")
-        for raffle in r["list"]:
+        raffle_list = r['list']
+        available = []
+        for raffle in raffle_list:
             gift_name = raffle["gift_name"]
             if gift_name not in ("提督", "舰长", "总督"):
                 continue
-            room_id = raffle["real_room_id"]
+
             raffle_id = raffle["raffle_id"]
             key = f"HYM_GUARD_ACCEPT_{raffle_id}"
-            if not await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600*25):
+            if not await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600 * 25):
                 continue
+
+            available.append(raffle)
+        logging.info(f"Gift list: {len(available)}/{raffle_list}.")
+
+        for raffle in available:
+            gift_name = raffle["gift_name"]
+            room_id = raffle["real_room_id"]
+            raffle_id = raffle["raffle_id"]
 
             logging.info(f"Now accept: {gift_name} @{room_id} ${raffle_id}...")
 
@@ -72,22 +81,20 @@ class Core:
                 try_count += 1
                 account, cookie = accounts_data
                 flag, message = await BiliApi.join_guard(room_id=room_id, gift_id=raffle_id, cookie=cookie, timeout=5)
-                if flag:
-                    success_count += 1
-                    # logging.info(f"SUCCESS: account: {account}-{success_count}, message: {message}.")
-                else:
+                if not flag:
                     logging.error(F"Account Failed: {account}, message: {message}")
+                    continue
 
                 if "过期" in message:
                     break
-
                 elif "登录" in message:
                     await HYMCookies.set_invalid(account)
                     cookie_need_update = True
-
                 elif "访问被拒绝" in message:
                     await HYMCookies.set_blocked(account)
                     cookie_need_update = True
+                else:
+                    success_count += 1
 
             if cookie_need_update:
                 await self.load_cookies()
