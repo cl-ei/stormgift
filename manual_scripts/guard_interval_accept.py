@@ -90,7 +90,6 @@ class Core:
                 flag, message = await BiliApi.join_guard(room_id=room_id, gift_id=raffle_id, cookie=cookie, timeout=5)
                 if not flag:
                     logging.error(F"Account Failed: {account}, message: {message}")
-                    continue
 
                 if "过期" in message:
                     break
