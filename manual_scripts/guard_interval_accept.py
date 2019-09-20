@@ -56,7 +56,7 @@ class Core:
                 continue
 
             available.append(raffle)
-        logging.info(f"Gift list: {len(available)}/{raffle_list}.")
+        logging.info(f"Gift list: {len(available)}/{len(raffle_list)}.")
 
         for raffle in available:
             gift_name = raffle["gift_name"]
