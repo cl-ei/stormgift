@@ -6,7 +6,7 @@ import asyncio
 import requests
 from config import LOG_PATH
 from utils.dao import redis_cache
-from utils.dao import HYMCookies
+from utils.dao import HYMCookiesOfCl as HYMCookies
 from utils.biliapi import BiliApi
 from config.log4 import console_logger, log_format
 
