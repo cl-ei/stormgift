@@ -77,7 +77,7 @@ class Core:
             if gift_name == "舰长":
                 chance = 0.1
             else:
-                chance = 0.6
+                chance = 0.9
 
             cookie_need_update = False
             for accounts_data in self.cookies:
