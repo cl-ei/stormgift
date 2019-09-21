@@ -125,7 +125,7 @@ def join_guard(room_id, gift_id, cookie, gift_type=None):
 
     from_user = r["data"]['from']
     message = r["data"]['message']
-    award_name = "亲密度" if "粉丝勋章亲密度" in message else "辣条"
+    award_name = "辣条" if "辣条" in message else "亲密度"
     privilege_type = r["data"]['privilege_type']
     if privilege_type == 3:
         award_num = 1
