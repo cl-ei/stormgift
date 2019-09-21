@@ -138,7 +138,7 @@ class Worker(object):
                 continue
 
             try:
-                award_num = int(message.split("-", 1)[0])
+                award_num = int(message.split("_", 1)[0])
             except Exception as e:
                 logging.error(f"Cannot fetch award_num from message. {e}", exc_info=True)
                 award_num = 1
