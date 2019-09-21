@@ -94,7 +94,9 @@ def join_tv_v5(room_id, gift_id, cookie, gift_type):
     if r.get("code") != 0:
         return False, r.get("msg", "-")
 
-    return True, f"OK gift_type: {r.get('data', {}).get('award_name')}"
+    award_name = r["data"]['award_name']
+    award_num = r["data"]['award_num']
+    return True, f"{award_num}_{award_name}"
 
 
 def join_guard(room_id, gift_id, cookie, gift_type=None):
