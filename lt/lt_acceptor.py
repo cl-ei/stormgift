@@ -139,7 +139,11 @@ class Worker(object):
                 elif "请先登录哦" in message:
                     await DBCookieOperator.set_invalid(cookie_obj)
                     self._cookie_objs_update_time = 0
-                elif "你已经领取过啦" in message or "已经参加抽奖" in message:
+                elif (
+                    "你已经领取过啦" in message
+                    or "已经参加抽奖" in message
+                    or "您已参加抽奖" in message
+                ):
                     r = await AlternativeLtDetection.record(cookie_obj.uid)
                     logging.warning(f"Record AlternativeLtDetection: {cookie_obj.name}(uid: {cookie_obj.uid}): {r}")
 
