@@ -454,6 +454,7 @@ class DBCookieOperator:
                 "group by gift_name;"
             ), (uid, datetime.datetime.now() - datetime.timedelta(hours=24))
         )
+        raffle_result = [(r[0], r[1], r[2]) for r in rows]
 
         def sort_func(row):
             priority_map = {
@@ -463,9 +464,9 @@ class DBCookieOperator:
             }
             return priority_map.get(row[0], 4)
 
-        total_intimacy = sum([r[2] for r in rows])
+        total_intimacy = sum([r[2] for r in raffle_result])
         postfix = []
-        for r in sorted(rows, key=sort_func):
+        for r in sorted(raffle_result, key=sort_func):
             postfix.append("-" * 20 + "\n")
             postfix.append(f"{r[0]}: {r[1]}次, {r[2]}辣条\n")
         postfix.append("-" * 20)
