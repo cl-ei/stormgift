@@ -145,7 +145,7 @@ class Worker(object):
 
             r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
             last_raffle_id = r.id
-            success.append(f"{index}-{cookie_obj.uid}-{cookie_obj.name} -> {message}")
+            success.append(f"{message} <- {index}-{cookie_obj.uid}-{cookie_obj.name}")
 
         success_users = "\n".join(success)
         title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"
