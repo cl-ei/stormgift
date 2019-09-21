@@ -159,7 +159,8 @@ class Worker(object):
             success.append(f"{message} <- {index}-{cookie_obj.uid}-{cookie_obj.name}")
 
             if "你已经领取过啦" in message or "已经参加抽奖" in message:
-                await AlternativeLtDetection.record(cookie_obj.uid)
+                r = await AlternativeLtDetection.record(cookie_obj.uid)
+                logging.warning(f"Record AlternativeLtDetection: {r}")
 
         success_users = "\n".join(success)
         title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"

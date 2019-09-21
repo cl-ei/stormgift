@@ -511,8 +511,9 @@ class AlternativeLtDetection:
     async def record(cls, user_id):
         now_hour = 0 if datetime.datetime.now().hour < 12 else 1
         key = f"{cls.key}_{datetime.datetime.now().date()}_{now_hour}_{user_id}"
-        await redis_cache.incr(key)
+        times = await redis_cache.incr(key)
         await redis_cache.expire(key, timeout=3600*72)
+        return int(times)
 
     @classmethod
     async def get_blocked_list(cls, *uid_list):
@@ -520,6 +521,7 @@ class AlternativeLtDetection:
         keys = [f"{cls.key}_{datetime.datetime.now().date()}_{now_hour}_{uid}" for uid in uid_list]
 
         blocked_times = await redis_cache.mget(*keys, _un_pickle=True)
+        print(blocked_times)
         result = []
         for index in range(len(uid_list)):
             bl = blocked_times[index]
@@ -529,10 +531,7 @@ class AlternativeLtDetection:
 
 
 async def test():
-    for _ in range(12):
-        r = await AlternativeLtDetection.record(20932326)
-        print(r)
-    r = await AlternativeLtDetection.get_blocked_list(80873436, 333232, 20932326)
+    r = await AlternativeLtDetection.get_blocked_list(353598539, 333232, 20932326)
     print(r)
     # for i in r:
     #     await HansyDynamicNotic.remove(i)
