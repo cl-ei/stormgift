@@ -58,8 +58,12 @@ class RedisCache(object):
         except (TypeError, pickle.UnpicklingError):
             return r
 
-    async def mget(self, *keys):
+    async def mget(self, *keys, _un_pickle=False):
         r = await self.execute("MGET", *keys)
+
+        if _un_pickle:
+            return r
+
         result = []
         for _ in r:
             try:
@@ -500,11 +504,35 @@ class HYMCookiesOfCl:
         return True
 
 
-async def test():
-    r = await HansyDynamicNotic.add(80873436)
-    print(r)
+class AlternativeLtDetection:
+    key = "ALTERNATIVE_LT_DETECTION"
+    threshold = 6
 
-    r = await HansyDynamicNotic.get()
+    @classmethod
+    async def record(cls, user_id):
+        now_hour = 0 if datetime.datetime.now().hour < 12 else 1
+        key = f"{cls.key}_{datetime.datetime.now().date()}_{now_hour}_{user_id}"
+        await redis_cache.incr(key)
+        await redis_cache.expire(key, timeout=3600*72)
+
+    @classmethod
+    async def get_blocked_list(cls, *uid_list):
+        now_hour = 0 if datetime.datetime.now().hour < 12 else 1
+        keys = [f"{cls.key}_{datetime.datetime.now().date()}_{now_hour}_{uid}" for uid in uid_list]
+
+        blocked_times = await redis_cache.mget(*keys, _un_pickle=True)
+        result = []
+        for index in range(len(uid_list)):
+            bl = blocked_times[index]
+            if bl is not None and int(bl) > cls.threshold:
+                result.append(uid_list[index])
+        return result
+
+
+async def test():
+    r = await AlternativeLtDetection.record(80873436)
+    print(r)
+    r = await AlternativeLtDetection.get_blocked_list(80873436, 333232)
     print(r)
     # for i in r:
     #     await HansyDynamicNotic.remove(i)

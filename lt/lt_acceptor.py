@@ -5,8 +5,7 @@ import asyncio
 import requests
 import traceback
 from random import random
-from utils.biliapi import BiliApi
-from utils.dao import redis_cache
+from utils.dao import redis_cache, AlternativeLtDetection
 from config import cloud_acceptor_url
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
@@ -74,7 +73,19 @@ class Worker(object):
             return
 
         non_skip, normal_objs = await self.load_cookie()
-        user_cookie_objs = non_skip + normal_objs
+        alternative_uid_list = await AlternativeLtDetection.get_blocked_list(*[nr.uid for nr in normal_objs])
+        filtered_normal_objs = []
+        alternative_uid_list_prompt = []
+        for nr in normal_objs:
+            if nr.uid in alternative_uid_list:
+                alternative_uid_list_prompt.append(f"{nr.name}(uid: {nr.uid})")
+            else:
+                filtered_normal_objs.append(nr)
+        if alternative_uid_list_prompt:
+            alternative_uid_list_prompt = ", ".join(alternative_uid_list_prompt)
+            logging.info(f"Find alternative uid list: {alternative_uid_list_prompt}.")
+
+        user_cookie_objs = non_skip + filtered_normal_objs
         cookies = [c.cookie for c in user_cookie_objs]
 
         req_json = {
@@ -146,6 +157,9 @@ class Worker(object):
             r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
             last_raffle_id = r.id
             success.append(f"{message} <- {index}-{cookie_obj.uid}-{cookie_obj.name}")
+
+            if "你已经领取过啦" in message or "已经参加抽奖" in message:
+                await AlternativeLtDetection.record(cookie_obj.uid)
 
         success_users = "\n".join(success)
         title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"
