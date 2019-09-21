@@ -123,9 +123,19 @@ def join_guard(room_id, gift_id, cookie, gift_type=None):
     if r.get("code") != 0:
         return False, r.get("msg", "-")
 
-    message = r.get("data", {}).get('message')
-    from_user = r.get("data", {}).get('from')
-    return True, "%s, from %s" % (message, from_user)
+    from_user = r["data"]['from']
+    message = r["data"]['message']
+    award_name = "亲密度" if "粉丝勋章亲密度" in message else "辣条"
+    privilege_type = r["data"]['privilege_type']
+    if privilege_type == 3:
+        award_num = 1
+    elif privilege_type == 2:
+        award_num = 5
+    elif privilege_type == 1:
+        award_num = 20
+    else:
+        award_num = 1
+    return True, f"{award_num}_{award_name} <- {from_user}"
 
 
 def join_pk(room_id, gift_id, cookie, gift_type=None):
