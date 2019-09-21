@@ -485,7 +485,7 @@ class DBCookieOperator:
         else:
             alternative_list = await AlternativeLtDetection.get_blocked_list(uid)
             if uid in alternative_list:
-                prompt = "你没有进小黑屋。\n但因为你在别处也开通了代挂，在接下来的12小时里，不再为你领取辣条以节约资源。"
+                prompt = "你没有进小黑屋。\n但因为你在别处也开通了代挂，在接下来的12小时里，不再为你领取辣条。"
             else:
                 prompt = "你现在正常领取辣条中"
 

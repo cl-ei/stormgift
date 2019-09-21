@@ -529,9 +529,10 @@ class AlternativeLtDetection:
 
 
 async def test():
-    r = await AlternativeLtDetection.record(80873436)
-    print(r)
-    r = await AlternativeLtDetection.get_blocked_list(80873436, 333232)
+    for _ in range(12):
+        r = await AlternativeLtDetection.record(20932326)
+        print(r)
+    r = await AlternativeLtDetection.get_blocked_list(80873436, 333232, 20932326)
     print(r)
     # for i in r:
     #     await HansyDynamicNotic.remove(i)
