@@ -139,6 +139,9 @@ class Worker(object):
                 elif "请先登录哦" in message:
                     await DBCookieOperator.set_invalid(cookie_obj)
                     self._cookie_objs_update_time = 0
+                elif "你已经领取过啦" in message or "已经参加抽奖" in message:
+                    r = await AlternativeLtDetection.record(cookie_obj.uid)
+                    logging.warning(f"Record AlternativeLtDetection: {cookie_obj.name}(uid: {cookie_obj.uid}): {r}")
 
                 if index != 0:
                     message = message[:100]
@@ -157,10 +160,6 @@ class Worker(object):
             r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
             last_raffle_id = r.id
             success.append(f"{message} <- {index}-{cookie_obj.uid}-{cookie_obj.name}")
-
-            if "你已经领取过啦" in message or "已经参加抽奖" in message:
-                r = await AlternativeLtDetection.record(cookie_obj.uid)
-                logging.warning(f"Record AlternativeLtDetection: {r}")
 
         success_users = "\n".join(success)
         title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"
