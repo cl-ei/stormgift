@@ -383,10 +383,9 @@ class BiliToQQBindInfo(object):
     @classmethod
     async def get_by_qq(cls, qq):
         r = await redis_cache.get(cls.key)
-        print(r)
         for qq_num, bili in r:
             if qq_num == qq:
-                return bili
+                return int(bili)
         return None
 
     @classmethod
