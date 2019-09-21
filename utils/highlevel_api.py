@@ -435,7 +435,9 @@ class DBCookieOperator:
         if most_recently:
             most_recently = most_recently[0][0]
             interval = (datetime.datetime.now() - most_recently).total_seconds()
-            if interval > 3600:
+            if interval > 3600*24:
+                most_recently = f"约{int(interval // (3600*24))}天前"
+            elif interval > 3600:
                 most_recently = f"约{int(interval // 3600)}小时前"
             elif interval > 60:
                 most_recently = f"约{int(interval // 60)}分钟前"
@@ -446,27 +448,28 @@ class DBCookieOperator:
 
         rows = await AsyncMySQL.execute(
             (
-                "select gift_name, count(raffle_id) "
+                "select gift_name, count(raffle_id), sum(intimacy) "
                 "from userrafflerecord "
                 "where user_id = %s and created_time >= %s "
                 "group by gift_name;"
             ), (uid, datetime.datetime.now() - datetime.timedelta(hours=24))
         )
-        raffle_result = []
-        total_intimacy = 0
-        for gift_name, count in rows:
-            intimacy_map = {
-                "总督": 20,
-                "提督": 5,
-                "舰长": 1,
-                "小电视飞船抽奖": 5,
-                "任意门抽奖": 5,
+
+        def sort_func(row):
+            priority_map = {
+                "总督": 1,
+                "提督": 2,
+                "舰长": 3,
             }
-            total_intimacy += intimacy_map.get(gift_name, 1) * count
-            raffle_result.append({
-                "gift_name": gift_name,
-                "count": count
-            })
+            return priority_map.get(row[0], 4)
+
+        total_intimacy = sum([r[2] for r in rows])
+        postfix = []
+        for r in sorted(rows, key=sort_func):
+            postfix.append("-" * 20 + "\n")
+            postfix.append(f"{r[0]}: {r[1]}次, {r[2]}辣条\n")
+        postfix.append("-" * 20)
+
         if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * 6:
             blocked_datetime = cookie_obj.blocked_time
         else:
@@ -484,9 +487,5 @@ class DBCookieOperator:
                 f"最后一次抽奖时间：{str(most_recently)}\n"
                 f"24小时内累计获得亲密度：{total_intimacy}\n"
             )
-        postfix = []
-        for r in raffle_result:
-            postfix.append("-"*20 + "\n")
-            postfix.append(f"{r['gift_name']}: {r['count']}\n")
-        postfix.append("-" * 20)
+
         return True, f"{cookie_obj.name}(uid: {cookie_obj.uid})\n" + title + "".join(postfix)
