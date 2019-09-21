@@ -273,6 +273,7 @@ class UserRaffleRecord(peewee.Model):
             user_id=user_id,
             gift_name=gift_name,
             raffle_id=raffle_id,
+            intimacy=intimacy,
             created_time=created_time or datetime.datetime.now()
         )
 
