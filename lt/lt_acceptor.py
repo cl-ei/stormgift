@@ -83,7 +83,7 @@ class Worker(object):
                 filtered_normal_objs.append(nr)
         if alternative_uid_list_prompt:
             alternative_uid_list_prompt = ", ".join(alternative_uid_list_prompt)
-            logging.info(f"Find alternative uid list: {alternative_uid_list_prompt}.")
+            logging.warning(f"Find alternative uid list: {alternative_uid_list_prompt}.")
 
         user_cookie_objs = non_skip + filtered_normal_objs
         cookies = [c.cookie for c in user_cookie_objs]

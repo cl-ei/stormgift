@@ -505,7 +505,7 @@ class HYMCookiesOfCl:
 
 class AlternativeLtDetection:
     key = "ALTERNATIVE_LT_DETECTION"
-    threshold = 6
+    threshold = 10
 
     @classmethod
     async def record(cls, user_id):
