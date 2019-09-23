@@ -43,10 +43,10 @@ async def accept(user):
 
         code = data['code']
         if code == 0:
-            logging.info(f"{user.name}(uid: {user.uid}) 打开了宝箱. response: {data}")
             award_silver = data["data"]["awardSilver"]
             raffle_id = int(f"313{randint(100000, 999999)}")
             await UserRaffleRecord.create(user.uid, "宝箱", raffle_id=raffle_id, intimacy=award_silver)
+            logging.info(f"{user.name}(uid: {user.uid}) 打开了宝箱. award_silver: {award_silver}")
 
         elif code == -500:
             sleep_time = data['data']['surplus'] * 60 + 5
