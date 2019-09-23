@@ -235,21 +235,24 @@ class DBCookieOperator:
         if lt_user.available and (lt_user.cookie_expire_time - datetime.datetime.now()).total_seconds() > 3600*24*10:
             return True, lt_user
 
-        flag, cookie = await CookieFetcher.get_cookie(account, password)
+        flag, data = await CookieFetcher.login(account, password)
         if not flag:
-            return False, cookie
+            return False, data
 
         lt_user.password = password
         lt_user.cookie_expire_time = datetime.datetime.now() + datetime.timedelta(days=30)
         lt_user.available = True
         attrs = ["password", "cookie_expire_time", "available"]
 
-        cookie_kv = [_.strip() for _ in cookie.split(";")]
-        for k, v in [_.split("=", 1) for _ in cookie_kv if "=" in _]:
+        for k, v in data.items():
             setattr(lt_user, k, v)
             attrs.append(k)
 
-        flag, data, uname = await BiliApi.get_if_user_is_live_vip(cookie, user_id=lt_user.DedeUserID, return_uname=True)
+        flag, data, uname = await BiliApi.get_if_user_is_live_vip(
+            cookie=lt_user.cookie,
+            user_id=lt_user.uid,
+            return_uname=True
+        )
         if not flag:
             return False, "无法获取你的个人信息，请稍后再试。"
 

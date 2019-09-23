@@ -179,6 +179,42 @@ class CookieFetcher:
 
         return True, "".join(result).strip()
 
+    @classmethod
+    async def login(cls, account, password):
+        flag, json_rsp = await cls.fetch_key()
+        if not flag:
+            return False, "Cannot fetch key."
+
+        key = json_rsp['data']['key']
+        hash_ = str(json_rsp['data']['hash'])
+
+        pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
+        hashed_password = base64.b64encode(rsa.encrypt((hash_ + password).encode('utf-8'), pubkey))
+        url_password = parse.quote_plus(hashed_password)
+        url_name = parse.quote_plus(account)
+
+        flag, json_rsp = await cls.post_login_req(url_name, url_password)
+        if not flag:
+            return False, json_rsp
+
+        for _try_fetch_captcha_times in range(20):
+            if json_rsp["code"] != -105:
+                break
+
+            captcha = await cls.fetch_captcha()
+            if not captcha:
+                continue
+            flag, json_rsp = await cls.post_login_req(url_name, url_password, captcha)
+
+        if json_rsp["code"] != 0:
+            return False, json_rsp.get("message", "unknown error in login!")
+
+        cookies = json_rsp["data"]["cookie_info"]["cookies"]
+        result = {c['name']: c['value'] for c in cookies}
+        result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
+        result["refresh_token"] = json_rsp["data"]["token_info"]["refresh_token"]
+        return True, result
+
 
 class WsApi(object):
     BILI_WS_URI = "ws://broadcastlv.chat.bilibili.com:2244/sub"
@@ -1096,11 +1132,27 @@ class BiliApi:
         headers = {"Cookie": cookie}
         return await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
 
+    @classmethod
+    async def check_silver_box(cls, cookie, timeout=5):
+        url = "https://api.live.bilibili.com/lottery/v1/SilverBox/getCurrentTask"
+        headers = {"Cookie": cookie}
+        flag, r = await cls.get(
+            url=url,
+            headers=headers,
+            timeout=timeout,
+            check_error_code=True
+        )
+        return flag, r
+
 
 async def test():
-    flag, r = await BiliApi.get_tv_raffle_id(21447509)
+    from utils.highlevel_api import DBCookieOperator
+    obj = await DBCookieOperator.get_by_uid("DD")
+    flag, r = await BiliApi.check_silver_box(cookie=obj.cookie)
     print(flag, r)
-
+    # account = "pfanxllfnfslq@163.com"
+    # password = "vvdv41v4"
+    # r = await CookieFetcher.get_cookie(account=account, password=password)
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

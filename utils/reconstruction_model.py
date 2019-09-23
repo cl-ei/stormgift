@@ -287,6 +287,10 @@ class LTUserCookie(peewee.Model):
     bili_jct = peewee.CharField(null=True)
     sid = peewee.CharField(null=True)
     DedeUserID__ckMd5 = peewee.CharField(null=True)
+
+    access_token = peewee.CharField(null=True)
+    refresh_token = peewee.CharField(null=True)
+
     cookie_expire_time = peewee.DateTimeField(default=datetime.datetime.now)
 
     notice_email = peewee.CharField(null=True)
