@@ -61,11 +61,11 @@ async def accept(user):
             return
 
         elif code == -800:
-            user.info(f'{user.name}(uid: {user.uid}) 未绑定手机!')
+            logging.info(f'{user.name}(uid: {user.uid}) 未绑定手机!')
             return
 
         else:
-            user.warn(f'Unknown Error: {data}')
+            logging.warn(f'Unknown Error: {data}')
             return
 
 
