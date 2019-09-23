@@ -29,6 +29,7 @@ async def send_gift(cookie, medal, user_name=""):
     logging.info(f"今日剩余亲密度: {left_intimacy}")
 
     bag_list = await BiliApi.get_bag_list(cookie)
+    logging.info(f"bag_list: {bag_list}")
     gift_today = []
     gift_lt = []
 
@@ -77,11 +78,12 @@ async def send_gift(cookie, medal, user_name=""):
             left_intimacy -= supplement_lt_num
 
     for gift in send_list:
-        flag, data = await BiliApi.send_gift(
-            gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
-        )
-        if not flag:
-            logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
+        # flag, data = await BiliApi.send_gift(
+        #     gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
+        # )
+        # if not flag:
+        #     logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
+        pass
 
     send_msg = "\n".join([f"{s['corner_mark']}辣条 * {s['gift_num']}" for s in send_list])
     logging.info(
