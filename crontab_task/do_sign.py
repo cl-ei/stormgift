@@ -43,6 +43,9 @@ async def main():
             await asyncio.sleep(0.5)
             await BiliApi.silver_to_coin(cookie)
 
+        # 触发领取今日辣条
+        await BiliApi.get_bag_list(cookie=cookie)
+
     logging.info(f"Do sign task done. cost: {int((time.time() - start_time) *1000)} ms.\n\n")
 
 
