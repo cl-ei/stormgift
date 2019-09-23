@@ -32,41 +32,27 @@ async def send_gift(cookie, medal, user_name=""):
     available_bags = [bag for bag in bag_list if bag["gift_name"] == "辣条"]
     available_bags.sort(key=lambda x: x["expire_at"])
 
-    logging.info(f"available_bags: {available_bags}")
-    return
-    gift_today = []
-    gift_lt = []
-
-    for gift in bag_list:
-        if gift["corner_mark"] == "今天":
-            gift_today.append(gift)
-        elif gift["gift_name"] == "辣条":
-            gift_lt.append(gift)
-
-    gift_lt.sort(key=lambda x: x["expire_at"])
-    can_send_bag = gift_today + gift_lt
-
+    # 获取背包中的辣条
     send_list = []
-    for gift in can_send_bag:
-        if gift["gift_name"] == "辣条":
-            intimacy_single = 1
-        else:
-            continue
+    for bag in available_bags:
+        gift_num = bag["gift_num"]
+        intimacy_single = 1
+        need_send_gift_num = min(left_intimacy // intimacy_single, gift_num)
 
-        need_send_gift_num = min(left_intimacy // intimacy_single, gift["gift_num"])
         if need_send_gift_num > 0:
             send_list.append({
-                "corner_mark": gift["corner_mark"],
+                "corner_mark": bag["corner_mark"],
                 "coin_type": None,
                 "gift_num": need_send_gift_num,
-                "bag_id": gift["bag_id"],
-                "gift_id": gift["gift_id"],
+                "bag_id": bag["bag_id"],
+                "gift_id": bag["gift_id"],
             })
             left_intimacy -= intimacy_single * need_send_gift_num
 
         if left_intimacy <= 0:
             break
 
+    # 获取钱包 赠送银瓜子辣条
     if left_intimacy > 0:
         wallet_info = await BiliApi.get_wallet(cookie)
         silver = wallet_info.get("silver", 0)
