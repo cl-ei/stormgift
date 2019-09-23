@@ -138,6 +138,12 @@ model_operation_logger.addHandler(console)
 model_operation_logger.addHandler(file_handler)
 model_operation_logger.addHandler(stormgift_file_handler)
 
+silver_box_fh = logging.FileHandler(os.path.join(LOG_PATH, "silver_box.log"))
+silver_box_fh.setFormatter(log_format)
+silver_box_logger = logging.getLogger("silver_box")
+silver_box_logger.setLevel(logging.DEBUG)
+silver_box_logger.addHandler(console)
+silver_box_logger.addHandler(silver_box_fh)
 
 __all__ = (
     "log_format",
@@ -157,4 +163,5 @@ __all__ = (
     "dxj_dd_logger",
     "bili_api_logger",
     "model_operation_logger",
+    "silver_box_logger",
 )

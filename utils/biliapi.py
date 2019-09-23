@@ -226,7 +226,9 @@ class CookieFetcher:
     @classmethod
     async def is_token_usable(cls, cookie, access_token):
         list_url = f'access_key={access_token}&{cls.app_params}&ts={int(time.time())}'
-        list_cookie = cookie.split(';')
+        list_cookie = [_.strip() for _ in cookie.split(';')]
+        cookie = ";".join(list_cookie).strip(";")
+
         params = '&'.join(sorted(list_url.split('&') + list_cookie))
         sign = cls.calc_sign(params)
 
@@ -255,13 +257,18 @@ class CookieFetcher:
             f'&refresh_token={refresh_token}'
             f'&ts={int(time.time())}'
         )
-        list_cookie = cookie.split(';')
+
+        # android param! 严格
+        list_cookie = [_.strip() for _ in cookie.split(';')]
+        cookie = ";".join(list_cookie).strip(";")
+
         params = ('&'.join(sorted(list_url.split('&') + list_cookie)))
         sign = cls.calc_sign(params)
         payload = f'{params}&sign={sign}'
 
         url = f'https://passport.bilibili.com/api/v2/oauth2/refresh_token'
         headers = {"cookie": cookie}
+        print(cookie)
         headers.update(cls.app_headers)
         status_code, content = await cls._request("post", url=url, headers=headers, params=payload)
         if status_code != 200:
@@ -272,6 +279,10 @@ class CookieFetcher:
         except json.JSONDecodeError:
             return False, f"JSONDecodeError: {content}"
 
+        if json_rsp["code"] != 0:
+            return False, json_rsp["message"]
+
+        print(f"json_rsp: {json_rsp}")
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}
         result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
@@ -1206,6 +1217,21 @@ class BiliApi:
             check_error_code=True
         )
         return flag, r
+
+    @classmethod
+    async def join_silver_box(cls, cookie, access_token, timeout=10):
+        app_params = CookieFetcher.app_params
+        temp_params = f'access_key={access_token}&{app_params}&ts={int(time.time())}'
+        # {'code': 0, 'msg': 'ok', 'message': 'ok', 'data': {'silver': '894135', 'awardSilver': 30, 'isEnd': 0}}
+        # {'code': -500, 'msg': '领取时间未到, 请稍后再试', 'message': '领取时间未到, 请稍后再试', 'data': {'surplus': 3}}
+        # {'code': -903, 'msg': '已经领取过这个宝箱', 'message': '已经领取过这个宝箱', 'data': {'surplus': -8.0166666666667}}
+        # {'code': 400, 'msg': '访问被拒绝', 'message': '访问被拒绝', 'data': []}
+        # {'code': -800, 'msg': '未绑定手机', ...}
+        sign = CookieFetcher.calc_sign(temp_params)
+        url = f'https://api.live.bilibili.com/lottery/v1/SilverBox/getAward?{temp_params}&sign={sign}'
+        headers = {"cookie": cookie}
+        headers.update(CookieFetcher.app_headers)
+        return await cls.get(url=url, headers=headers, timeout=timeout, check_response_json=True)
 
 
 async def test():

@@ -326,8 +326,12 @@ class DBCookieOperator:
 
         user_in_period = await LtUserLoginPeriodOfValidity.in_period(user_id=cookie_obj.DedeUserID)
         user_in_iptt_list = cookie_obj.DedeUserID in cls.IMPORTANT_UID_LIST
-        if not user_in_period or not user_in_iptt_list:
+        if not user_in_period and not user_in_iptt_list:
             return False, "User not in period."
+
+        if not cookie_obj.refresh_token or not cookie_obj.access_token:
+            # 重新登录
+            return await cls.set_invalid(cookie_obj)
 
         flag, r = await CookieFetcher.fresh_token(cookie_obj.cookie, cookie_obj.access_token, cookie_obj.refresh_token)
         if not flag:
