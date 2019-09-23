@@ -78,14 +78,14 @@ async def hao_yang_mao_exec(proc_index, cookie):
     if cookie is None:
         logging.error(f"Bad cookie! {cookie}")
         return False, {"re_login": True}
-
-    # do sign.
-    flag, result = await BiliApi.do_sign(cookie)
-    if not flag and "请先登录" in result:
-        logging.warning(f"Do sign failed. result: {result}")
-        return False, {"re_login": True}
-    logging.info("Sign success!")
-    return
+    #
+    # # do sign.
+    # flag, result = await BiliApi.do_sign(cookie)
+    # if not flag and "请先登录" in result:
+    #     logging.warning(f"Do sign failed. result: {result}")
+    #     return False, {"re_login": True}
+    # logging.info("Sign success!")
+    # return
 
     # 送辣条！
     ruid = 20932326
