@@ -28,8 +28,6 @@ async def main():
             await DBCookieOperator.set_invalid(obj)
             continue
 
-        await asyncio.sleep(0.5)
-
         flag, is_vip = await BiliApi.get_if_user_is_live_vip(cookie)
         if flag:
             if is_vip != obj.is_vip:
@@ -40,17 +38,13 @@ async def main():
                 f"flag: {flag}, is_vip: {is_vip}\n"
             )
 
-        await asyncio.sleep(0.5)
-
         r, data = await BiliApi.do_sign_group(cookie)
         if not r:
             logging_msg_list.append(f"ERROR: Sign group failed, {obj.name}-{obj.DedeUserID}: {data}\n")
 
-        await asyncio.sleep(0.5)
         await BiliApi.do_sign_double_watch(cookie)
 
         if obj.DedeUserID == 20932326:
-            await asyncio.sleep(0.5)
             await BiliApi.silver_to_coin(cookie)
 
         # 触发领取今日辣条
