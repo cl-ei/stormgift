@@ -274,38 +274,6 @@ class DBCookieOperator:
         return True, lt_user
 
     @classmethod
-    async def add_cookie_by_cookie(cls, DedeUserID, SESSDATA, bili_jct, notice_email=None):
-        objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == DedeUserID))
-        if not objs:
-            return False, "Not in white list."
-
-        lt_user = objs[0]
-        if lt_user.available and (lt_user.cookie_expire_time - datetime.datetime.now()).total_seconds() > 3600*24*10:
-            return True, lt_user
-
-        cookie = f"bili_jct={bili_jct}; DedeUserID={DedeUserID}; SESSDATA={SESSDATA};"
-        flag, data, uname = await BiliApi.get_if_user_is_live_vip(cookie, user_id=lt_user.DedeUserID, return_uname=True)
-        if not flag:
-            return False, data
-
-        lt_user.bili_jct = bili_jct
-        lt_user.DedeUserID = DedeUserID
-        lt_user.SESSDATA = SESSDATA
-        lt_user.cookie_expire_time = datetime.datetime.now() + datetime.timedelta(days=30)
-        lt_user.available = True
-        lt_user.is_vip = data
-        lt_user.name = uname
-        attrs = ["bili_jct", "DedeUserID", "SESSDATA", "cookie_expire_time", "available", "is_vip", "name"]
-
-        if notice_email is not None:
-            lt_user.notice_email = notice_email
-            attrs.append("notice_email")
-
-        await cls._objects.update(lt_user, only=attrs)
-
-        return True, lt_user
-
-    @classmethod
     async def set_invalid(cls, obj_or_user_id):
         if isinstance(obj_or_user_id, LTUserCookie):
             cookie_obj = obj_or_user_id
@@ -338,6 +306,39 @@ class DBCookieOperator:
                     await asyncio.sleep(1)
 
         send_cookie_invalid_notice(cookie_obj)
+        return True, ""
+
+    @classmethod
+    async def refresh_token(cls, obj_or_user_id):
+        if isinstance(obj_or_user_id, LTUserCookie):
+            cookie_obj = obj_or_user_id
+        else:
+            objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == obj_or_user_id))
+            if not objs:
+                return False, "Cannot get LTUserCookie obj."
+            cookie_obj = objs[0]
+
+        if not cookie_obj.available:
+            return False, "User not available!"
+
+        if not cookie_obj.account or not cookie_obj.password:
+            return False, "No account or password."
+
+        user_in_period = await LtUserLoginPeriodOfValidity.in_period(user_id=cookie_obj.DedeUserID)
+        user_in_iptt_list = cookie_obj.DedeUserID in cls.IMPORTANT_UID_LIST
+        if not user_in_period or not user_in_iptt_list:
+            return False, "User not in period."
+
+        flag, r = await CookieFetcher.fresh_token(cookie_obj.cookie, cookie_obj.access_token, cookie_obj.refresh_token)
+        if not flag:
+            return False, f"User {cookie_obj.name}(uid: {cookie_obj.uid}) cannot fresh_token: {r}"
+
+        attrs = []
+        for k, v in r.items():
+            setattr(cookie_obj, k, v)
+            attrs.append(k)
+        await cls._objects.update(cookie_obj, only=attrs)
+        logging.info(f"User {cookie_obj.name}(uid: {cookie_obj.uid}) access token refresh success!")
         return True, ""
 
     @classmethod
@@ -392,13 +393,7 @@ class DBCookieOperator:
         return None
 
     @classmethod
-    async def get_objs(
-            cls,
-            available: bool = None,
-            is_vip: bool = None,
-            non_blocked: bool = None,
-            separate: bool = False
-    ):
+    async def get_objs(cls, available=None, is_vip=None, non_blocked=None, separate=False):
         query = LTUserCookie.select()
         if available is not None:
             query = query.where(LTUserCookie.available == available)

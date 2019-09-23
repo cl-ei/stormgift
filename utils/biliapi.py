@@ -49,6 +49,14 @@ class CookieFetcher:
         "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
         "Connection": "keep-alive",
     }
+    app_params = (
+        f'actionKey={actionKey}'
+        f'&appkey={appkey}'
+        f'&build={build}'
+        f'&device={device}'
+        f'&mobi_app={mobi_app}'
+        f'&platform={platform}'
+    )
 
     @classmethod
     def calc_sign(cls, text):
@@ -208,6 +216,61 @@ class CookieFetcher:
 
         if json_rsp["code"] != 0:
             return False, json_rsp.get("message", "unknown error in login!")
+
+        cookies = json_rsp["data"]["cookie_info"]["cookies"]
+        result = {c['name']: c['value'] for c in cookies}
+        result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
+        result["refresh_token"] = json_rsp["data"]["token_info"]["refresh_token"]
+        return True, result
+
+    @classmethod
+    async def is_token_usable(cls, cookie, access_token):
+        list_url = f'access_key={access_token}&{cls.app_params}&ts={int(time.time())}'
+        list_cookie = cookie.split(';')
+        params = '&'.join(sorted(list_url.split('&') + list_cookie))
+        sign = cls.calc_sign(params)
+
+        url = f'https://passport.bilibili.com/api/v2/oauth2/info?{params}&sign={sign}'
+        headers = {"cookie": cookie}
+        headers.update(cls.app_headers)
+        status_code, content = await cls._request("get", url=url, headers=headers)
+        if status_code != 200:
+            return False, content
+
+        try:
+            r = json.loads(content)
+            assert r["code"] == 0
+            assert "mid" in r["data"]
+        except Exception as e:
+            return False, f"Error: {e}"
+
+        return True, ""
+
+    @classmethod
+    async def fresh_token(cls, cookie, access_token, refresh_token):
+        list_url = (
+            f'access_key={access_token}'
+            f'&access_token={access_token}'
+            f'&{cls.app_params}'
+            f'&refresh_token={refresh_token}'
+            f'&ts={int(time.time())}'
+        )
+        list_cookie = cookie.split(';')
+        params = ('&'.join(sorted(list_url.split('&') + list_cookie)))
+        sign = cls.calc_sign(params)
+        payload = f'{params}&sign={sign}'
+
+        url = f'https://passport.bilibili.com/api/v2/oauth2/refresh_token'
+        headers = {"cookie": cookie}
+        headers.update(cls.app_headers)
+        status_code, content = await cls._request("post", url=url, headers=headers, params=payload)
+        if status_code != 200:
+            return False, content
+
+        try:
+            json_rsp = json.loads(content)
+        except json.JSONDecodeError:
+            return False, f"JSONDecodeError: {content}"
 
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}
@@ -1147,9 +1210,26 @@ class BiliApi:
 
 async def test():
     from utils.highlevel_api import DBCookieOperator
-    obj = await DBCookieOperator.get_by_uid("DD")
-    flag, r = await BiliApi.check_silver_box(cookie=obj.cookie)
+
+    flag, r = await CookieFetcher.login(account="xbfgtttyhzlko@163.com", password="rzxb86x9")
     print(flag, r)
+
+    cookie = ";".join([f"{k}={v}" for k, v in r.items() if k not in ("access_token", "refresh_token")])
+    access_token = r["access_token"]
+    refresh_token = r["refresh_token"]
+
+    r = await CookieFetcher.is_token_usable(cookie, access_token)
+    print(f"access_token is usable: {r}")
+
+    r = await CookieFetcher.fresh_token(cookie, access_token, refresh_token)
+    print(f"refresh_token: {r}")
+    #
+    #
+    # obj = await DBCookieOperator.get_by_uid(458027408)
+    # # flag, r = await BiliApi.check_silver_box(cookie=obj.cookie)
+    # # print(flag, r)
+    #
+
     # account = "pfanxllfnfslq@163.com"
     # password = "vvdv41v4"
     # r = await CookieFetcher.get_cookie(account=account, password=password)
@@ -1157,4 +1237,3 @@ async def test():
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(test())
-    loop.close()
