@@ -86,6 +86,8 @@ async def hao_yang_mao_exec(proc_index, cookie):
         return False, {"re_login": True}
     logging.info("Sign success!")
 
+    return
+
     # 送辣条！
     ruid = 20932326
     live_room_id = 13369254
