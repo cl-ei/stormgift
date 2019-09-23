@@ -8,6 +8,7 @@ async def send_gift(cookie, medal, user_name=""):
 
     r = await BiliApi.get_medal_info_list(cookie)
     if not r:
+        logging.error(f"Cannot get medal of user: {user_name}")
         return
 
     uid = r[0]["uid"]
