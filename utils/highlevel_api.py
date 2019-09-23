@@ -467,7 +467,7 @@ class DBCookieOperator:
             }
             return priority_map.get(row[0], 4)
 
-        total_intimacy = sum([r[2] for r in raffle_result])
+        total_intimacy = sum([r[2] for r in raffle_result if r[0] != "宝箱"])
         postfix = []
         for r in sorted(raffle_result, key=sort_func):
             postfix.append("-" * 20 + "\n")
