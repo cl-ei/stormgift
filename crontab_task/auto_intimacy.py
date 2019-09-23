@@ -29,7 +29,11 @@ async def send_gift(cookie, medal, user_name=""):
     logging.info(f"今日剩余亲密度: {left_intimacy}")
 
     bag_list = await BiliApi.get_bag_list(cookie)
-    logging.info(f"bag_list: {bag_list}")
+    available_bags = [bag for bag in bag_list if bag["gift_name"] == "辣条"]
+    available_bags.sort(key=lambda x: x["expire_at"])
+
+    logging.info(f"available_bags: {available_bags}")
+    return
     gift_today = []
     gift_lt = []
 
