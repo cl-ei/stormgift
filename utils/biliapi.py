@@ -1210,12 +1210,7 @@ class BiliApi:
     async def check_silver_box(cls, cookie, timeout=5):
         url = "https://api.live.bilibili.com/lottery/v1/SilverBox/getCurrentTask"
         headers = {"Cookie": cookie}
-        flag, r = await cls.get(
-            url=url,
-            headers=headers,
-            timeout=timeout,
-            check_error_code=True
-        )
+        flag, r = await cls.get(url=url, headers=headers, timeout=timeout, check_response_json=True)
         return flag, r
 
     @classmethod

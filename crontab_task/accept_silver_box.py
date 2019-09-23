@@ -10,14 +10,12 @@ async def accept(user):
     while True:
         flag, data = await BiliApi.check_silver_box(cookie=user.cookie)
         if not flag:
-            logging.warning(f"{user.name}(uid: {user.uid}) Cannot check_silver_box! error: {data}")
-            await asyncio.sleep(60)
-            continue
+            logging.warning(f"{user.name}(uid: {user.uid}) Cannot check_silver_box! error: {data}！ 现在退出。")
+            return
 
         code = data['code']
         if code == -10017:
-            logging.info()
-            logging.info(f"{user.name}(uid: {user.uid}) 今日宝箱领取完毕")
+            logging.info(f"{user.name}(uid: {user.uid}) 今日宝箱领取完毕！现在退出。")
             return
 
         if code != 0:
