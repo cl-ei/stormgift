@@ -94,6 +94,7 @@ async def main():
         await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="录屏")
 
     obj = await DBCookieOperator.get_by_uid(312186483)
+    print(f"小夭精: {obj}")
     if obj:
         await send_gift(cookie=obj.cookie, medal="小夭精", user_name="桃子")
 
