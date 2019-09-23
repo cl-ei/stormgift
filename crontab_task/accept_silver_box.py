@@ -40,7 +40,7 @@ async def accept(user):
 
         code = data['code']
         if code == 0:
-            logging.info(f"{user.name}(uid: {user.uid}) 打开了宝箱.")
+            logging.info(f"{user.name}(uid: {user.uid}) 打开了宝箱. response: {data}")
 
         elif code == -500:
             sleep_time = data['data']['surplus'] * 60 + 5
