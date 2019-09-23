@@ -7,7 +7,6 @@ async def send_gift(cookie, medal, user_name=""):
     from utils.biliapi import BiliApi
 
     r = await BiliApi.get_medal_info_list(cookie)
-    print(r)
     if not r:
         logging.error(f"Cannot get medal of user: {user_name}")
         return
@@ -70,12 +69,11 @@ async def send_gift(cookie, medal, user_name=""):
             left_intimacy -= supplement_lt_num
 
     for gift in send_list:
-        # flag, data = await BiliApi.send_gift(
-        #     gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
-        # )
-        # if not flag:
-        #     logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
-        pass
+        flag, data = await BiliApi.send_gift(
+            gift["gift_id"], gift["gift_num"], gift["coin_type"], gift["bag_id"], ruid, live_room_id, cookie
+        )
+        if not flag:
+            logging.info(f"Send failed, msg: {data.get('message', 'unknown')}")
 
     send_msg = "\n".join([f"{s['corner_mark']}辣条 * {s['gift_num']}" for s in send_list])
     logging.info(
@@ -96,9 +94,8 @@ async def main():
         await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="录屏")
 
     obj = await DBCookieOperator.get_by_uid(312186483)
-    print(f"小夭精: {obj}")
     if obj:
-        await send_gift(cookie=obj.cookie, medal="小夭精", user_name="桃子")
+        await send_gift(cookie=obj.cookie, medal="發电姬", user_name="桃子")
 
     obj = await DBCookieOperator.get_by_uid(87301592)
     if obj:
