@@ -503,39 +503,8 @@ class HYMCookiesOfCl:
         return True
 
 
-class AlternativeLtDetection:
-    key = "ALTERNATIVE_LT_DETECTION"
-    threshold = 200
-
-    @classmethod
-    async def record(cls, user_id):
-        now_hour = 0 if datetime.datetime.now().hour < 12 else 1
-        key = f"{cls.key}_{datetime.datetime.now().date()}_{now_hour}_{user_id}"
-        times = await redis_cache.incr(key)
-        await redis_cache.expire(key, timeout=3600*72)
-        return int(times)
-
-    @classmethod
-    async def get_blocked_list(cls, *uid_list):
-        now_hour = 0 if datetime.datetime.now().hour < 12 else 1
-        keys = [f"{cls.key}_{datetime.datetime.now().date()}_{now_hour}_{uid}" for uid in uid_list]
-
-        blocked_times = await redis_cache.mget(*keys, _un_pickle=True)
-        print(blocked_times)
-        result = []
-        for index in range(len(uid_list)):
-            bl = blocked_times[index]
-            if bl is not None and int(bl) > cls.threshold:
-                result.append(uid_list[index])
-        return result
-
-
 async def test():
-    r = await AlternativeLtDetection.get_blocked_list(353598539, 333232, 20932326)
-    print(r)
-    # for i in r:
-    #     await HansyDynamicNotic.remove(i)
-
+    # await HansyDynamicNotic.remove(i)
     pass
 
 

@@ -5,8 +5,8 @@ from utils.biliapi import BiliApi, CookieFetcher
 from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
-from utils.email import send_cookie_invalid_notice, send_cookie_relogin_notice
-from utils.dao import LtUserLoginPeriodOfValidity, AlternativeLtDetection
+from utils.email import send_cookie_invalid_notice
+from utils.dao import LtUserLoginPeriodOfValidity
 
 
 class ReqFreLimitApi(object):
@@ -483,14 +483,8 @@ class DBCookieOperator:
                 f"24小时内累计获得亲密度：{total_intimacy}\n"
             )
         else:
-            alternative_list = await AlternativeLtDetection.get_blocked_list(uid)
-            if uid in alternative_list:
-                prompt = "你没有进小黑屋。\n但因为你在别处也开通了代挂，在接下来的12小时里，不再为你领取辣条。"
-            else:
-                prompt = "你现在正常领取辣条中"
-
             title = (
-                f"{prompt}\n\n"
+                f"你现在正常领取辣条中\n\n"
                 f"最后一次抽奖时间：{str(most_recently)}\n"
                 f"24小时内累计获得亲密度：{total_intimacy}\n"
             )

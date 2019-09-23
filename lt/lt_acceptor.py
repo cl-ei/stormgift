@@ -5,7 +5,7 @@ import asyncio
 import requests
 import traceback
 from random import random
-from utils.dao import redis_cache, AlternativeLtDetection
+from utils.dao import redis_cache
 from config import cloud_acceptor_url
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
@@ -73,19 +73,7 @@ class Worker(object):
             return
 
         non_skip, normal_objs = await self.load_cookie()
-        alternative_uid_list = await AlternativeLtDetection.get_blocked_list(*[nr.uid for nr in normal_objs])
-        filtered_normal_objs = []
-        alternative_uid_list_prompt = []
-        for nr in normal_objs:
-            if nr.uid in alternative_uid_list:
-                alternative_uid_list_prompt.append(f"{nr.name}(uid: {nr.uid})")
-            else:
-                filtered_normal_objs.append(nr)
-        if alternative_uid_list_prompt:
-            alternative_uid_list_prompt = ", ".join(alternative_uid_list_prompt)
-            logging.warning(f"Find alternative uid list: {alternative_uid_list_prompt}.")
-
-        user_cookie_objs = non_skip + filtered_normal_objs
+        user_cookie_objs = non_skip + normal_objs
         cookies = [c.cookie for c in user_cookie_objs]
 
         req_json = {
@@ -139,13 +127,6 @@ class Worker(object):
                 elif "请先登录哦" in message:
                     await DBCookieOperator.set_invalid(cookie_obj)
                     self._cookie_objs_update_time = 0
-                elif (
-                    "你已经领取过啦" in message
-                    or "已经参加抽奖" in message
-                    or "您已参加抽奖" in message
-                ):
-                    r = await AlternativeLtDetection.record(cookie_obj.uid)
-                    logging.warning(f"Record AlternativeLtDetection: {cookie_obj.name}(uid: {cookie_obj.uid}): {r}")
 
                 if index != 0:
                     message = message[:100]
