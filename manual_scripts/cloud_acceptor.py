@@ -161,7 +161,9 @@ def join_pk(room_id, gift_id, cookie, gift_type=None):
     if r.get("code") != 0:
         return False, r.get("message")
 
-    return True, r.get("data", {}).get("title", "unknown tittle")
+    award_name = r["data"]['award_text']
+    award_num = r["data"]['award_num']
+    return True, f"{award_num}_{award_name}"
 
 
 def accept_handler(q, act, room_id, gift_id, cookie, gift_type=None):
