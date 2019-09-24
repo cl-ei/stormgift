@@ -74,12 +74,12 @@ class Worker(object):
 
         non_skip, normal_objs = await self.load_cookie()
         user_cookie_objs = non_skip + normal_objs
-        cookies = [c.cookie for c in user_cookie_objs]
         if act == "join_tv_v5":
-            cookies = await LTUserSettings.filter_cookie(cookies, key="tv_percent")
+            user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="tv_percent")
         elif act == "join_guard":
-            cookies = await LTUserSettings.filter_cookie(cookies, key="guard_percent")
+            user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="guard_percent")
 
+        cookies = [c.cookie for c in user_cookie_objs]
         req_json = {
             "act": act,
             "room_id": room_id,
