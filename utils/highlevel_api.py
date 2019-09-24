@@ -472,7 +472,7 @@ class DBCookieOperator:
         for r in sorted(raffle_result, key=sort_func):
             gift_name = r[0]
             award_name = "银瓜子" if gift_name == "宝箱" else "辣条"
-            postfix.append(f"{gift_name}: {r[1]}次({r[2]}{award_name})、")
+            postfix.append(f"{gift_name}: {r[1]}次({r[2]}{award_name})")
 
         if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * 6:
             blocked_datetime = cookie_obj.blocked_time
@@ -481,15 +481,22 @@ class DBCookieOperator:
 
         if blocked_datetime:
             title = (
-                f"系统在{str(blocked_datetime)[:19]}发现你被关进了小黑屋，目前挂辣条暂停中。\n\n"
+                f"系统在{str(blocked_datetime)[:19]}发现你被关进了小黑屋，目前挂辣条暂停中。\n"
                 f"最后一次抽奖时间：{str(most_recently)}\n"
                 f"24小时内累计获得亲密度：{total_intimacy}\n"
             )
         else:
             title = (
-                f"你现在正常领取辣条中\n\n"
+                f"你现在正常领取辣条中\n"
                 f"最后一次抽奖时间：{str(most_recently)}\n"
                 f"24小时内累计获得亲密度：{total_intimacy}\n"
             )
 
-        return True, f"{cookie_obj.name}(uid: {cookie_obj.uid})\n" + title + "".join(postfix)
+        prompt = [
+            f"{cookie_obj.name}(uid: {cookie_obj.uid})\n",
+            title,
+            "-"*20,
+            "、".join(postfix),
+            "。"
+        ]
+        return True, "".join(prompt)
