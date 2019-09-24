@@ -495,7 +495,7 @@ class DBCookieOperator:
         prompt = [
             f"{cookie_obj.name}(uid: {cookie_obj.uid})\n",
             title,
-            "-"*20,
+            f"{'-'*20}\n",
             "、".join(postfix),
             "。"
         ]
