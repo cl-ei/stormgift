@@ -470,11 +470,9 @@ class DBCookieOperator:
         total_intimacy = sum([r[2] for r in raffle_result if r[0] != "宝箱"])
         postfix = []
         for r in sorted(raffle_result, key=sort_func):
-            postfix.append("-" * 20 + "\n")
             gift_name = r[0]
             award_name = "银瓜子" if gift_name == "宝箱" else "辣条"
-            postfix.append(f"{gift_name}: {r[1]}次, {r[2]}{award_name}\n")
-        postfix.append("-" * 20)
+            postfix.append(f"{gift_name}: {r[1]}次、{r[2]}{award_name}, ")
 
         if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * 6:
             blocked_datetime = cookie_obj.blocked_time
