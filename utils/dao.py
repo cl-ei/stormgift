@@ -1,6 +1,7 @@
 import re
 import time
 import json
+import random
 import pickle
 import aioredis
 import datetime
@@ -527,6 +528,25 @@ class LTUserSettings:
         settings["guard_percent"] = guard_percent
         await redis_cache.set(key=key, value=settings)
         return True
+
+    @classmethod
+    async def filter_cookie(cls, cookies, key):
+        uid_list = [c.uid for c in cookies]
+        keys = [f"{cls.key}_{u}" for u in uid_list]
+        settings_list = await redis_cache.mget(*keys)
+
+        result = []
+        for index in range(len(cookies)):
+            cookie = cookies[index]
+            setting = settings_list[index]
+            if not isinstance(setting, dict):
+                setting = {}
+
+            percent = setting.get(key, 100)
+            if random.randint(0, 99) < percent:  # 考虑到percent == 0时
+                result.append(cookie)
+
+        return result
 
 
 async def test():

@@ -5,7 +5,7 @@ import asyncio
 import requests
 import traceback
 from random import random
-from utils.dao import redis_cache
+from utils.dao import redis_cache, LTUserSettings
 from config import cloud_acceptor_url
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
@@ -75,6 +75,10 @@ class Worker(object):
         non_skip, normal_objs = await self.load_cookie()
         user_cookie_objs = non_skip + normal_objs
         cookies = [c.cookie for c in user_cookie_objs]
+        if act == "join_tv_v5":
+            cookies = await LTUserSettings.filter_cookie(cookies, key="tv_percent")
+        elif act == "join_guard":
+            cookies = await LTUserSettings.filter_cookie(cookies, key="guard_percent")
 
         req_json = {
             "act": act,
