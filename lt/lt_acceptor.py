@@ -78,6 +78,8 @@ class Worker(object):
             user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="tv_percent")
         elif act == "join_guard":
             user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="guard_percent")
+        elif act == "join_pk":
+            user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="pk_percent")
 
         cookies = [c.cookie for c in user_cookie_objs]
         req_json = {

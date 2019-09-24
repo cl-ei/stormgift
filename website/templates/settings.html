@@ -84,16 +84,18 @@
 
 <div>
     <label>①<input type="checkbox" name="do-sign" checked disabled>每日签到、应援团签到、双端签到</label>
-    <label>①<input type="checkbox" name="heart-beat" checked disabled>挂机升UL</label>
-    <label>②<input type="checkbox" name="silver-box" checked disabled>每日宝箱领取</label>
+    <label>②<input type="checkbox" name="heart-beat" checked disabled>挂机升UL</label>
+    <label>③<input type="checkbox" name="silver-box" checked disabled>每日宝箱领取</label>
 
-    <label>③ 小电视/高能领取参与率
+    <label>④ 小电视/高能领取参与率
         <input class="input-number" type="number" name="tv-percent" value="{{ settings.tv_percent }}">%
     </label>
     <label>⑤ 大航海亲密度领取参与率
         <input class="input-number" type="number" name="guard-percent" value="{{ settings.guard_percent }}">%
     </label>
-
+    <label>⑥ 大乱斗PK获胜参与率
+        <input class="input-number" type="number" name="pk-percent" value="{{ settings.pk_percent }}">%
+    </label>
     <button class="button center" id="submit-settings">保存设置</button>
 
 </div>
@@ -119,13 +121,19 @@ $(function () {
         console.log("submit");
 
         let tv_percent = parseInt($("input[name=tv-percent]").val()) || -1;
-        let guard_percent = parseInt($("input[name=guard-percent]").val()) || -1;
         if (tv_percent < 0 || tv_percent > 100){
             warning("小电视参与率超过范围，请设置： 0~100 !");
             return;
         }
+        let guard_percent = parseInt($("input[name=guard-percent]").val()) || -1;
         if (guard_percent < 0 || guard_percent > 100){
             warning("大航海参与率超过范围，请设置： 0~100 !");
+            return;
+        }
+
+        let pk_percent = parseInt($("input[name=guard-percent]").val()) || -1;
+        if (pk_percent < 0 || pk_percent > 100){
+            warning("大乱斗PK获胜参与率超过范围，请设置： 0~100 !");
             return;
         }
 
@@ -136,6 +144,7 @@ $(function () {
             data: {
                 tv_percent: tv_percent,
                 guard_percent: guard_percent,
+                pk_percent: pk_percent,
             },
             success: function (r){
                 if (r.code !== 0){
