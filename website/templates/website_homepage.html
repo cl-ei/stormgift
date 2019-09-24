@@ -208,48 +208,39 @@ $(function () {
         $("#prompt-modal-body").html(msg);
         $("#prompt-modal").modal("show");
     }
-    function query(){
-        let uid = parseInt($("input[name=query-uid]").val());
-        if (uid){
-            console.log("uid")
-        }else{
-            warning("错误的uid！");
-            return;
-        }
-        $.ajax({
-            url: "/lt/api",
-            type: "post",
-            data: {
-                action: "query",
-                uid: uid,
-            },
-            success: function (data){warning(data)},
-            error: function (data) {warning(data)}
-        });
-    }
     function submit(){
+        $("#submit-cookie").off("click");
+
         let account = $("input[name=user-name]").val();
         let password = $("input[name=password]").val();
         let email = $("input[name=identification]").val();
 
         $.ajax({
-            url: "/lt/api",
+            url: "/lt/login",
             type: "post",
             data: {
-                action: "user_login",
                 account: account,
                 password: password,
                 email: email,
             },
-            success: function (data){warning(data)},
-            error: function (data) {warning(data)}
+            success: function (r){
+                if (r.code !== 0){
+                    warning(r.err_msg);
+                }else{
+                    window.location.href = r.location;
+                }
+                $("#submit-cookie").click(submit);
+            },
+            error: function (data) {
+                warning("发生错误：" + data.responseText);
+                $("#submit-cookie").click(submit);
+            }
         });
     }
     $("#modal-confirm-btn").click(function () {
         $("#prompt-modal").modal("hide");
     });
     $("#submit-cookie").click(submit);
-    $("#submit-query").click(query);
 });
 </script>
 </body>

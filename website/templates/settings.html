@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html class="no-js" lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <title>CL's 宝藏站点 - 设置页面</title>
+    <meta name="author" content="CL" />
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="MobileOptimized" content="320" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/css/font-awesome.min.css">
+    <style>
+        body{
+            margin: 30px;
+            width: calc(100% - 60px);
+            background: #eee;
+        }
+        table{
+            width: 100%;
+            max-width: 1600px;
+            margin-bottom: 20px;
+            border: 1px solid #7a7a7a;
+            border-collapse: collapse;
+            border-left: none;
+            word-break: normal;
+            line-height: 30px;
+            text-align: center;
+        }
+        tr, th, td{
+            border: 1px solid #7a7a7a;
+            text-align: center;
+        }
+        hr{
+            border-top: 1px solid #444;
+        }
+        input{
+            margin: 0 3px 0 7px !important;
+            text-align: center;
+            background: #eee;
+        }
+        .input-number{
+            width: 50px;
+            border: none;
+            border-bottom: 1px solid;
+        }
+        button{
+            border: none;
+            background: #ccc;
+            padding: 6px 12px;
+            margin-top: 15px;
+            outline: none;
+            transition: all 0.3s ease-out;
+            cursor: pointer;
+        }button:hover{
+            background: #777;
+            color: #fff;
+        }
+        a{
+            text-decoration: none;
+            color: #333;
+            border-bottom: 1px solid;
+        }
+        a:hover{
+            text-decoration: none;
+            color: #000000;
+            border-bottom: 1px solid;
+        }
+        label{display: block;}
+    </style>
+    <script>
+        window.CDN_URL = "{{ CDN_URL }}";
+    </script>
+</head>
+<body>
+{% if err_msg %}
+<h4><strong>{{ err_msg }}</strong></h4>
+<br />
+<a href="/lt">返回宝藏站点主页</a>
+{% else %}
+<h3><strong>{{ user_name }}(uid: {{ user_id }}): <br />你已经配置成功，正在为你领取辣条中。</strong></h3>
+<p><strong>你现在可以在下方进行详细配置。</strong></p>
+<hr>
+
+<div>
+    <label>①<input type="checkbox" name="do-sign" checked disabled>每日签到、应援团签到、双端签到</label>
+    <label>①<input type="checkbox" name="heart-beat" checked disabled>挂机升UL</label>
+    <label>②<input type="checkbox" name="silver-box" checked disabled>每日宝箱领取</label>
+
+    <label>③ 小电视/高能领取参与率
+        <input class="input-number" type="number" name="tv-percent" value="{{ settings.tv_percent }}">%
+    </label>
+    <label>⑤ 大航海亲密度领取参与率
+        <input class="input-number" type="number" name="guard-percent" value="{{ settings.guard_percent }}">%
+    </label>
+
+    <button class="button center" id="submit-settings">保存设置</button>
+
+</div>
+
+<div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body" style="text-align: center;">
+                <div id="prompt-modal-body"></div>
+                <button class="button center" id="modal-confirm-btn">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="{{ CDN_URL }}/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="{{ CDN_URL }}/static/js/bootstrap.min.js"></script>
+<script>
+$(function () {
+    function warning(msg){$("#prompt-modal-body").html(msg);$("#prompt-modal").modal("show")}
+    $("#modal-confirm-btn").click(function () {$("#prompt-modal").modal("hide")});
+
+    function submit(){
+        console.log("submit");
+
+        let tv_percent = parseInt($("input[name=tv-percent]").val()) || -1;
+        let guard_percent = parseInt($("input[name=guard-percent]").val()) || -1;
+        if (tv_percent < 0 || tv_percent > 100){
+            warning("小电视参与率超过范围，请设置： 0~100 !");
+            return;
+        }
+        if (guard_percent < 0 || guard_percent > 100){
+            warning("大航海参与率超过范围，请设置： 0~100 !");
+            return;
+        }
+
+        $("#submit-settings").off("click");
+        $.ajax({
+            url: "/lt/post_settings",
+            type: "post",
+            data: {
+                tv_percent: tv_percent,
+                guard_percent: guard_percent,
+            },
+            success: function (r){
+                if (r.code !== 0){
+                    warning(r.err_msg);
+                }else{
+                    warning("操作成功！");
+                }
+                $("#submit-settings").click(submit);
+            },
+            error: function (data) {
+                warning("发生错误：" + data.responseText);
+                $("#submit-settings").click(submit);
+            }
+        });
+    }
+    $("#submit-settings").click(submit);
+});
+</script>
+{% endif %}
+</body>
+</html>

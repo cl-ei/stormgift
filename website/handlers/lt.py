@@ -3,11 +3,12 @@ import json
 import copy
 import datetime
 import traceback
+from random import randint
 from aiohttp import web
 from jinja2 import Template
 from config import CDN_URL
 from utils.cq import bot_zy, bot
-from utils.dao import redis_cache, HansyDynamicNotic
+from utils.dao import redis_cache, HansyDynamicNotic, LTUserSettings
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import DBCookieOperator, ReqFreLimitApi
 from utils.dao import LtUserLoginPeriodOfValidity
@@ -60,6 +61,27 @@ def render_to_response(template, context=None):
 
     template = Template(template_context)
     return web.Response(text=template.render(context or {}), content_type="text/html")
+
+
+def json_response(data):
+    return web.Response(text=json.dumps(data), content_type="application/json")
+
+
+async def check_login(request):
+    try:
+        bili_uid = request.cookies["DedeUserID"]
+        mad_token = request.cookies["mad_token"]
+        bili_uid = int(bili_uid)
+
+        key = f"LT_USER_MAD_TOKEN_{bili_uid}"
+        mad_token_cache = await redis_cache.get(key)
+        if mad_token != mad_token_cache:
+            raise ValueError("Bad mad_token.")
+
+    except (KeyError, ValueError, TypeError):
+        return
+
+    return bili_uid
 
 
 async def lt(request):
@@ -171,6 +193,68 @@ async def api(request):
 
     else:
         return web.Response(text=f"X")
+
+
+async def login(request):
+    data = await request.post()
+    account = data['account']
+    password = data['password']
+    email = data["email"]
+    if not account or not password:
+        return json_response({"code": 403, "err_msg": "输入错误！检查你的输入!"})
+
+    try:
+        flag, obj = await DBCookieOperator.add_cookie_by_account(
+            account=account, password=password, notice_email=email)
+    except Exception as e:
+        return json_response({"code": 500, "err_msg": f"服务器内部发生错误! {e}\n{traceback.format_exc()}"})
+
+    if not flag:
+        return json_response({"code": 403, "err_msg": f"操作失败！原因：{obj}"})
+
+    await LtUserLoginPeriodOfValidity.update(obj.DedeUserID)
+
+    key = f"LT_USER_MAD_TOKEN_{obj.DedeUserID}"
+    mad_token = f"{int(time.time() * 1000):0x}{randint(0x1000, 0xffff):0x}"
+    await redis_cache.set(key=key, value=mad_token, timeout=3600*24*30)
+
+    response = json_response({"code": 0, "location": "/lt/settings"})
+    response.set_cookie(name="mad_token", value=mad_token, httponly=True)
+    response.set_cookie(name="DedeUserID", value=obj.DedeUserID, httponly=True)
+    return response
+
+
+async def settings(request):
+    context = {"CDN_URL": CDN_URL}
+    bili_uid = await check_login(request)
+    if not bili_uid:
+        context["err_msg"] = "你无权访问此页面。请返回宝藏站点首页，正确填写你的信息，然后点击「我要挂辣条」按钮。"
+        return render_to_response("website/templates/settings.html", context=context)
+
+    obj = await DBCookieOperator.get_by_uid(user_id=bili_uid)
+    context["user_name"] = obj.name
+    context["user_id"] = obj.uid
+    context["settings"] = await LTUserSettings.get(uid=bili_uid)
+    return render_to_response("website/templates/settings.html", context=context)
+
+
+async def post_settings(request):
+    bili_uid = await check_login(request)
+    if not bili_uid:
+        return json_response({"code": 403, "err_msg": "你无权访问。"})
+
+    data = await request.post()
+    try:
+        tv_percent = int(data["tv_percent"])
+        guard_percent = int(data["guard_percent"])
+    except (KeyError, TypeError, ValueError):
+        return json_response({"code": 403, "err_msg": "你提交了不正确的参数 ！"})
+
+    if not 0 <= tv_percent <= 100 or not 0 <= guard_percent <= 100:
+        return json_response({"code": 403, "err_msg": "范围错误！请设置0~100 ！"})
+
+    await LTUserSettings.set(uid=bili_uid, tv_percent=tv_percent, guard_percent=guard_percent)
+    return json_response({"code": 0})
 
 
 async def query_gifts(request):
