@@ -120,18 +120,18 @@ $(function () {
     function submit(){
         console.log("submit");
 
-        let tv_percent = parseInt($("input[name=tv-percent]").val()) || -1;
+        let tv_percent = parseInt($("input[name=tv-percent]").val()) || 0;
         if (tv_percent < 0 || tv_percent > 100){
             warning("小电视参与率超过范围，请设置： 0~100 !");
             return;
         }
-        let guard_percent = parseInt($("input[name=guard-percent]").val()) || -1;
+        let guard_percent = parseInt($("input[name=guard-percent]").val()) || 0;
         if (guard_percent < 0 || guard_percent > 100){
             warning("大航海参与率超过范围，请设置： 0~100 !");
             return;
         }
 
-        let pk_percent = parseInt($("input[name=pk-percent]").val()) || -1;
+        let pk_percent = parseInt($("input[name=pk-percent]").val()) || 0;
         if (pk_percent < 0 || pk_percent > 100){
             warning("大乱斗PK获胜参与率超过范围，请设置： 0~100 !");
             return;
