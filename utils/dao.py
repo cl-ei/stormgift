@@ -552,6 +552,8 @@ class LTUserSettings:
 
 
 async def test():
+    r = await LTUserSettings.get(20932326)
+    print(r)
     # await HansyDynamicNotic.remove(i)
     pass
 
