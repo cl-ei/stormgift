@@ -1245,10 +1245,10 @@ async def test():
         for gift_name, gift_num_list in gift_info.items():
             gift_prompt.append(f"{gift_name}*{sum(gift_num_list)}")
         gift_prompt = "、".join(gift_prompt)
-        prompt.append(f"{corner_mark}的{gift_prompt},\n")
+        prompt.append(f"{corner_mark}的{gift_prompt}")
         print(corner_mark, gift_info)
 
-    print("".join(prompt))
+    print(",\n".join(prompt))
 
 
 if __name__ == "__main__":

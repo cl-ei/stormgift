@@ -449,9 +449,10 @@ class BotUtils:
             for gift_name, gift_num_list in gift_info.items():
                 gift_prompt.append(f"{gift_name}*{sum(gift_num_list)}")
             gift_prompt = "、".join(gift_prompt)
-            prompt.append(f"{corner_mark}的{gift_prompt},\n")
+            prompt.append(f"{corner_mark}的{gift_prompt}")
 
-        message = f"{user.name}(uid: {user.uid})的背包里有:\n{''.join(prompt)}"
+        prompt = ',\n'.join(prompt)
+        message = f"{user.name}(uid: {user.uid})的背包里有:\n{prompt}。"
         self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
 
 
