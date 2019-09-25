@@ -425,7 +425,7 @@ class BotUtils:
             return True
 
         try:
-            postfix = int(msg[4:])
+            postfix = int(msg[2:])
             assert postfix > 0
             bili_uid = postfix
         except (ValueError, TypeError, AssertionError):
@@ -553,7 +553,7 @@ class BotHandler:
         elif msg.startswith("挂机查询") and group_id == QQ_GROUP_STAR_LIGHT:
             return await p.proc_lt_status(user_id, msg=msg, group=True)
 
-        elif msg == "背包":
+        elif msg.startswith("背包") and group_id == QQ_GROUP_STAR_LIGHT:
             return await p.proc_query_bag(user_id, msg=msg, group=True)
 
     @classmethod
