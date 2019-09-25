@@ -1231,29 +1231,10 @@ class BiliApi:
 
 async def test():
     from utils.highlevel_api import DBCookieOperator
+    user = await DBCookieOperator.get_by_uid("DD")
+    bag_list = await BiliApi.get_bag_list(user.cookie)
+    print(bag_list)
 
-    flag, r = await CookieFetcher.login(account="xbfgtttyhzlko@163.com", password="rzxb86x9")
-    print(flag, r)
-
-    cookie = ";".join([f"{k}={v}" for k, v in r.items() if k not in ("access_token", "refresh_token")])
-    access_token = r["access_token"]
-    refresh_token = r["refresh_token"]
-
-    r = await CookieFetcher.is_token_usable(cookie, access_token)
-    print(f"access_token is usable: {r}")
-
-    r = await CookieFetcher.fresh_token(cookie, access_token, refresh_token)
-    print(f"refresh_token: {r}")
-    #
-    #
-    # obj = await DBCookieOperator.get_by_uid(458027408)
-    # # flag, r = await BiliApi.check_silver_box(cookie=obj.cookie)
-    # # print(flag, r)
-    #
-
-    # account = "pfanxllfnfslq@163.com"
-    # password = "vvdv41v4"
-    # r = await CookieFetcher.get_cookie(account=account, password=password)
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

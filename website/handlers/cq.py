@@ -414,6 +414,32 @@ class BotUtils:
         else:
             self.bot.send_private_msg(user_id=user_id, message=msg)
 
+    async def proc_query_bag(self, user_id, msg, group=False):
+        if group is not True:
+            return
+
+        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        if not bili_uid:
+            message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
+            self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+            return True
+
+        try:
+            postfix = int(msg[4:])
+            assert postfix > 0
+            bili_uid = postfix
+        except (ValueError, TypeError, AssertionError):
+            pass
+
+        user = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
+        if not user:
+            message = f"未查询到用户「{bili_uid}」。可能用户已过期，请重新登录。"
+            self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+            return
+
+        bag_list = await BiliApi.get_bag_list(user.cookie)
+        available_bags = [bag for bag in bag_list if bag["gift_name"] == "辣条"]
+
 
 class BotHandler:
     NOTICE_GROUP_ID_LIST = [
@@ -511,6 +537,9 @@ class BotHandler:
 
         elif msg.startswith("挂机查询") and group_id == QQ_GROUP_STAR_LIGHT:
             return await p.proc_lt_status(user_id, msg=msg, group=True)
+
+        elif msg == "背包":
+            return await p.proc_query_bag(user_id, msg=msg, group=True)
 
     @classmethod
     async def handle_private_message(cls, context):
