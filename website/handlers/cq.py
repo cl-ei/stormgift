@@ -438,6 +438,11 @@ class BotUtils:
             return
 
         bag_list = await BiliApi.get_bag_list(user.cookie)
+        if not bag_list:
+            message = f"{user.name}(uid: {user.uid})的背包里啥都没有。(但也可能是网络错误……没查询到。"
+            self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+            return
+
         result = {}
         for bag in bag_list:
             corner_mark = bag["corner_mark"]
