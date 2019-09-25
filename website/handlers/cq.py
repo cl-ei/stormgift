@@ -438,7 +438,21 @@ class BotUtils:
             return
 
         bag_list = await BiliApi.get_bag_list(user.cookie)
-        available_bags = [bag for bag in bag_list if bag["gift_name"] == "辣条"]
+        result = {}
+        for bag in bag_list:
+            corner_mark = bag["corner_mark"]
+            result.setdefault(corner_mark, {}).setdefault(bag["gift_name"], []).append(bag["gift_num"])
+
+        prompt = []
+        for corner_mark, gift_info in result.items():
+            gift_prompt = []
+            for gift_name, gift_num_list in gift_info.items():
+                gift_prompt.append(f"{gift_name}*{sum(gift_num_list)}")
+            gift_prompt = "、".join(gift_prompt)
+            prompt.append(f"{corner_mark}的{gift_prompt},\n")
+
+        message = f"{user.name}(uid: {user.uid})的背包里有:\n"
+        self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
 
 
 class BotHandler:

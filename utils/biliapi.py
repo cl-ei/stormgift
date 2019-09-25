@@ -1233,7 +1233,22 @@ async def test():
     from utils.highlevel_api import DBCookieOperator
     user = await DBCookieOperator.get_by_uid("DD")
     bag_list = await BiliApi.get_bag_list(user.cookie)
-    print(bag_list)
+
+    result = {}
+    for bag in bag_list:
+        corner_mark = bag["corner_mark"]
+        result.setdefault(corner_mark, {}).setdefault(bag["gift_name"], []).append(bag["gift_num"])
+
+    prompt = []
+    for corner_mark, gift_info in result.items():
+        gift_prompt = []
+        for gift_name, gift_num_list in gift_info.items():
+            gift_prompt.append(f"{gift_name}*{sum(gift_num_list)}")
+        gift_prompt = "、".join(gift_prompt)
+        prompt.append(f"{corner_mark}的{gift_prompt},\n")
+        print(corner_mark, gift_info)
+
+    print("".join(prompt))
 
 
 if __name__ == "__main__":
