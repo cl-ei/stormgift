@@ -425,28 +425,37 @@ class DBCookieOperator:
     async def get_lt_status(cls, uid):
         cookie_obj = await cls.get_by_uid(uid)
         if cookie_obj is None:
-            return False, f"用户（uid: {uid}）尚未配置。"
+            return False, f"{uid}未登录宝藏站点。"
+
+        def gen_time_prompt(interval):
+            if interval > 3600*24:
+                return f"约{int(interval // (3600*24))}天前"
+            elif interval > 3600:
+                return f"约{int(interval // 3600)}小时前"
+            elif interval > 60:
+                return f"约{int(interval // 60)}分钟前"
+            return f"{int(interval)}秒前"
 
         if not cookie_obj.available:
             return False, f"用户{cookie_obj.name}（uid: {uid}）的登录已过期，请重新登录。"
 
         most_recently = await AsyncMySQL.execute(
-            "select created_time from userrafflerecord where user_id = %s order by created_time desc limit 1;",
+            "select created_time from userrafflerecord "
+            "where user_id = %s order by created_time desc limit 1;",
             (uid,)
         )
         if most_recently:
-            most_recently = most_recently[0][0]
-            interval = (datetime.datetime.now() - most_recently).total_seconds()
-            if interval > 3600*24:
-                most_recently = f"约{int(interval // (3600*24))}天前"
-            elif interval > 3600:
-                most_recently = f"约{int(interval // 3600)}小时前"
-            elif interval > 60:
-                most_recently = f"约{int(interval // 60)}分钟前"
-            else:
-                most_recently = f"{int(interval)}秒前"
+            interval = (datetime.datetime.now() - most_recently[0][0]).total_seconds()
+            most_recently = gen_time_prompt(interval)
         else:
-            most_recently = "未查询到记录"
+            most_recently = "约100年前"
+
+        if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * 6:
+            interval = (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds()
+            return False, (
+                f"{cookie_obj.name}(uid: {cookie_obj.uid}):\n"
+                f"{gen_time_prompt(interval)}发现你被关进了小黑屋，最后一次抽奖时间：{most_recently}。"
+            )
 
         rows = await AsyncMySQL.execute(
             (
@@ -473,30 +482,14 @@ class DBCookieOperator:
             gift_name = r[0]
             award_name = "银瓜子" if gift_name == "宝箱" else "辣条"
             postfix.append(f"{gift_name}: {r[1]}次({r[2]}{award_name})")
-
-        if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * 6:
-            blocked_datetime = cookie_obj.blocked_time
+        if postfix:
+            postfix = f"{'-'*20}\n" + "、".join(postfix) + "。"
         else:
-            blocked_datetime = None
-
-        if blocked_datetime:
-            title = (
-                f"系统在{str(blocked_datetime)[:19]}发现你被关进了小黑屋，目前挂辣条暂停中。\n"
-                f"最后一次抽奖时间：{str(most_recently)}\n"
-                f"24小时内累计获得亲密度：{total_intimacy}\n"
-            )
-        else:
-            title = (
-                f"你现在正常领取辣条中\n"
-                f"最后一次抽奖时间：{str(most_recently)}\n"
-                f"24小时内累计获得亲密度：{total_intimacy}\n"
-            )
+            postfix = ""
 
         prompt = [
-            f"{cookie_obj.name}(uid: {cookie_obj.uid})\n",
-            title,
-            f"{'-'*20}\n",
-            "、".join(postfix),
-            "。"
+            f"{cookie_obj.name}(uid: {cookie_obj.uid})正常领取辣条中:\n",
+            f"最后一次抽奖在{str(most_recently)}，24小时内共获得{total_intimacy}辣条。\n",
+            postfix
         ]
         return True, "".join(prompt)
