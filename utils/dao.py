@@ -551,6 +551,34 @@ class LTUserSettings:
         return result
 
 
+class UserRaffleRecordBasedOnRedis:
+    gift_name_to_intimacy_key = "LT_GIFT_NAME_TO_INTIMACY"
+    user_raffle_record_key = "LT_USER_RAFFLE"
+
+    @classmethod
+    async def record(cls, user_id, gift_name, raffle_id, intimacy=0, created_time=None):
+        gift_name_to_intimacy_key = f"{cls.gift_name_to_intimacy_key}_{gift_name}"
+        await redis_cache.set(gift_name_to_intimacy_key, intimacy)
+
+        if created_time is None:
+            created_time = int(time.time())
+
+        user_raffle_record_key = f"{cls.user_raffle_record_key}_{user_id}_{datetime.datetime.now().date()}"
+        value = f"{raffle_id}_{created_time}"
+        await redis_cache.list_push(user_raffle_record_key, value)
+        await redis_cache.expire(user_raffle_record_key, timeout=3600*72)
+
+    @classmethod
+    async def get_24(cls, user_id):
+        """
+
+        :param user_id:
+        :return: last_time,
+        """
+        gift_names_key = f"{cls.gift_name_to_intimacy_key}_*"
+        await redis_cache.keys(gift_names_key)
+
+
 async def test():
     r = await LTUserSettings.get(20932326)
     print(r)
