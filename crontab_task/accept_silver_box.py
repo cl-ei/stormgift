@@ -5,7 +5,6 @@ from utils.biliapi import BiliApi
 from config.log4 import silver_box_logger as logging
 from utils.highlevel_api import DBCookieOperator
 from utils.reconstruction_model import UserRaffleRecord
-from utils.dao import UserRaffleRecordBasedOnRedis
 
 
 async def accept(user):
@@ -47,7 +46,6 @@ async def accept(user):
             award_silver = data["data"]["awardSilver"]
             raffle_id = int(f"313{randint(100000, 999999)}")
             await UserRaffleRecord.create(user.uid, "宝箱", raffle_id=raffle_id, intimacy=award_silver)
-            await UserRaffleRecordBasedOnRedis.record(user.uid, "宝箱", raffle_id=raffle_id, intimacy=award_silver)
             logging.info(f"{user.name}(uid: {user.uid}) 打开了宝箱. award_silver: {award_silver}")
 
         elif code == -500:

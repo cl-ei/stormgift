@@ -11,7 +11,6 @@ from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import acceptor_logger as logging
 from utils.reconstruction_model import UserRaffleRecord, objects
-from utils.dao import UserRaffleRecordBasedOnRedis
 
 
 NON_SKIP_USER_ID = [
@@ -150,7 +149,6 @@ class Worker(object):
                 award_num = 1
 
             r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
-            await UserRaffleRecordBasedOnRedis.record(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
             last_raffle_id = r.id
             success.append(f"{message} <- {index}-{cookie_obj.uid}-{cookie_obj.name}")
 

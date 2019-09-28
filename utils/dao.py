@@ -551,27 +551,7 @@ class LTUserSettings:
         return result
 
 
-class UserRaffleRecordBasedOnRedis:
-    user_raffle_record_key = "LT_USER_RAFFLE_CNT"
-
-    @classmethod
-    async def record(cls, user_id, gift_name, raffle_id, intimacy=0):
-        user_raffle_record_key = (
-            f"{cls.user_raffle_record_key}_{user_id}_"
-            f"{datetime.datetime.now().date()}_{gift_name}_{intimacy}"
-        )
-        await redis_cache.incr(user_raffle_record_key)
-        await redis_cache.expire(user_raffle_record_key, timeout=3600*72)
-
-    @classmethod
-    async def get_24(cls, user_id):
-        pass
-
-
 async def test():
-    r = await UserRaffleRecordBasedOnRedis.get_24(20932326)
-    print(r)
-
     pass
 
 
