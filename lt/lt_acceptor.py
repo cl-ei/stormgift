@@ -160,7 +160,7 @@ class Worker(object):
             f"\n{'-'*split_char_count}{title}{'-'*split_char_count}\n"
             f"{success_users}\n\n"
             f"last_raffle_id: {last_raffle_id}\n"
-            f"cloud_acceptor_url: {cloud_acceptor_url[:-20]}\n"
+            f"cloud_acceptor_url: {cloud_acceptor_url[-20:]}\n"
             f"{'-'*80}"
         )
 
