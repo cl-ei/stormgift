@@ -220,7 +220,7 @@ async def main():
     logging.info("-" * 80)
     await objects.connect()
 
-    tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(4)]
+    tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(64)]
     tasks.append(asyncio.create_task(Worker(99).waiting_delay_raffles()))
     for t in tasks:
         await t
