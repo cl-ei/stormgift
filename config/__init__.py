@@ -51,7 +51,6 @@ CQBOT_ZY = {
 
 mail_auth_pass = config["mail"]["mail_auth_pass"]
 cloud_function_url = config["cloud_function"]["url"]
-cloud_acceptor_url = config["cloud_function"]["acceptor"]
 cloud_acceptors = [v for _, v in config["cloud_acceptor"].items()]
 
 
