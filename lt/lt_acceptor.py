@@ -1,12 +1,12 @@
 import sys
 import time
 import json
+import random
 import asyncio
 import requests
 import traceback
-from random import random
 from utils.dao import redis_cache, LTUserSettings
-from config import cloud_acceptor_url
+from config import cloud_acceptors
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import acceptor_logger as logging
@@ -89,6 +89,7 @@ class Worker(object):
             "cookies": cookies,
             "gift_type": gift_type,
         }
+        cloud_acceptor_url = random.choice(cloud_acceptors)
         try:
             r = requests.post(url=cloud_acceptor_url, json=req_json, timeout=20)
         except Exception as e:
@@ -159,6 +160,7 @@ class Worker(object):
             f"\n{'-'*split_char_count}{title}{'-'*split_char_count}\n"
             f"{success_users}\n\n"
             f"last_raffle_id: {last_raffle_id}\n"
+            f"cloud_acceptor_url: {cloud_acceptor_url[:-20]}\n"
             f"{'-'*80}"
         )
 
@@ -198,7 +200,7 @@ class Worker(object):
             message, has_read = await mq_raffle_to_acceptor.get()
 
             start_time = time.time()
-            task_id = f"{int(str(random())[2:]):x}"
+            task_id = f"{int(str(random.random())[2:]):x}"
             logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] start...")
 
             try:
