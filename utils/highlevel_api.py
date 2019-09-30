@@ -9,6 +9,9 @@ from utils.email import send_cookie_invalid_notice
 from utils.dao import LtUserLoginPeriodOfValidity
 
 
+BLOCK_FRESH_TIME = 1
+
+
 class ReqFreLimitApi(object):
     __req_time = {}
 
@@ -405,7 +408,7 @@ class DBCookieOperator:
             query = query.where(LTUserCookie.is_vip == is_vip)
 
         if non_blocked is not None:
-            three_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=3)
+            three_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=BLOCK_FRESH_TIME)
             query = query.where(LTUserCookie.blocked_time < three_hour_ago)
 
         important_objs = []
@@ -450,7 +453,7 @@ class DBCookieOperator:
         else:
             most_recently = "约100年前"
 
-        if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * 6:
+        if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * BLOCK_FRESH_TIME:
             interval = (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds()
             return False, (
                 f"{cookie_obj.name}(uid: {cookie_obj.uid}):\n"
