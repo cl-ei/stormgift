@@ -442,6 +442,8 @@ class DBCookieOperator:
         if not cookie_obj.available:
             return False, f"用户{cookie_obj.name}（uid: {uid}）的登录已过期，请重新登录。"
 
+        start_time = time.time()
+
         most_recently = await AsyncMySQL.execute(
             "select created_time from userrafflerecord "
             "where user_id = %s order by created_time desc limit 1;",
@@ -468,6 +470,8 @@ class DBCookieOperator:
                 "group by gift_name;"
             ), (uid, datetime.datetime.now() - datetime.timedelta(hours=24))
         )
+        process_time = time.time() - start_time
+
         raffle_result = [(r[0], r[1], r[2]) for r in rows]
 
         def sort_func(row):
@@ -493,6 +497,7 @@ class DBCookieOperator:
         prompt = [
             f"{cookie_obj.name}(uid: {cookie_obj.uid})正常领取辣条中:\n",
             f"最后一次抽奖在{str(most_recently)}，24小时内共获得{total_intimacy}辣条。\n",
-            postfix
+            postfix,
+            f"\n处理时间：{process_time:.3f}"
         ]
         return True, "".join(prompt)
