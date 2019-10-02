@@ -44,7 +44,7 @@ async def start_web_site():
     app = web.Application()
     app.add_routes([
         web.get('/lt', lt.lt),
-        web.get('/console', ws_log_broadcast_handler),
+        web.get('/console_wss', ws_log_broadcast_handler),
         web.post('/lt/login', lt.login),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),
