@@ -1,10 +1,12 @@
 import os
 import asyncio
+import weakref
+import traceback
 import pyinotify
 from aiohttp import web
 from website.handlers import lt, cq
 
-monitor_log_file = "./test.py"
+monitor_log_file = "/home/wwwroot/log/stormgift.log"
 log_file_content_size = os.path.getsize(monitor_log_file)
 log_file_changed_content_q = asyncio.Queue()
 
@@ -12,18 +14,37 @@ log_file_changed_content_q = asyncio.Queue()
 def handle_read_callback(notifier):
     global log_file_content_size
     current_size = os.path.getsize(monitor_log_file)
+    try:
+        with open(monitor_log_file, "rb") as f:
+            f.seek(log_file_content_size)
+            content = f.read(current_size - log_file_content_size)
+            log_file_changed_content_q.put_nowait(content)
 
-    with open(monitor_log_file, "rb") as f:
-        f.seek(log_file_content_size)
-        content = f.read(current_size - log_file_content_size)
-        log_file_changed_content_q.put_nowait(content)
+            print(f"--> {content}")
+
+    except Exception as e:
+        return f"Error happened in handle_read_callback: {e}\n{traceback.format_exc()}"
     log_file_content_size = current_size
+
+
+async def ws_log_broadcast_handler(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    request.app['websockets'].add(ws)
+    try:
+        async for msg in ws:
+            pass
+    finally:
+        request.app['websockets'].discard(ws)
+    return ws
 
 
 async def start_web_site():
     app = web.Application()
     app.add_routes([
         web.get('/lt', lt.lt),
+        web.get('/console', ws_log_broadcast_handler),
         web.post('/lt/login', lt.login),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),
@@ -33,7 +54,7 @@ async def start_web_site():
         web.get('/lt/trends_qq_notice', lt.trends_qq_notice),
         web.route('*', "/lt/cq_handler", cq.handler),
     ])
-
+    app['websockets'] = weakref.WeakSet()
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, 'localhost', 1024)
@@ -42,7 +63,8 @@ async def start_web_site():
 
     while True:
         content = await log_file_changed_content_q.get()
-        print(content)
+        for ws in set(app['websockets']):
+            await ws.send_bytes(content)
 
 
 loop = asyncio.get_event_loop()
