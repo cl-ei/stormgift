@@ -19,9 +19,6 @@ def handle_read_callback(notifier):
             f.seek(log_file_content_size)
             content = f.read(current_size - log_file_content_size)
             log_file_changed_content_q.put_nowait(content)
-
-            print(f"--> {content}")
-
     except Exception as e:
         return f"Error happened in handle_read_callback: {e}\n{traceback.format_exc()}"
     log_file_content_size = current_size
