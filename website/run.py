@@ -63,8 +63,13 @@ async def start_web_site():
 
     while True:
         content = await log_file_changed_content_q.get()
+        try:
+            content = content.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+
         for ws in set(app['websockets']):
-            await ws.send_bytes(content)
+            await ws.send_str(content)
 
 
 loop = asyncio.get_event_loop()
