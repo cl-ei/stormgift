@@ -57,7 +57,7 @@ async def start_web_site():
     app['websockets'] = weakref.WeakSet()
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, 'localhost', 1024)
+    site = web.TCPSite(runner, '0.0.0.0', 1024)
     await site.start()
     print("Site started.")
 
