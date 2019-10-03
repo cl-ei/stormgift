@@ -65,9 +65,10 @@ async def ws_raffle_broadcast_handler(request):
 
 async def ws_notify_raffle(app):
     while True:
-        message = await mq_raffle_broadcast.get()
+        message, has_read = await mq_raffle_broadcast.get()
         for ws in set(app['websockets_raffle']):
             await ws.send_str(message)
+        await has_read()
 
 
 async def start_web_site():
