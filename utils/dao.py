@@ -524,7 +524,7 @@ class LTUserSettings:
         return settings
 
     @classmethod
-    async def set(cls, uid, tv_percent=100, guard_percent=100, pk_percent=100):
+    async def set(cls, uid, tv_percent=100, guard_percent=100, pk_percent=100, storm_percent=0):
         key = f"{cls.key}_{uid}"
         settings = await redis_cache.get(key=key)
         if not isinstance(settings, dict):
@@ -532,6 +532,7 @@ class LTUserSettings:
         settings["tv_percent"] = tv_percent
         settings["guard_percent"] = guard_percent
         settings["pk_percent"] = pk_percent
+        settings["storm_percent"] = storm_percent
         await redis_cache.set(key=key, value=settings)
         return True
 
