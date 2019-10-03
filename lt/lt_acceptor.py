@@ -86,6 +86,9 @@ class Worker(object):
             user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="storm_percent")
 
         cookies = [c.cookie for c in user_cookie_objs]
+        if not cookies:
+            return
+
         req_json = {
             "act": act,
             "room_id": room_id,
