@@ -368,6 +368,7 @@ class BiliApi:
         if url in (
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
             "https://api.live.bilibili.com/gift/v3/smalltv/check",
+            "https://api.live.bilibili.com/lottery/v1/Storm/check",
             # "https://api.live.bilibili.com/guard/topList?page=1",
             # "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
@@ -1161,8 +1162,9 @@ class BiliApi:
 
     @classmethod
     async def get_storm_raffle_id(cls, room_id, timeout=10):
-        url = f"https://api.live.bilibili.com/lottery/v1/Storm/check?roomid={room_id}"
-        flag, data = await cls.get(url=url, timeout=timeout, check_error_code=True)
+        url = f"https://api.live.bilibili.com/lottery/v1/Storm/check"
+        param = {"roomid": room_id}
+        flag, data = await cls.get(url=url, data=param, timeout=timeout, check_error_code=True)
         if flag:
             return True, data["data"]["id"]
         return flag, data
