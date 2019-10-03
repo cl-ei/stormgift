@@ -487,3 +487,7 @@ async def trends_qq_notice(request):
 
         return web.Response(status=206)
     return web.Response(status=403)
+
+
+async def raffle_broadcast(request):
+    pass

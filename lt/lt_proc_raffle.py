@@ -8,7 +8,7 @@ from config import config
 from utils.biliapi import BiliApi
 from utils.cq import CQClient, qq
 from utils.dao import redis_cache, RaffleToCQPushList
-from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle
+from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.reconstruction_model import Guard, Raffle, objects
@@ -129,6 +129,7 @@ class Worker(object):
             gift_name = "总督"
         else:
             gift_name = "guard_%s" % privilege_type
+        await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{gift_id}RAFFLE_NAME{gift_name}")
 
         expire_time = gift_info["created_time"] + datetime.timedelta(seconds=gift_info["time"])
         sender = gift_info["sender"]
@@ -244,6 +245,7 @@ class Worker(object):
                     continue
 
                 await mq_raffle_to_acceptor.put(key)
+                await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{gift_id}RAFFLE_NAME{gift_name}")
 
             await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)
 
@@ -256,6 +258,7 @@ class Worker(object):
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
                 await mq_raffle_to_acceptor.put(key)
+                await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{raffle_id}RAFFLE_NAME{'PK'}")
 
         elif key_type == "S":
             flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=msg_from_room_id)
@@ -267,6 +270,7 @@ class Worker(object):
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
                 await mq_raffle_to_acceptor.put(key)
+                await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{raffle_id}RAFFLE_NAME{'节奏风暴'}")
 
     async def run_forever(self):
         while True:

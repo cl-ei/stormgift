@@ -147,7 +147,7 @@ class CLMessageQ:
 
 mq_source_to_raffle = CLMessageQ("STOR")
 mq_raffle_to_acceptor = CLMessageQ("RTOA")
-
+mq_raffle_broadcast = CLMessageQ("RF_BROADCAST")
 
 if __name__ == "__main__":
     async def server():

@@ -3,6 +3,7 @@ import asyncio
 import weakref
 import traceback
 import pyinotify
+from utils.mq import mq_raffle_broadcast
 from aiohttp import web
 from website.handlers import lt, cq
 
@@ -37,11 +38,45 @@ async def ws_log_broadcast_handler(request):
     return ws
 
 
+async def ws_notify_log_broadcast(app):
+    while True:
+        content = await log_file_changed_content_q.get()
+        try:
+            content = content.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+
+        for ws in set(app['websockets']):
+            await ws.send_str(content)
+
+
+async def ws_raffle_broadcast_handler(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    request.app['websockets_raffle'].add(ws)
+    try:
+        async for msg in ws:
+            pass
+    finally:
+        request.app['websockets_raffle'].discard(ws)
+    return ws
+
+
+async def ws_notify_raffle(app):
+    while True:
+        message = await mq_raffle_broadcast.get()
+        for ws in set(app['websockets_raffle']):
+            await ws.send_str(message)
+
+
 async def start_web_site():
     app = web.Application()
     app.add_routes([
         web.get('/lt', lt.lt),
         web.get('/console_wss', ws_log_broadcast_handler),
+        web.get('/raffle_wss', ws_raffle_broadcast_handler),
+        web.get('/raffle_broadcast', lt.raffle_broadcast),
         web.post('/lt/login', lt.login),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),
@@ -52,21 +87,13 @@ async def start_web_site():
         web.route('*', "/lt/cq_handler", cq.handler),
     ])
     app['websockets'] = weakref.WeakSet()
+    app['websockets_raffle'] = weakref.WeakSet()
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 1024)
     await site.start()
     print("Site started.")
-
-    while True:
-        content = await log_file_changed_content_q.get()
-        try:
-            content = content.decode("utf-8")
-        except UnicodeDecodeError:
-            continue
-
-        for ws in set(app['websockets']):
-            await ws.send_str(content)
+    await asyncio.gather(ws_notify_log_broadcast(app), ws_notify_raffle(app))
 
 
 loop = asyncio.get_event_loop()
