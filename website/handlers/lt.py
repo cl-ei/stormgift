@@ -490,4 +490,5 @@ async def trends_qq_notice(request):
 
 
 async def raffle_broadcast(request):
-    pass
+    context = {"CDN_URL": CDN_URL}
+    return render_to_response("website/templates/raffle_broadcast.html", context=context)
