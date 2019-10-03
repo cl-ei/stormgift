@@ -192,7 +192,7 @@ class Worker(object):
             key_type = "P"
             room_id = msg_from_room_id
 
-        elif danmaku["cmd"] and msg["data"]["giftName"] == "节奏风暴":
+        elif danmaku["cmd"] and danmaku["data"]["giftName"] == "节奏风暴":
             key_type = "S"
             room_id = msg_from_room_id
 
