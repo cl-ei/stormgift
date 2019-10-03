@@ -546,7 +546,7 @@ class LTUserSettings:
 
             if key == "storm_percent":
                 percent = setting.get(key, 0)
-                if cookies.uid == 20932326:
+                if cookie.uid == 20932326:
                     percent = 100
             else:
                 percent = setting.get(key, 100)
