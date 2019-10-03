@@ -77,10 +77,18 @@ async def ws_notify_raffle(app):
         await has_read()
 
 
+async def proc_status(request):
+    console_conn_count = len(request.app['websockets'])
+    raffle_conn_count = len(request.app['websockets_raffle'])
+    response = f"console_conn_count: {console_conn_count},\nraffle_conn_count: {raffle_conn_count}"
+    return web.Response(text=response)
+
+
 async def start_web_site():
     app = web.Application()
     app.add_routes([
         web.get('/lt', lt.lt),
+        web.get('/lt/status', proc_status),
         web.get('/console_wss', ws_log_broadcast_handler),
         web.get('/raffle_wss', ws_raffle_broadcast_handler),
         web.get('/lt/broadcast', lt.raffle_broadcast),
