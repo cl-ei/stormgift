@@ -192,6 +192,10 @@ class Worker(object):
             key_type = "P"
             room_id = msg_from_room_id
 
+        elif danmaku["cmd"] and msg["data"]["giftName"] == "节奏风暴":
+            key_type = "S"
+            room_id = msg_from_room_id
+
         else:
             return f"Error cmd `{danmaku['cmd']}`!"
 
@@ -252,6 +256,10 @@ class Worker(object):
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
                 await mq_raffle_to_acceptor.put(key)
+
+        elif key_type == "S":
+            data = await BiliApi.get_storm_raffle_id(room_id=msg_from_room_id)
+            logging.info(f"Storm data: {data}")
 
     async def run_forever(self):
         while True:
