@@ -154,7 +154,13 @@ async def post_settings(request):
     ):
         return json_response({"code": 403, "err_msg": "范围错误！请设置0~100 ！"})
 
-    await LTUserSettings.set(uid=bili_uid, tv_percent=tv_percent, guard_percent=guard_percent, pk_percent=pk_percent)
+    await LTUserSettings.set(
+        uid=bili_uid,
+        tv_percent=tv_percent,
+        guard_percent=guard_percent,
+        pk_percent=pk_percent,
+        storm_percent=storm_percent
+    )
     return json_response({"code": 0})
 
 
