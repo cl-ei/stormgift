@@ -516,6 +516,7 @@ class LTUserSettings:
                 "tv_percent": 100,
                 "guard_percent": 100,
                 "pk_percent": 100,
+                "storm_percent": 0,
             }
         return settings
 

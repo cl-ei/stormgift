@@ -142,6 +142,7 @@ async def post_settings(request):
         tv_percent = int(data["tv_percent"])
         guard_percent = int(data["guard_percent"])
         pk_percent = int(data["pk_percent"])
+        storm_percent = int(data["storm_percent"])
     except (KeyError, TypeError, ValueError):
         return json_response({"code": 403, "err_msg": "你提交了不正确的参数 ！"})
 
@@ -149,6 +150,7 @@ async def post_settings(request):
         not 0 <= tv_percent <= 100
         or not 0 <= guard_percent <= 100
         or not 0 <= pk_percent <= 100
+        or not 0 <= storm_percent <= 100
     ):
         return json_response({"code": 403, "err_msg": "范围错误！请设置0~100 ！"})
 
