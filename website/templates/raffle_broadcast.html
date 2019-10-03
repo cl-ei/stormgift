@@ -147,7 +147,7 @@ $(function(){
     ws.onopen = function (evnt) {
         socketStatus = true;
         clearInterval(t1);
-        t1 = setInterval(function(){ws.send("heartbeat")}, 10000);
+        t1 = setInterval(function(){ws.send("heartbeat")}, 30000);
         console.log("Websocket connected! t1: ", t1);
     };
     ws.onmessage = function (evnt) {
