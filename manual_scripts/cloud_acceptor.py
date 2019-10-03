@@ -190,10 +190,12 @@ def join_storm(room_id, gift_id, cookie, gift_type=None):
         return False, "Not json response: %s, content: %s" % (e, content)
 
     if r.get("code") != 0:
-        return False, r.get("message")
-    logging.info(F"S -> {r}")
+        return False, r.get("msg")
+
+    logging.info(f"STORM GIFT R: {r}")
+
     award_name = "S"  # r["data"]['award_text']
-    award_num = 3  # r["data"]['award_num']
+    award_num = 1  # r["data"]['award_num']
     return True, f"{award_num}_{award_name}"
 
 
