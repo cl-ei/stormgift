@@ -76,7 +76,7 @@ async def start_web_site():
         web.get('/lt', lt.lt),
         web.get('/console_wss', ws_log_broadcast_handler),
         web.get('/raffle_wss', ws_raffle_broadcast_handler),
-        web.get('/raffle_broadcast', lt.raffle_broadcast),
+        web.get('/lt/broadcast', lt.raffle_broadcast),
         web.post('/lt/login', lt.login),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),
