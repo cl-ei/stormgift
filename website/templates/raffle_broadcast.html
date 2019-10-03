@@ -151,6 +151,7 @@ $(function(){
         console.log("Websocket connected! t1: ", t1);
     };
     ws.onmessage = function (evnt) {
+        console.log(evnt);
         for (var i = 0; i < evnt.data.length; i++){
             if (evnt.data[i] === "\n" || evnt.data[i] === "\r"){
                 ProcessOneMessage(window.messagesBuffer.join(""));
