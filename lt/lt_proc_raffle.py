@@ -135,7 +135,7 @@ class Worker(object):
             "raffle_id": gift_id,
             "gift_name": gift_name,
             "raffle_type": "guard"
-        }))
+        }, ensure_ascii=False))
 
         expire_time = gift_info["created_time"] + datetime.timedelta(seconds=gift_info["time"])
         sender = gift_info["sender"]
@@ -256,7 +256,7 @@ class Worker(object):
                     "raffle_id": gift_id,
                     "gift_name": gift_name,
                     "raffle_type": "tv"
-                }))
+                }, ensure_ascii=False))
 
             await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)
 
@@ -274,7 +274,7 @@ class Worker(object):
                     "raffle_id": raffle_id,
                     "gift_name": "PK",
                     "raffle_type": "pk"
-                }))
+                }, ensure_ascii=False))
 
         elif key_type == "S":
             flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=msg_from_room_id)
@@ -286,13 +286,12 @@ class Worker(object):
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
                 await mq_raffle_to_acceptor.put(key)
-                await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{raffle_id}RAFFLE_NAME{'节奏风暴'}")
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
                     "gift_name": "节奏风暴",
                     "raffle_type": "storm"
-                }))
+                }, ensure_ascii=False))
 
     async def run_forever(self):
         while True:
