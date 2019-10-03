@@ -96,6 +96,9 @@
     <label>⑥ 大乱斗PK获胜参与率
         <input class="input-number" type="number" name="pk-percent" value="{{ settings.pk_percent }}">%
     </label>
+    <label>⑦ 节奏风暴参与率
+        <input class="input-number" type="number" name="storm-percent" value="{{ settings.storm_percent }}">%
+    </label>
     <button class="button center" id="submit-settings">保存设置</button>
 
 </div>
@@ -137,6 +140,12 @@ $(function () {
             return;
         }
 
+        let storm_percent = parseInt($("input[name=storm-percent]").val()) || 0;
+        if (pk_percent < 0 || pk_percent > 100){
+            warning("节奏风暴参与率超过范围，请设置： 0~100 !");
+            return;
+        }
+
         $("#submit-settings").off("click");
         $.ajax({
             url: "/lt/post_settings",
@@ -145,6 +154,7 @@ $(function () {
                 tv_percent: tv_percent,
                 guard_percent: guard_percent,
                 pk_percent: pk_percent,
+                storm_percent: storm_percent,
             },
             success: function (r){
                 if (r.code !== 0){
