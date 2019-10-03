@@ -63,7 +63,7 @@ async def ws_raffle_broadcast_handler(request):
     await ws.send_str(f"Connected. Your ip is {remote_ip}, transferring data...\n")
     try:
         async for msg in ws:
-            pass
+            await ws.send_str(f"OK: {msg}\n")
     finally:
         request.app['websockets_raffle'].discard(ws)
     return ws

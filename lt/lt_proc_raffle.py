@@ -129,7 +129,13 @@ class Worker(object):
             gift_name = "总督"
         else:
             gift_name = "guard_%s" % privilege_type
-        await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{gift_id}RAFFLE_NAME{gift_name}")
+
+        await mq_raffle_broadcast.put(json.dumps({
+            "real_room_id": room_id,
+            "raffle_id": gift_id,
+            "gift_name": gift_name,
+            "raffle_type": "guard"
+        }))
 
         expire_time = gift_info["created_time"] + datetime.timedelta(seconds=gift_info["time"])
         sender = gift_info["sender"]
@@ -245,7 +251,12 @@ class Worker(object):
                     continue
 
                 await mq_raffle_to_acceptor.put(key)
-                await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{gift_id}RAFFLE_NAME{gift_name}")
+                await mq_raffle_broadcast.put(json.dumps({
+                    "real_room_id": room_id,
+                    "raffle_id": gift_id,
+                    "gift_name": gift_name,
+                    "raffle_type": "tv"
+                }))
 
             await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)
 
@@ -258,7 +269,12 @@ class Worker(object):
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
                 await mq_raffle_to_acceptor.put(key)
-                await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{raffle_id}RAFFLE_NAME{'PK'}")
+                await mq_raffle_broadcast.put(json.dumps({
+                    "real_room_id": room_id,
+                    "raffle_id": raffle_id,
+                    "gift_name": "PK",
+                    "raffle_type": "pk"
+                }))
 
         elif key_type == "S":
             flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=msg_from_room_id)
@@ -271,6 +287,12 @@ class Worker(object):
             if await redis_cache.set_if_not_exists(key, info):
                 await mq_raffle_to_acceptor.put(key)
                 await mq_raffle_broadcast.put(f"ROOM{room_id}RAFFLE{raffle_id}RAFFLE_NAME{'节奏风暴'}")
+                await mq_raffle_broadcast.put(json.dumps({
+                    "real_room_id": room_id,
+                    "raffle_id": raffle_id,
+                    "gift_name": "节奏风暴",
+                    "raffle_type": "storm"
+                }))
 
     async def run_forever(self):
         while True:
