@@ -26,10 +26,13 @@ def handle_read_callback(notifier):
 
 
 async def ws_log_broadcast_handler(request):
+    remote_ip = request.headers.get("X-Real-IP", "")
+
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
     request.app['websockets'].add(ws)
+    await ws.send_str(f"Connected. Your ip is {remote_ip}, transferring data...")
     try:
         async for msg in ws:
             pass
@@ -51,10 +54,13 @@ async def ws_notify_log_broadcast(app):
 
 
 async def ws_raffle_broadcast_handler(request):
+    remote_ip = request.headers.get("X-Real-IP", "")
+
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
     request.app['websockets_raffle'].add(ws)
+    await ws.send_str(f"Connected. Your ip is {remote_ip}, transferring data...")
     try:
         async for msg in ws:
             pass
