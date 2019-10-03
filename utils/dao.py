@@ -512,12 +512,15 @@ class LTUserSettings:
         key = f"{cls.key}_{uid}"
         settings = await redis_cache.get(key=key)
         if not isinstance(settings, dict):
-            settings = {
-                "tv_percent": 100,
-                "guard_percent": 100,
-                "pk_percent": 100,
-                "storm_percent": 0,
-            }
+            settings = {}
+
+        for key in ("tv_percent", "guard_percent", "pk_percent"):
+            if key not in settings:
+                settings[key] = 100
+
+        if "storm_percent" not in settings:
+            settings["storm_percent"] = 0
+
         return settings
 
     @classmethod
