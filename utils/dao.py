@@ -544,7 +544,10 @@ class LTUserSettings:
             if not isinstance(setting, dict):
                 setting = {}
 
-            percent = setting.get(key, 100)
+            if key == "storm_percent":
+                percent = setting.get(key, 0)
+            else:
+                percent = setting.get(key, 100)
             if random.randint(0, 99) < percent:  # 考虑到percent == 0时
                 result.append(cookie)
 

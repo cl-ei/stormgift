@@ -258,8 +258,15 @@ class Worker(object):
                 await mq_raffle_to_acceptor.put(key)
 
         elif key_type == "S":
-            data = await BiliApi.get_storm_raffle_id(room_id=msg_from_room_id)
-            logging.info(f"Storm data: {data}")
+            flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=msg_from_room_id)
+            if not flag:
+                logging.info(f"Error happened when get raffle id of storm gift: e: {raffle_id}")
+                return
+
+            key = f"S${room_id}${raffle_id}"
+            info = {"room_id": room_id, "raffle_id": raffle_id}
+            if await redis_cache.set_if_not_exists(key, info):
+                await mq_raffle_to_acceptor.put(key)
 
     async def run_forever(self):
         while True:

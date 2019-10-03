@@ -166,6 +166,37 @@ def join_pk(room_id, gift_id, cookie, gift_type=None):
     return True, f"{award_num}_{award_name}"
 
 
+def join_storm(room_id, gift_id, cookie, gift_type=None):
+    csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+    req_url = "https://api.live.bilibili.com/lottery/v1/Storm/join"
+    headers = {"Cookie": cookie}
+    data = {
+        "id": gift_id,
+        "color": 16777215,
+        "captcha_token": "",
+        "captcha_phrase": "",
+        "roomid": room_id,
+        "csrf_token": csrf_token,
+        "csrf": csrf_token,
+        "visit_id": "",
+    }
+    status_code, content = request(method="post", url=req_url, headers=headers, data=data)
+    if status_code != 200:
+        return False, "Status code is not 200! content: %s" % content
+
+    try:
+        r = json.loads(content)
+    except Exception as e:
+        return False, "Not json response: %s, content: %s" % (e, content)
+
+    if r.get("code") != 0:
+        return False, r.get("message")
+    logging.info(F"S -> {r}")
+    award_name = "S"  # r["data"]['award_text']
+    award_num = 3  # r["data"]['award_num']
+    return True, f"{award_num}_{award_name}"
+
+
 def accept_handler(q, act, room_id, gift_id, cookie, gift_type=None):
     if act == "join_tv":
         f = join_tv
@@ -175,6 +206,8 @@ def accept_handler(q, act, room_id, gift_id, cookie, gift_type=None):
         f = join_guard
     elif act == "join_pk":
         f = join_pk
+    elif act == "join_storm":
+        f = join_storm
     else:
         q.put(None)
         return

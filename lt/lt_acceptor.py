@@ -69,6 +69,8 @@ class Worker(object):
             act = "join_guard"
         elif key_type == "P":
             act = "join_pk"
+        elif key_type == "S":
+            act = "join_storm"
         else:
             return
 
@@ -80,6 +82,8 @@ class Worker(object):
             user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="guard_percent")
         elif act == "join_pk":
             user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="pk_percent")
+        elif act == "join_storm":
+            user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="storm_percent")
 
         cookies = [c.cookie for c in user_cookie_objs]
         req_json = {
@@ -116,6 +120,8 @@ class Worker(object):
                 gift_name = "总督"
             else:
                 gift_name = "大航海"
+        elif act == "join_storm":
+            gift_name = "节奏风暴"
         else:
             gift_name = "未知"
         gift_name = gift_name.replace("抽奖", "")
