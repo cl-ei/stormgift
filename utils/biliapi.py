@@ -373,6 +373,7 @@ class BiliApi:
             "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",
             "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send",
             "https://api.live.bilibili.com/gift/v2/live/receive_daily_bag",
+            "https://api.live.bilibili.com/gift/v2/gift/bag_list"
             # "https://api.live.bilibili.com/guard/topList?page=1",
             # "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
