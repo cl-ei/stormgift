@@ -372,6 +372,7 @@ class BiliApi:
             "https://api.live.bilibili.com/activity/v1/s9/sign",
             "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",
             "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send",
+            "https://api.live.bilibili.com/gift/v2/live/receive_daily_bag",
             # "https://api.live.bilibili.com/guard/topList?page=1",
             # "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
@@ -1301,6 +1302,13 @@ class BiliApi:
             return True, ""
         else:
             return False, f"{r['code']}, {r['message']}"
+
+    @classmethod
+    async def receive_daily_bag(cls, cookie, timeout=10):
+        url = "https://api.live.bilibili.com/gift/v2/live/receive_daily_bag"
+        headers = {"Cookie": cookie}
+        flag, r = await cls.get(url=url, headers=headers, timeout=timeout, check_response_json=True)
+        return flag, r
 
 
 async def test():

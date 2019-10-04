@@ -77,6 +77,9 @@ async def hao_yang_mao_exec(proc_index, cookie):
         logging.error(f"Bad cookie! {cookie}")
         return False, {"re_login": True}
 
+    r = await BiliApi.receive_daily_bag(cookie)
+    logging.info(f"receive_daily_bag: {r}")
+
     flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
     logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
 
