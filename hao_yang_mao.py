@@ -87,8 +87,12 @@ async def hao_yang_mao_exec(proc_index, cookie):
     flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
     logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
 
+    await asyncio.sleep(1)
+
     flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
     logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
+
+    await asyncio.sleep(1)
 
     r = await BiliApi.receive_daily_bag(cookie)
     logging.info(f"receive_daily_bag: {r}")
