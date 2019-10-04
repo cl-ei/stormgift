@@ -4,7 +4,7 @@ import traceback
 import asyncio
 import logging
 from utils.biliapi import CookieFetcher
-from utils.dao import HYMCookies as hao_yang_mao_class
+from utils.dao import HYMCookiesOfCl as hao_yang_mao_class
 from config.log4 import console_logger as logging
 from utils.biliapi import BiliApi
 
@@ -117,6 +117,8 @@ async def hao_yang_mao_exec(proc_index, cookie):
                 logging.info(f"♨ Send Success! msg: {data.get('message', 'unknown')}")
 
         if "续期卡" in gift["gift_name"]:
+            logging.info(f"发现头衔续期卡: f{gift['gift_name']}*{gift['gift_num']}")
+
             if gift["gift_name"] in card_list:
                 card_list[gift["gift_name"]] += 1
             else:
@@ -124,7 +126,7 @@ async def hao_yang_mao_exec(proc_index, cookie):
 
             card_record_id = gift["card_record_id"]
             num = gift["gift_num"]
-            receive_uid = 6851677
+            receive_uid = ruid  # 6851677
             r = await BiliApi.send_card(
                 cookie=cookie,
                 card_record_id=card_record_id,
