@@ -74,6 +74,13 @@ async def hao_yang_mao_exec(proc_index, cookie):
         logging.error(f"Bad cookie! {cookie}")
         return False, {"re_login": True}
 
+    # flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
+    # logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
+
+    flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
+    logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
+    return
+
     # do sign.
     flag, result = await BiliApi.do_sign(cookie)
     if not flag and "请先登录" in result:

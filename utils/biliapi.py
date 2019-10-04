@@ -369,6 +369,7 @@ class BiliApi:
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
             "https://api.live.bilibili.com/gift/v3/smalltv/check",
             "https://api.live.bilibili.com/lottery/v1/Storm/check",
+            "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",
             # "https://api.live.bilibili.com/guard/topList?page=1",
             # "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
@@ -1229,6 +1230,75 @@ class BiliApi:
         headers = {"cookie": cookie}
         headers.update(CookieFetcher.app_headers)
         return await cls.get(url=url, headers=headers, timeout=timeout, check_response_json=True)
+
+    @classmethod
+    async def join_s9_sign(cls, cookie, timeout=5):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.live.bilibili.com/activity/v1/s9/sign"
+        headers = {"Cookie": cookie}
+        data = {
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "visit_id": "",
+        }
+        flag, r = await cls.post(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+        if not flag:
+            return False, r
+
+        if r["code"] == 0:
+            return True, r["msg"]
+        else:
+            return False, f"{r['code']}, msg: {r['msg']}"
+
+    @classmethod
+    async def join_s9_open_capsule(cls, cookie, timeout=5):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        data = {
+            "id": 28,
+            "count": 1,
+            "platform": "web",
+            "_": int(time.time() * 1000),
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "visit_id": ""
+        }
+        url = "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id"
+        headers = {"Cookie": cookie}
+        flag, r = await cls.post(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+        if not flag:
+            return False, r
+
+        if r["code"] == 0:
+            awards = ", ".join(r['data']['text'])
+            return True, f"{awards}"
+        else:
+            return False, r["message"]
+
+    @classmethod
+    async def send_card(cls, cookie, card_record_id, receive_uid, num, timeout=10):
+        url = "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send"
+        data = {
+            "card_record_id": card_record_id,
+            "recv_uid": receive_uid,
+            "num": num,
+            "t": int(time.time()*1000),
+        }
+        headers = {"Cookie": cookie}
+        flag, r = await cls.get(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+        if not flag:
+            return False, r
+        if r["code"] == 0:
+            return True, ""
+        else:
+            return False, f"{r['code']}, {r['message']}"
 
 
 async def test():
