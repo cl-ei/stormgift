@@ -4,7 +4,7 @@ import traceback
 import asyncio
 import logging
 from utils.biliapi import CookieFetcher
-from utils.dao import HYMCookies as hao_yang_mao_class
+from utils.dao import HYMCookiesOfCl as hao_yang_mao_class
 from config.log4 import console_logger as logging
 from utils.biliapi import BiliApi
 
@@ -77,24 +77,21 @@ async def hao_yang_mao_exec(proc_index, cookie):
         logging.error(f"Bad cookie! {cookie}")
         return False, {"re_login": True}
 
-    # r = await BiliApi.receive_daily_bag(cookie)
-    # logging.info(f"receive_daily_bag: {r}")
-    #
-    # flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
-    # logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
-    #
-    # flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
-    # logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
-
-    # return
-
     # do sign.
     # flag, result = await BiliApi.do_sign(cookie)
     # if not flag and "请先登录" in result:
     #     logging.warning(f"Do sign failed. result: {result}")
     #     return False, {"re_login": True}
     # logging.info("Sign success!")
-    # return
+
+    flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
+    logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
+
+    flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
+    logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
+
+    r = await BiliApi.receive_daily_bag(cookie)
+    logging.info(f"receive_daily_bag: {r}")
 
     # 送辣条！
     ruid = 20932326
@@ -125,7 +122,7 @@ async def hao_yang_mao_exec(proc_index, cookie):
 
             card_record_id = gift["card_record_id"]
             num = gift["gift_num"]
-            receive_uid = 6851677
+            receive_uid = ruid  # 6851677
             r = await BiliApi.send_card(
                 cookie=cookie,
                 card_record_id=card_record_id,
