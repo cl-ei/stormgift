@@ -1308,7 +1308,13 @@ class BiliApi:
         url = "https://api.live.bilibili.com/gift/v2/live/receive_daily_bag"
         headers = {"Cookie": cookie}
         flag, r = await cls.get(url=url, headers=headers, timeout=timeout, check_response_json=True)
-        return flag, r
+        if flag:
+            return True, ""
+
+        if r["code"] == 0:
+            return True, ""
+        else:
+            return False, r["message"]
 
 
 async def test():
