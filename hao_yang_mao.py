@@ -69,6 +69,9 @@ class H:
             logging.info(f"end of proc: {proc_index}.\n┗{'-' * 80}┛")
 
 
+card_list = {}
+
+
 async def hao_yang_mao_exec(proc_index, cookie):
     if cookie is None:
         logging.error(f"Bad cookie! {cookie}")
@@ -77,22 +80,26 @@ async def hao_yang_mao_exec(proc_index, cookie):
     # flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
     # logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
 
-    flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
-    logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
-    return
+    # flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
+    # logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
+
+    # return
 
     # do sign.
-    flag, result = await BiliApi.do_sign(cookie)
-    if not flag and "请先登录" in result:
-        logging.warning(f"Do sign failed. result: {result}")
-        return False, {"re_login": True}
-    logging.info("Sign success!")
-    return
+    # flag, result = await BiliApi.do_sign(cookie)
+    # if not flag and "请先登录" in result:
+    #     logging.warning(f"Do sign failed. result: {result}")
+    #     return False, {"re_login": True}
+    # logging.info("Sign success!")
+    # return
 
     # 送辣条！
     ruid = 20932326
     live_room_id = 13369254
+
+    # 送头衔续期卡
     bag_list = await BiliApi.get_bag_list(cookie)
+
     send_msg = "\n".join([f"{s['corner_mark']}辣条 * {s['gift_num']}" for s in bag_list if s["gift_name"] == "辣条"])
     logging.info(f"bag_list: \n{send_msg}\n")
 
@@ -106,9 +113,27 @@ async def hao_yang_mao_exec(proc_index, cookie):
             else:
                 logging.info(f"♨ Send Success! msg: {data.get('message', 'unknown')}")
 
+        if "续期卡" in gift["gift_name"]:
+            if gift["gift_name"] in card_list:
+                card_list[gift["gift_name"]] += 1
+            else:
+                card_list[gift["gift_name"]] = 0
+
+            card_record_id = gift["card_record_id"]
+            num = gift["gift_num"]
+            receive_uid = 6851677
+            r = await BiliApi.send_card(
+                cookie=cookie,
+                card_record_id=card_record_id,
+                receive_uid=receive_uid,
+                num=num
+            )
+            logging.info(f"Send card: {gift['gift_name']} r: {r}")
+
 
 if __name__ == "__main__":
     hym = H(target=hao_yang_mao_exec)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(hym.run())
+    logging.info(f"card_list: {card_list}")
