@@ -70,7 +70,6 @@ class H:
 
 
 card_list = {}
-card_display_list = []
 
 
 async def hao_yang_mao_exec(proc_index, cookie):
@@ -103,11 +102,6 @@ async def hao_yang_mao_exec(proc_index, cookie):
 
     # 送头衔续期卡
     bag_list = await BiliApi.get_bag_list(cookie)
-    cards = [f"{s['gift_name']}辣条 * {s['gift_num']}" for s in bag_list if "续期卡" in s["gift_name"]]
-    card_display_list.extend(cards)
-    logging.info("\n".join(cards))
-    return
-
     send_msg = "\n".join([f"{s['corner_mark']}辣条 * {s['gift_num']}" for s in bag_list if s["gift_name"] == "辣条"])
     logging.info(f"bag_list: \n{send_msg}\n")
 
@@ -131,7 +125,7 @@ async def hao_yang_mao_exec(proc_index, cookie):
 
             card_record_id = gift["card_record_id"]
             num = gift["gift_num"]
-            receive_uid = ruid  # 6851677
+            receive_uid = 6851677
             r = await BiliApi.send_card(
                 cookie=cookie,
                 card_record_id=card_record_id,
@@ -146,4 +140,4 @@ if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(hym.run())
-    logging.info("\n".join(card_display_list))
+    logging.info(card_list)
