@@ -559,6 +559,21 @@ class LTUserSettings:
         return result
 
 
+class StormGiftBlackRoom:
+    key = "LT_STORM_GIFT_BLOCKED"
+
+    @classmethod
+    async def set_blocked(cls, user_id):
+        key = f"{cls.key}_{user_id}"
+        await redis_cache.set(key=key, value=1, timeout=3600*3)
+
+    @classmethod
+    async def is_blocked(cls, user_id):
+        key = f"{cls.key}_{user_id}"
+        is_blocked = await redis_cache.get(key)
+        return is_blocked == 1
+
+
 async def test():
     pass
 

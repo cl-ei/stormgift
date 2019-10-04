@@ -5,7 +5,7 @@ import random
 import asyncio
 import requests
 import traceback
-from utils.dao import redis_cache, LTUserSettings
+from utils.dao import redis_cache, LTUserSettings, StormGiftBlackRoom
 from config import cloud_acceptors
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
@@ -85,6 +85,13 @@ class Worker(object):
         elif act == "join_storm":
             user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="storm_percent")
 
+            non_blocked = []
+            for c in user_cookie_objs:
+                if await StormGiftBlackRoom.is_blocked(c.uid):
+                    continue
+                non_blocked.append(c)
+            user_cookie_objs = non_blocked
+
         cookies = [c.cookie for c in user_cookie_objs]
         if not cookies:
             return
@@ -143,6 +150,9 @@ class Worker(object):
                 elif "请先登录哦" in message:
                     await DBCookieOperator.set_invalid(cookie_obj)
                     self._cookie_objs_update_time = 0
+                elif act == "join_storm" and "验证码没通过" in message:
+                    logging.warning(f"{cookie_obj.name}(uid: {cookie_obj.uid}) {message}. set blocked.")
+                    await StormGiftBlackRoom.set_blocked(cookie_obj.uid)
 
                 if index != 0:
                     message = message[:100]
