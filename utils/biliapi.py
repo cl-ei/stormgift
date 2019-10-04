@@ -369,6 +369,7 @@ class BiliApi:
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
             "https://api.live.bilibili.com/gift/v3/smalltv/check",
             "https://api.live.bilibili.com/lottery/v1/Storm/check",
+            "https://api.live.bilibili.com/activity/v1/s9/sign",
             "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",
             "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send",
             # "https://api.live.bilibili.com/guard/topList?page=1",
