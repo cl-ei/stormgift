@@ -373,7 +373,8 @@ class BiliApi:
             "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",
             "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send",
             "https://api.live.bilibili.com/gift/v2/live/receive_daily_bag",
-            "https://api.live.bilibili.com/gift/v2/gift/bag_list"
+            "https://api.live.bilibili.com/gift/v2/gift/bag_list",
+            "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list?",
             # "https://api.live.bilibili.com/guard/topList?page=1",
             # "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
@@ -887,8 +888,10 @@ class BiliApi:
 
     @classmethod
     async def get_bag_list(cls, cookie, timeout=10):
-        req_url = "https://api.live.bilibili.com/gift/v2/gift/bag_list"
-        flag, r = await cls.get(req_url, headers={"Cookie": cookie}, timeout=timeout, check_error_code=True)
+        # req_url = "https://api.live.bilibili.com/gift/v2/gift/bag_list"
+        req_url = "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list"
+        data = {"t": int(time.time()*1000)}
+        flag, r = await cls.get(req_url, headers={"Cookie": cookie}, data=data, timeout=timeout, check_error_code=True)
         if flag:
             return r.get("data", {}).get("list", []) or []
         return []
