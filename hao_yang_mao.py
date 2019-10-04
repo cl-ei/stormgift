@@ -4,7 +4,7 @@ import traceback
 import asyncio
 import logging
 from utils.biliapi import CookieFetcher
-from utils.dao import HYMCookiesOfCl as hao_yang_mao_class
+from utils.dao import HYMCookies as hao_yang_mao_class
 from config.log4 import console_logger as logging
 from utils.biliapi import BiliApi
 
@@ -70,6 +70,7 @@ class H:
 
 
 card_list = {}
+card_display_list = []
 
 
 async def hao_yang_mao_exec(proc_index, cookie):
@@ -77,14 +78,14 @@ async def hao_yang_mao_exec(proc_index, cookie):
         logging.error(f"Bad cookie! {cookie}")
         return False, {"re_login": True}
 
-    r = await BiliApi.receive_daily_bag(cookie)
-    logging.info(f"receive_daily_bag: {r}")
-
-    flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
-    logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
-
-    flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
-    logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
+    # r = await BiliApi.receive_daily_bag(cookie)
+    # logging.info(f"receive_daily_bag: {r}")
+    #
+    # flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
+    # logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
+    #
+    # flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
+    # logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
 
     # return
 
@@ -102,6 +103,10 @@ async def hao_yang_mao_exec(proc_index, cookie):
 
     # 送头衔续期卡
     bag_list = await BiliApi.get_bag_list(cookie)
+    cards = [f"{s['gift_name']}辣条 * {s['gift_num']}" for s in bag_list if "续期卡" in s["gift_name"]]
+    card_display_list.extend(cards)
+    logging.info("\n".join(cards))
+    return
 
     send_msg = "\n".join([f"{s['corner_mark']}辣条 * {s['gift_num']}" for s in bag_list if s["gift_name"] == "辣条"])
     logging.info(f"bag_list: \n{send_msg}\n")
@@ -141,4 +146,4 @@ if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(hym.run())
-    logging.info(f"card_list: {card_list}")
+    logging.info("\n".join(card_display_list))
