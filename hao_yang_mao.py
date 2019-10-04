@@ -4,24 +4,16 @@ import traceback
 import asyncio
 import logging
 from utils.biliapi import CookieFetcher
-from utils.dao import HYMCookies
+from utils.dao import HYMCookies as hao_yang_mao_class
 from config.log4 import console_logger as logging
 from utils.biliapi import BiliApi
 
 
 class H:
     def __init__(self, target):
-        self.accounts_file = "./bili_accounts.txt"
         self.accounts = []
         self.cookies = []
         self.target = target
-
-    async def load_accounts(self):
-        with open(self.accounts_file, "r") as f:
-            content = f.readlines()
-        for l in content:
-            account, *_, password = l.strip().split("-")
-            self.accounts.append((account, password))
 
     async def login(self, account, password):
         flag, cookie = await CookieFetcher.get_cookie(account, password)
@@ -29,14 +21,15 @@ class H:
             logging.error(f"▆▆IMPORTANT▆▆ Cannot get_cookie for account: {account}! message: {cookie}")
             return
 
-        await HYMCookies.add(account=account, password=password, cookie=cookie)
+        await hao_yang_mao_class.add(account=account, password=password, cookie=cookie)
         logging.info(f"▆▆IMPORTANT▆▆ {account} Success! {account}, pass: {password}")
 
-    async def execute(self, proc_index, account, password):
+    async def execute(self, proc_index, account, password, cookie):
         try_times = -1
         while try_times < 3:
-            cookie = await HYMCookies.get(account=account)
-            if isinstance(cookie, dict) and "cookie" in cookie:
+            if isinstance(cookie, str):
+                pass
+            elif isinstance(cookie, dict) and "cookie" in cookie:
                 cookie = cookie["cookie"]
             else:
                 await self.login(account=account, password=password)
@@ -64,13 +57,15 @@ class H:
                 await self.login(account=account, password=password)
 
     async def run(self):
-        await self.load_accounts()
-
+        account_info_dict = await hao_yang_mao_class.get(return_dict=True)
         proc_index = -1
-        for account, password in self.accounts:
+        for account, info_dict in account_info_dict.items():
+            password = info_dict["password"]
+            cookie = info_dict["cookie"]
             proc_index += 1
-            logging.info(f"\n┏{'-' * 80}┓")
-            await self.execute(proc_index, account, password)
+
+            logging.info(f"\nAccount: {account}, pass: {password}.\n┏{'-' * 80}┓")
+            await self.execute(proc_index, account, password, cookie)
             logging.info(f"end of proc: {proc_index}.\n┗{'-' * 80}┛")
 
 
@@ -78,14 +73,14 @@ async def hao_yang_mao_exec(proc_index, cookie):
     if cookie is None:
         logging.error(f"Bad cookie! {cookie}")
         return False, {"re_login": True}
-    #
-    # # do sign.
-    # flag, result = await BiliApi.do_sign(cookie)
-    # if not flag and "请先登录" in result:
-    #     logging.warning(f"Do sign failed. result: {result}")
-    #     return False, {"re_login": True}
-    # logging.info("Sign success!")
-    # return
+
+    # do sign.
+    flag, result = await BiliApi.do_sign(cookie)
+    if not flag and "请先登录" in result:
+        logging.warning(f"Do sign failed. result: {result}")
+        return False, {"re_login": True}
+    logging.info("Sign success!")
+    return
 
     # 送辣条！
     ruid = 20932326
