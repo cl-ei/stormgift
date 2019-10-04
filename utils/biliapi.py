@@ -1320,6 +1320,37 @@ class BiliApi:
         else:
             return False, r["message"]
 
+    @classmethod
+    async def check_mail_box(cls, cookie, timeout=10):
+        url = "https://api.live.bilibili.com/xlive/web-room/v1/propMailbox/list"
+        data = {
+            "page": 1,
+            "page_size": 50,
+            "t": int(time.time()*1000)
+        }
+        headers = {"Cookie": cookie}
+        flag, r = await cls.get(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+        if not flag:
+            return False, r
+
+        if r["code"] == 0:
+            return True, r["data"]["list"]
+        else:
+            return False, r["message"]
+
+    @classmethod
+    async def accept_gift_from_mail_box(cls, cookie, mail_id, timeout=10):
+        url = "https://api.live.bilibili.com/xlive/web-room/v1/propMailbox/use"
+        data = {"mail_id": mail_id}
+        headers = {"Cookie": cookie}
+        flag, r = await cls.get(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+        if flag:
+            return True, ""
+        if r["code"] == 0:
+            return True, ""
+        else:
+            return False, r["message"]
+
 
 async def test():
     from utils.highlevel_api import DBCookieOperator
