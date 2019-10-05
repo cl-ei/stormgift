@@ -1343,9 +1343,12 @@ class BiliApi:
 
             total_page = r["data"]["page"]["total_page"]
             if data["page"] < total_page:
+                result.extend(r["data"]["list"])
                 data["page"] += 1
                 data["t"] = int(time.time()*1000)
-
+                continue
+            else:
+                return True, result
         return False, error_message
 
     @classmethod
