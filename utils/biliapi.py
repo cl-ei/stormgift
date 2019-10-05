@@ -1329,14 +1329,24 @@ class BiliApi:
             "t": int(time.time()*1000)
         }
         headers = {"Cookie": cookie}
-        flag, r = await cls.get(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
-        if not flag:
-            return False, r
 
-        if r["code"] == 0:
-            return True, r["data"]["list"]
-        else:
-            return False, r["message"]
+        result = []
+        error_message = ""
+        for try_times in range(20):
+            flag, r = await cls.get(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
+            if not flag:
+                error_message = r
+                continue
+
+            if r["code"] != 0:
+                return True, result
+
+            total_page = r["data"]["page"]["total_page"]
+            if data["page"] < total_page:
+                data["page"] += 1
+                data["t"] = int(time.time()*1000)
+
+        return False, error_message
 
     @classmethod
     async def accept_gift_from_mail_box(cls, cookie, mail_id, timeout=10):
