@@ -4,9 +4,13 @@ import traceback
 import asyncio
 import logging
 from utils.biliapi import CookieFetcher
-from utils.dao import HYMCookiesOfCl as hao_yang_mao_class
 from config.log4 import console_logger as logging
 from utils.biliapi import BiliApi
+
+if sys.argv[-1] == "lm":
+    from utils.dao import HYMCookies as hao_yang_mao_class
+else:
+    from utils.dao import HYMCookiesOfCl as hao_yang_mao_class
 
 
 class H:
@@ -69,34 +73,37 @@ class H:
             logging.info(f"end of proc: {proc_index}.\n┗{'-' * 80}┛")
 
 
-card_list = {}
+async def sign_s9(proc_index, cookie):
+    flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
+    logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
 
 
-async def hao_yang_mao_exec(proc_index, cookie):
+async def open_capsule(proc_index, cookie):
+    flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
+    logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
+
+
+async def receive_daily_bag(proc_index, cookie):
+    r = await BiliApi.receive_daily_bag(cookie)
+    logging.info(f"receive_daily_bag: {r}")
+
+
+async def do_sign(proc_index, cookie):
     if cookie is None:
         logging.error(f"Bad cookie! {cookie}")
         return False, {"re_login": True}
 
-    # do sign.
-    # flag, result = await BiliApi.do_sign(cookie)
-    # if not flag and "请先登录" in result:
-    #     logging.warning(f"Do sign failed. result: {result}")
-    #     return False, {"re_login": True}
-    # logging.info("Sign success!")
+    flag, result = await BiliApi.do_sign(cookie)
+    if not flag and "请先登录" in result:
+        logging.warning(f"Do sign failed. result: {result}")
+        return False, {"re_login": True}
+    logging.info("Sign success!")
 
-    flag, msg = await BiliApi.join_s9_sign(cookie=cookie)
-    logging.info(f"join_s9_sign: flag: {flag}, message: {msg}")
 
-    await asyncio.sleep(1)
+card_list = {}
 
-    flag, msg = await BiliApi.join_s9_open_capsule(cookie=cookie)
-    logging.info(f"join_s9_open_capsule: flag: {flag}, message: {msg}")
 
-    await asyncio.sleep(1)
-
-    r = await BiliApi.receive_daily_bag(cookie)
-    logging.info(f"receive_daily_bag: {r}")
-
+async def send(proc_index, cookie):
     # 送辣条！
     ruid = 20932326
     live_room_id = 13369254
@@ -126,7 +133,7 @@ async def hao_yang_mao_exec(proc_index, cookie):
 
             card_record_id = gift["card_record_id"]
             num = gift["gift_num"]
-            receive_uid = ruid  # 6851677
+            receive_uid = ruid
             r = await BiliApi.send_card(
                 cookie=cookie,
                 card_record_id=card_record_id,
@@ -137,8 +144,16 @@ async def hao_yang_mao_exec(proc_index, cookie):
 
 
 if __name__ == "__main__":
-    hym = H(target=hao_yang_mao_exec)
+    cmd = sys.argv[1]
+    target = {
+        "s9": sign_s9,
+        "open_s9": open_capsule,
+        "r": receive_daily_bag,
+        "do_sign": do_sign,
+        "send": send,
+    }.get(cmd)
 
+    hym = H(target=target)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(hym.run())
     logging.info(card_list)
