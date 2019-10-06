@@ -54,16 +54,13 @@ async def ws_notify_log_broadcast(app):
 
 
 async def ws_raffle_broadcast_handler(request):
-    remote_ip = request.headers.get("X-Real-IP", "")
-
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
     request.app['websockets_raffle'].add(ws)
-    await ws.send_str(f"Connected. Your ip is {remote_ip}, transferring data...\n")
     try:
         async for msg in ws:
-            await ws.send_str(f"OK: {msg.data}\n")
+            pass
     finally:
         request.app['websockets_raffle'].discard(ws)
     return ws
