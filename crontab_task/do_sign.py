@@ -49,6 +49,7 @@ async def main():
 
         # 触发领取今日辣条
         await BiliApi.get_bag_list(cookie=cookie)
+        await BiliApi.receive_daily_bag(cookie=cookie)
         logging_msg_list.append("\tSuccess !\n")
 
     logging_msg_list.append(f"\nDo sign task done. cost: {int((time.time() - start_time) *1000)} ms.\n")
