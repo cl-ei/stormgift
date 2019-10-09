@@ -285,7 +285,7 @@ class Worker(object):
             key = f"S${room_id}${raffle_id}"
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
-                await mq_raffle_to_acceptor.put(key)
+                # await mq_raffle_to_acceptor.put(key)
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
