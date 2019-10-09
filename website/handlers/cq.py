@@ -359,7 +359,7 @@ class BotUtils:
 
         flag, r = await BiliApi.get_user_medal_list(uid=uid)
         if not flag or not isinstance(r, list) or not r:
-            message = f"未查询到「{user_name}(uid: {uid})」拥有的勋章。检查用户名或uid是否正确。"
+            message = f"未查询到{user_name}(uid: {uid})拥有的勋章。检查用户名或uid是否正确。"
             self.bot.send_group_msg(group_id=group_id, message=message)
             return
 
@@ -373,7 +373,7 @@ class BotUtils:
             msg_list.append(f"[{name}] {level}级，{current}/{total}")
 
         message = "\n".join(msg_list)
-        self.bot.send_group_msg(group_id=group_id, message=f"「{user_name}(uid: {uid})」拥有的勋章如下：\n\n{message}")
+        self.bot.send_group_msg(group_id=group_id, message=f"{user_name}(uid: {uid})拥有的勋章如下：\n\n{message}")
 
     def proc_help(self, msg, group_id):
         if self.bot != qq:
