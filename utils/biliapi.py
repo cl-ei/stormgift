@@ -375,6 +375,7 @@ class BiliApi:
             "https://api.live.bilibili.com/gift/v2/live/receive_daily_bag",
             "https://api.live.bilibili.com/gift/v2/gift/bag_list",
             "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list?",
+            "https://api.bilibili.com/x/space/acc/info",
             # "https://api.live.bilibili.com/guard/topList?page=1",
             # "https://api.live.bilibili.com/AppRoom/index?platform=android",
         ):
@@ -799,12 +800,23 @@ class BiliApi:
 
     @classmethod
     async def get_user_face(cls, uid, timeout=10):
-        req_url = f"https://api.bilibili.com/x/space/acc/info?jsonp=jsonp&mid={uid}"
-        flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        req_url = f"https://api.bilibili.com/x/space/acc/info"
+        data = {"mid": uid, "jsonp": "jsonp"}
+        flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
         if not flag:
             return ""
         else:
             return data.get("data", {}).get("face", "") or ""
+
+    @classmethod
+    async def get_user_name(cls, uid, timeout=10):
+        req_url = f"https://api.bilibili.com/x/space/acc/info"
+        data = {"mid": uid, "jsonp": "jsonp"}
+        flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
+        if not flag:
+            return ""
+        else:
+            return data.get("data", {}).get("name", "") or ""
 
     @classmethod
     async def get_uid_by_live_room_id(cls, room_id, timeout=10):
