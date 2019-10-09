@@ -52,8 +52,6 @@ class ReqFreLimitApi(object):
             logging.error(f"Error happened when get_uid_by_name({user_name}): {content}.")
             return None
 
-        print(content)
-
         try:
             r = json.loads(content)
             assert r[0] is True
