@@ -1,7 +1,10 @@
 import time
+import json
 import asyncio
+import aiohttp
 import datetime
 from utils.biliapi import BiliApi, CookieFetcher
+from config import cloud_get_uid
 from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
@@ -34,35 +37,31 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def get_uid_by_name(cls, user_name, wait_time=2):
-        await cls._wait("get_uid_by_name", wait_time=wait_time)
+        r = await DBCookieOperator.get_by_uid("DD")
+        cookie = r.cookie if r else ""
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+                async with session.post(cloud_get_uid, json={"cookie": cookie, "name": user_name}) as resp:
+                    status_code = resp.status
+                    content = await resp.text()
+        except Exception as e:
+            status_code = 5000
+            content = f"Error: {e}"
 
-        flag, uid = await BiliApi.get_user_id_by_search_way(user_name)
-        if flag and isinstance(uid, (int, float)) and uid > 0:
-            return uid
-
-        obj = await DBCookieOperator.get_by_uid("*")
-        if not obj:
+        if status_code != 200:
+            logging.error(f"Error happened when get_uid_by_name({user_name}): {content}.")
             return None
 
-        cookie = obj.cookie
-        uid = None
-        for retry_time in range(3):
-            await BiliApi.add_admin(user_name, cookie)
+        print(content)
 
-            flag, admin_list = await BiliApi.get_admin_list(cookie)
-            if not flag:
-                continue
+        try:
+            r = json.loads(content)
+            assert r[0] is True
+        except (json.JSONDecodeError, AssertionError) as e:
+            logging.error(f"Error happened when get_uid_by_name({user_name}): {e}")
+            return None
 
-            for admin in admin_list:
-                if admin.get("uname") == user_name:
-                    uid = admin.get("uid")
-                    break
-
-        if isinstance(uid, (int, float)) and uid > 0:
-            await BiliApi.remove_admin(uid, cookie)
-
-        await cls._update_time("get_uid_by_name")
-        return uid
+        return r[1]
 
     @classmethod
     async def get_raffle_record(cls, uid):

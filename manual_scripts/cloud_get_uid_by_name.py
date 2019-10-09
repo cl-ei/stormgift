@@ -177,7 +177,8 @@ def main_handler(event, context):
     logger.info(f"Search user: {name}, cookie:\n\t{cookie}")
     flag, data = get_user_id_by_search_way(user_name=name)
     if flag:
-        return {"headers": {"Content-Type": "text"}, "statusCode": 200, "body": json.dumps(data)}
+        response = [True, data]
+        return {"headers": {"Content-Type": "text"}, "statusCode": 200, "body": json.dumps(response)}
 
     logging.warning(f"Cannot get user name by search way.")
 
