@@ -352,9 +352,15 @@ class BotUtils:
         except (ValueError, TypeError):
             uid = await ReqFreLimitApi.get_uid_by_name(user_name=raw_uid_or_uname)
 
+        if not uid:
+            return
+
+        user_name = await BiliApi.get_user_name(uid=uid)
+
         flag, r = await BiliApi.get_user_medal_list(uid=uid)
         if not flag or not isinstance(r, list) or not r:
-            self.bot.send_group_msg(group_id=group_id, message=f"未查询到「{raw_uid_or_uname}」拥有的勋章。检查用户名或uid是否正确。")
+            message = f"未查询到「{user_name}(uid: {uid})」拥有的勋章。检查用户名或uid是否正确。"
+            self.bot.send_group_msg(group_id=group_id, message=message)
             return
 
         medal_list = sorted(r, key=lambda x: (x["level"], x["intimacy"]), reverse=True)
@@ -367,7 +373,7 @@ class BotUtils:
             msg_list.append(f"[{name}] {level}级，{current}/{total}")
 
         message = "\n".join(msg_list)
-        self.bot.send_group_msg(group_id=group_id, message=f"「{raw_uid_or_uname}」拥有的勋章如下：\n\n{message}")
+        self.bot.send_group_msg(group_id=group_id, message=f"「{user_name}(uid: {uid})」拥有的勋章如下：\n\n{message}")
 
     def proc_help(self, msg, group_id):
         if self.bot != qq:
