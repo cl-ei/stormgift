@@ -484,11 +484,11 @@ async def trends_qq_notice(request):
                 refreshed_data = dynamic_id_set | existed_dynamic_id_set
                 await redis_cache.set(key=key, value=refreshed_data)
 
-                flag, dynamics = await BiliApi.get_user_dynamics(uid=uid)
-                if not flag:
-                    bili_user_name = await BiliApi.get_user_name(uid=uid)
-                    message = f"{bili_user_name}(uid: {uid})有新动态啦! 动态id：{dynamic_id_list[0]}！"
-                else:
+                try:
+                    flag, dynamics = await BiliApi.get_user_dynamics(uid=uid)
+                    if not flag:
+                        raise Exception(f"Cannot get user dynamics!")
+
                     latest_dynamic = dynamics[0]
                     bili_user_name = latest_dynamic["desc"]["user_profile"]["info"]["uname"]
                     content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(latest_dynamic)
@@ -506,7 +506,16 @@ async def trends_qq_notice(request):
                         f"url=https://t.bilibili.com/{dynamic_id_list[0]},"
                         f"title={content[:30].replace(',', '，')},content=Bilibili动态,image={image}]"
                     )
-                    message += message_share
+                    bot_zy.send_private_msg(user_id=171660901, message=message_share)
+                    bot_zy.send_private_msg(user_id=80873436, message=message_share)
+
+                except Exception as e:
+                    error_msg = f"Error happened when fetching user dynamic: {e}\n\n{traceback.format_exc()}"
+                    bot_zy.send_private_msg(user_id=80873436, message=error_msg)
+
+                    bili_user_name = await BiliApi.get_user_name(uid=uid)
+                    message = f"{bili_user_name}(uid: {uid})有新动态啦! 动态id：{dynamic_id_list[0]}！"
+
                 bot_zy.send_private_msg(user_id=171660901, message=message)
                 bot_zy.send_private_msg(user_id=80873436, message=message)
 

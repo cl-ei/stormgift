@@ -1444,10 +1444,35 @@ class BiliApi:
 
 
 async def test():
-    flag, dynamics = await BiliApi.get_user_dynamics(20932326)
-    for dynamic in dynamics:
-        r = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
-        print(r)
+    from utils.cq import bot_zy
+    uid = 20932326
+    dynamic_id = 123456
+    flag, dynamics = await BiliApi.get_user_dynamics(uid=uid)
+    if not flag:
+        bili_user_name = await BiliApi.get_user_name(uid=uid)
+        message = f"{bili_user_name}(uid: {uid})有新动态啦! 动态id：{dynamic_id}！"
+    else:
+        latest_dynamic = dynamics[0]
+        bili_user_name = latest_dynamic["desc"]["user_profile"]["info"]["uname"]
+        content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(latest_dynamic)
+
+        content = "\n".join(content)
+        message = f"{bili_user_name}(uid: {uid})新动态：\n\n{content}"
+
+        if not pictures:
+            image = "https://i0.hdslb.com/bfs/space/cb1c3ef50e22b6096fde67febe863494caefebad.png"
+        else:
+            image = pictures[0]
+
+        message_share = (
+            f"[CQ:share,"
+            f"url=https://t.bilibili.com/{dynamic_id},"
+            f"title={content[:30].replace(',', '，')},content=Bilibili动态,image={image}]"
+        )
+        bot_zy.send_private_msg(user_id=80873436, message=message_share)
+
+    # bot_zy.send_private_msg(user_id=171660901, message=message)
+    bot_zy.send_private_msg(user_id=80873436, message=message)
 
 
 if __name__ == "__main__":
