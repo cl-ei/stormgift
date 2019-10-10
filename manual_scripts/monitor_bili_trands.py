@@ -23,8 +23,9 @@ def find(uid):
         raise Exception("未能获取到动态！")
 
     response = json.loads(r.content, encoding="utf-8")
-    dynamic_id = response["data"]["cards"][0]["desc"]["dynamic_id"]
-    return dynamic_id
+    cards = response["data"]["cards"]
+    dynamic_id_list = [c["desc"]["dynamic_id"] for c in cards]
+    return dynamic_id_list
 
 
 def main_handler(event, context):
@@ -32,11 +33,11 @@ def main_handler(event, context):
     post_data = {}
     for uid in HOST_UID:
         try:
-            dynamic_id = find(uid)
+            dynamic_id_list = find(uid)
         except Exception as e:
             logging.error("E in find: %s" % e)
             continue
-        post_data[uid] = dynamic_id
+        post_data[uid] = dynamic_id_list
 
     url = "https://www.madliar.com/lt/trends_qq_notice"
     r = requests.get(url=url, params={"token": "BXzgeJTWxGtd6b5F", "post_data": json.dumps(post_data)})

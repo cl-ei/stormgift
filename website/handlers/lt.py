@@ -8,6 +8,7 @@ from aiohttp import web
 from jinja2 import Template
 from config import CDN_URL
 from utils.cq import bot_zy, bot
+from utils.biliapi import BiliApi
 from utils.dao import redis_cache, HansyDynamicNotic, LTUserSettings
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import DBCookieOperator, ReqFreLimitApi
@@ -463,33 +464,51 @@ async def trends_qq_notice(request):
     if token == "BXzgeJTWxGtd6b5F":
         post_data = request.query.get("post_data")
         uid_to_dynamic = json.loads(post_data, encoding="utf-8")
-        for uid, dynamic_id in uid_to_dynamic.items():
-
+        for uid, dynamic_id_list in uid_to_dynamic.items():
             uid = int(uid)
-            key = f"MONITOR_BILI_UID_{uid}_{dynamic_id}"
-            if await redis_cache.set_if_not_exists(key=key, value=1, timeout=3600*24):
+            dynamic_id_set = set(dynamic_id_list)
 
-                if uid in []:  # (65568410, ):  # 管珩心
-                    notice_users = await HansyDynamicNotic.get()
-                    notice_users = "".join([f"[CQ:at,qq={qq}]" for qq in notice_users])
-                    message = (
-                        f"{notice_users} \n可爱的大仙泡发布B站动态啦！快来围观打call！\n\n"
-                        "(如果你也想第一时间获取泡泡的动态、活捉可爱的大仙泡，请发送指令\"我要24小时守护泡泡\")"
-                    )
-                    # bot.send_group_msg(group_id=883237694, message=message)
-                    bot_zy.send_private_msg(user_id=80873436, message=message)
+            key = f"MONITOR_BILI_UID_V2_{uid}"
+            existed_dynamic_id_set = await redis_cache.get(key=key)
+            if not isinstance(existed_dynamic_id_set, set):
+                await redis_cache.set(key=key, value=dynamic_id_set)
 
+                bili_user_name = await BiliApi.get_user_name(uid=uid)
+                message = f"{bili_user_name}(uid: {uid})的动态监测已经添加！"
+                bot_zy.send_private_msg(user_id=171660901, message=message)
+                bot_zy.send_private_msg(user_id=80873436, message=message)
+                return web.Response(status=206)
+
+            new_dynamics = dynamic_id_set - existed_dynamic_id_set
+            if new_dynamics:
+                refreshed_data = dynamic_id_set | existed_dynamic_id_set
+                await redis_cache.set(key=key, value=refreshed_data)
+
+                flag, dynamics = await BiliApi.get_user_dynamics(uid=uid)
+                if not flag:
+                    bili_user_name = await BiliApi.get_user_name(uid=uid)
+                    message = f"{bili_user_name}(uid: {uid})有新动态啦! 动态id：{dynamic_id_list[0]}！"
                 else:
-                    message = f"BILI用户(uid: {uid}) 发布新动态啦！"
-                    bot_zy.send_private_msg(user_id=171660901, message=message)
+                    latest_dynamic = dynamics[0]
+                    bili_user_name = latest_dynamic["desc"]["user_profile"]["info"]["uname"]
+                    content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(latest_dynamic)
 
-                    # message = (
-                    #     f"[CQ:share,url=https://t.bilibili.com/{dynamic_id},"
-                    #     f"title={title},content={content},image={image}]"
-                    # )
-                    # bot_zy.send_private_msg(user_id=171660901, message=message)
-            else:
-                await redis_cache.expire(key=key, timeout=3600*24)
+                    content = "\n".join(content)
+                    message = f"{bili_user_name}(uid: {uid})新动态：\n\n{content}"
+
+                    if not pictures:
+                        image = "https://i0.hdslb.com/bfs/space/cb1c3ef50e22b6096fde67febe863494caefebad.png"
+                    else:
+                        image = pictures[0]
+
+                    message_share = (
+                        f"\n\n[CQ:share,"
+                        f"url=https://t.bilibili.com/{dynamic_id_list[0]},"
+                        f"title={content[:30].replace(',', '，')},content=Bilibili动态,image={image}]"
+                    )
+                    message += message_share
+                bot_zy.send_private_msg(user_id=171660901, message=message)
+                bot_zy.send_private_msg(user_id=80873436, message=message)
 
         return web.Response(status=206)
     return web.Response(status=403)

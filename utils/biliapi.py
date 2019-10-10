@@ -1377,27 +1377,77 @@ class BiliApi:
         else:
             return False, r["message"]
 
+    @classmethod
+    async def get_user_dynamics(cls, uid, timeout=10):
+        url = "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history"
+        params = {
+            "visitor_uid": 0,
+            "host_uid": uid,
+            "offset_dynamic_id": 0,
+        }
+        flag, r = await cls.get(url=url, data=params, timeout=timeout, check_response_json=True)
+        if not flag:
+            return False, r
+
+        if r["code"] != 0:
+            return False, r.get("msg") or r.get("message")
+
+        cards = r["data"]["cards"] or []
+        return True, cards
+
+    @classmethod
+    async def get_user_dynamic_content_and_pictures(cls, dynamic):
+        card = json.loads(dynamic["card"])
+        content = []
+        pictures = []
+        if "item" in card:
+            if "description" in card["item"]:
+                content.append(card["item"]["description"])
+            if "pictures" in card["item"]:
+                if isinstance(card["item"]["pictures"], list):
+                    for p in card["item"]["pictures"]:
+                        if "img_src" in p:
+                            pictures.append(p["img_src"])
+
+            if "content" in card["item"]:
+                desc = card["item"]["content"]
+                if "origin" in card:
+                    origin = json.loads(card["origin"])
+                    if "owner" in origin:
+                        desc += f", 转发自{origin['owner']['name']}: {origin['desc']}"
+                        pictures.append(origin['pic'])
+
+                    elif "user" in origin:
+                        desc += f", 转发自{origin['user']['name']}: {origin['item']['description']}"
+                        if "pictures" in origin['item']:
+                            for p in origin["item"]["pictures"]:
+                                if "img_src" in p:
+                                    pictures.append(p["img_src"])
+
+                    if "image_urls" in origin:
+                        for img in origin["image_urls"]:
+                            pictures.append(img)
+
+                content.append(desc)
+        else:
+            if "title" in card:
+                content.append(card["title"])
+            if "desc" in card:
+                content.append(card["desc"])
+            if "pic" in card:
+                pictures.append(card["pic"])
+            if "image_urls" in card:
+                for img in card["image_urls"]:
+                    pictures.append(img)
+
+        return content, pictures
+
 
 async def test():
-    from utils.highlevel_api import DBCookieOperator
-    user = await DBCookieOperator.get_by_uid("DD")
-    bag_list = await BiliApi.get_bag_list(user.cookie)
-
-    result = {}
-    for bag in bag_list:
-        corner_mark = bag["corner_mark"]
-        result.setdefault(corner_mark, {}).setdefault(bag["gift_name"], []).append(bag["gift_num"])
-
-    prompt = []
-    for corner_mark, gift_info in result.items():
-        gift_prompt = []
-        for gift_name, gift_num_list in gift_info.items():
-            gift_prompt.append(f"{gift_name}*{sum(gift_num_list)}")
-        gift_prompt = "、".join(gift_prompt)
-        prompt.append(f"{corner_mark}的{gift_prompt}")
-        print(corner_mark, gift_info)
-
-    print(",\n".join(prompt))
+    flag, dynamics = await BiliApi.get_user_dynamics(20932326)
+    for dynamic in dynamics:
+        r = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
+        print(r)
 
 
 if __name__ == "__main__":
