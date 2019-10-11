@@ -1414,11 +1414,11 @@ class BiliApi:
                 if "origin" in card:
                     origin = json.loads(card["origin"])
                     if "owner" in origin:
-                        desc += f", 转发自{origin['owner']['name']}: {origin['desc']}"
+                        desc += f"\n→ 转发自{origin['owner']['name']}: {origin['desc']}"
                         pictures.append(origin['pic'])
 
                     elif "user" in origin:
-                        desc += f", 转发自{origin['user']['name']}: {origin['item']['description']}"
+                        desc += f"\n→ 转发自{origin['user']['name']}: {origin['item']['description']}"
                         if "pictures" in origin['item']:
                             for p in origin["item"]["pictures"]:
                                 if "img_src" in p:
