@@ -496,6 +496,8 @@ class BotUtils:
 
                     if not dynamics:
                         response(f"该用户未发布B站动态。")
+                        return
+
                     dynamic_id = dynamics[0]["desc"]["dynamic_id"]
 
                 else:
