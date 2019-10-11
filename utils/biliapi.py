@@ -1447,6 +1447,8 @@ async def test():
     uid = 20932326
     dynamic_id = 123456
     flag, dynamics = await BiliApi.get_user_dynamics(uid=uid)
+    print(dynamics[0])
+    return
     for dynamic in dynamics:
         content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
         content = "".join(content)

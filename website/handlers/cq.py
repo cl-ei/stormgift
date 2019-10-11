@@ -464,36 +464,46 @@ class BotUtils:
         message = f"{user.name}(uid: {user.uid})的背包里有:\n{prompt}。"
         self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
 
-    async def proc_dynamic(self, user_id, msg, group=False):
+    async def proc_dynamic(self, user_id, msg, group_id=None):
         lock_key = "LT_PROC_DYNAMIC"
         locked = await redis_cache.set_if_not_exists(key=lock_key, value=1, timeout=30)
         if not locked:
-            if group is True:
-                # self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
-                pass
-            else:
-                self.bot.send_private_msg(user_id=user_id, message=f"正在处理：{msg}")
             return
 
-        await asyncio.sleep(5)
+        def response(m):
+            if group_id is not None:
+                self.bot.send_group_msg(group_id=group_id, message=m)
+            else:
+                self.bot.send_private_msg(user_id=user_id, message=m)
+
+        try:
+            user_name_or_dynamic_id = msg[3:].strip()
+            if not user_name_or_dynamic_id.isdigit():
+                user_id = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
+                if user_id is None:
+                    raise ValueError("Bad uid")
+                flag, dynamics = await BiliApi.get_user_dynamics(uid=user_id)
+                if not flag or not dynamics:
+                    raise ValueError("Fetch dynamics Failed!")
+                dynamic_id = dynamics[0]["desc"]["dynamic_id"]
+
+            elif len(user_name_or_dynamic_id) < 14:
+                flag, dynamics = await BiliApi.get_user_dynamics(uid=int(user_id))
+                if not flag or not dynamics:
+                    raise ValueError("Fetch dynamics Failed!")
+                dynamic_id = dynamics[0]["desc"]["dynamic_id"]
+
+            else:
+                dynamic_id = int(user_name_or_dynamic_id)
+
+        except (TypeError, ValueError, IndexError):
+            response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
+            return
+
+        response(f"获取到最新的动态是：{dynamic_id}")
 
         self.bot.send_private_msg(user_id=user_id, message=f"处理完成：{msg}")
         await redis_cache.delete(lock_key)
-
-        # bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
-        # if not bili_uid:
-        #     message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
-        #     self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
-        #     return True
-        #
-        # try:
-        #     postfix = int(msg[2:])
-        #     assert postfix > 0
-        #     bili_uid = postfix
-        # except (ValueError, TypeError, AssertionError):
-        #     pass
-        #
-        # user = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
 
 
 class BotHandler:
@@ -597,7 +607,7 @@ class BotHandler:
             return await p.proc_query_bag(user_id, msg=msg, group=True)
 
         elif msg.startswith("#动态"):
-            return await p.proc_dynamic(user_id, msg=msg, group=True)
+            return await p.proc_dynamic(user_id, msg=msg, group_id=group_id)
 
     @classmethod
     async def handle_private_message(cls, context):
