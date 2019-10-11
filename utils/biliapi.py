@@ -1392,7 +1392,7 @@ class BiliApi:
         if r["code"] != 0:
             return False, r.get("msg") or r.get("message")
 
-        cards = r["data"]["cards"] or []
+        cards = r["data"].get("cards", []) or []
         return True, cards
 
     @classmethod
