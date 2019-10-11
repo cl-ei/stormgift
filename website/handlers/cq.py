@@ -491,8 +491,11 @@ class BotUtils:
 
                 elif len(user_name_or_dynamic_id) < 14:
                     flag, dynamics = await BiliApi.get_user_dynamics(uid=int(user_name_or_dynamic_id))
-                    if not flag or not dynamics:
+                    if not flag:
                         raise ValueError("Fetch dynamics Failed!")
+
+                    if not dynamics:
+                        response(f"该用户未发布B站动态。")
                     dynamic_id = dynamics[0]["desc"]["dynamic_id"]
 
                 else:
