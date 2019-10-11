@@ -2,6 +2,7 @@ import re
 import time
 import json
 import uuid
+import asyncio
 import hashlib
 import aiohttp
 import datetime
@@ -463,6 +464,37 @@ class BotUtils:
         message = f"{user.name}(uid: {user.uid})的背包里有:\n{prompt}。"
         self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
 
+    async def proc_dynamic(self, user_id, msg, group=False):
+        lock_key = "LT_PROC_DYNAMIC"
+        locked = await redis_cache.set_if_not_exists(key=lock_key, value=1, timeout=30)
+        if not locked:
+            if group is True:
+                # self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+                pass
+            else:
+                self.bot.send_private_msg(user_id=user_id, message=f"正在处理：{msg}")
+            return
+
+        await asyncio.sleep(5)
+
+        self.bot.send_private_msg(user_id=user_id, message=f"处理完成：{msg}")
+        await redis_cache.delete(lock_key)
+
+        # bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        # if not bili_uid:
+        #     message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
+        #     self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+        #     return True
+        #
+        # try:
+        #     postfix = int(msg[2:])
+        #     assert postfix > 0
+        #     bili_uid = postfix
+        # except (ValueError, TypeError, AssertionError):
+        #     pass
+        #
+        # user = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
+
 
 class BotHandler:
     NOTICE_GROUP_ID_LIST = [
@@ -564,6 +596,9 @@ class BotHandler:
         elif msg.startswith("背包") and group_id == QQ_GROUP_STAR_LIGHT:
             return await p.proc_query_bag(user_id, msg=msg, group=True)
 
+        elif msg.startswith("#动态"):
+            return await p.proc_dynamic(user_id, msg=msg, group=True)
+
     @classmethod
     async def handle_private_message(cls, context):
         bot = context["qq_bot"]
@@ -573,9 +608,14 @@ class BotHandler:
 
         if bot == qq_zy:
             msg = context["raw_message"]
+            p = BotUtils(bot=qq_zy)
+
             if msg.startswith("挂机查询"):
-                p = BotUtils(bot=qq_zy)
                 return await p.proc_lt_status(user_id, msg=msg)
+
+            elif msg.startswith("#动态"):
+                return await p.proc_dynamic(user_id, msg=msg, group=True)
+
             return
 
         logging.info("Private message received: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))

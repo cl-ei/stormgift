@@ -6,7 +6,11 @@ class DynamicPicturesProcessor:
 
     def __init__(self, path, target_path=None, target_size=None):
         self.path = path
-        self.target_path = target_path or os.path.join(path, "target")
+
+        if target_path is None:
+            target_path = "/home/ubuntu/coolq_zy/data/image/target"
+        self.target_path = target_path
+
         self.target = None
         self.target_size = target_size or (1920, 1440)
 
