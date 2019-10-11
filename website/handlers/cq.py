@@ -520,6 +520,10 @@ class BotUtils:
             prefix = f"{master_name}(uid: {master_uid})最新动态({timestamp})：\n\n"
 
             content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
+            if not pictures:
+                message = prefix + "\n".join(content)
+                response(message)
+                return
 
             work_path = f"/tmp/bili_dynamic_{int(time.time())}"
             if not os.path.exists(work_path):
