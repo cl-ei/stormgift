@@ -1429,16 +1429,20 @@ class BiliApi:
                             pictures.append(img)
 
                 content.append(desc)
-        else:
-            if "title" in card:
-                content.append(card["title"])
-            if "desc" in card:
-                content.append(card["desc"])
-            if "pic" in card:
-                pictures.append(card["pic"])
-            if "image_urls" in card:
-                for img in card["image_urls"]:
-                    pictures.append(img)
+        elif "title" in card:
+            content.append(card["title"])
+        elif "desc" in card:
+            content.append(card["desc"])
+        elif "pic" in card:
+            pictures.append(card["pic"])
+        elif "image_urls" in card:
+            for img in card["image_urls"]:
+                pictures.append(img)
+        elif "sketch" in card:
+            content.append(card["sketch"]["title"])
+            content.append(card["sketch"]["desc_text"])
+            if "cover_url" in card["sketch"]:
+                pictures.append(card["sketch"]["cover_url"])
 
         return content, pictures
 
