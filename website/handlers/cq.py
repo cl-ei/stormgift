@@ -516,7 +516,8 @@ class BotUtils:
 
             master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
             master_uid = dynamic["desc"]["user_profile"]["info"]["uid"]
-            prefix = f"{master_name}(uid: {master_uid})最新动态：\n\n"
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dynamic["desc"]["timestamp"]))
+            prefix = f"{master_name}(uid: {master_uid})最新动态({timestamp})：\n\n"
 
             content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
 
