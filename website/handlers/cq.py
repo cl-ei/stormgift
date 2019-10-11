@@ -515,6 +515,7 @@ class BotUtils:
                 ex_name = pic.split(".")[-1]
                 cmd = f"wget -O {work_path}/{index}.{ex_name} \"{pic}\""
                 os.system(cmd)
+                index += 1
 
             message = "\n".join(content) + "\n".join(pictures)
             response(message + "\n" + str(work_path))
