@@ -469,7 +469,7 @@ class BotUtils:
     async def proc_dynamic(self, user_id, msg, group_id=None):
         lock_key = "LT_PROC_DYNAMIC"
         locked = await redis_cache.set_if_not_exists(key=lock_key, value=1, timeout=30)
-        if not locked:
+        if locked is None:
             return
 
         def response(m):
