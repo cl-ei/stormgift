@@ -1428,6 +1428,9 @@ class BiliApi:
                         for img in origin["image_urls"]:
                             pictures.append(img)
 
+                    if "cover" in origin:
+                        pictures.append(origin["cover"])
+
                 content.append(desc)
         else:
             if "title" in card:
