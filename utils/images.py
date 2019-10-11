@@ -1,4 +1,5 @@
 import os
+import time
 from PIL import Image
 
 
@@ -8,11 +9,12 @@ class DynamicPicturesProcessor:
         self.path = path
 
         if target_path is None:
-            target_path = "/home/ubuntu/coolq_zy/data/image/target"
+            target_path = "/home/ubuntu/coolq_zy/data/image"
         self.target_path = target_path
 
         self.target = None
         self.target_size = target_size or (1920, 1440)
+        self.target_file_name = None
 
     @staticmethod
     def join_pic_horizontal(*images):
@@ -112,28 +114,31 @@ class DynamicPicturesProcessor:
             width = int(self.target.size[0] * (self.target_size[1] / self.target.size[1]))
             self.target = self.target.resize((width, self.target_size[1]))
 
-        self.target.save(os.path.join(self.target_path, "t.jpg"), quality=90)
-        self.target.show()
+        file_name = f"b_{int(time.time()*1000):0x}.jpg"
+        self.target.save(os.path.join(self.target_path, file_name), quality=90)
+        self.target_file_name = file_name
+        # self.target.show()
 
     def join(self):
         files = sorted(os.listdir(self.path))
         target = []
         for f in files:
             if not os.path.isfile(os.path.join(self.path, f)):
-                print(f"Not file: {f}")
                 continue
 
             if f.startswith("."):
-                print(f"Not file: {f}")
                 continue
 
             target.append(f)
+        try:
+            if len(target) <= 3:
+                self.draw_type_lte_3(files=target)
+            elif len(target) == 4:
+                self.draw_type_eq_4(files=target)
+            else:
+                self.draw_type_gt_4(files=target)
+            self.save()
+        except Exception as e:
+            return False, f"Error happened: {e}"
 
-        if len(target) <= 3:
-            self.draw_type_lte_3(files=target)
-        elif len(target) == 4:
-            self.draw_type_eq_4(files=target)
-        else:
-            self.draw_type_gt_4(files=target)
-        self.save()
-        print(target)
+        return True, self.target_file_name

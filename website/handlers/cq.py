@@ -15,6 +15,7 @@ from random import randint, random
 from utils.cq import bot_zy as qq_zy
 from config import cloud_function_url
 from config.log4 import cqbot_logger as logging
+from utils.images import DynamicPicturesProcessor
 from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList, redis_cache, BiliToQQBindInfo
 from utils.biliapi import BiliApi
 from utils.highlevel_api import ReqFreLimitApi
@@ -516,6 +517,10 @@ class BotUtils:
                 cmd = f"wget -O {work_path}/{index}.{ex_name} \"{pic}\""
                 os.system(cmd)
                 index += 1
+
+            p = DynamicPicturesProcessor(path=work_path)
+            flag, file_name = p.join()
+            response(f"flag: {flag}, file: {file_name}")
 
             message = "\n".join(content) + "\n".join(pictures)
             response(message + "\n" + str(work_path))
