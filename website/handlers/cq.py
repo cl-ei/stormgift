@@ -1,4 +1,5 @@
 import re
+import os
 import time
 import json
 import uuid
@@ -505,11 +506,20 @@ class BotUtils:
                 response(f"未能获取到动态：{dynamic_id}.")
             content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
 
+            work_path = f"/tmp/bili_dynamic_{int(time.time())}"
+            if not os.path.exists(work_path):
+                os.mkdir(work_path)
+
+            index = 0
+            for pic in pictures:
+                ex_name = pic.split(".")[-1]
+                cmd = f"wget -O {work_path}/{index}.{ex_name} \"{pic}\""
+                os.system(cmd)
+
             message = "\n".join(content) + "\n".join(pictures)
-            response(message)
+            response(message + "\n" + str(work_path))
 
         finally:
-            self.bot.send_private_msg(user_id=user_id, message=f"处理完成：{msg}")
             await redis_cache.delete(lock_key)
 
 
