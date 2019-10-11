@@ -516,6 +516,8 @@ class BotUtils:
 
             master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
             master_uid = dynamic["desc"]["user_profile"]["info"]["uid"]
+            prefix = f"{master_name}(uid: {master_uid})最新动态：\n\n"
+
             content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
 
             work_path = f"/tmp/bili_dynamic_{int(time.time())}"
@@ -523,20 +525,27 @@ class BotUtils:
                 os.mkdir(work_path)
 
             index = 0
+            last_pic_name = None
             for pic in pictures:
                 ex_name = pic.split(".")[-1]
-                cmd = f"wget -O {work_path}/{index}.{ex_name} \"{pic}\""
+                last_pic_name = f"{index}.{ex_name}"
+                cmd = f"wget -O {work_path}/{last_pic_name} \"{pic}\""
                 os.system(cmd)
                 index += 1
 
-            p = DynamicPicturesProcessor(path=work_path)
-            flag, file_name = p.join()
-            prefix = f"{master_name}(uid: {master_uid})最新动态：\n\n"
+            if index > 1:
+                p = DynamicPicturesProcessor(path=work_path)
+                flag, file_name = p.join()
+            else:
+                flag = True
+                file_name = f"b_{int(time.time()*1000):0x}." + last_pic_name.split(".")[-1]
+                os.system(f"mv {work_path}/{last_pic_name} /home/ubuntu/coolq_zy/data/image/{file_name}")
+
             if flag:
                 message = prefix + "\n".join(content)
                 message = f"{message}\n [CQ:image,file={file_name}]"
             else:
-                message = prefix + "\n".join(content) + "\n".join(pictures)
+                message = prefix + "\n".join(content) + "\n\n" + "\n".join(pictures)
             response(message)
 
         finally:
