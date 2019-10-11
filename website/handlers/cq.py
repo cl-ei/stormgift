@@ -483,7 +483,9 @@ class BotUtils:
                 if not user_name_or_dynamic_id.isdigit():
                     bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
                     if bili_uid is None:
-                        raise ValueError("Bad uid")
+                        response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
+                        return
+
                     flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
                     if not flag or not dynamics:
                         raise ValueError("Fetch dynamics Failed!")
