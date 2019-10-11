@@ -536,7 +536,7 @@ class BotUtils:
                 message = prefix + "\n".join(content)
                 message = f"{message}\n [CQ:image,file={file_name}]"
             else:
-                message = "\n".join(content) + "\n".join(pictures)
+                message = prefix + "\n".join(content) + "\n".join(pictures)
             response(message)
 
         finally:
