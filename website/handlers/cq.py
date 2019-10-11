@@ -614,7 +614,7 @@ class BotHandler:
                 return await p.proc_lt_status(user_id, msg=msg)
 
             elif msg.startswith("#动态"):
-                return await p.proc_dynamic(user_id, msg=msg, group=True)
+                return await p.proc_dynamic(user_id, msg=msg)
 
             return
 
