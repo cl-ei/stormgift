@@ -505,6 +505,10 @@ class BotUtils:
             flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=dynamic_id)
             if not flag:
                 response(f"未能获取到动态：{dynamic_id}.")
+                return
+
+            master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
+            master_uid = dynamic["desc"]["user_profile"]["info"]["uid"]
             content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
 
             work_path = f"/tmp/bili_dynamic_{int(time.time())}"
@@ -520,10 +524,13 @@ class BotUtils:
 
             p = DynamicPicturesProcessor(path=work_path)
             flag, file_name = p.join()
-            response(f"flag: {flag}, file: {file_name}")
-
-            message = "\n".join(content) + "\n".join(pictures)
-            response(message + "\n" + str(work_path))
+            prefix = f"{master_name}(uid: {master_uid})最新动态：\n\n"
+            if flag:
+                message = prefix + "\n".join(content)
+                message = f"{message}\n [CQ:image,file={file_name}]"
+            else:
+                message = "\n".join(content) + "\n".join(pictures)
+            response(message)
 
         finally:
             await redis_cache.delete(lock_key)
