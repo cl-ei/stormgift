@@ -479,16 +479,16 @@ class BotUtils:
         try:
             user_name_or_dynamic_id = msg[3:].strip()
             if not user_name_or_dynamic_id.isdigit():
-                user_id = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
-                if user_id is None:
+                bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
+                if bili_uid is None:
                     raise ValueError("Bad uid")
-                flag, dynamics = await BiliApi.get_user_dynamics(uid=user_id)
+                flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
                 if not flag or not dynamics:
                     raise ValueError("Fetch dynamics Failed!")
                 dynamic_id = dynamics[0]["desc"]["dynamic_id"]
 
             elif len(user_name_or_dynamic_id) < 14:
-                flag, dynamics = await BiliApi.get_user_dynamics(uid=int(user_id))
+                flag, dynamics = await BiliApi.get_user_dynamics(uid=int(user_name_or_dynamic_id))
                 if not flag or not dynamics:
                     raise ValueError("Fetch dynamics Failed!")
                 dynamic_id = dynamics[0]["desc"]["dynamic_id"]
