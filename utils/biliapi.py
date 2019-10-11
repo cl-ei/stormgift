@@ -1442,6 +1442,20 @@ class BiliApi:
 
         return content, pictures
 
+    @classmethod
+    async def get_dynamic_detail(cls, dynamic_id, timeout=10):
+        url = "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail"
+        data = {"dynamic_id": dynamic_id}
+        flag, r = await cls.get(url=url, data=data, timeout=timeout, check_response_json=True)
+        if not flag:
+            return False, r
+
+        if r["code"] != 0:
+            return False, r.get("msg") or r.get("message")
+
+        card = r["data"]["card"] or {}
+        return bool(card), card
+
 
 async def test():
     uid = 20932326

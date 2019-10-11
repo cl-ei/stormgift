@@ -475,35 +475,42 @@ class BotUtils:
                 self.bot.send_group_msg(group_id=group_id, message=m)
             else:
                 self.bot.send_private_msg(user_id=user_id, message=m)
-
         try:
-            user_name_or_dynamic_id = msg[3:].strip()
-            if not user_name_or_dynamic_id.isdigit():
-                bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
-                if bili_uid is None:
-                    raise ValueError("Bad uid")
-                flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
-                if not flag or not dynamics:
-                    raise ValueError("Fetch dynamics Failed!")
-                dynamic_id = dynamics[0]["desc"]["dynamic_id"]
+            try:
+                user_name_or_dynamic_id = msg[3:].strip()
+                if not user_name_or_dynamic_id.isdigit():
+                    bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
+                    if bili_uid is None:
+                        raise ValueError("Bad uid")
+                    flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
+                    if not flag or not dynamics:
+                        raise ValueError("Fetch dynamics Failed!")
+                    dynamic_id = dynamics[0]["desc"]["dynamic_id"]
 
-            elif len(user_name_or_dynamic_id) < 14:
-                flag, dynamics = await BiliApi.get_user_dynamics(uid=int(user_name_or_dynamic_id))
-                if not flag or not dynamics:
-                    raise ValueError("Fetch dynamics Failed!")
-                dynamic_id = dynamics[0]["desc"]["dynamic_id"]
+                elif len(user_name_or_dynamic_id) < 14:
+                    flag, dynamics = await BiliApi.get_user_dynamics(uid=int(user_name_or_dynamic_id))
+                    if not flag or not dynamics:
+                        raise ValueError("Fetch dynamics Failed!")
+                    dynamic_id = dynamics[0]["desc"]["dynamic_id"]
 
-            else:
-                dynamic_id = int(user_name_or_dynamic_id)
+                else:
+                    dynamic_id = int(user_name_or_dynamic_id)
 
-        except (TypeError, ValueError, IndexError):
-            response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
-            return
+            except (TypeError, ValueError, IndexError):
+                response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
+                return
 
-        response(f"获取到最新的动态是：{dynamic_id}")
+            flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=dynamic_id)
+            if not flag:
+                response(f"未能获取到动态：{dynamic_id}.")
+            content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
 
-        self.bot.send_private_msg(user_id=user_id, message=f"处理完成：{msg}")
-        await redis_cache.delete(lock_key)
+            message = "\n".join(content) + "\n".join(pictures)
+            response(message)
+
+        finally:
+            self.bot.send_private_msg(user_id=user_id, message=f"处理完成：{msg}")
+            await redis_cache.delete(lock_key)
 
 
 class BotHandler:
