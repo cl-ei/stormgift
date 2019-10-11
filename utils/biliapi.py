@@ -1431,6 +1431,9 @@ class BiliApi:
                     if "cover" in origin:
                         pictures.append(origin["cover"])
 
+                    if "apiSeasonInfo" in origin and "title" in origin["apiSeasonInfo"]:
+                        desc += f"\n\n{origin['apiSeasonInfo']['title']}"
+
                 content.append(desc)
         else:
             if "title" in card:
