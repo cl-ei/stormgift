@@ -6,6 +6,8 @@ import logging
 from utils.biliapi import CookieFetcher
 from config.log4 import console_logger as logging
 from utils.biliapi import BiliApi
+from utils.highlevel_api import DBCookieOperator
+
 
 if sys.argv[-1] == "lm":
     from utils.dao import HYMCookies as hao_yang_mao_class
@@ -143,8 +145,36 @@ async def send(proc_index, cookie):
             logging.info(f"Send card: {gift['gift_name']} r: {r}")
 
 
+async def receive_mail_bags(user_id):
+    user = await DBCookieOperator.get_by_uid(user_id)
+    if not user:
+        logging.error(f"Cannot find user: {user_id}")
+        return
+
+    flag, mail_list = await BiliApi.check_mail_box(user.cookie)
+    if not flag:
+        logging.error(f"Error: {mail_list}")
+        return
+
+    logging.info(f"Mails len: {len(mail_list)}")
+
+    count = 0
+    for mail in mail_list:
+        count += 1
+        mail_id = mail["mail_id"]
+        r = await BiliApi.accept_gift_from_mail_box(user.cookie, mail_id=mail_id)
+        logging.info(f"count: {count}, r: {mail_id} -> {r}")
+
+    logging.info("End.")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1]
+    if cmd == "receive":
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(receive_mail_bags("DD"))
+        sys.exit(0)
+
     target = {
         "s9": sign_s9,
         "open_s9": open_capsule,
