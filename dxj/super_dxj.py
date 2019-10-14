@@ -12,13 +12,21 @@ class DanmakuProcessor:
         self.q = q
         self.room_id = room_id
 
-    async def parse_danmaku(self, msg):
-        print(f"room_id: {self.room_id}: {msg}")
-
-    async def run(self):
+    async def parse_danmaku(self):
         while True:
             msg = await self.q.get()
             await self.parse_danmaku(msg)
+            print(f"room_id: {self.room_id}: {msg}")
+
+    async def send_carousel_msg(self):
+        while True:
+            await asyncio.sleep(10)
+
+    async def run(self):
+        await asyncio.gather(*[
+            self.parse_danmaku(),
+            self.send_carousel_msg(),
+        ])
 
 
 class WsManager(object):
