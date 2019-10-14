@@ -304,6 +304,33 @@ class MonitorLiveRooms(object):
         return r, r2
 
 
+class DXJMonitorLiveRooms(object):
+    """
+
+    返回值是set 类型！
+
+    """
+    _key = "LT_DXJ_MONITOR_LIVE_ROOMS"
+
+    @classmethod
+    async def get(cls):
+        data = await redis_cache.get(cls._key)
+        if not isinstance(data, list):
+            data = []
+        return data
+
+    @classmethod
+    async def add(cls, live_room_id):
+        live_room_id = int(live_room_id)
+        data = await redis_cache.get(cls._key)
+        if not isinstance(data, list):
+            data = []
+        if live_room_id not in data:
+            data.append(live_room_id)
+        await redis_cache.set(cls._key, data)
+        return data
+
+
 class LtUserLoginPeriodOfValidity(object):
     _key = "LT_USER_LOGIN_PERIOD_"
 
