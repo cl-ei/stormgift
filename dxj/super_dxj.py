@@ -8,13 +8,17 @@ from config.log4 import super_dxj_logger as logging
 
 
 class DanmakuProcessor:
-    def __init__(self, q):
+    def __init__(self, q, room_id):
         self.q = q
+        self.room_id = room_id
+
+    async def parse_danmaku(self, msg):
+        print(f"room_id: {self.room_id}: {msg}")
 
     async def run(self):
         while True:
-            args = await self.q.get()
-            print(args)
+            msg = await self.q.get()
+            await self.parse_danmaku(msg)
 
 
 class WsManager(object):
@@ -26,9 +30,8 @@ class WsManager(object):
         self.msg_count = 0
         self._broken_live_rooms = []
         self.heartbeat_pkg = WsApi.gen_heart_beat_pkg()
-        self.q = asyncio.Queue()
 
-    async def new_room(self, room_id):
+    async def new_room(self, room_id, q):
         client = self._clients.get(room_id)
 
         if client and not client.set_shutdown:
@@ -36,10 +39,8 @@ class WsManager(object):
 
         async def on_message(message):
             for msg in WsApi.parse_msg(message):
-                print(msg)
                 self.msg_count += 1
-                args = room_id, msg, time.time()
-                self.q.put_nowait(args)
+                q.put_nowait(msg)
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
@@ -78,11 +79,16 @@ class WsManager(object):
         logging.info(
             f"Ws monitor settings read finished, Need add: {expected}."
         )
+        dps = []
         for room_id in expected:
-            await self.kill_client_and_remove_it(room_id)
+            q = asyncio.Queue()
+            await self.new_room(room_id, q)
 
-        dp = DanmakuProcessor(self.q)
-        await dp.run()
+            dp = DanmakuProcessor(q=q, room_id=room_id)
+            dps.append(asyncio.create_task(dp.run()))
+
+        for dp_task in dps:
+            await dp_task
 
 
 async def main():
