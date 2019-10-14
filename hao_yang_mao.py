@@ -31,6 +31,8 @@ class H:
         logging.info(f"▆▆IMPORTANT▆▆ {account} Success! {account}, pass: {password}")
 
     async def execute(self, proc_index, account, password, cookie):
+        logging.info(f"\nAccount: {account}, pass: {password}.\n┏{'-' * 80}┓")
+
         try_times = -1
         while try_times < 3:
             if isinstance(cookie, str):
@@ -62,17 +64,34 @@ class H:
             if result.get("re_login") is True:
                 await self.login(account=account, password=password)
 
+    async def proc_one(self, q):
+        try:
+            args = q.get_nowait()
+        except asyncio.QueueEmpty:
+            return
+
+        proc_index, account, password, cookie = args
+
+        await self.execute(proc_index, account, password, cookie)
+        logging.info(f"end of proc: {proc_index}: account: {account}.\n┗{'-' * 80}┛")
+
     async def run(self):
         account_info_dict = await hao_yang_mao_class.get(return_dict=True)
         proc_index = -1
+        q = asyncio.Queue()
         for account, info_dict in account_info_dict.items():
             password = info_dict["password"]
             cookie = info_dict["cookie"]
             proc_index += 1
 
-            logging.info(f"\nAccount: {account}, pass: {password}.\n┏{'-' * 80}┓")
-            await self.execute(proc_index, account, password, cookie)
-            logging.info(f"end of proc: {proc_index}.\n┗{'-' * 80}┛")
+            args = (proc_index, account, password, cookie)
+            q.put_nowait(args)
+
+        while q.qsize() != 0:
+            tasks = [asyncio.create_task(self.proc_one(q)) for _ in range(128)]
+            for t in tasks:
+                await t
+            await asyncio.sleep(3)
 
 
 async def sign_s9(proc_index, cookie):
@@ -107,7 +126,10 @@ card_list = {}
 
 async def send(proc_index, cookie):
     # 送辣条！
-    ruid = 20932326
+    if sys.argv[-1] == "lm":
+        ruid = 6851677
+    else:
+        ruid = 20932326
     live_room_id = 13369254
 
     # 送头衔续期卡
@@ -118,7 +140,7 @@ async def send(proc_index, cookie):
     for gift in bag_list:
         if gift["gift_name"] == "辣条":
             flag, data = await BiliApi.send_gift(
-                gift["gift_id"], gift["gift_num"], None, gift["bag_id"], ruid, live_room_id, cookie
+                gift["gift_id"], gift["gift_num"], None, gift["bag_id"], 20932326, live_room_id, cookie
             )
             if not flag:
                 logging.info(f"♨ Send failed, msg: {data.get('message', 'unknown')}")
@@ -191,11 +213,10 @@ if __name__ == "__main__":
     cmd = sys.argv[1]
     if cmd == "receive":
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(receive_mail_bags("DD"))
-        sys.exit(0)
-    elif cmd == "renew":
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(renew_card_to_lm())
+        loop.run_until_complete(asyncio.gather(
+            receive_mail_bags("DD"),
+            receive_mail_bags("6851677"),
+        ))
         sys.exit(0)
 
     target = {
