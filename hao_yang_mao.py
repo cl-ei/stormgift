@@ -168,11 +168,34 @@ async def receive_mail_bags(user_id):
     logging.info("End.")
 
 
+async def renew_card_to_lm():
+    user = await DBCookieOperator.get_by_uid("DD")
+    bag_list = await BiliApi.get_bag_list(user.cookie)
+    bags = [bag for bag in bag_list if "续期卡" in bag["gift_name"]]
+    prompt = [f"{x['corner_mark']}-{x['gift_name']}*{x['gift_num']}" for x in bags]
+    logging.info("获取到DD的包裹内：\n" + "\n".join(prompt))
+    receive_uid = 6851677  # 雨声雷鸣
+    for bag in bags:
+        num = int(bag["gift_num"]*0.9)
+        card_record_id = bag["card_record_id"]
+        r = await BiliApi.send_card(
+            cookie=user.cookie,
+            card_record_id=card_record_id,
+            receive_uid=receive_uid,
+            num=num
+        )
+        logging.info(f"Send card: {bag['gift_name']}*{num}, r: {r}")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1]
     if cmd == "receive":
         loop = asyncio.get_event_loop()
         loop.run_until_complete(receive_mail_bags("DD"))
+        sys.exit(0)
+    elif cmd == "renew":
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(renew_card_to_lm())
         sys.exit(0)
 
     target = {
