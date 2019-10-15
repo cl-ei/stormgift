@@ -90,20 +90,50 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def get_guard_record(cls, uid):
+        user_obj = await AsyncMySQL.execute("select u.id, u.name from biliuser u where u.uid = %s", (uid, ))
+        if not user_obj:
+            return f"未能查询到用户?(uid: {uid})"
+
+        user_obj_id, user_name = user_obj[0]
+
         guards = await AsyncMySQL.execute(
-            "select g.room_id, g.gift_name, g.created_time, u.name "
-            "from guard g, biliuser u "
-            "where g.sender_obj_id = u.id and u.uid = %s and g.created_time >= %s "
-            "order by g.created_time desc;",
-            (uid, datetime.datetime.now() - datetime.timedelta(days=45))
+            "select g.room_id, g.gift_name, g.created_time "
+            "from guard g "
+            "where g.sender_obj_id = %s and g.created_time >= %s "
+            "order by g.room_id, g.created_time desc;",
+            (user_obj_id, datetime.datetime.now() - datetime.timedelta(days=45))
         )
+        if not guards:
+            return f"{user_name}(uid: {uid})在45天内没有开通过1条船。"
 
-        results = []
+        room_id_map = await AsyncMySQL.execute(
+            "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
+            ([r[0] for r in guards],)
+        )
+        room_id_map = {r[0]: r[1] for r in room_id_map}
+
+        def gen_time_prompt(interval):
+            if interval > 3600*24:
+                return f"约{int(interval // (3600*24))}天前"
+            elif interval > 3600:
+                return f"约{int(interval // 3600)}小时前"
+            elif interval > 60:
+                return f"约{int(interval // 60)}分钟前"
+            return f"{int(interval)}秒前"
+
+        prompt = []
+        now = datetime.datetime.now()
         for r in guards:
-            room_id, gift_name, created_time, user_name = r
-            results.append("-".join([str(_) for _ in r]))
+            room_id, gift_name, created_time = r
+            time_interval = (now - created_time).total_seconds()
+            interval_prompt = gen_time_prompt(time_interval)
 
-        return "\n".join(results)
+            short_room_id = room_id_map.get(room_id, room_id)
+            prompt.append(f"{interval_prompt}在{short_room_id}直播间开通{gift_name}*1")
+
+        prompt = f"\n{'-'*80}".join(prompt)
+
+        return f"{user_name}(uid: {uid})在45天内开通{len(guards)}条船：\n\n{prompt}"
 
     @classmethod
     async def get_raffle_count(cls, day_range=0):
