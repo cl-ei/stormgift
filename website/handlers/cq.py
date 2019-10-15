@@ -578,16 +578,18 @@ class BotUtils:
         if group_id:
             # 频率检查
             key = f"LT_QUERY_GUARD_REQ_FRQ_CONTROL_{group_id}"
+            key2 = f"LT_QUERY_GUARD_REQ_FRQ_CONTROL_PROMPT_{group_id}"
+
             value = await redis_cache.get(key=key)
             if value is None:
                 await redis_cache.set(key=key, value=1, timeout=60)
+                await redis_cache.delete(key=key2)
                 pass
 
             else:
-                key2 = f"LT_QUERY_GUARD_REQ_FRQ_CONTROL_PROMPT_{group_id}"
                 has_prompted = await redis_cache.get(key=key2)
                 if not has_prompted:
-                    response(f"为防刷屏，请私聊发送指令: {msg}")
+                    response(f"为防刷屏，请私聊发送指令(一分钟内本提示不再发出): \n{msg}")
                     await redis_cache.set(key=key2, value=1, timeout=50)
                 return
 
