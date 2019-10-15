@@ -564,18 +564,19 @@ class BotUtils:
                 self.bot.send_private_msg(user_id=user_id, message=m)
 
         user_name_or_uid = msg[4:].strip()
-        if user_name_or_uid.isdigit():
-            bili_uid = int(user_name_or_uid)
-        else:
-            bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_uid)
-
-        if not bili_uid:
+        if not user_name_or_uid:
             bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        else:
+            if user_name_or_uid.isdigit():
+                bili_uid = int(user_name_or_uid)
+            else:
+                bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_uid)
 
         if not bili_uid:
             return response(f"指令错误，不能查询到用户: {user_name_or_uid}")
 
-        return response(f"查询到用户uid: {bili_uid}")
+        data = await ReqFreLimitApi.get_guard_record(user_name_or_uid)
+        return response(f"查询到用户uid: {bili_uid}: data: {data}")
 
 
 class BotHandler:
@@ -700,6 +701,9 @@ class BotHandler:
 
             elif msg.startswith("#动态"):
                 return await p.proc_dynamic(user_id, msg=msg)
+
+            elif msg.startswith("#大航海"):
+                return await p.proc_query_guard(user_id, msg=msg)
 
             return
 

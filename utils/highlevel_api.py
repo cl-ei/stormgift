@@ -89,6 +89,23 @@ class ReqFreLimitApi(object):
         return results
 
     @classmethod
+    async def get_guard_record(cls, uid):
+        guards = await AsyncMySQL.execute(
+            "select g.room_id, g.gift_name, g.created_time, u.name "
+            "from guard g, biliuser u "
+            "where g.sender_obj_id = u.id and u.uid = %s and g.created_time >= %s "
+            "order by g.created_time desc;",
+            (uid, datetime.datetime.now() - datetime.timedelta(days=45))
+        )
+
+        results = []
+        for r in guards:
+            room_id, gift_name, created_time, user_name = r
+            results.append("-".join([str(_) for _ in r]))
+
+        return "\n".join(results)
+
+    @classmethod
     async def get_raffle_count(cls, day_range=0):
         now = datetime.datetime.today()
         start_datetime = now.replace(hour=0, minute=0, second=0, microsecond=0)
