@@ -601,6 +601,65 @@ class StormGiftBlackRoom:
         return is_blocked == 1
 
 
+class SuperDxjUserSettings:
+    key = "LT_SUPER_DXJ_SETTINGS"
+
+    @classmethod
+    async def set(
+            cls,
+            room_id: int,
+            account: str,
+            password: str,
+            carousel_msg: list,
+            carousel_msg_interval: int,
+            thank_silver: int,
+            thank_silver_text: str,
+            thank_gold: int,
+            thank_gold_text: str,
+            thank_follower: int,
+            thank_follower_text: str,
+            auto_response: list,
+    ):
+        key = f"{cls.key}_{room_id}"
+        value = {
+            "account": account,
+            "password": password,
+            "carousel_msg": carousel_msg,
+            "carousel_msg_interval": carousel_msg_interval,
+            "thank_silver": thank_silver,
+            "thank_silver_text": thank_silver_text,
+            "thank_gold": thank_gold,
+            "thank_gold_text": thank_gold_text,
+            "thank_follower": thank_follower,
+            "thank_follower_text": thank_follower_text,
+            "auto_response": auto_response
+        }
+        await redis_cache.set(key=key, value=value)
+
+    @classmethod
+    async def get(cls, room_id):
+        key = f"{cls.key}_{room_id}"
+        r = await redis_cache.get(key)
+        if not isinstance(r, dict):
+            r = {}
+
+        r.setdefault("account", "")
+        r.setdefault("password", "")
+        r.setdefault("carousel_msg", [])
+        r.setdefault("carousel_msg_interval", 120)
+        r.setdefault("thank_silver", 0)
+
+        default_thank_text = "感谢{user}赠送的{num}个{gift},大气大气~"
+        r.setdefault("thank_silver_text", default_thank_text)
+        r.setdefault("thank_gold", 0)
+        r.setdefault("thank_gold_text", default_thank_text)
+        r.setdefault("thank_follower", 0)
+        r.setdefault("thank_follower_text", default_thank_text)
+        r.setdefault("auto_response", [])
+
+        return r
+
+
 async def test():
     pass
 

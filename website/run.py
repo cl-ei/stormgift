@@ -100,6 +100,7 @@ async def start_web_site():
         web.get('/lt/dxj/login', dxj.login),
         web.post('/lt/dxj/login', dxj.login),
         web.get('/lt/dxj/settings', dxj.settings),
+        web.post('/lt/dxj/post_settings', dxj.post_settings),
         web.get('/lt/dxj/logout', dxj.logout),
         web.get('/lt/status', proc_status),
         web.get('/console_wss', ws_log_broadcast_handler),

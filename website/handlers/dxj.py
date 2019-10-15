@@ -1,27 +1,33 @@
 import time
+import json
 from random import randint
 from aiohttp import web
 from config import CDN_URL
-from utils.dao import redis_cache
+from utils.dao import redis_cache, SuperDxjUserSettings
 from website.handlers.lt import render_to_response
 
 
-def login_required(f):
-    async def wrapped(request):
-        try:
-            room_id = request.cookies["room_id"]
-            dxj_token = request.cookies["dxj_token"]
+def login_required(r_type="html"):
+    def deco(f):
+        async def wrapped(request):
+            try:
+                room_id = request.cookies["room_id"]
+                dxj_token = request.cookies["dxj_token"]
 
-            key = f"LT_DXJ_TOKEN_{room_id}"
-            token_cache = await redis_cache.get(key)
-            if token_cache != dxj_token:
-                raise ValueError("Bad mad_token.")
+                key = f"LT_DXJ_TOKEN_{room_id}"
+                token_cache = await redis_cache.get(key)
+                if token_cache != dxj_token:
+                    raise ValueError("Bad mad_token.")
 
-        except (KeyError, ValueError, TypeError):
-            return web.HTTPFound("/lt/dxj/login")
+            except (KeyError, ValueError, TypeError):
+                if r_type == "html":
+                    return web.HTTPFound("/lt/dxj/login")
+                else:
+                    return web.json_response({"code": 30200, "err_msg": "请登陆后再操作。"})
 
-        return await f(request)
-    return wrapped
+            return await f(request)
+        return wrapped
+    return deco
 
 
 async def login(request):
@@ -58,12 +64,26 @@ async def logout(request):
     return response
 
 
-@login_required
+@login_required()
 async def settings(request):
-    context = {"CDN_URL": CDN_URL}
+    room_id = request.cookies["room_id"]
+    existed_settings = await SuperDxjUserSettings.get(room_id=room_id)
+    context = {
+        "CDN_URL": CDN_URL,
+        "existed_settings": json.dumps(existed_settings)
+    }
     return render_to_response("website/templates/dxj_settings.html", context=context)
 
 
+@login_required(r_type="json")
 async def post_settings(request):
-    context = {"CDN_URL": CDN_URL}
-    return render_to_response("website/templates/website_homepage.html", context=context)
+    room_id = request.cookies["room_id"]
+    data = await request.post()
+    try:
+        data = json.loads(data["settings"])
+    except json.JSONDecodeError:
+        return web.json_response({"code": 403, "err_msg": "错误的参数！"})
+
+    print(data)
+
+    return web.json_response({"code": 0, "err_msg": "设置成功！"})

@@ -79,6 +79,7 @@
     </style>
     <script>
         window.CDN_URL = "{{ CDN_URL }}";
+        window.settings = {{ existed_settings }};
     </script>
 </head>
 <body>
@@ -88,8 +89,9 @@
 
 <div class="block">
 <h5><strong>房管账号配置：</strong></h5>
-    <label>登录名/手机/邮箱：<input type="text" class="input-text account"></label>
-    <label>密码：<input type="password" class="input-text password"><button class="button center" id="show-hidden-password">显示</button></label>
+    <label>登录名/手机/邮箱：<input type="text" name="account" class="input-text account"></label>
+    <label>密码：<input type="password" name="password" class="input-text password">
+        <button class="button center" id="show-hidden-password">显示</button></label>
 </div>
 
 <div class="block">
@@ -111,42 +113,38 @@
 </div><div class="block">
     <form>
         <h5><strong>答谢银瓜子礼物</strong></h5>
-        <label><input name="thank-silver" type="radio" value="" />始终开启</label>
-        <label><input name="thank-silver" type="radio" value="" />始终关闭</label>
-        <label><input name="thank-silver" type="radio" value="" />开播时开启，空闲时关闭</label>
-        <label><input name="thank-silver" type="radio" value="" />开播时关闭，空闲时开启</label>
-        <label>答谢文本：<input type="text" class="input-text"></label>
+        <label><input name="thank-silver" type="radio" value="0" />始终关闭</label>
+        <label><input name="thank-silver" type="radio" value="1" />始终开启</label>
+        <label><input name="thank-silver" type="radio" value="2" />开播时关闭，空闲时开启</label>
+        <label><input name="thank-silver" type="radio" value="3" />开播时开启，空闲时关闭</label>
+        <label>答谢文本：<input type="text" name="thank-silver-text" class="input-text"></label>
     </form>
 </div><div class="block">
     <form>
         <h5><strong>答谢金瓜子礼物</strong></h5>
-        <label><input name="thank-gold" type="radio" value="" />始终开启</label>
-        <label><input name="thank-gold" type="radio" value="" />始终关闭</label>
-        <label><input name="thank-gold" type="radio" value="" />开播时开启，空闲时关闭</label>
-        <label><input name="thank-gold" type="radio" value="" />开播时关闭，空闲时开启</label>
-        <label>答谢文本：<input type="text" class="input-text"></label>
+        <label><input name="thank-gold" type="radio" value="0" />始终关闭</label>
+        <label><input name="thank-gold" type="radio" value="1" />始终开启</label>
+        <label><input name="thank-gold" type="radio" value="2" />开播时关闭，空闲时开启</label>
+        <label><input name="thank-gold" type="radio" value="3" />开播时开启，空闲时关闭</label>
+        <label>答谢文本：<input type="text" name="thank-gold-text" class="input-text"></label>
     </form>
 </div><div class="block">
     <form>
         <h5><strong>答谢关注</strong></h5>
-        <label><input name="thank-gold" type="radio" value="" />开播时开启，空闲时关闭</label>
-        <label><input name="thank-gold" type="radio" value="" />始终关闭</label>
-        <label>答谢文本：<input type="text" class="input-text"></label>
+        <label><input name="thank-follower" type="radio" value="0" />始终关闭</label>
+        <label><input name="thank-follower" type="radio" value="1" />开播时开启，空闲时关闭</label>
+        <label>答谢文本：<input type="text" name="thank-follower-text" class="input-text"></label>
     </form>
 </div><div class="block">
     <h5><strong>自动回复</strong></h5>
     <form>
-        <label>1.关键字:<input name="auto-resp-key" type="text" value="" />
+        <label class="auto-resp">1.关键字:<input name="auto-resp-key" type="text" value="" />
             回复：<input name="auto-resp" type="text" value="" /></label>
-        <label>2.关键字:<input name="auto-resp-key" type="text" value="" />
+        <label class="auto-resp">2.关键字:<input name="auto-resp-key" type="text" value="" />
             回复：<input name="auto-resp" type="text" value="" /></label>
-        <label>3.关键字:<input name="auto-resp-key" type="text" value="" />
+        <label class="auto-resp">3.关键字:<input name="auto-resp-key" type="text" value="" />
             回复：<input name="auto-resp" type="text" value="" /></label>
-        <label>4.关键字:<input name="auto-resp-key" type="text" value="" />
-            回复：<input name="auto-resp" type="text" value="" /></label>
-        <label>5.关键字:<input name="auto-resp-key" type="text" value="" />
-            回复：<input name="auto-resp" type="text" value="" /></label>
-        <label>6.关键字:<input name="auto-resp-key" type="text" value="" />
+        <label class="auto-resp">4.关键字:<input name="auto-resp-key" type="text" value="" />
             回复：<input name="auto-resp" type="text" value="" /></label>
     </form>
 </div>
@@ -169,48 +167,23 @@ $(function () {
     $("#modal-confirm-btn").click(function () {$("#prompt-modal").modal("hide")});
 
     function submit(){
-        console.log("submit");
-
-        let tv_percent = parseInt($("input[name=tv-percent]").val()) || 0;
-        if (tv_percent < 0 || tv_percent > 100){
-            warning("小电视参与率超过范围，请设置： 0~100 !");
-            return;
-        }
-        let guard_percent = parseInt($("input[name=guard-percent]").val()) || 0;
-        if (guard_percent < 0 || guard_percent > 100){
-            warning("大航海参与率超过范围，请设置： 0~100 !");
-            return;
-        }
-
-        let pk_percent = parseInt($("input[name=pk-percent]").val()) || 0;
-        if (pk_percent < 0 || pk_percent > 100){
-            warning("大乱斗PK获胜参与率超过范围，请设置： 0~100 !");
-            return;
-        }
-
-        let storm_percent = parseInt($("input[name=storm-percent]").val()) || 0;
-        if (pk_percent < 0 || pk_percent > 100){
-            warning("节奏风暴参与率超过范围，请设置： 0~100 !");
-            return;
-        }
-
+        let settings = JSON.stringify(getInput());
         $("#submit-settings").off("click");
         $.ajax({
-            url: "/lt/post_settings",
+            url: "/lt/dxj/post_settings",
             type: "post",
-            data: {
-                tv_percent: tv_percent,
-                guard_percent: guard_percent,
-                pk_percent: pk_percent,
-                storm_percent: storm_percent,
-            },
+            data: {settings: settings},
             success: function (r){
                 if (r.code !== 0){
                     warning(r.err_msg);
+                    $("#submit-settings").click(submit);
                 }else{
                     warning("操作成功！");
+                    $("#modal-confirm-btn").click(function () {
+                        $("#prompt-modal").modal("hide");
+                        window.location.reload();
+                    });
                 }
-                $("#submit-settings").click(submit);
             },
             error: function (data) {
                 warning("发生错误：" + data.responseText);
@@ -218,7 +191,74 @@ $(function () {
             }
         });
     }
+    function getInput(){
+        let settings = {
+            account: $("input[name=account]").val(),
+            password: $("input[name=password]").val(),
+        };
+        let carouselMsg = [];
+        let carouselDoms = $(".carousel-msg");
+        for (let i = 0; i < carouselDoms.length; i++){
+            carouselMsg.push(carouselDoms.eq(i).val());
+        }
+        settings["carousel_msg"] = carouselMsg;
+        settings["carousel_msg_interval"] = parseInt($("input[name=carousel-msg-interval]").val());
+        settings["thank_silver"] = $("input[name=thank-silver]:checked").val();
+        settings["thank_gold"] = $("input[name=thank-gold]:checked").val();
+        settings["thank_follower"] = $("input[name=thank-follower]:checked").val();
+
+        settings["thank_silver_text"] = $("input[name=thank-silver-text]").val();
+        settings["thank_gold_text"] = $("input[name=thank-gold-text]").val();
+        settings["thank_follower_text"] = $("input[name=thank-follower-text]").val();
+
+        let autoResp = [];
+        let autoRespDoms = $(".auto-resp");
+        for (let i = 0; i < autoRespDoms.length; i++){
+            autoResp.push([
+                autoRespDoms.eq(i).children("input[name=auto-resp-key]").val(),
+                autoRespDoms.eq(i).children("input[name=auto-resp]").val()
+            ]);
+        }
+        settings["auto_response"] = autoResp;
+        return settings;
+    }
     $("#submit-settings").click(submit);
+    $("#show-hidden-password").click(() => {
+        let d = $("input[name=password]");
+        if (d.attr("type") === "password"){
+            d.attr("type", "text");
+            $("#show-hidden-password").html("隐藏");
+        }else{
+            d.attr("type", "password");
+            $("#show-hidden-password").html("显示");
+        }
+    });
+    (() => {
+        $(".account").val(window.settings.account);
+        $(".password").val(window.settings.password);
+
+        let cmsg = window.settings.carousel_msg;
+        for (let i = 0; i < cmsg.length; i++){
+            $(".carousel-msg").eq(i).val(cmsg[i]);
+        }
+
+        $("input[name=carousel-msg-interval]").val(window.settings.carousel_msg_interval);
+        $("input[name=thank-silver]").eq(window.settings.thank_silver).attr("checked", true);
+        $("input[name=thank-gold]").eq(window.settings.thank_gold).attr("checked", true);
+        $("input[name=thank-follower]").eq(window.settings.thank_follower).attr("checked", true);
+
+        $("input[name=thank-silver-text]").val(window.settings.thank_silver_text);
+        $("input[name=thank-gold-text]").val(window.settings.thank_gold_text);
+        $("input[name=thank-follower-text]").val(window.settings.thank_follower_text);
+
+        let autoResp = window.settings.auto_response;
+        for (let i = 0; i < autoResp.length; i ++){
+            let pair = autoResp[i];
+            $(".auto-resp").eq(i).children("input[name=auto-resp-key]").val(pair[0]);
+            $(".auto-resp").eq(i).children("input[name=auto-resp]").val(pair[1]);
+        }
+    })();
+
 });
 </script>
 </div>
