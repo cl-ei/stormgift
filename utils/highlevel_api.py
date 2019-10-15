@@ -107,7 +107,7 @@ class ReqFreLimitApi(object):
             return f"{user_name}(uid: {uid})在45天内没有开通过1条船。"
 
         room_id_map = await AsyncMySQL.execute(
-            "select real_room_id, short_room_id, uname from biliuser where real_room_id in %s;",
+            "select real_room_id, short_room_id, name from biliuser where real_room_id in %s;",
             ([r[0] for r in guards],)
         )
         room_id_map = {r[0]: r[1] for r in room_id_map}
