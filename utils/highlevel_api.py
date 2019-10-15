@@ -123,15 +123,19 @@ class ReqFreLimitApi(object):
 
         prompt = []
         now = datetime.datetime.now()
+        last_room_id = None
         for r in guards:
             room_id, gift_name, created_time = r
+            short_room_id = room_id_map.get(room_id, room_id)
+            if short_room_id != last_room_id:
+                last_room_id = short_room_id
+                prompt.append(f"{short_room_id}直播间：")
+
             time_interval = (now - created_time).total_seconds()
             interval_prompt = gen_time_prompt(time_interval)
+            prompt.append(f"　　　{interval_prompt}开通{gift_name}*1")
 
-            short_room_id = room_id_map.get(room_id, room_id)
-            prompt.append(f"{interval_prompt}在{short_room_id}直播间开通{gift_name}*1")
-
-        prompt = f"\n{'-'*20}\n".join(prompt)
+        prompt = f"\n".join(prompt)
 
         return f"{user_name}(uid: {uid})在45天内开通{len(guards)}条船：\n\n{prompt}"
 
