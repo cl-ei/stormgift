@@ -42,7 +42,7 @@
         .input-text{
             border: none;
             border-bottom: 1px solid;
-            width: 80%;
+            width: 480px;
             text-align: left;
             padding-left: 10px
         }
@@ -69,22 +69,30 @@
             border-bottom: 1px solid;
         }
         label{display: block;}
+
+        .block{
+            padding: 20px;
+            margin: 10px 0 20px 0;
+            border: 1px solid;
+            border-radius: 20px;
+        }
     </style>
     <script>
         window.CDN_URL = "{{ CDN_URL }}";
     </script>
 </head>
 <body>
-{% if err_msg %}
-<h4><strong>{{ err_msg }}</strong></h4>
-<br />
-<a href="/lt">返回宝藏站点主页</a>
-{% else %}
 <h3><strong>设置</strong></h3>
 <p><strong>你现在可以在下方进行详细配置。<a class="button center" href="/lt/dxj/logout">→ 退出登录</a></strong></p>
 <hr>
 
-<div>
+<div class="block">
+<h5><strong>房管账号配置：</strong></h5>
+    <label>登录名/手机/邮箱：<input type="text" class="input-text account"></label>
+    <label>密码：<input type="password" class="input-text password"><button class="button center" id="show-hidden-password">显示</button></label>
+</div>
+
+<div class="block">
     <h5><strong>轮播弹幕</strong></h5>
     <label>1.<input type="text" class="input-text carousel-msg"></label>
     <label>2.<input type="text" class="input-text carousel-msg"></label>
@@ -94,12 +102,13 @@
     <label>6.<input type="text" class="input-text carousel-msg"></label>
     <label>轮播弹幕间隔: <input type="text" class="input-number" name="carousel-msg-interval">（秒, 30 ~ 240）</label>
 
-    <hr />
+</div><div class="block">
     <p><strong>替换规则：<br>
         {user} → 用户名<br>
         {gift} → 礼物名<br>
         {num} → 礼物数量<br>
     </strong></p>
+</div><div class="block">
     <form>
         <h5><strong>答谢银瓜子礼物</strong></h5>
         <label><input name="thank-silver" type="radio" value="" />始终开启</label>
@@ -108,6 +117,7 @@
         <label><input name="thank-silver" type="radio" value="" />开播时关闭，空闲时开启</label>
         <label>答谢文本：<input type="text" class="input-text"></label>
     </form>
+</div><div class="block">
     <form>
         <h5><strong>答谢金瓜子礼物</strong></h5>
         <label><input name="thank-gold" type="radio" value="" />始终开启</label>
@@ -116,16 +126,31 @@
         <label><input name="thank-gold" type="radio" value="" />开播时关闭，空闲时开启</label>
         <label>答谢文本：<input type="text" class="input-text"></label>
     </form>
+</div><div class="block">
     <form>
         <h5><strong>答谢关注</strong></h5>
         <label><input name="thank-gold" type="radio" value="" />开播时开启，空闲时关闭</label>
         <label><input name="thank-gold" type="radio" value="" />始终关闭</label>
         <label>答谢文本：<input type="text" class="input-text"></label>
     </form>
-
-    <button class="button center" id="submit-settings">保存设置</button>
+</div><div class="block">
+    <h5><strong>自动回复</strong></h5>
+    <form>
+        <label>1.关键字:<input name="auto-resp-key" type="text" value="" />
+            回复：<input name="auto-resp" type="text" value="" /></label>
+        <label>2.关键字:<input name="auto-resp-key" type="text" value="" />
+            回复：<input name="auto-resp" type="text" value="" /></label>
+        <label>3.关键字:<input name="auto-resp-key" type="text" value="" />
+            回复：<input name="auto-resp" type="text" value="" /></label>
+        <label>4.关键字:<input name="auto-resp-key" type="text" value="" />
+            回复：<input name="auto-resp" type="text" value="" /></label>
+        <label>5.关键字:<input name="auto-resp-key" type="text" value="" />
+            回复：<input name="auto-resp" type="text" value="" /></label>
+        <label>6.关键字:<input name="auto-resp-key" type="text" value="" />
+            回复：<input name="auto-resp" type="text" value="" /></label>
+    </form>
 </div>
-
+<button class="button center" id="submit-settings">保存设置</button>
 <div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -196,6 +221,6 @@ $(function () {
     $("#submit-settings").click(submit);
 });
 </script>
-{% endif %}
+</div>
 </body>
 </html>
