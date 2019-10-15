@@ -575,7 +575,7 @@ class BotUtils:
         if not bili_uid:
             return response(f"指令错误，不能查询到用户: {user_name_or_uid}")
 
-        data = await ReqFreLimitApi.get_guard_record(user_name_or_uid)
+        data = await ReqFreLimitApi.get_guard_record(uid=int(bili_uid))
         return response(f"查询到用户uid: {bili_uid}: data: {data}")
 
 
