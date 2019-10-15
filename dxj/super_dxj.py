@@ -14,7 +14,7 @@ class DanmakuProcessor:
         self._settings_load_time = 0
         self._cached_settings = None
         self._last_settings_version = None
-        self.live_room_active_time = 0
+        self.last_dmk_active_time = 0
 
     async def send_danmaku(self, message):
         logging.info(f"Send dmk: {message}")
@@ -27,6 +27,14 @@ class DanmakuProcessor:
         self._settings_load_time = time.time()
         self._last_settings_version = self._cached_settings["last_update_time"]
         return self._cached_settings
+
+    @property
+    def is_live(self):
+        settings = await self.load_config()
+        if time.time() - self.last_dmk_active_time < settings["carousel_msg_interval"]:
+            return True
+        else:
+            return False
 
     async def proc_one_danmaku(self, dmk):
         settings = await self.load_config()
@@ -46,13 +54,35 @@ class DanmakuProcessor:
             if msg in settings["carousel_msg"]:
                 return
 
-            self.live_room_active_time = int(time.time())
+            self.last_dmk_active_time = int(time.time())
 
             for key_word, text in settings["auto_response"]:
                 if key_word in msg:
                     return await self.send_danmaku(text)
 
-        print(f"room_id: {self.room_id}: {dmk}")
+        elif cmd == "GUARD_BUY":
+            data = dmk.get("data")
+            uid = data.get("uid")
+            uname = data.get("username", "")
+            gift_name = data.get("gift_name", "GUARD")
+            price = data.get("price", 0)
+            num = data.get("num", 0)
+            created_time = data.get("start_time", 0)
+
+            logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
+            thank_gold = settings["thank_gold"]
+            if thank_gold == 1 or (thank_gold == 2 and not self.is_live) or (thank_gold == 3 and self.is_live):
+                thank_gold_text = settings["thank_gold_text"].replace(
+                    "{num}", str(num)
+                ).replace(
+                    "{gift}", gift_name
+                ).replace(
+                    "{user}", uname
+                )
+                await self.send_danmaku(thank_gold_text)
+
+        else:
+            print(f"room_id: {self.room_id}: {dmk}")
 
     async def parse_danmaku(self):
         while True:
