@@ -107,10 +107,11 @@ class ReqFreLimitApi(object):
             return f"{user_name}(uid: {uid})在45天内没有开通过1条船。"
 
         room_id_map = await AsyncMySQL.execute(
-            "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
+            "select real_room_id, short_room_id, uname from biliuser where real_room_id in %s;",
             ([r[0] for r in guards],)
         )
         room_id_map = {r[0]: r[1] for r in room_id_map}
+        room_id_to_name = {r[0]: r[2] for r in room_id_map}
 
         def gen_time_prompt(interval):
             if interval > 3600*24:
@@ -129,7 +130,8 @@ class ReqFreLimitApi(object):
             short_room_id = room_id_map.get(room_id, room_id)
             if short_room_id != last_room_id:
                 last_room_id = short_room_id
-                prompt.append(f"{short_room_id}直播间：")
+                name = room_id_to_name.get(room_id, "??")
+                prompt.append(f"{short_room_id}直播间(主播: {name})：")
 
             time_interval = (now - created_time).total_seconds()
             interval_prompt = gen_time_prompt(time_interval)
