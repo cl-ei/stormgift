@@ -575,6 +575,22 @@ class BotUtils:
         if not bili_uid:
             return response(f"指令错误，不能查询到用户: {user_name_or_uid}")
 
+        if group_id:
+            # 频率检查
+            key = f"LT_QUERY_GUARD_REQ_FRQ_CONTROL_{group_id}"
+            value = await redis_cache.get(key=key)
+            if value is None:
+                await redis_cache.set(key=key, value=1, timeout=60)
+                pass
+
+            else:
+                key2 = f"LT_QUERY_GUARD_REQ_FRQ_CONTROL_PROMPT_{group_id}"
+                has_prompted = await redis_cache.get(key=key2)
+                if not has_prompted:
+                    response(f"为防刷屏，请私聊发送指令: {msg}")
+                    await redis_cache.set(key=key2, value=1, timeout=50)
+                return
+
         data = await ReqFreLimitApi.get_guard_record(uid=int(bili_uid))
         return response(data)
 
