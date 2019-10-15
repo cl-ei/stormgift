@@ -81,17 +81,46 @@
 <a href="/lt">返回宝藏站点主页</a>
 {% else %}
 <h3><strong>设置</strong></h3>
-<p><strong>你现在可以在下方进行详细配置。<a href="/lt/dxj/logout">→ 退出登录</a></strong></p>
+<p><strong>你现在可以在下方进行详细配置。<a class="button center" href="/lt/dxj/logout">→ 退出登录</a></strong></p>
 <hr>
 
 <div>
     <h5><strong>轮播弹幕</strong></h5>
     <label>1.<input type="text" class="input-text carousel-msg"></label>
-    <button class="button center" id="submit-settings">保存设置</button>
+    <label>2.<input type="text" class="input-text carousel-msg"></label>
+    <label>3.<input type="text" class="input-text carousel-msg"></label>
+    <label>4.<input type="text" class="input-text carousel-msg"></label>
+    <label>5.<input type="text" class="input-text carousel-msg"></label>
+    <label>6.<input type="text" class="input-text carousel-msg"></label>
+    <label>轮播弹幕间隔: <input type="text" class="input-number" name="carousel-msg-interval">（秒, 30 ~ 240）</label>
 
+    <hr />
+    <form>
+        <h5><strong>答谢银瓜子礼物</strong></h5>
+        <label><input name="thank-silver" type="radio" value="" />始终开启</label>
+        <label><input name="thank-silver" type="radio" value="" />始终关闭</label>
+        <label><input name="thank-silver" type="radio" value="" />开播时开启，空闲时关闭</label>
+        <label><input name="thank-silver" type="radio" value="" />开播时关闭，空闲时开启</label>
+        <label>答谢文本：<input type="text" class="input-text"></label>
+    </form>
+    <form>
+        <h5><strong>答谢金瓜子礼物</strong></h5>
+        <label><input name="thank-gold" type="radio" value="" />始终开启</label>
+        <label><input name="thank-gold" type="radio" value="" />始终关闭</label>
+        <label><input name="thank-gold" type="radio" value="" />开播时开启，空闲时关闭</label>
+        <label><input name="thank-gold" type="radio" value="" />开播时关闭，空闲时开启</label>
+        <label>答谢文本：<input type="text" class="input-text"></label>
+    </form>
+    <form>
+        <h5><strong>答谢关注</strong></h5>
+        <label><input name="thank-gold" type="radio" value="" />开播时开启，空闲时关闭</label>
+        <label><input name="thank-gold" type="radio" value="" />始终关闭</label>
+        <label>答谢文本：<input type="text" class="input-text"></label>
+    </form>
+
+    <button class="button center" id="submit-settings">保存设置</button>
 </div>
-<p style="margin-top: 20px;">参与率：为避免频繁抽奖进小黑屋，所以你可以设置一个百分比决定参与抽奖的频率。比如设置为50%时，放弃一半抽奖；设置为0时，不参与抽奖。<br>
-</p>
+
 <div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
