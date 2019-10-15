@@ -2,7 +2,7 @@ import time
 import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
-from utils.dao import DXJMonitorLiveRooms
+from utils.dao import DXJMonitorLiveRooms, SuperDxjUserSettings
 from utils.biliapi import BiliApi, WsApi
 from config.log4 import super_dxj_logger as logging
 
@@ -11,12 +11,56 @@ class DanmakuProcessor:
     def __init__(self, q, room_id):
         self.q = q
         self.room_id = room_id
+        self._settings_load_time = 0
+        self._cached_settings = None
+        self._last_settings_version = None
+        self.live_room_active_time = 0
+
+    async def send_danmaku(self, message):
+        logging.info(f"Send dmk: {message}")
+
+    async def load_config(self):
+        if int(time.time()) - self._settings_load_time < 60 and self._cached_settings:
+            return self._cached_settings
+
+        self._cached_settings = await SuperDxjUserSettings.get(room_id=self.room_id)
+        self._settings_load_time = time.time()
+        self._last_settings_version = self._cached_settings["last_update_time"]
+        return self._cached_settings
+
+    async def proc_one_danmaku(self, dmk):
+        settings = await self.load_config()
+        cmd = dmk["cmd"]
+        if cmd.startswith("DANMU_MSG"):
+            info = dmk.get("info", {})
+            msg = str(info[1])
+            uid = info[2][0]
+            user_name = info[2][1]
+            is_admin = info[2][2]
+            ul = info[4][0]
+            d = info[3]
+            dl = d[0] if d else "-"
+            deco = d[1] if d else "undefined"
+            logging.info(f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}")
+
+            if msg in settings["carousel_msg"]:
+                return
+
+            self.live_room_active_time = int(time.time())
+
+            for key_word, text in settings["auto_response"]:
+                if key_word in msg:
+                    return await self.send_danmaku(text)
+
+        print(f"room_id: {self.room_id}: {dmk}")
 
     async def parse_danmaku(self):
         while True:
-            msg = await self.q.get()
-            await self.parse_danmaku(msg)
-            print(f"room_id: {self.room_id}: {msg}")
+            dmk = await self.q.get()
+            try:
+                await self.proc_one_danmaku(dmk)
+            except Exception as e:
+                logging.error(f"Error happened in processing one dmk: {dmk}, e: {e}")
 
     async def send_carousel_msg(self):
         while True:

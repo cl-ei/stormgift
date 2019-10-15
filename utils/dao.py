@@ -632,7 +632,8 @@ class SuperDxjUserSettings:
             "thank_gold_text": thank_gold_text,
             "thank_follower": thank_follower,
             "thank_follower_text": thank_follower_text,
-            "auto_response": auto_response
+            "auto_response": auto_response,
+            "last_update_time": int(time.time()),
         }
         await redis_cache.set(key=key, value=value)
 
@@ -656,6 +657,7 @@ class SuperDxjUserSettings:
         r.setdefault("thank_follower", 0)
         r.setdefault("thank_follower_text", default_thank_text)
         r.setdefault("auto_response", [])
+        r.setdefault("last_update_time", int(time.time())),
 
         return r
 
