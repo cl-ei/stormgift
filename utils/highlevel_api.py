@@ -131,7 +131,7 @@ class ReqFreLimitApi(object):
             short_room_id = room_id_map.get(room_id, room_id)
             prompt.append(f"{interval_prompt}在{short_room_id}直播间开通{gift_name}*1")
 
-        prompt = f"\n{'-'*80}".join(prompt)
+        prompt = f"\n{'-'*20}\n".join(prompt)
 
         return f"{user_name}(uid: {uid})在45天内开通{len(guards)}条船：\n\n{prompt}"
 
