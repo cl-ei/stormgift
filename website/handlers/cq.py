@@ -556,6 +556,27 @@ class BotUtils:
         finally:
             await redis_cache.delete(lock_key)
 
+    async def proc_query_guard(self, user_id, msg, group_id=None):
+        def response(m):
+            if group_id is not None:
+                self.bot.send_group_msg(group_id=group_id, message=m)
+            else:
+                self.bot.send_private_msg(user_id=user_id, message=m)
+
+            user_name_or_uid = msg[4:].strip()
+            if user_name_or_uid.isdigit():
+                bili_uid = int(user_name_or_uid)
+            else:
+                bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_uid)
+
+            if not bili_uid:
+                bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+
+            if not bili_uid:
+                return response(f"指令错误，不能查询到用户: {user_name_or_uid}")
+
+            return response(f"查询到用户uid: {bili_uid}")
+
 
 class BotHandler:
     NOTICE_GROUP_ID_LIST = [
@@ -659,6 +680,9 @@ class BotHandler:
 
         elif msg.startswith("#动态"):
             return await p.proc_dynamic(user_id, msg=msg, group_id=group_id)
+
+        elif msg.startswith("#大航海"):
+            return await p.proc_query_guard(user_id, msg=msg, group_id=group_id)
 
     @classmethod
     async def handle_private_message(cls, context):
