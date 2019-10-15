@@ -71,7 +71,8 @@ async def settings(request):
     existed_settings = await SuperDxjUserSettings.get(room_id=room_id)
     context = {
         "CDN_URL": CDN_URL,
-        "existed_settings": json.dumps(existed_settings)
+        "existed_settings": json.dumps(existed_settings),
+        "room_id": room_id,
     }
     return render_to_response("website/templates/dxj_settings.html", context=context)
 
