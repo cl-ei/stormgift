@@ -61,7 +61,7 @@ async def logout(request):
 @login_required
 async def settings(request):
     context = {"CDN_URL": CDN_URL}
-    return render_to_response("website/templates/website_homepage.html", context=context)
+    return render_to_response("website/templates/dxj_settings.html", context=context)
 
 
 async def post_settings(request):
