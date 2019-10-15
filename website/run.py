@@ -1,15 +1,24 @@
 import os
+import sys
 import asyncio
 import weakref
 import traceback
-import pyinotify
 from utils.mq import mq_raffle_broadcast
 from aiohttp import web
-from website.handlers import lt, cq
+from website.handlers import lt, cq, dxj
 
-monitor_log_file = "/home/wwwroot/log/stormgift.log"
-log_file_content_size = os.path.getsize(monitor_log_file)
-log_file_changed_content_q = asyncio.Queue()
+if sys.platform == "linux":
+    import pyinotify
+
+    monitor_log_file = "/home/wwwroot/log/stormgift.log"
+    log_file_content_size = os.path.getsize(monitor_log_file)
+    log_file_changed_content_q = asyncio.Queue()
+
+else:
+    pyinotify = None
+    monitor_log_file = ""
+    log_file_content_size = 0
+    log_file_changed_content_q = asyncio.Queue()
 
 
 def handle_read_callback(notifier):
@@ -67,6 +76,9 @@ async def ws_raffle_broadcast_handler(request):
 
 
 async def ws_notify_raffle(app):
+    if sys.platform != "linux":
+        return
+
     while True:
         message, has_read = await mq_raffle_broadcast.get()
         for ws in set(app['websockets_raffle']):
@@ -85,6 +97,10 @@ async def start_web_site():
     app = web.Application()
     app.add_routes([
         web.get('/lt', lt.lt),
+        web.get('/lt/dxj/login', dxj.login),
+        web.post('/lt/dxj/login', dxj.login),
+        web.get('/lt/dxj/settings', dxj.settings),
+        web.get('/lt/dxj/logout', dxj.logout),
         web.get('/lt/status', proc_status),
         web.get('/console_wss', ws_log_broadcast_handler),
         web.get('/raffle_wss', ws_raffle_broadcast_handler),
@@ -109,12 +125,13 @@ async def start_web_site():
 
 
 loop = asyncio.get_event_loop()
-wm = pyinotify.WatchManager()
-pyinotify.AsyncioNotifier(
-    wm,
-    loop,
-    default_proc_fun=lambda *a, **k: None,
-    callback=handle_read_callback
-)
-wm.add_watch(monitor_log_file, pyinotify.IN_MODIFY)
+if pyinotify:
+    wm = pyinotify.WatchManager()
+    pyinotify.AsyncioNotifier(
+        wm,
+        loop,
+        default_proc_fun=lambda *a, **k: None,
+        callback=handle_read_callback
+    )
+    wm.add_watch(monitor_log_file, pyinotify.IN_MODIFY)
 loop.run_until_complete(start_web_site())
