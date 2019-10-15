@@ -660,6 +660,20 @@ class SuperDxjUserSettings:
         return r
 
 
+class SuperDxjUserAccounts:
+    key = "LT_SUPER_DXJ_ACCOUNT"
+
+    @classmethod
+    async def get(cls, user_id):
+        key = f"{cls.key}_{user_id}"
+        return await redis_cache.get(key=key)
+
+    @classmethod
+    async def set(cls, user_id, password):
+        key = f"{cls.key}_{user_id}"
+        return await redis_cache.set(key=key, value=password)
+
+
 async def test():
     pass
 

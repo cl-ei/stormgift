@@ -76,6 +76,13 @@
             border: 1px solid;
             border-radius: 20px;
         }
+        .dxj-password{
+            width: 200px;
+        }
+        .cl-btn{
+            border: none;
+            background: #ccc;
+        }
     </style>
     <script>
         window.CDN_URL = "{{ CDN_URL }}";
@@ -84,7 +91,14 @@
 </head>
 <body>
 <h3><strong>设置</strong></h3>
-<p><strong>你现在可以在下方进行详细配置。<a class="button center" href="/lt/dxj/logout">→ 退出登录</a></strong></p>
+<p><strong>你现在可以在下方进行详细配置。
+    <a class="button center" href="/lt/dxj/logout">→ 退出登录</a><br>
+    <form action="/lt/dxj/change_password" method="post">
+        <label>修改本站密码：<input type="password" name="dxj-password" class="input-text dxj-password">
+         <input class="button center cl-btn" type="submit" value="确定" />
+        </label>
+    </form>
+</strong></p>
 <hr>
 
 <div class="block">
