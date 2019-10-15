@@ -90,16 +90,19 @@
     </script>
 </head>
 <body>
+<div class="block">
 <h3><strong>设置 - 直播间 {{ room_id }}</strong></h3>
 <p><strong>你现在可以在下方进行详细配置。
-    <a class="button center" href="/lt/dxj/logout">→ 退出登录</a><br>
     <form action="/lt/dxj/change_password" method="post">
         <label>修改本站密码：<input type="password" name="dxj-password" class="input-text dxj-password">
          <input class="button center cl-btn" type="submit" value="确定" />
         </label>
     </form>
+    <form action="/lt/dxj/logout" method="get">
+        <input class="button center cl-btn" type="submit" value="退出登录!" />
+    </form>
 </strong></p>
-<hr>
+</div>
 
 <div class="block">
 <h5><strong>房管账号配置：</strong></h5>
