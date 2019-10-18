@@ -111,7 +111,7 @@ class CLMessageQ:
                 async with session.put(req_url, headers={"message_id": message_id}) as resp:
                     return message_id
         except Exception as e:
-            logging.error(f"Error: {e}")
+            logging.error(f"CLMessageQ Error: {e}")
 
         return message_id
 
