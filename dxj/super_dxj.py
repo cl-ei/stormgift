@@ -20,6 +20,7 @@ class DanmakuProcessor:
 
         self.gift_list = []
         self.carousel_msg_counter = 0
+        self.carousel_msg_index = 0
         self.dmk_q = asyncio.Queue()
 
     async def get_live_status(self):
@@ -143,7 +144,7 @@ class DanmakuProcessor:
 
     async def thank_gift(self):
         while True:
-            await asyncio.sleep(15)
+            await asyncio.sleep(20)
 
             if not self.gift_list:
                 continue
@@ -179,8 +180,34 @@ class DanmakuProcessor:
                 logging.error(f"Error happened in processing one dmk: {dmk}, e: {e}")
 
     async def send_carousel_msg(self):
+        sleep_time = 0
         while True:
-            await asyncio.sleep(10)
+            await asyncio.sleep(1)
+            sleep_time += 1
+
+            config = await self.load_config()
+            carousel_msg_interval = config["carousel_msg_interval"]
+            carousel_msg = config["carousel_msg"]
+
+            if sleep_time < carousel_msg_interval:
+                continue
+
+            sleep_time = 0
+            if not carousel_msg:
+                continue
+
+            if self.carousel_msg_counter >= len(carousel_msg):
+                # 轮播弹幕没有被覆盖，不再播报
+                continue
+
+            if self.carousel_msg_index >= len(carousel_msg):
+                # 索引超出了，说明进行了缩减操作，因此重置索引和计数器
+                self.carousel_msg_index = 0
+                self.carousel_msg_counter = 0
+
+            self.dmk_q.put_nowait(carousel_msg[self.carousel_msg_index])
+            self.carousel_msg_index = (self.carousel_msg_index + 1) % len(carousel_msg)
+            self.carousel_msg_counter += 1
 
     async def run(self):
         flag, live_status = await BiliApi.get_live_status(room_id=self.room_id)
@@ -249,7 +276,7 @@ class WsManager(object):
 
     async def run(self):
         # expected = await DXJMonitorLiveRooms.get()
-        expected = [3742025]
+        expected = [4424139]
         if not expected:
             logging.error(f"Cannot load monitor live rooms from redis!")
             return

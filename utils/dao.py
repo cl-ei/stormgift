@@ -646,15 +646,21 @@ class SuperDxjUserSettings:
 
         r.setdefault("account", "")
         r.setdefault("password", "")
-        r.setdefault("carousel_msg", [])
+        r.setdefault("carousel_msg", [
+            "喜欢的小伙伴，请点下关注~",
+            "有能力的小伙伴可以上船支持一下主播小姐姐~",
+            "打call~~",
+        ])
         r.setdefault("carousel_msg_interval", 120)
-        r.setdefault("thank_silver", 1)
 
         default_thank_text = "感谢{user}赠送的{num}个{gift},大气大气~"
+        r.setdefault("thank_silver", 0)
         r.setdefault("thank_silver_text", default_thank_text)
-        r.setdefault("thank_gold", 1)
+        r.setdefault("thank_gold", 0)
         r.setdefault("thank_gold_text", default_thank_text)
         r.setdefault("thank_follower", 0)
+
+        default_thank_text = "感谢{user}的关注~"
         r.setdefault("thank_follower_text", default_thank_text)
         r.setdefault("auto_response", [])
         r.setdefault("last_update_time", int(time.time())),

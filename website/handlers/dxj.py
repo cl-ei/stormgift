@@ -135,11 +135,13 @@ async def post_settings(request):
             continue
         if len(pair) != 2:
             continue
+
         k = pair[0].strip()
-        if not k:
+        if not isinstance(k, str) or len(k) > 30:
             continue
+
         v = pair[1].strip()
-        if not v:
+        if not isinstance(v, str) or len(v) > 30:
             continue
         config["auto_response"].append([k, v])
 
