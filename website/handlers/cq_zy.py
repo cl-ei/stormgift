@@ -10,12 +10,12 @@ import datetime
 import requests
 import traceback
 from aiohttp import web
-from random import randint, random
+from random import randint
 from utils.cq import bot_zy as bot
 from config import cloud_function_url
 from config.log4 import cqbot_logger as logging
 from utils.images import DynamicPicturesProcessor
-from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList, redis_cache, BiliToQQBindInfo
+from utils.dao import redis_cache, BiliToQQBindInfo
 from utils.biliapi import BiliApi
 from utils.highlevel_api import ReqFreLimitApi
 from utils.highlevel_api import DBCookieOperator
@@ -349,18 +349,15 @@ class BotUtils:
         flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
         response(msg)
 
-    async def proc_query_bag(self, user_id, msg, group=False):
-        if group is not True:
-            return
-
+    async def proc_query_bag(self, user_id, msg, group_id):
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
             message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
-            self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+            self.bot.send_group_msg(group_id=group_id, message=message)
             return True
 
         try:
-            postfix = int(msg[2:])
+            postfix = int(msg[3:])
             assert postfix > 0
             bili_uid = postfix
         except (ValueError, TypeError, AssertionError):
@@ -369,13 +366,13 @@ class BotUtils:
         user = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
         if not user:
             message = f"未查询到用户「{bili_uid}」。可能用户已过期，请重新登录。"
-            self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+            self.bot.send_group_msg(group_id=group_id, message=message)
             return
 
         bag_list = await BiliApi.get_bag_list(user.cookie)
         if not bag_list:
             message = f"{user.name}(uid: {user.uid})的背包里啥都没有。"
-            self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+            self.bot.send_group_msg(group_id=group_id, message=message)
             return
 
         result = {}
@@ -393,7 +390,7 @@ class BotUtils:
 
         prompt = ',\n'.join(prompt)
         message = f"{user.name}(uid: {user.uid})的背包里有:\n{prompt}。"
-        self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+        self.bot.send_group_msg(group_id=group_id, message=message)
 
     async def proc_dynamic(self, user_id, msg, group_id=None):
         lock_key = "LT_PROC_DYNAMIC"
@@ -554,6 +551,8 @@ class BotHandler:
             msg = "#一言"
         elif msg == "挂机查询":
             msg = "#挂机查询"
+        elif msg == "背包":
+            msg = "#背包"
 
         if not msg.startswith("#"):
             return
@@ -575,8 +574,18 @@ class BotHandler:
         elif msg.startswith("#勋章查询"):
             return await p.proc_query_medal(msg, group_id)
 
-        elif msg.startswith("#挂机查询"):
+        elif msg.startswith("#大航海"):
+            return await p.proc_query_guard(user_id, msg=msg, group_id=group_id)
+
+        # -------- 以下限制本群访问 ---------
+        if group_id != QQ_GROUP_STAR_LIGHT:
+            return
+
+        if msg.startswith("#挂机查询"):
             return await p.proc_lt_status(user_id, msg=msg, group_id=group_id)
+
+        elif msg.startswith("#背包"):
+            return await p.proc_query_bag(user_id, msg=msg, group_id=group_id)
 
     @classmethod
     async def handle_private_message(cls, context):
@@ -596,17 +605,11 @@ class BotHandler:
 
     @classmethod
     async def handle_message(cls, context):
-
         if context["message_type"] == "group":
             return await cls.handle_group_message(context)
 
         elif context["message_type"] == "private":
-            try:
-                return await cls.handle_private_message(context)
-            except Exception as e:
-                message = f"Error happened in handle_message: {e}\n{traceback.format_exc()}"
-                bot.send_private_msg(user_id=80873436, message=message)
-                return None
+            return await cls.handle_private_message(context)
 
     @classmethod
     async def handle_request(cls, context):
@@ -621,10 +624,8 @@ async def handler(request):
 
     if context["post_type"] == "message":
         response = await BotHandler.handle_message(context)
-
     elif context["post_type"] == "request":
         response = await BotHandler.handle_request(context)
-
     else:
         response = None
 
