@@ -318,12 +318,19 @@ class BotUtils:
         message = "\n".join(msg_list)
         self.bot.send_group_msg(group_id=group_id, message=f"{user_name}(uid: {uid})拥有的勋章如下：\n\n{message}")
 
-    async def proc_lt_status(self, user_id, msg, group=False):
+    async def proc_lt_status(self, user_id, msg, group_id=None):
+
+        def response(m):
+            if group_id:
+                self.bot.send_group_msg(group_id=group_id, message=m)
+            else:
+                self.bot.send_private_msg(user_id=user_id, message=m)
+
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
-            if group is True:
+            if group_id:
                 message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
-                return self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+                return self.bot.send_group_msg(group_id=group_id, message=message)
 
             number = randint(1000, 9999)
             key = f"BILI_BIND_CHECK_KEY_{number}"
@@ -333,17 +340,14 @@ class BotUtils:
             return
 
         try:
-            postfix = int(msg[4:])
+            postfix = int(msg[5:])
             assert postfix > 0
             bili_uid = postfix
         except (ValueError, TypeError, AssertionError):
             pass
 
         flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
-        if group is True:
-            return self.bot.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=msg)
-        else:
-            self.bot.send_private_msg(user_id=user_id, message=msg)
+        response(msg)
 
     async def proc_query_bag(self, user_id, msg, group=False):
         if group is not True:
@@ -548,24 +552,31 @@ class BotHandler:
         msg = msg.replace("＃", "#")
         if msg == "一言":
             msg = "#一言"
+        elif msg == "挂机查询":
+            msg = "#挂机查询"
 
         if not msg.startswith("#"):
             return
 
+        p = BotUtils()
+
         if msg.startswith("#一言"):
-            return BotUtils().proc_one_sentence(msg, group_id)
+            return p.proc_one_sentence(msg, group_id)
 
         elif msg.startswith("#点歌"):
-            return await BotUtils().proc_song(msg, group_id)
+            return await p.proc_song(msg, group_id)
 
         elif msg.startswith("#翻译"):
-            return BotUtils().proc_translation(msg, group_id)
+            return p.proc_translation(msg, group_id)
 
         elif msg.startswith("#中奖查询"):
-            return await BotUtils().proc_query_raffle(msg, group_id)
+            return await p.proc_query_raffle(msg, group_id)
 
         elif msg.startswith("#勋章查询"):
-            return await BotUtils().proc_query_medal(msg, group_id)
+            return await p.proc_query_medal(msg, group_id)
+
+        elif msg.startswith("#挂机查询"):
+            return await p.proc_lt_status(user_id, msg=msg, group_id=group_id)
 
     @classmethod
     async def handle_private_message(cls, context):
@@ -575,7 +586,7 @@ class BotHandler:
         p = BotUtils()
 
         if msg.startswith("挂机查询"):
-            return await p.proc_lt_status(user_id, msg=msg)
+            return await p.proc_lt_status(user_id, msg=f"#{msg}")
 
         elif msg.startswith("#动态"):
             return await p.proc_dynamic(user_id, msg=msg)
