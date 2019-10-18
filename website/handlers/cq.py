@@ -747,7 +747,8 @@ class BotHandler:
                 live_room_id = int(msg[2:])
                 real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
                 await SuperDxjUserAccounts.delete(user_id=real_room_id)
-                message = f"删除完成: {live_room_id} -> {real_room_id}."
+                restart_info = os.popen("/usr/local/bin/supervisorctl restart dxj_super").read()
+                message = f"删除完成: {live_room_id} -> {real_room_id}. restart_info:\n{restart_info}"
                 bot.send_private_msg(user_id=80873436, message=message)
 
         elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", "QQ看点"):
