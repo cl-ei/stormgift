@@ -27,7 +27,7 @@ class DanmakuProcessor:
         self.msg_speed_counter_start_time = 0
         self.msg_block_until = 0
 
-        self.cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{self.room_id}"
+        self.cookie_cache_key = None
 
         self.master_uid = None
         self.followers = []
@@ -36,14 +36,17 @@ class DanmakuProcessor:
         if self.cookie:
             return True, self.cookie
 
+        config = await self.load_config()
+        account = config["account"]
+        password = config["password"]
+
+        if not self.cookie_cache_key:
+            self.cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{account}"
         cookie = await redis_cache.get(self.cookie_cache_key)
         if cookie:
             self.cookie = cookie
             return True, cookie
 
-        config = await self.load_config()
-        account = config["account"]
-        password = config["password"]
         flag, cookie = await CookieFetcher.get_cookie(account=account, password=password)
         if not flag:
             logging.info(f"Super dxj CookieFetcher.get_cookie Error: {cookie}")
