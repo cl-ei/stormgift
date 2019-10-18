@@ -696,6 +696,11 @@ class SuperDxjUserAccounts:
         key = f"{cls.key}_{user_id}"
         return await redis_cache.set(key=key, value=password)
 
+    @classmethod
+    async def delete(cls, user_id):
+        key = f"{cls.key}_{user_id}"
+        return await redis_cache.delete(key=key)
+
 
 async def test():
     r = await SuperDxjUserSettings.get_all_live_rooms()

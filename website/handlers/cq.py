@@ -15,7 +15,7 @@ from random import randint, random
 from config import cloud_function_url
 from config.log4 import cqbot_logger as logging
 from utils.images import DynamicPicturesProcessor
-from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList, redis_cache, BiliToQQBindInfo
+from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList, redis_cache, BiliToQQBindInfo, SuperDxjUserAccounts
 from utils.biliapi import BiliApi
 from utils.highlevel_api import ReqFreLimitApi
 from utils.highlevel_api import DBCookieOperator
@@ -732,6 +732,20 @@ class BotHandler:
                     f"{'今日' if int_str == 0 else str(int_str) + '天前'}统计到{r}, "
                     f"共{result['total']}个，{path_prompt}。"
                 )
+                bot.send_private_msg(user_id=80873436, message=message)
+
+            elif msg.startswith("ds"):
+                live_room_id = int(msg[1:])
+                real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
+                await SuperDxjUserAccounts.set(user_id=real_room_id, password="123456")
+                message = f"添加完成: {live_room_id} -> {real_room_id}."
+                bot.send_private_msg(user_id=80873436, message=message)
+
+            elif msg.startswith("dls"):
+                live_room_id = int(msg[3:])
+                real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
+                await SuperDxjUserAccounts.delete(user_id=real_room_id)
+                message = f"删除完成: {live_room_id} -> {real_room_id}."
                 bot.send_private_msg(user_id=80873436, message=message)
 
         elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", "QQ看点"):
