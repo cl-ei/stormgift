@@ -114,6 +114,9 @@ class DanmakuProcessor:
             elif "账号未登录" in msg:
                 await self.set_cookie_invalid()
 
+            else:
+                logging.error(f"弹幕发送失败！{msg}.\n\t[{dmk}]")
+
     async def load_config(self):
         if int(time.time()) - self._settings_load_time < 60 and self._cached_settings:
             return self._cached_settings
