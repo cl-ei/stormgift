@@ -241,6 +241,9 @@ class DanmakuProcessor:
             try:
                 await self.proc_one_danmaku(dmk)
             except Exception as e:
+                if dmk == {"code": 0}:
+                    continue
+
                 logging.error(f"Error happened in processing one dmk: {dmk}, e: {e}")
 
     async def send_carousel_msg(self):
