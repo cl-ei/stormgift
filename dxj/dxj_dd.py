@@ -15,14 +15,6 @@ MONITOR_ROOM_ID = 13369254
 bot = CQHttp(**CQBOT)
 
 
-class TempData:
-    __cached_user_info = {}
-    gift_list_for_thank = []
-
-    fans_id_set = None
-    cache_count_limit = 10000
-
-
 async def send_danmaku(msg, user=""):
     user = user or "LP"
     cookie_obj = await DBCookieOperator.get_by_uid(user_id=user)
@@ -148,60 +140,6 @@ async def proc_message(message):
         else:
             bot.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
 
-    elif cmd == "SEND_GIFT":
-        data = message.get("data")
-
-        uid = data.get("uid", "--")
-        face = data.get("face", "")
-        uname = data.get("uname", "")
-        gift_name = data.get("giftName", "")
-        coin_type = data.get("coin_type", "")
-        total_coin = data.get("total_coin", 0)
-        num = data.get("num", 0)
-        price = total_coin // max(1, num)
-        rnd = data.get("rnd", 0)
-        created_time = data.get("timestamp", 0)
-
-        logging.info(f"SEND_GIFT: [{coin_type.upper()}] [{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})")
-        TempData.gift_list_for_thank.append([uname, gift_name, num, coin_type, created_time])
-
-    elif cmd == "GUARD_BUY":
-        data = message.get("data")
-
-        uid = data.get("uid")
-        uname = data.get("username", "")
-        gift_name = data.get("gift_name", "GUARD")
-        price = data.get("price", 0)
-        num = data.get("num", 0)
-        created_time = data.get("start_time", 0)
-
-        logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
-        TempData.gift_list_for_thank.append([uname, gift_name, num, "gold", created_time])
-
-
-async def thank_gift():
-    thank_list = {}
-    need_del = []
-    for e in TempData.gift_list_for_thank:
-        uname, gift_name, count, coin_type, created_timestamp = e
-        time_interval = time.time() - created_timestamp
-        need_del.append(e)
-
-        if time_interval < 20:
-            key = f"{uname}${gift_name}"
-            if key in thank_list:
-                thank_list[key] += int(count)
-            else:
-                thank_list[key] = int(count)
-
-    for e in need_del:
-        TempData.gift_list_for_thank.remove(e)
-
-    for key, count in thank_list.items():
-        uname, gift_name = key.split("$")
-        await send_danmaku(f"感谢{uname}赠送的{count}个{gift_name}! 大气大气~")
-        logging.info(f"DEBUG: gift_list_for_thank length: {len(TempData.gift_list_for_thank)}, del: {len(need_del)}")
-
 
 async def main():
     async def on_connect(ws):
@@ -230,15 +168,9 @@ async def main():
 
     await new_client.start()
 
-    logging.info("Hansy ws stated.")
-
-    counter = -1
+    logging.info("DD ws stated.")
     while True:
         await asyncio.sleep(1)
-        counter = (counter + 1) % 10000000000
-
-        if counter % 15 == 0:
-            await thank_gift()
 
 
 loop = asyncio.get_event_loop()
