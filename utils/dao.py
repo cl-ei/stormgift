@@ -661,6 +661,12 @@ class SuperDxjUserSettings:
         r.setdefault("auto_response", [])
         r.setdefault("last_update_time", int(time.time())),
 
+        auto_response = []
+        for pair in r["auto_response"]:
+            if pair and len(pair) == 2 and pair[0] and pair[1]:
+                auto_response.append(pair)
+        r["auto_response"] = auto_response
+
         return r
 
     @classmethod
@@ -701,7 +707,9 @@ class SuperDxjUserAccounts:
 async def test():
     r = await SuperDxjUserSettings.get_all_live_rooms()
     print(r)
-
+    # room_id = 13369254
+    # cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{room_id}"
+    # await redis_cache.delete(cookie_cache_key)
 
 if __name__ == "__main__":
     import asyncio
