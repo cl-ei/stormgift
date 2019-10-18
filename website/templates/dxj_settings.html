@@ -85,6 +85,9 @@
             border: none;
             background: #ccc;
         }
+        .logout{
+            margin: 20px 0 -12px -6px;
+        }
     </style>
     <script>
         window.CDN_URL = "{{ CDN_URL }}";
@@ -100,7 +103,7 @@
          <input class="button center cl-btn" type="submit" value="确定" />
         </label>
     </form>
-    <form action="/lt/dxj/logout" method="get">
+    <form class="logout" action="/lt/dxj/logout" method="get">
         <input class="button center cl-btn" type="submit" value="退出登录!" />
     </form>
 </strong></p>
