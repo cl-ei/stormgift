@@ -667,6 +667,21 @@ class SuperDxjUserSettings:
 
         return r
 
+    @classmethod
+    async def get_all_live_rooms(cls):
+        p = f"{cls.key}_*"
+        r = await redis_cache.keys(p)
+
+        result = []
+        for k in r:
+            try:
+                room_id = k[len(cls.key) + 1:]
+                result.append(int(room_id))
+            except (ValueError, TypeError):
+                continue
+
+        return result
+
 
 class SuperDxjUserAccounts:
     key = "LT_SUPER_DXJ_ACCOUNT"
@@ -683,7 +698,8 @@ class SuperDxjUserAccounts:
 
 
 async def test():
-    pass
+    r = await SuperDxjUserSettings.get_all_live_rooms()
+    print(r)
 
 
 if __name__ == "__main__":

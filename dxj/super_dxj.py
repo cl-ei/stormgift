@@ -339,8 +339,8 @@ class WsManager(object):
             del self._clients[room_id]
 
     async def run(self):
-        # expected = await DXJMonitorLiveRooms.get()
-        expected = [11768032]
+        expected = await SuperDxjUserSettings.get_all_live_rooms()
+        expected = [room_id for room_id in expected if room_id != 123]
         if not expected:
             logging.error(f"Cannot load monitor live rooms from redis!")
             return
