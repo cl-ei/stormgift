@@ -29,6 +29,9 @@ class DanmakuProcessor:
 
         self.cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{self.room_id}"
 
+        self.master_uid = None
+        self.followers = []
+
     async def load_cookie(self):
         if self.cookie:
             return True, self.cookie
@@ -278,6 +281,45 @@ class DanmakuProcessor:
             self.carousel_msg_index = (self.carousel_msg_index + 1) % len(carousel_msg)
             self.carousel_msg_counter += 1
 
+    async def thank_follower(self):
+
+        async def get_fans_list():
+            if self.master_uid is None:
+                self.master_uid = await BiliApi.get_uid_by_live_room_id(self.room_id)
+            data = await BiliApi.get_fans_list(self.master_uid)
+            return data[::-1]
+
+        while True:
+            await asyncio.sleep(20)
+
+            config = await self.load_config()
+            live_status = await self.get_live_status()
+            if not live_status or config["thank_follower"] != 1:
+                continue
+
+            if not self.followers:
+                fans = await get_fans_list()
+                self.followers = [x["mid"] for x in fans]
+                continue
+
+            new_fans_list = await get_fans_list()
+            if not new_fans_list:
+                continue
+
+            new_fans_id_list = [x["mid"] for x in new_fans_list]
+            thank_uid_list = list(set(new_fans_id_list) - set(self.followers))
+            uid_to_name_map = {x["mid"]: x["uname"] for x in new_fans_list}
+            thank_follower_text = config["thank_follower_text"]
+            for uid in thank_uid_list:
+                name = uid_to_name_map.get(uid)
+                dmk = thank_follower_text.replace("{user}", name)
+                self.dmk_q.put_nowait(dmk)
+
+            self.followers.extend(new_fans_id_list)
+            self.followers = list(set(self.followers))
+            if len(self.followers) > 2000:
+                self.followers = list(set(new_fans_id_list))
+
     async def run(self):
         flag, live_status = await BiliApi.get_live_status(room_id=self.room_id)
         if not flag:
@@ -289,6 +331,7 @@ class DanmakuProcessor:
             self._last_live_time = time.time()
 
         await asyncio.gather(*[
+            self.thank_follower(),
             self.parse_danmaku(),
             self.send_danmaku(),
             self.send_carousel_msg(),
