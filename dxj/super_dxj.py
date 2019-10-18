@@ -2,8 +2,8 @@ import time
 import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
-from utils.dao import DXJMonitorLiveRooms, SuperDxjUserSettings
-from utils.biliapi import BiliApi, WsApi
+from utils.dao import DXJMonitorLiveRooms, SuperDxjUserSettings, redis_cache
+from utils.biliapi import BiliApi, WsApi, CookieFetcher
 from config.log4 import super_dxj_logger as logging
 
 
@@ -19,9 +19,44 @@ class DanmakuProcessor:
         self._last_live_time = 0
 
         self.gift_list = []
-        self.carousel_msg_counter = 0
+        self.carousel_msg_counter = 100
         self.carousel_msg_index = 0
         self.dmk_q = asyncio.Queue()
+
+        self.cookie = ""
+        self.msg_speed_counter = 0
+        self.msg_speed_counter_start_time = 0
+        self.msg_block_until = 0
+
+        self.cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{self.room_id}"
+
+    async def load_cookie(self):
+        if self.cookie:
+            return True, self.cookie
+
+        cookie = await redis_cache.get(self.cookie_cache_key)
+        if cookie:
+            self.cookie = cookie
+            return True, cookie
+
+        config = await self.load_config()
+        account = config["account"]
+        password = config["password"]
+        flag, cookie = await CookieFetcher.get_cookie(account=account, password=password)
+        if not flag:
+            logging.info(f"Super dxj CookieFetcher.get_cookie Error: {cookie}")
+            return False, f"登录失败：{cookie}"
+
+        await redis_cache.set(self.cookie_cache_key, cookie)
+        self.cookie = cookie
+
+        logging.info(f"Super dxj CookieFetcher.get_cookie 登录成功！")
+        return True, cookie
+
+    async def set_cookie_invalid(self):
+        self.cookie = ""
+        await redis_cache.delete(self.cookie_cache_key)
+        return True
 
     async def get_live_status(self):
         if self._is_live is False:
@@ -47,7 +82,38 @@ class DanmakuProcessor:
     async def send_danmaku(self):
         while True:
             dmk = await self.dmk_q.get()
-            logging.info(f"Send dmk: {dmk}")
+            logging.info(f"Need send dmk: {dmk}")
+
+            now = time.time()
+            if now < self.msg_block_until:
+                continue
+
+            # 计数
+            if now - self.msg_speed_counter_start_time > 60:
+                self.msg_speed_counter_start_time = now
+                self.msg_speed_counter = 0
+            self.msg_speed_counter += 1
+
+            # 检查计数
+            if self.msg_speed_counter > 60:
+                self.msg_block_until = now + 30
+
+            flag, cookie = await self.load_cookie()
+            if not flag:
+                # 登录失败，冷却1分钟
+                self.msg_block_until = now + 60
+                continue
+
+            flag, msg = await BiliApi.send_danmaku(message=dmk, room_id=self.room_id, cookie=cookie)
+            print(flag, msg)
+            if flag:
+                continue
+
+            if "412" in msg:
+                self.msg_block_until = now + 60 * 5
+
+            elif "账号未登录" in msg:
+                await self.set_cookie_invalid()
 
     async def load_config(self):
         if int(time.time()) - self._settings_load_time < 60 and self._cached_settings:
@@ -276,7 +342,7 @@ class WsManager(object):
 
     async def run(self):
         # expected = await DXJMonitorLiveRooms.get()
-        expected = [4424139]
+        expected = [11768032]
         if not expected:
             logging.error(f"Cannot load monitor live rooms from redis!")
             return
