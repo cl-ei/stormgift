@@ -2,7 +2,7 @@ import time
 import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
-from utils.dao import DXJMonitorLiveRooms, SuperDxjUserSettings, redis_cache
+from utils.dao import SuperDxjUserAccounts, SuperDxjUserSettings, redis_cache
 from utils.biliapi import BiliApi, WsApi, CookieFetcher
 from config.log4 import super_dxj_logger as logging
 
@@ -339,7 +339,7 @@ class WsManager(object):
             del self._clients[room_id]
 
     async def run(self):
-        expected = await SuperDxjUserSettings.get_all_live_rooms()
+        expected = await SuperDxjUserAccounts.get_all_live_rooms()
         expected = [room_id for room_id in expected if room_id != 123]
         if not expected:
             logging.error(f"Cannot load monitor live rooms from redis!")

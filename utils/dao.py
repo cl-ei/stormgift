@@ -669,21 +669,6 @@ class SuperDxjUserSettings:
 
         return r
 
-    @classmethod
-    async def get_all_live_rooms(cls):
-        p = f"{cls.key}_*"
-        r = await redis_cache.keys(p)
-
-        result = []
-        for k in r:
-            try:
-                room_id = k[len(cls.key) + 1:]
-                result.append(int(room_id))
-            except (ValueError, TypeError):
-                continue
-
-        return result
-
 
 class SuperDxjUserAccounts:
     key = "LT_SUPER_DXJ_ACCOUNT"
@@ -702,6 +687,21 @@ class SuperDxjUserAccounts:
     async def delete(cls, user_id):
         key = f"{cls.key}_{user_id}"
         return await redis_cache.delete(key=key)
+
+    @classmethod
+    async def get_all_live_rooms(cls):
+        p = f"{cls.key}_*"
+        r = await redis_cache.keys(p)
+
+        result = []
+        for k in r:
+            try:
+                room_id = k[len(cls.key) + 1:]
+                result.append(int(room_id))
+            except (ValueError, TypeError):
+                continue
+
+        return result
 
 
 async def test():
