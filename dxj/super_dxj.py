@@ -104,7 +104,6 @@ class DanmakuProcessor:
                 continue
 
             flag, msg = await BiliApi.send_danmaku(message=dmk, room_id=self.room_id, cookie=cookie)
-            print(flag, msg)
             if flag:
                 continue
 
