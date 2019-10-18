@@ -377,7 +377,8 @@ class BiliApi:
             "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list?",
             "https://api.bilibili.com/x/space/acc/info",
             # "https://api.live.bilibili.com/guard/topList?page=1",
-            # "https://api.live.bilibili.com/AppRoom/index?platform=android",
+            "https://api.live.bilibili.com/room/v1/Room/room_init",
+
         ):
             req_json = {
                 "method": method,
@@ -1095,14 +1096,21 @@ class BiliApi:
 
     @classmethod
     async def get_live_status(cls, room_id, timeout=10):
-        req_url = F"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
-        r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
-        if not r:
-            if "房间已经被锁定" in data:
-                return True, False
+        req_url = f"https://api.live.bilibili.com/room/v1/Room/room_init"
+        data = {"id": int(room_id)}
+        flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
+        if not flag:
             return False, data
-        result = data.get("data", {}).get("status") == "LIVE"
-        return True, result
+
+        try:
+            is_locked = bool(data["data"]["is_locked"])
+            if is_locked:
+                return True, False
+            live = bool(data["data"]["live_status"])
+            return True, bool(live)
+
+        except json.JSONDecodeError:
+            return False, f"Response body syn error: {data}"
 
     @classmethod
     async def force_get_real_room_id(cls, room_id, timeout=10):
@@ -1112,8 +1120,9 @@ class BiliApi:
             logging.info(f"BILI_API Get real room id: {room_id} -> {real_room_id} by redis.")
             return real_room_id
 
-        req_url = f"https://api.live.bilibili.com/AppRoom/index?room_id={room_id}&platform=android"
-        r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        req_url = f"https://api.live.bilibili.com/room/v1/Room/room_init"
+        data = {"id": int(room_id)}
+        r, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
         if not r:
             logging.error(f"BILI_API Cannot get real room id of {room_id}: {data}.")
             return room_id
@@ -1471,27 +1480,8 @@ class BiliApi:
 
 
 async def test():
-    uid = 20932326
-    dynamic_id = 123456
-    flag, dynamics = await BiliApi.get_user_dynamics(uid=uid)
-    print(dynamics[0])
-    return
-    for dynamic in dynamics:
-        content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
-        content = "".join(content)
-
-        if "我要我要我要" in content:
-            index = 0
-            for p in pictures:
-                r = requests.get(p)
-                if r.status_code == 200:
-                    ex_name = p.split(".")[-1]
-                    with open(f"data/{index}.{ex_name}", "wb") as f:
-                        f.write(r.content)
-                index += 1
-                print(p)
-        # print(content, pictures)
-
+    r = await BiliApi.get_live_status(room_id=647)
+    print(f"f -> {r}")
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

@@ -14,10 +14,39 @@ class DanmakuProcessor:
         self._settings_load_time = 0
         self._cached_settings = None
         self._last_settings_version = None
-        self.last_dmk_active_time = 0
 
-    async def send_danmaku(self, message):
-        logging.info(f"Send dmk: {message}")
+        self._is_live = False
+        self._last_live_time = 0
+
+        self.gift_list = []
+        self.carousel_msg_counter = 0
+        self.dmk_q = asyncio.Queue()
+
+    async def get_live_status(self):
+        if self._is_live is False:
+            return False
+
+        now = time.time()
+        if now - self._last_live_time < 1800:
+            return True
+
+        flag, live_status = await BiliApi.get_live_status(room_id=self.room_id)
+        if not flag:
+            logging.error(f"Cannot get live room status: {live_status}")
+            live_status = False
+
+        if live_status:
+            self._is_live = True
+            self._last_live_time = now
+            return True
+        else:
+            self._is_live = False
+            return False
+
+    async def send_danmaku(self):
+        while True:
+            dmk = await self.dmk_q.get()
+            logging.info(f"Send dmk: {dmk}")
 
     async def load_config(self):
         if int(time.time()) - self._settings_load_time < 60 and self._cached_settings:
@@ -27,14 +56,6 @@ class DanmakuProcessor:
         self._settings_load_time = time.time()
         self._last_settings_version = self._cached_settings["last_update_time"]
         return self._cached_settings
-
-    @property
-    def is_live(self):
-        settings = await self.load_config()
-        if time.time() - self.last_dmk_active_time < settings["carousel_msg_interval"]:
-            return True
-        else:
-            return False
 
     async def proc_one_danmaku(self, dmk):
         settings = await self.load_config()
@@ -53,12 +74,11 @@ class DanmakuProcessor:
 
             if msg in settings["carousel_msg"]:
                 return
+            self.carousel_msg_counter = 0
 
-            self.last_dmk_active_time = int(time.time())
-
-            for key_word, text in settings["auto_response"]:
+            for key_word, resp in settings["auto_response"]:
                 if key_word in msg:
-                    return await self.send_danmaku(text)
+                    self.dmk_q.put_nowait(resp)
 
         elif cmd == "GUARD_BUY":
             data = dmk.get("data")
@@ -71,18 +91,84 @@ class DanmakuProcessor:
 
             logging.info(f"GUARD_GIFT: [{uid}] [{uname}] -> {gift_name}*{num} (price: {price})")
             thank_gold = settings["thank_gold"]
-            if thank_gold == 1 or (thank_gold == 2 and not self.is_live) or (thank_gold == 3 and self.is_live):
+            is_live = await self.get_live_status()
+            if (
+                thank_gold == 1
+                or (thank_gold == 2 and not is_live)
+                or (thank_gold == 3 and is_live)
+            ):
                 thank_gold_text = settings["thank_gold_text"].replace(
-                    "{num}", str(num)
-                ).replace(
-                    "{gift}", gift_name
-                ).replace(
-                    "{user}", uname
-                )
-                await self.send_danmaku(thank_gold_text)
+                    "{num}", str(num)).replace("{gift}", gift_name).replace("{user}", uname)
+                self.dmk_q.put_nowait(thank_gold_text)
+
+        elif cmd == "SEND_GIFT":
+            data = dmk.get("data")
+            uid = data.get("uid", "--")
+            face = data.get("face", "")
+            uname = data.get("uname", "")
+            gift_name = data.get("giftName", "")
+            coin_type = data.get("coin_type", "")
+            total_coin = data.get("total_coin", 0)
+            num = data.get("num", "")
+            is_live = await self.get_live_status()
+
+            if coin_type == "gold":
+                thank_gold = settings["thank_gold"]
+                if (
+                    thank_gold == 1
+                    or (thank_gold == 2 and not is_live)
+                    or (thank_gold == 3 and is_live)
+                ):
+                    self.gift_list.append((coin_type, uname, gift_name, num))
+
+            elif coin_type == "silver":
+                thank_silver = settings["thank_silver"]
+                if (
+                    thank_silver == 1
+                    or (thank_silver == 2 and not is_live)
+                    or (thank_silver == 3 and is_live)
+                ):
+                    self.gift_list.append((coin_type, uname, gift_name, num))
+
+        elif cmd == "LIVE":
+            self._is_live = True
+            self._last_live_time = time.time()
+
+        elif cmd == "PREPARING":
+            self._is_live = False
 
         else:
-            print(f"room_id: {self.room_id}: {dmk}")
+            # print(f"room_id: {self.room_id}: {dmk}")
+            pass
+
+    async def thank_gift(self):
+        while True:
+            await asyncio.sleep(15)
+
+            if not self.gift_list:
+                continue
+
+            gift_list = self.gift_list
+            self.gift_list = []
+            config = await self.load_config()
+            gift_dict = {}
+            for g in gift_list:
+                coin_type, uname, gift_name, num = g
+                gift_dict.setdefault(coin_type, {}).setdefault(uname, {}).setdefault(gift_name, 0)
+                gift_dict[coin_type][uname][gift_name] += num
+
+            for coin_type, gifts in gift_dict.items():
+                if coin_type == "gold":
+                    tpl = config["thank_gold_text"]
+                else:
+                    tpl = config["thank_silver_text"]
+
+                for user_name, gift_map in gifts.items():
+                    for gift_name, num in gift_map.items():
+
+                        message = tpl.replace("{user}", user_name).replace(
+                            "{gift}", gift_name).replace("{num}", str(num))
+                        self.dmk_q.put_nowait(message)
 
     async def parse_danmaku(self):
         while True:
@@ -97,9 +183,20 @@ class DanmakuProcessor:
             await asyncio.sleep(10)
 
     async def run(self):
+        flag, live_status = await BiliApi.get_live_status(room_id=self.room_id)
+        if not flag:
+            logging.error(f"Cannot get live status when init... e: {live_status}")
+        else:
+            logging.info(f"Live room status: {self.room_id} -> {live_status}")
+
+            self._is_live = bool(live_status)
+            self._last_live_time = time.time()
+
         await asyncio.gather(*[
             self.parse_danmaku(),
+            self.send_danmaku(),
             self.send_carousel_msg(),
+            self.thank_gift(),
         ])
 
 
@@ -151,7 +248,8 @@ class WsManager(object):
             del self._clients[room_id]
 
     async def run(self):
-        expected = await DXJMonitorLiveRooms.get()
+        # expected = await DXJMonitorLiveRooms.get()
+        expected = [3742025]
         if not expected:
             logging.error(f"Cannot load monitor live rooms from redis!")
             return
