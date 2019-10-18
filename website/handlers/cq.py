@@ -734,15 +734,15 @@ class BotHandler:
                 )
                 bot.send_private_msg(user_id=80873436, message=message)
 
-            elif msg.startswith("ds"):
-                live_room_id = int(msg[1:])
+            elif msg.startswith("as"):
+                live_room_id = int(msg[2:])
                 real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
                 await SuperDxjUserAccounts.set(user_id=real_room_id, password="123456")
                 message = f"添加完成: {live_room_id} -> {real_room_id}."
                 bot.send_private_msg(user_id=80873436, message=message)
 
-            elif msg.startswith("dls"):
-                live_room_id = int(msg[3:])
+            elif msg.startswith("ds"):
+                live_room_id = int(msg[2:])
                 real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
                 await SuperDxjUserAccounts.delete(user_id=real_room_id)
                 message = f"删除完成: {live_room_id} -> {real_room_id}."
