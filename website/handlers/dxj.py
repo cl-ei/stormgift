@@ -3,6 +3,7 @@ import json
 from random import randint
 from aiohttp import web
 from config import CDN_URL
+from utils.biliapi import BiliApi
 from utils.dao import redis_cache, SuperDxjUserSettings, SuperDxjUserAccounts
 from website.handlers.lt import render_to_response
 
@@ -38,6 +39,7 @@ async def login(request):
         room_id = post_data["room_id"]
         password = post_data["password"]
 
+        room_id = await BiliApi.force_get_real_room_id(room_id=room_id)
         if password != await SuperDxjUserAccounts.get(user_id=room_id):
             return web.json_response({"code": 40300, "err_msg": "账号或密码错误！"})
 
