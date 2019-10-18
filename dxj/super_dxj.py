@@ -13,7 +13,6 @@ class DanmakuProcessor:
         self.room_id = room_id
         self._settings_load_time = 0
         self._cached_settings = None
-        self._last_settings_version = None
 
         self._is_live = False
         self._last_live_time = 0
@@ -121,7 +120,6 @@ class DanmakuProcessor:
 
         self._cached_settings = await SuperDxjUserSettings.get(room_id=self.room_id)
         self._settings_load_time = time.time()
-        self._last_settings_version = self._cached_settings["last_update_time"]
         return self._cached_settings
 
     async def proc_one_danmaku(self, dmk):
