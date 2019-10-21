@@ -595,8 +595,8 @@ class BotHandler:
         elif msg.startswith("#动态"):
             return await p.proc_dynamic(user_id, msg=msg)
 
-        elif msg.startswith("#雨声雷鸣动态-"):
-            dynamic_id = int(msg.split("-")[-1])
+        elif msg.startswith("#方舟"):
+            dynamic_id = int(msg[3:])
             msg = f"#动态{dynamic_id}"
             return await p.proc_dynamic(user_id, msg=msg, group_id=895699676)
 
