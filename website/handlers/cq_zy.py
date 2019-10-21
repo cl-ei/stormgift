@@ -393,94 +393,86 @@ class BotUtils:
         self.bot.send_group_msg(group_id=group_id, message=message)
 
     async def proc_dynamic(self, user_id, msg, group_id=None):
-        lock_key = "LT_PROC_DYNAMIC"
-        locked = await redis_cache.set_if_not_exists(key=lock_key, value=1, timeout=30)
-        if locked is None:
-            return
-
         def response(m):
             if group_id is not None:
                 self.bot.send_group_msg(group_id=group_id, message=m)
             else:
                 self.bot.send_private_msg(user_id=user_id, message=m)
+
         try:
-            try:
-                user_name_or_dynamic_id = msg[3:].strip()
-                if not user_name_or_dynamic_id.isdigit():
-                    bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
-                    if bili_uid is None:
-                        response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
-                        return
+            user_name_or_dynamic_id = msg[3:].strip()
+            if not user_name_or_dynamic_id.isdigit():
+                bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
+                if bili_uid is None:
+                    response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
+                    return
 
-                    flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
-                    if not flag or not dynamics:
-                        raise ValueError("Fetch dynamics Failed!")
-                    dynamic_id = dynamics[0]["desc"]["dynamic_id"]
+                flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
+                if not flag or not dynamics:
+                    raise ValueError("Fetch dynamics Failed!")
+                dynamic_id = dynamics[0]["desc"]["dynamic_id"]
 
-                elif len(user_name_or_dynamic_id) < 14:
-                    flag, dynamics = await BiliApi.get_user_dynamics(uid=int(user_name_or_dynamic_id))
-                    if not flag:
-                        raise ValueError("Fetch dynamics Failed!")
+            elif len(user_name_or_dynamic_id) < 14:
+                flag, dynamics = await BiliApi.get_user_dynamics(uid=int(user_name_or_dynamic_id))
+                if not flag:
+                    raise ValueError("Fetch dynamics Failed!")
 
-                    if not dynamics:
-                        response(f"该用户未发布B站动态。")
-                        return
+                if not dynamics:
+                    response(f"该用户未发布B站动态。")
+                    return
 
-                    dynamic_id = dynamics[0]["desc"]["dynamic_id"]
+                dynamic_id = dynamics[0]["desc"]["dynamic_id"]
 
-                else:
-                    dynamic_id = int(user_name_or_dynamic_id)
-
-            except (TypeError, ValueError, IndexError):
-                response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
-                return
-
-            flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=dynamic_id)
-            if not flag:
-                response(f"未能获取到动态：{dynamic_id}.")
-                return
-
-            master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
-            master_uid = dynamic["desc"]["user_profile"]["info"]["uid"]
-            timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dynamic["desc"]["timestamp"]))
-            prefix = f"{master_name}(uid: {master_uid})最新动态({timestamp})：\n\n"
-
-            content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
-            if not pictures:
-                message = prefix + "\n".join(content)
-                response(message)
-                return
-
-            work_path = f"/tmp/bili_dynamic_{int(time.time())}"
-            if not os.path.exists(work_path):
-                os.mkdir(work_path)
-
-            index = 0
-            last_pic_name = None
-            for pic in pictures:
-                ex_name = pic.split(".")[-1]
-                last_pic_name = f"{index}.{ex_name}"
-                cmd = f"wget -O {work_path}/{last_pic_name} \"{pic}\""
-                os.system(cmd)
-                index += 1
-
-            if index > 1:
-                p = DynamicPicturesProcessor(path=work_path)
-                flag, file_name = p.join()
             else:
-                flag = True
-                file_name = f"b_{int(time.time()*1000):0x}." + last_pic_name.split(".")[-1]
-                os.system(f"mv {work_path}/{last_pic_name} /home/ubuntu/coolq_zy/data/image/{file_name}")
+                dynamic_id = int(user_name_or_dynamic_id)
 
-            if flag:
-                message = prefix + "\n".join(content)
-                message = f"{message}\n [CQ:image,file={file_name}]"
-            else:
-                message = prefix + "\n".join(content) + "\n" + "\n".join(pictures)
+        except (TypeError, ValueError, IndexError):
+            response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
+            return
+
+        flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=dynamic_id)
+        if not flag:
+            response(f"未能获取到动态：{dynamic_id}.")
+            return
+
+        master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
+        master_uid = dynamic["desc"]["user_profile"]["info"]["uid"]
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dynamic["desc"]["timestamp"]))
+        prefix = f"{master_name}(uid: {master_uid})最新动态({timestamp})：\n\n"
+
+        content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
+        if not pictures:
+            message = prefix + "\n".join(content)
             response(message)
+            return
 
-        finally:
-            await redis_cache.delete(lock_key)
+        work_path = f"/tmp/bili_dynamic_{int(time.time())}"
+        if not os.path.exists(work_path):
+            os.mkdir(work_path)
+
+        index = 0
+        last_pic_name = None
+        for pic in pictures:
+            ex_name = pic.split(".")[-1]
+            last_pic_name = f"{index}.{ex_name}"
+            cmd = f"wget -O {work_path}/{last_pic_name} \"{pic}\""
+            os.system(cmd)
+            index += 1
+
+        if index > 1:
+            p = DynamicPicturesProcessor(path=work_path)
+            flag, file_name = p.join()
+        else:
+            flag = True
+            file_name = f"b_{int(time.time()*1000):0x}." + last_pic_name.split(".")[-1]
+            os.system(f"mv {work_path}/{last_pic_name} /home/ubuntu/coolq_zy/data/image/{file_name}")
+
+        if flag:
+            message = prefix + "\n".join(content)
+            message = f"{message}\n [CQ:image,file={file_name}]"
+        else:
+            message = prefix + "\n".join(content) + "\n" + "\n".join(pictures)
+        response(message)
 
     async def proc_query_guard(self, user_id, msg, group_id=None):
         def response(m):
@@ -602,6 +594,11 @@ class BotHandler:
 
         elif msg.startswith("#动态"):
             return await p.proc_dynamic(user_id, msg=msg)
+
+        elif msg.startswith("#雨声雷鸣动态-"):
+            dynamic_id = int(msg.split("-")[-1])
+            msg = f"#动态{dynamic_id}"
+            return await p.proc_dynamic(user_id, msg=msg, group_id=895699676)
 
         elif msg.startswith("#大航海"):
             return await p.proc_query_guard(user_id, msg=msg)
