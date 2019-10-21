@@ -404,7 +404,6 @@ class BotUtils:
             else:
                 self.bot.send_private_msg(user_id=user_id, message=m)
         try:
-            adapt_fz = False
             try:
                 user_name_or_dynamic_id = msg[3:].strip()
                 if not user_name_or_dynamic_id.isdigit():
@@ -412,9 +411,6 @@ class BotUtils:
                     if bili_uid is None:
                         response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
                         return
-
-                    if bili_uid == 337052615:
-                        adapt_fz = True
 
                     flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
                     if not flag or not dynamics:
@@ -469,7 +465,7 @@ class BotUtils:
                 index += 1
 
             if index > 1:
-                p = DynamicPicturesProcessor(path=work_path, adapt_fz=adapt_fz)
+                p = DynamicPicturesProcessor(path=work_path)
                 flag, file_name = p.join()
             else:
                 flag = True

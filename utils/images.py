@@ -5,9 +5,8 @@ from PIL import Image
 
 class DynamicPicturesProcessor:
 
-    def __init__(self, path, target_path=None, target_size=None, adapt_fz=False):
+    def __init__(self, path, target_path=None, target_size=None):
         self.path = path
-        self.adapt_fz = adapt_fz
 
         if target_path is None:
             target_path = "/home/ubuntu/coolq_zy/data/image"
@@ -87,16 +86,33 @@ class DynamicPicturesProcessor:
         self.target = self.join_pic_vertical(img, img2)
 
     def draw_type_gt_4(self, files):
-        sources = []
-        temp_sources = []
-        for i, f in enumerate(files):
+        images = []
+        sizes = {}
+        for f in files:
             img = Image.open(os.path.join(self.path, f), mode="r")
             img = img.convert('RGB')
 
-            if i == 4 and self.adapt_fz and len(files) == 9:
+            if img.size not in sizes:
+                sizes[img.size] = 1
+            else:
+                sizes[img.size] += 1
+            images.append(img)
+
+        if len(files) == 9 and len(sizes.keys()) == 2:
+            temp = [(size, count) for size, count in sizes.items()]
+            temp.sort(key=lambda x: x[1], reverse=True)
+            target_re_size = temp[0][0]
+        else:
+            target_re_size = None
+
+        sources = []
+        temp_sources = []
+        for img in images:
+            if target_re_size:
                 w, h = img.size
-                target_height = int(h / 3)
-                img = img.crop(box=(0, target_height, w, target_height * 2))
+                if w >= target_re_size[0]:
+                    offset_height = int((target_re_size[1] - h) / 2)
+                    img = img.crop(box=(0, offset_height, w, offset_height + target_re_size[1]))
 
             temp_sources.append(img)
             if len(temp_sources) == 3:
