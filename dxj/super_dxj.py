@@ -7,13 +7,13 @@ from utils.biliapi import BiliApi, WsApi, CookieFetcher
 from config.log4 import super_dxj_logger as logging
 
 
-LI = {}
-
-
 class DanmakuProcessor:
-    def __init__(self, q, room_id):
+    def __init__(self, q, room_id, short_room_id=None, name="??"):
         self.q = q
         self.room_id = room_id
+        self.short_room_id = short_room_id or room_id
+        self.name = name
+
         self._settings_load_time = 0
         self._cached_settings = None
 
@@ -90,7 +90,7 @@ class DanmakuProcessor:
     async def send_danmaku(self):
         while True:
             dmk = await self.dmk_q.get()
-            logging.info(f"Need send dmk: {LI['short_room_id']}-{LI['name']}\n\t{dmk}")
+            logging.info(f"Need send dmk: {self.short_room_id}-{self.name}\n\t{dmk}")
 
             now = time.time()
             if now < self.msg_block_until:
@@ -123,7 +123,7 @@ class DanmakuProcessor:
                 await self.set_cookie_invalid()
 
             else:
-                logging.error(f"{LI['short_room_id']}-{LI['name']} 弹幕发送失败！{msg}.\n\t{dmk}")
+                logging.error(f"{self.short_room_id}-{self.name} 弹幕发送失败！{msg}.\n\t{dmk}")
 
     async def load_config(self):
         if int(time.time()) - self._settings_load_time < 60 and self._cached_settings:
@@ -147,7 +147,7 @@ class DanmakuProcessor:
             dl = d[0] if d else "-"
             deco = d[1] if d else "undefined"
             logging.info(
-                f"{LI['short_room_id']}-{LI['name']}"
+                f"{self.short_room_id}-{self.name}"
                 f"\n\t{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
             )
 
@@ -169,7 +169,7 @@ class DanmakuProcessor:
             created_time = data.get("start_time", 0)
 
             logging.info(
-                f"{LI['short_room_id']}-{LI['name']} GUARD_GIFT: "
+                f"{self.short_room_id}-{self.name} GUARD_GIFT: "
                 f"[{uid}] [{uname}] -> {gift_name}*{num} (price: {price})"
             )
 
@@ -196,7 +196,7 @@ class DanmakuProcessor:
             is_live = await self.get_live_status()
 
             logging.info(
-                f"{LI['short_room_id']}-{LI['name']} SEND_GIFT: "
+                f"{self.short_room_id}-{self.name} SEND_GIFT: "
                 f"[{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})"
             )
 
@@ -411,6 +411,9 @@ class WsManager(object):
             logging.error(f"Cannot load monitor live rooms from redis!")
             return
 
+        self.monitor_live_rooms = expected
+        dps = []
+
         for room_id in expected:
             flag, data = await BiliApi.get_live_room_info_by_room_id(room_id=room_id)
             if flag:
@@ -419,29 +422,19 @@ class WsManager(object):
                 short_room_id = data["short_id"]
                 room_id = data["room_id"]
             else:
-                uid = -1
                 user_name = "??"
                 short_room_id = room_id
 
-            LI[room_id] = {
-                "uid": uid,
-                "name": user_name,
-                "short_room_id": short_room_id
-            }
+            q = asyncio.Queue()
+            await self.new_room(room_id, q)
 
-        self.monitor_live_rooms = expected
+            dp = DanmakuProcessor(q=q, room_id=room_id, short_room_id=short_room_id, name=user_name)
+            dps.append(asyncio.create_task(dp.run()))
+
 
         logging.info(
             f"Ws monitor settings read finished, Need add: {expected}."
         )
-        dps = []
-        for room_id in expected:
-            q = asyncio.Queue()
-            await self.new_room(room_id, q)
-
-            dp = DanmakuProcessor(q=q, room_id=room_id)
-            dps.append(asyncio.create_task(dp.run()))
-
         for dp_task in dps:
             await dp_task
 
