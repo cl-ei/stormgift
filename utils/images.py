@@ -5,8 +5,9 @@ from PIL import Image
 
 class DynamicPicturesProcessor:
 
-    def __init__(self, path, target_path=None, target_size=None):
+    def __init__(self, path, target_path=None, target_size=None, adapt_fz=False):
         self.path = path
+        self.adapt_fz = adapt_fz
 
         if target_path is None:
             target_path = "/home/ubuntu/coolq_zy/data/image"
@@ -88,9 +89,15 @@ class DynamicPicturesProcessor:
     def draw_type_gt_4(self, files):
         sources = []
         temp_sources = []
-        for f in files:
+        for i, f in enumerate(files):
             img = Image.open(os.path.join(self.path, f), mode="r")
             img = img.convert('RGB')
+
+            if i == 4 and self.adapt_fz and len(files) == 9:
+                w, h = img.size
+                target_height = int(h / 3)
+                img = img.crop(box=(0, target_height, w, target_height * 2))
+
             temp_sources.append(img)
             if len(temp_sources) == 3:
                 sources.append(temp_sources)
