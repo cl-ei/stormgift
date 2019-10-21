@@ -451,7 +451,7 @@ class BiliApi:
             return True, result
 
         if result.get("code") not in (0, "0"):
-            return False, f"Error code not 0! r: {result.get('message')}"
+            return False, f"Error code not 0! r: {result.get('message') or result.get('msg')}"
         else:
             return True, result
 
@@ -821,20 +821,55 @@ class BiliApi:
 
     @classmethod
     async def get_uid_by_live_room_id(cls, room_id, timeout=10):
-        req_url = f"https://live.bilibili.com/{room_id}"
-        headers = {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-        }
-        flag, data = await cls.get(req_url, headers=headers, timeout=timeout)
+        req_url = f"https://api.live.bilibili.com/room/v1/Room/get_info"
+        data = {"room_id": int(room_id)}
+        flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
         if not flag:
             return -1
-
         try:
-            uid = int(re.search(r"\"uid\"\:(\d+)", data).groups()[0])
-        except Exception:
-            uid = -1
-        return uid
+            return int(data["data"]["uid"])
+        except (TypeError, ValueError, IndexError, KeyError):
+            return -1
+
+    @classmethod
+    async def get_live_room_info_by_room_id(cls, room_id, timeout=10):
+        """
+
+        :param room_id:
+        :param timeout:
+        :return:
+
+            "uid": 50329118,
+            "room_id": 7734200,
+            "short_id": 6,
+            "attention": 2775470,
+            "online": 18963803,
+            "is_portrait": false,
+            "description": "<p><br /></p>",
+            "live_status": 2,
+            "area_id": 86,
+            "parent_area_id": 2,
+            "parent_area_name": "网游",
+            "old_area_id": 4,
+            "background": "https://i0.hdslb.com/bfs/live/516c0dbd830e898c1c3caacf2ec64c7db6395c84.jpg",
+            "title": "2019英雄联盟全球总决赛",
+            "user_cover": "https://i0.hdslb.com/bfs/vc/1bec3fb04a9d07735bf0e16f5a39044eada1a002.jpg",
+            "keyframe": "https://i0.hdslb.com/bfs/live/7734200.jpg?10210145",
+            "is_strict_room": false,
+            "live_time": "0000-00-00 00:00:00",
+            "tags": "LPL,英雄联盟,S9,LOL",
+            "is_anchor": 0,
+            "room_silent_type": "",
+            "room_silent_level": 0,
+            "room_silent_second": 0,
+            "area_name": "英雄联盟",
+            "pendants": "",
+            "area_pendants": "",
+        """
+        req_url = f"https://api.live.bilibili.com/room/v1/Room/get_info"
+        data = {"room_id": int(room_id)}
+        flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
+        return flag, data
 
     @classmethod
     async def get_fans_list(cls, uid, timeout=10):
@@ -1480,7 +1515,7 @@ class BiliApi:
 
 
 async def test():
-    r = await BiliApi.get_live_status(room_id=647)
+    r = await BiliApi.get_uid_by_live_room_id(room_id=1108)
     print(f"f -> {r}")
 
 if __name__ == "__main__":
