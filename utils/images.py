@@ -91,7 +91,7 @@ class DynamicPicturesProcessor:
         temp_sources = []
         for i, f in enumerate(files):
             img = Image.open(os.path.join(self.path, f), mode="r")
-            img = img.convert('RGB')
+            img = img.convert('RGBA')
 
             if i == 4 and self.adapt_fz and len(files) == 9:
                 w, h = img.size
