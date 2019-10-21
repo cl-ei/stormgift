@@ -109,6 +109,8 @@ class DynamicPicturesProcessor:
         temp_sources = []
         for img in images:
             if target_re_size:
+                print(f"target_re_size:{target_re_size} {type(target_re_size)}")
+
                 w, h = img.size
                 if w >= target_re_size[0]:
                     offset_height = int((target_re_size[1] - h) / 2)
