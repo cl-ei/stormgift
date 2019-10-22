@@ -99,95 +99,86 @@ class SyncTool(object):
                 logging.info(f"User obj updated! {lastest_user_name} -> {uid}, obj id: {non_uid_user_obj.id}")
 
     @classmethod
-    async def search_short_number(cls):
+    async def update_live_room_info(cls):
         logging.info("Get room id list from db...")
         query = await AsyncMySQL.execute(
+            "select real_room_id from biliuser where room_info_update_time >= %s",
+            (datetime.datetime.now() - datetime.timedelta(days=15))
+        )
+        new_updated_room = [row[0] for row in query]
+        logging.info(f"new_updated_room: {len(new_updated_room)}")
+        if not new_updated_room:
+            new_updated_room = [0]
+        rooms_with_raffle = await AsyncMySQL.execute(
             (
                 "select distinct room_id, count(id) "
                 "from raffle "
-                "where room_id not in (select real_room_id from biliuser where room_info_update_time >= %s) "
+                "where room_id not in %s "
                 "group by room_id order by 2 desc;"
-            ), (datetime.datetime.now() - datetime.timedelta(days=2))
+            ), (new_updated_room,)
         )
-        room_id_list = [row[0] for row in query]
-
-        query = await AsyncMySQL.execute(
+        rooms_with_guard = await AsyncMySQL.execute(
             (
                 "select distinct room_id, count(id) "
                 "from guard "
-                "where room_id not in (select real_room_id from biliuser where room_info_update_time >= %s) "
+                "where room_id not in %s "
                 "group by room_id order by 2 desc;"
-            ), (datetime.datetime.now() - datetime.timedelta(days=2))
+            ), (new_updated_room,)
         )
-        room_id_list2 = [row[0] for row in query]
-
-        finnal_list = []
-        while True:
-            if not room_id_list:
-                break
-            else:
-                finnal_list.append(room_id_list.pop())
-
-            if not room_id_list2:
-                break
-            else:
-                finnal_list.append(room_id_list2.pop())
-        finnal_list.extend(room_id_list + room_id_list2)
         search_list = []
-        for room_id in finnal_list:
-            if room_id not in search_list:
-                search_list.append(room_id)
-
+        for row in rooms_with_raffle:
+            search_list.append(row[0])
+        for row in rooms_with_guard:
+            search_list.append(row[0])
+        search_list = list(set(search_list))
         logging.info(f"Start searching, total count: {len(search_list)}")
+
         for room_id in search_list:
-            req_url = "https://api.live.bilibili.com/AppRoom/index?platform=android"
-            flag, response = await BiliApi.get(req_url, timeout=10, data={"room_id": room_id}, check_error_code=True)
-            if flag and response["code"] in (0, "0"):
+            flag, data = await BiliApi.get_live_room_info_by_room_id(room_id=room_id)
+            if not flag:
+                logging.error(f"Cannot get_live_room info! e: {data}")
+                continue
 
-                data = response["data"]
-                uid = data["mid"]
-                name = data["uname"]
-                face = data["face"]
-                user_info_update_time = datetime.datetime.now()
-                short_room_id = data["show_room_id"]
-                real_room_id = data["room_id"]
-                title = data["title"]
-                create_at = data["create_at"]
-                attention = data["attention"]
+            uid = data["uid"]
+            short_room_id = data["short_id"] or None
+            real_room_id = data["room_id"]
+            title = data["title"]
+            create_at = datetime.datetime.now() - datetime.timedelta(days=365 * 5)
+            attention = data["attention"]
+            room_info_update_time = datetime.datetime.now()
 
-                req_url = f"https://api.live.bilibili.com/guard/topList?page=1"
-                flag, guard_response = await BiliApi.get(
-                    req_url,
-                    data={"roomid": real_room_id, "ruid": uid},
-                    timeout=10,
-                    check_error_code=True
-                )
-                if not flag:
-                    logging.error(f"Error! e: {guard_response}")
-                    continue
-                guard_count = guard_response["data"]["info"]["num"]
-                room_info_update_time = datetime.datetime.now()
+            flag, user_info = await BiliApi.get_user_info(uid)
+            if not flag:
+                logging.error(f"Cannot get user_info!")
+                continue
 
-                obj = await BiliUser.full_create_or_update(
-                    uid=uid,
-                    name=name,
-                    face=face,
-                    user_info_update_time=user_info_update_time,
-                    short_room_id=short_room_id,
-                    real_room_id=real_room_id,
-                    title=title,
-                    create_at=create_at,
-                    attention=attention,
-                    guard_count=guard_count,
-                    room_info_update_time=room_info_update_time,
-                )
+            name = user_info["name"]
+            face = user_info["face"]
+            user_info_update_time = datetime.datetime.now()
 
-                logging.info(
-                    f"Update success ! room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
-                    f" attention: {attention}, guard: {guard_count}, obj: {obj.id}"
-                )
+            flag, guard_count = await BiliApi.get_master_guard_count(room_id=real_room_id, uid=uid)
+            if not flag:
+                logging.error(f"")
+                guard_count = 0
 
-            await asyncio.sleep(5)
+            obj = await BiliUser.full_create_or_update(
+                uid=uid,
+                name=name,
+                face=face,
+                user_info_update_time=user_info_update_time,
+                short_room_id=short_room_id,
+                real_room_id=real_room_id,
+                title=title,
+                create_at=create_at,
+                attention=attention,
+                guard_count=guard_count,
+                room_info_update_time=room_info_update_time,
+            )
+
+            logging.info(
+                f"Update success ! room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
+                f" attention: {attention}, guard: {guard_count}, obj: {obj.id}"
+            )
 
     @classmethod
     async def run(cls):

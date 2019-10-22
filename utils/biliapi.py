@@ -376,9 +376,10 @@ class BiliApi:
             "https://api.live.bilibili.com/gift/v2/gift/bag_list",
             "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list?",
             "https://api.bilibili.com/x/space/acc/info",
-            # "https://api.live.bilibili.com/guard/topList?page=1",
             "https://api.live.bilibili.com/room/v1/Room/room_init",
             "https://api.live.bilibili.com/room/v1/Area/getListByAreaID",
+            "https://api.live.bilibili.com/room/v1/Room/get_info",
+            "https://api.live.bilibili.com/guard/topList",
 
         ):
             req_json = {
@@ -576,6 +577,16 @@ class BiliApi:
             return False, f"Empty list in response."
         else:
             return True, result
+
+    @classmethod
+    async def get_master_guard_count(cls, room_id, uid, timeout=5):
+        req_url = f"https://api.live.bilibili.com/guard/topList"
+        data = {"roomid": room_id, "ruid": uid, "page": 1}
+        flag, data = await cls.get(req_url, data=data, timeout=10, check_error_code=True)
+        if not flag:
+            return False, data.get("message") or data.get("msg")
+        guard_count = data["data"]["info"]["num"]
+        return True, guard_count
 
     @classmethod
     async def get_user_id_by_search_way(cls, name, timeout=5):
@@ -818,6 +829,15 @@ class BiliApi:
             return ""
         else:
             return data.get("data", {}).get("name", "") or ""
+
+    @classmethod
+    async def get_user_info(cls, uid, timeout=10):
+        req_url = f"https://api.bilibili.com/x/space/acc/info"
+        data = {"mid": uid, "jsonp": "jsonp"}
+        flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
+        if not flag:
+            return False, data.get("message") or data.get("msg")
+        return True, data["data"]
 
     @classmethod
     async def get_uid_by_live_room_id(cls, room_id, timeout=10):
