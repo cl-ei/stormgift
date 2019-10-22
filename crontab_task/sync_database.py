@@ -206,7 +206,7 @@ class SyncTool(object):
         await redis_cache.delete(execute_key)
 
         cost = time.time() - start_time
-        logging.info(f"Execute finished, cost: {cost}.\n\n")
+        logging.info(f"Execute finished, cost: {cost/60:.3f} min.\n\n")
 
 
 loop.run_until_complete(SyncTool.run())
