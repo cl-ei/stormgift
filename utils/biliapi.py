@@ -392,14 +392,14 @@ class BiliApi:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
                 async with session.post(cloud_function_url, json=req_json) as resp:
                     status_code = resp.status
-                    content = await resp.text()
+                    content = await resp.text(encoding="utf-8", errors="ignore")
                     return status_code, content
 
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
             if method == "get":
                 async with session.get(url, params=data, headers=headers) as resp:
                     status_code = resp.status
-                    content = await resp.text()
+                    content = await resp.text(encoding="utf-8", errors="ignore")
                     return status_code, content
 
             else:
@@ -418,7 +418,6 @@ class BiliApi:
         if cls.USE_ASYNC_REQUEST_METHOD:
             try:
                 status_code, content = await cls._request_async(method, url, headers, data, timeout)
-
             except asyncio.TimeoutError:
                 return False, "Bili api HTTP request timeout!"
 
