@@ -585,6 +585,9 @@ class BotHandler:
         elif msg.startswith("#勋章查询"):
             return await p.proc_query_medal(msg, group_id)
 
+        elif msg.startswith("#大航海"):
+            return await p.proc_query_guard(user_id, msg=msg, group_id=group_id)
+
         elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
             return p.proc_help(msg, group_id)
 
