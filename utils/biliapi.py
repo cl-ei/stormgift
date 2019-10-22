@@ -584,7 +584,8 @@ class BiliApi:
         data = {"roomid": room_id, "ruid": uid, "page": 1}
         flag, data = await cls.get(req_url, data=data, timeout=10, check_error_code=True)
         if not flag:
-            return False, data.get("message") or data.get("msg")
+            return False, data
+
         guard_count = data["data"]["info"]["num"]
         return True, guard_count
 
