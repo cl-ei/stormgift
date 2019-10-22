@@ -159,24 +159,32 @@ class SyncTool(object):
                 logging.error(f"Cannot get master guard count! {name} room id -> {room_id}, msg: {guard_count}")
                 guard_count = 0
 
-            obj = await BiliUser.full_create_or_update(
-                uid=uid,
-                name=name,
-                face=face,
-                user_info_update_time=user_info_update_time,
-                short_room_id=short_room_id,
-                real_room_id=real_room_id,
-                title=title,
-                create_at=create_at,
-                attention=attention,
-                guard_count=guard_count,
-                room_info_update_time=room_info_update_time,
-            )
-
-            logging.info(
-                f"Update success {i}/{total_search_count} -> room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
-                f" attention: {attention}, guard: {guard_count}, obj: {obj.id}"
-            )
+            try:
+                obj = await BiliUser.full_create_or_update(
+                    uid=uid,
+                    name=name,
+                    face=face,
+                    user_info_update_time=user_info_update_time,
+                    short_room_id=short_room_id,
+                    real_room_id=real_room_id,
+                    title=title,
+                    create_at=create_at,
+                    attention=attention,
+                    guard_count=guard_count,
+                    room_info_update_time=room_info_update_time,
+                )
+            except Exception as e:
+                logging.error(
+                    f"Update Failed! {i}/{total_search_count} -> "
+                    f"room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
+                    f" attention: {attention}, guard: {guard_count}, e: {e}"
+                )
+            else:
+                logging.info(
+                    f"Update success {i}/{total_search_count} -> "
+                    f"room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
+                    f" attention: {attention}, guard: {guard_count}, obj: {obj.id}"
+                )
 
     @classmethod
     async def run(cls):
