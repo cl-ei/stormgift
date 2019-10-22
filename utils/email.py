@@ -30,10 +30,12 @@ def send_cookie_invalid_notice(cookie_obj):
     user_name = cookie_obj.name
     uid = cookie_obj.user_id
     email_addr = cookie_obj.notice_email
+    if not email_addr:
+        return
 
     subject = f"{user_name}(uid: {uid}): 你配置的挂辣条登录信息已过期"
     content = f"{user_name}, 你配置的登录信息已过期, 如果需要继续挂辣条，你需要重新登录。"
-    to = (email_addr, "80873436@qq.com") if email_addr else ("80873436@qq.com", )
+    to = (email_addr, )
     send_email(subject=subject, content=content, to=to)
 
 
