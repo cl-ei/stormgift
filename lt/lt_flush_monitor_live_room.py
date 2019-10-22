@@ -6,12 +6,10 @@ from utils.dao import ValuableLiveRoom, MonitorLiveRooms, InLotteryLiveRooms
 from utils.model import MonitorWsClient
 
 MONITOR_COUNT = 15000
-VALUABLE_ROOM_COUNT_LIMIT = 3000
-
-SPECIFIED_ROOM_ID_SET = {
+SPECIFIED_ROOM_IDS = [
     2516117,
     21537937,  # 带慈善
-}
+]
 
 
 async def get_live_rooms_from_api():
@@ -22,23 +20,30 @@ async def get_live_rooms_from_api():
         logging.error(f"Cannot get lived room count! msg: {total}")
         return
 
-    await asyncio.sleep(1)
     flag, room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, MONITOR_COUNT))
     if not flag:
         logging.error(f"Cannot get lived rooms. msg: {room_id_list}")
-        return False
+        return
 
     in_lottery_live_rooms = await InLotteryLiveRooms().get_all()
     logging.info(f"Get in_lottery_live_rooms count: {len(in_lottery_live_rooms)}")
     room_id_list.extend(in_lottery_live_rooms)
+    room_id_list.extend(SPECIFIED_ROOM_IDS)
+    room_id_set = set(room_id_list)
+    api_count = len(room_id_set)
 
-    valuable_live_rooms = (await ValuableLiveRoom.get_all())[:VALUABLE_ROOM_COUNT_LIMIT]
-    valuable_count = len(valuable_live_rooms)
-
-    api_count = len(room_id_list)
-    monitor_live_rooms = SPECIFIED_ROOM_ID_SET | set(room_id_list + valuable_live_rooms)
-    total_count = len(monitor_live_rooms)
-    cache_hit_rate = 100 * (api_count + valuable_count - total_count) / valuable_count
+    valuable_limit = MONITOR_COUNT - api_count
+    if valuable_limit > 0:
+        valuable_live_rooms = (await ValuableLiveRoom.get_all())[:valuable_limit]
+        monitor_live_rooms = room_id_set | set(valuable_live_rooms)
+        valuable_count = len(valuable_live_rooms)
+        total_count = len(monitor_live_rooms)
+        cache_hit_rate = 100 * (api_count + valuable_count - total_count) / valuable_count
+    else:
+        monitor_live_rooms = room_id_set
+        valuable_count = 0
+        total_count = len(monitor_live_rooms)
+        cache_hit_rate = 0
 
     r = await MonitorLiveRooms.set(monitor_live_rooms)
     logging.info(
@@ -56,7 +61,6 @@ async def get_live_rooms_from_api():
         "TCP TIME_WAIT": time_wait,
     }
     await MonitorWsClient.record(__monitor_info)
-    return True
 
 
 async def flush_in_lottery_live_rooms():
@@ -74,19 +78,21 @@ async def flush_in_lottery_live_rooms():
 
 async def main():
     logging.info("LT flush monitor live room proc starting ...")
-    count = 0
-    while True:
-        if count % 5 == 0:
-            logging.info("Flush monitor live room: Now get_live_rooms_from_api!")
+
+    async def get_live_rooms_task():
+        while True:
             await get_live_rooms_from_api()
+            await asyncio.sleep(60*5)
 
-        else:
-            logging.info("Flush monitor live room: Now flush_in_lottery_live_rooms!")
+    async def flush_in_lottery_live_rooms_task():
+        while True:
             await flush_in_lottery_live_rooms()
+            await asyncio.sleep(60)
 
-        await asyncio.sleep(60)
-        count += 1
-        count %= 99999999999
+    await asyncio.gather(
+        get_live_rooms_task(),
+        flush_in_lottery_live_rooms_task(),
+    )
 
 
 loop = asyncio.get_event_loop()

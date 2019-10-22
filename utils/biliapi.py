@@ -378,6 +378,7 @@ class BiliApi:
             "https://api.bilibili.com/x/space/acc/info",
             # "https://api.live.bilibili.com/guard/topList?page=1",
             "https://api.live.bilibili.com/room/v1/Room/room_init",
+            "https://api.live.bilibili.com/room/v1/Area/getListByAreaID",
 
         ):
             req_json = {
@@ -1180,11 +1181,14 @@ class BiliApi:
 
     @classmethod
     async def get_lived_room_id_by_page(cls, page=0, timeout=10):
-        req_url = (
-            f"https://api.live.bilibili.com/room/v1/Area/getListByAreaID"
-            f"?areaId=0&sort=online&pageSize=500&page={page}"
-        )
-        r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        req_url = "https://api.live.bilibili.com/room/v1/Area/getListByAreaID"
+        data = {
+            "areaId": 0,
+            "sort": "online",
+            "pageSize": 500,
+            "page": page,
+        }
+        r, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
         if not r:
             return False, data
         room_list = data.get("data", []) or []
@@ -1194,7 +1198,6 @@ class BiliApi:
     async def get_lived_room_id_list(cls, count=500, timeout=50):
         live_room_is_list = []
         for _ in range((count + 500) // 500):
-
             flag, data = await cls.get_lived_room_id_by_page(page=_, timeout=timeout)
             if not flag:
                 return False, data
@@ -1202,8 +1205,6 @@ class BiliApi:
             live_room_is_list = list(set(live_room_is_list))
             if len(live_room_is_list) >= count:
                 return True, live_room_is_list[:count]
-
-            await asyncio.sleep(2)
 
         return True, live_room_is_list[:count]
 
