@@ -497,7 +497,8 @@ async def trends_qq_notice(request):
                     message = f"{bili_user_name}(uid: {uid})新动态：\n\n{content}"
 
                     if uid == 337052615:
-                        bot_zy.send_private_msg(user_id=250666570, message=f"#方舟{latest_dynamic}")
+                        latest_dynamic_id = latest_dynamic["desc"]["dynamic_id"]
+                        bot_zy.send_private_msg(user_id=250666570, message=f"#方舟{latest_dynamic_id}")
 
                     if not pictures:
                         image = "https://i0.hdslb.com/bfs/space/cb1c3ef50e22b6096fde67febe863494caefebad.png"
