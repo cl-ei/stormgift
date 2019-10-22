@@ -158,7 +158,7 @@ class SyncTool(object):
 
             flag, guard_count = await BiliApi.get_master_guard_count(room_id=real_room_id, uid=uid)
             if not flag:
-                logging.error(f"")
+                logging.error(f"Cannot get master guard count! {name} room id -> {room_id}, msg: {guard_count}")
                 guard_count = 0
 
             obj = await BiliUser.full_create_or_update(
@@ -192,9 +192,12 @@ class SyncTool(object):
 
         await objects.connect()
 
-        await cls.sync_valuable_live_room()
-        await cls.fix_user_record_missed_uid()
-        # await cls.search_short_number()
+        await asyncio.gather(
+            cls.sync_valuable_live_room(),
+            cls.fix_user_record_missed_uid(),
+            cls.update_live_room_info(),
+        )
+
 
         await objects.close()
         await redis_cache.delete(execute_key)

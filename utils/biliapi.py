@@ -836,7 +836,7 @@ class BiliApi:
         data = {"mid": uid, "jsonp": "jsonp"}
         flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
         if not flag:
-            return False, data.get("message") or data.get("msg")
+            return False, data
         return True, data["data"]
 
     @classmethod
