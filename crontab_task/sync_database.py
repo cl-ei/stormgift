@@ -34,15 +34,11 @@ class SyncTool(object):
 
     @staticmethod
     async def fix_user_record_missed_uid():
-
         non_uid_users = await objects.execute(BiliUser.select().where(BiliUser.uid == None))
         logging.info(f"non_uid_users count: {len(non_uid_users)}")
 
         for non_uid_user_obj in non_uid_users:
-            await asyncio.sleep(3)
-
             lastest_user_name = non_uid_user_obj.name
-
             fix_failed_key = f"FIX_MISSED_USER_{lastest_user_name}"
             if await redis_cache.get(fix_failed_key):
                 logging.info(f"Found failed key: {fix_failed_key}, now skip.")
@@ -198,7 +194,7 @@ class SyncTool(object):
         start_time = time.time()
 
         execute_key = "LT_SYNC_DATABASE_TASK_RUNNING"
-        finished = await redis_cache.set_if_not_exists(execute_key, 1, timeout=60*40)
+        finished = await redis_cache.set_if_not_exists(execute_key, 1, timeout=60*55)
         if not finished:
             logging.error(f"DataBase syncing! Now exit...")
             return
@@ -207,7 +203,7 @@ class SyncTool(object):
 
         await cls.sync_valuable_live_room()
         await cls.fix_user_record_missed_uid()
-        await cls.search_short_number()
+        # await cls.search_short_number()
 
         await objects.close()
         await redis_cache.delete(execute_key)
