@@ -1,6 +1,7 @@
 import time
 import aiohttp
 import asyncio
+import traceback
 from aiohttp import web
 from random import random
 from asyncio.queues import Queue
@@ -111,7 +112,7 @@ class CLMessageQ:
                 async with session.put(req_url, headers={"message_id": message_id}) as resp:
                     return message_id
         except Exception as e:
-            logging.error(f"CLMessageQ Error: {e}")
+            logging.error(f"CLMessageQ Error: {e} \n{traceback.format_exc()}")
 
         return message_id
 
