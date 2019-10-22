@@ -194,7 +194,7 @@ class SyncTool(object):
         finished = await redis_cache.set_if_not_exists(execute_key, 1, timeout=60*55)
         if not finished:
             logging.error(f"DataBase syncing! Now exit...")
-            # return
+            return
 
         await objects.connect()
         await asyncio.gather(
