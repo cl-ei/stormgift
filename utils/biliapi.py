@@ -889,6 +889,8 @@ class BiliApi:
         req_url = f"https://api.live.bilibili.com/room/v1/Room/get_info"
         data = {"room_id": int(room_id)}
         flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
+        if not flag:
+            return flag, data
         return flag, data["data"]
 
     @classmethod
