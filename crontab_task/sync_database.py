@@ -125,15 +125,12 @@ class SyncTool(object):
                 "group by room_id order by 2 desc;"
             ), (new_updated_room,)
         )
-        search_list = []
-        for row in rooms_with_raffle:
-            search_list.append(row[0])
-        for row in rooms_with_guard:
-            search_list.append(row[0])
-        search_list = list(set(search_list))
+        raffle_room_id = [r[0] for r in rooms_with_raffle]
+        guard_room_id = [r[0] for r in rooms_with_guard]
+        search_list = list(set(raffle_room_id[:600] + guard_room_id[:600]))
         logging.info(f"Start searching, total count: {len(search_list)}")
 
-        for room_id in search_list:
+        for i, room_id in enumerate(search_list):
             flag, data = await BiliApi.get_live_room_info_by_room_id(room_id=room_id)
             if not flag:
                 logging.error(f"Cannot get_live_room info! e: {data}")
@@ -176,7 +173,7 @@ class SyncTool(object):
             )
 
             logging.info(
-                f"Update success ! room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
+                f"Update success {i} -> room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
                 f" attention: {attention}, guard: {guard_count}, obj: {obj.id}"
             )
 
