@@ -128,7 +128,8 @@ class SyncTool(object):
         raffle_room_id = [r[0] for r in rooms_with_raffle]
         guard_room_id = [r[0] for r in rooms_with_guard]
         search_list = list(set(raffle_room_id[:600] + guard_room_id[:600]))
-        logging.info(f"Start searching, total count: {len(search_list)}")
+        total_search_count = len(search_list)
+        logging.info(f"Start searching, total count: {total_search_count}")
 
         for i, room_id in enumerate(search_list):
             flag, data = await BiliApi.get_live_room_info_by_room_id(room_id=room_id)
@@ -173,7 +174,7 @@ class SyncTool(object):
             )
 
             logging.info(
-                f"Update success {i} -> room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
+                f"Update success {i}/{total_search_count} -> room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
                 f" attention: {attention}, guard: {guard_count}, obj: {obj.id}"
             )
 
