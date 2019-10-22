@@ -188,17 +188,14 @@ class SyncTool(object):
         finished = await redis_cache.set_if_not_exists(execute_key, 1, timeout=60*55)
         if not finished:
             logging.error(f"DataBase syncing! Now exit...")
-            return
+            # return
 
         await objects.connect()
-
         await asyncio.gather(
             cls.sync_valuable_live_room(),
             cls.fix_user_record_missed_uid(),
             cls.update_live_room_info(),
         )
-
-
         await objects.close()
         await redis_cache.delete(execute_key)
 
