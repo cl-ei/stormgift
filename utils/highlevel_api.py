@@ -125,10 +125,10 @@ class ReqFreLimitApi(object):
         prompt = []
         now = datetime.datetime.now()
         last_room_id = None
-        for r in guards:
+        for i, r in enumerate(guards):
             room_id, gift_name, created_time = r
             short_room_id = room_id_map.get(room_id, room_id)
-            if short_room_id != last_room_id:
+            if i == 0 or short_room_id != last_room_id:
                 last_room_id = short_room_id
                 name = room_id_to_name.get(room_id, "??")
                 prompt.append(f"{short_room_id}直播间(主播: {name})：")
