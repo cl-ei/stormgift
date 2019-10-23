@@ -140,8 +140,14 @@ class SyncTool(object):
                 continue
 
             uid = data["uid"]
-            short_room_id = data["short_id"] or None
             real_room_id = data["room_id"]
+            short_room_id = data["short_id"] or None
+            if (
+                short_room_id in (0, "", "0", None, "null")
+                or (isinstance(short_room_id, int) and short_room_id < 0)
+            ):
+                short_room_id = real_room_id
+
             title = data["title"]
             create_at = datetime.datetime.now() - datetime.timedelta(days=365 * 5)
             attention = data["attention"]
