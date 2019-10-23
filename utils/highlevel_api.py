@@ -83,7 +83,7 @@ class ReqFreLimitApi(object):
             "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
             ([row[1] for row in results], )
         )
-        room_id_map = {r[0]: r[1] for r in room_id_map}
+        room_id_map = {r[0]: r[1] for r in room_id_map if r[1]}
         for r in results:
             r[1] = room_id_map.get(r[1], r[1])
         return results
