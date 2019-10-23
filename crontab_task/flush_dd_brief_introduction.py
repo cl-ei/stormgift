@@ -88,12 +88,12 @@ async def gen_intro():
         (now, ("舰长", "提督", "总督"))
     )
 
-    room_id_list = [row[0] for row in guard_query]
+    room_id_list = {row[0] for row in guard_query}
     live_room_info = await AsyncMySQL.execute(
         "select short_room_id, real_room_id from biliuser where real_room_id in %s;",
         (room_id_list, )
     )
-    real_to_short_dict = {row[1]: row[0] for row in live_room_info}
+    real_to_short_dict = {row[1]: row[0] for row in live_room_info if row[0]}
 
     gifts = {}
     for row in guard_query:
