@@ -287,17 +287,17 @@ async def query_raffles(request):
                 "order by id desc ;"
             ), (start_date, )
         )
-        user_obj_id_list = []
-        room_id_list = []
+        user_obj_ids = set()
+        room_ids = set()
         for row in records:
             (
                 id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id,
                 prize_gift_name, expire_time, sender_name, winner_name
             ) = row
 
-            room_id_list.append(room_id)
-            user_obj_id_list.append(sender_obj_id)
-            user_obj_id_list.append(winner_obj_id)
+            room_ids.add(room_id)
+            user_obj_ids.add(sender_obj_id)
+            user_obj_ids.add(winner_obj_id)
 
         users = await AsyncMySQL.execute(
             (
@@ -305,14 +305,15 @@ async def query_raffles(request):
                 "from biliuser "
                 "where id in %s or real_room_id in %s "
                 "order by id desc ;"
-            ), (user_obj_id_list, room_id_list)
+            ), (user_obj_ids, room_ids)
         )
         room_id_map = {}
         user_obj_id_map = {}
         for row in users:
             id, uid, name, short_room_id, real_room_id = row
-            if short_room_id and real_room_id:
-                room_id_map[real_room_id] = (short_room_id, name)
+            if short_room_id in (None, "", 0, "0"):
+                short_room_id = None
+            room_id_map[real_room_id] = (short_room_id, name)
             user_obj_id_map[id] = (uid, name)
 
         raffle_data = []
