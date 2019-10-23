@@ -212,7 +212,7 @@ class ValuableLiveRoom(object):
     async def add(cls, *room_id):
         if not room_id:
             return 0
-
+        room_id = [int(r) for r in room_id if r not in (0, "", "0", None)]
         r = await redis_cache.set_add(cls._key, *room_id)
         return r
 
