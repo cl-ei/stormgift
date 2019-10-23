@@ -106,7 +106,7 @@ class CLMessageQ:
         await redis_cache.list_push(self.queue_name, message_id)
 
         req_url = F"http://127.0.0.1:{CLMessageQServer.server_port}{CLMessageQServer.path}"
-        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=1))
+        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
         try:
             async with client_session as session:
                 async with session.put(req_url, headers={"message_id": message_id}) as resp:
