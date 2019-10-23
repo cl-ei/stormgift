@@ -297,8 +297,10 @@ class MonitorLiveRooms(object):
 
     @classmethod
     async def set(cls, live_room_id_set):
-        if not isinstance(live_room_id_set, set):
-            live_room_id_set = set(live_room_id_set)
+        live_room_id_set = {
+            int(room_id) for room_id in live_room_id_set
+            if room_id not in (0, "0", None, "")
+        }
         r = await redis_cache.set(cls._key, live_room_id_set)
         r2 = await redis_cache.set(cls._version_key, str(time.time()))
         return r, r2
