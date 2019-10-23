@@ -110,7 +110,7 @@ class ReqFreLimitApi(object):
             "select real_room_id, short_room_id, name from biliuser where real_room_id in %s;",
             ([r[0] for r in guards],)
         )
-        room_id_map = {r[0]: r[1] for r in rooms_info}
+        room_id_map = {r[0]: r[1] for r in rooms_info if r[0] and r[1]}
         room_id_to_name = {r[0]: r[2] for r in rooms_info}
 
         def gen_time_prompt(interval):
@@ -122,24 +122,35 @@ class ReqFreLimitApi(object):
                 return f"约{int(interval // 60)}分钟前"
             return f"{int(interval)}秒前"
 
-        prompt = []
         now = datetime.datetime.now()
-        last_room_id = None
-        for r in guards:
+        info_map = {}
+        for i, r in enumerate(guards):
             room_id, gift_name, created_time = r
-            short_room_id = room_id_map.get(room_id, room_id)
-            if short_room_id != last_room_id:
-                last_room_id = short_room_id
-                name = room_id_to_name.get(room_id, "??")
-                prompt.append(f"{short_room_id}直播间(主播: {name})：")
-
             time_interval = (now - created_time).total_seconds()
             interval_prompt = gen_time_prompt(time_interval)
-            prompt.append(f"　　　{interval_prompt}开通{gift_name}*1")
+            prompt = f"　　　{interval_prompt}开通{gift_name}"
 
+            if room_id not in info_map:
+                info_map[room_id] = []
+            for g in info_map[room_id]:
+                if g[0] == prompt:
+                    g[1] += 1
+                    break
+            else:
+                info_map[room_id].append([prompt, 1])
+
+        prompt = []
+        info_list = [
+            (room_id_map.get(room_id, room_id), room_id_to_name.get(room_id, "??"), r)
+            for room_id, r in info_map.items()
+        ]
+        info_list.sort(key=lambda x: x[0])
+        for short_room_id, name, r in info_list:
+            prompt.append(f"{short_room_id}直播间(主播: {name})：")
+            for p, num in r:
+                prompt.append(f"{p}*{num}")
         prompt = f"\n".join(prompt)
-
-        return f"{user_name}(uid: {uid})在45天内开通{len(guards)}条船：\n\n{prompt}"
+        return f"{user_name}(uid: {uid})在45天内开通了{len(guards)}条船：\n\n{prompt}"
 
     @classmethod
     async def get_raffle_count(cls, day_range=0):
