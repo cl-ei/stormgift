@@ -132,6 +132,8 @@ class SyncTool(object):
         logging.info(f"Start searching, total count: {total_search_count}")
 
         for i, room_id in enumerate(search_list):
+            i += 1
+
             flag, data = await BiliApi.get_live_room_info_by_room_id(room_id=room_id)
             if not flag:
                 logging.error(f"Cannot get_live_room info! e: {data}")
@@ -147,7 +149,7 @@ class SyncTool(object):
 
             flag, user_info = await BiliApi.get_user_info(uid)
             if not flag:
-                logging.error(f"Cannot get user_info!")
+                logging.error(f"Cannot get user_info! uid: {uid}, real_room_id: {real_room_id}")
                 continue
 
             name = user_info["name"]
