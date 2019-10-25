@@ -610,6 +610,10 @@ class BotHandler:
                 message = "您输入的口令有误。若要解除禁言，请输入“起床+群号”， 如：“起床436496941”"
                 bot.send_private_msg(user_id=user_id, message=message)
 
+        elif msg.startswith("#大航海"):
+            p = BotUtils()
+            return await p.proc_query_guard(user_id, msg=msg, group_id=None)
+
         elif msg.lower() in ("#help", "#h", "#帮助"):
             bot.send_private_msg(user_id=user_id, message="请在QQ群里发送`#help`以获取帮助。")
 
