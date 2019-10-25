@@ -545,52 +545,6 @@ class BotHandler:
             % (group_id, title, card, user_nickname, user_id, msg)
         )
 
-        p = BotUtils()
-        msg = msg.replace("＃", "#")
-        if not msg.startswith("#"):
-            if "[CQ:at,qq=2254494518]" in msg:
-                special = re.findall(r"\[([^]]+)\]", msg)
-                for c in special:
-                    msg = msg.replace(c, "")
-                msg = msg.replace("[", "").replace("]", "").strip()
-                if not msg:
-                    return
-                return await p.proc_tuling_response(msg, group_id, user_id)
-            elif msg == "一言":
-                msg = "#一言"
-            else:
-                return
-
-        if msg in ("#打盹儿", "#打盹"):
-            return p.proc_random_ban(msg, group_id, card, user_id)
-
-        elif msg == "#一言":
-            return p.proc_one_sentence(msg, group_id)
-
-        elif msg.startswith("#睡觉"):
-            return p.proc_sleep(msg, group_id, user_id)
-
-        elif msg.endswith("运势"):
-            return p.proc_lucky(msg, group_id)
-
-        elif msg.startswith("#点歌"):
-            return await p.proc_song(msg, group_id)
-
-        elif msg.startswith("#翻译"):
-            return p.proc_translation(msg, group_id)
-
-        elif msg.startswith("#中奖查询"):
-            return await p.proc_query_raffle(msg, group_id)
-
-        elif msg.startswith("#勋章查询"):
-            return await p.proc_query_medal(msg, group_id)
-
-        elif msg.startswith("#大航海"):
-            return await p.proc_query_guard(user_id, msg=msg, group_id=group_id)
-
-        elif msg.strip() in ("#help", "#h", "#帮助", "#指令"):
-            return p.proc_help(msg, group_id)
-
     @classmethod
     async def handle_private_message(cls, context):
         user_id = context["sender"]["user_id"]
@@ -598,26 +552,7 @@ class BotHandler:
         msg = context["raw_message"]
         logging.info("Private message received: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))
 
-        if msg.startswith("起床"):
-            try:
-                group_id = int(msg[2:])
-            except Exception:
-                group_id = 0
-
-            if group_id in cls.NOTICE_GROUP_ID_LIST:
-                bot.set_group_ban(group_id=group_id, user_id=user_id, duration=0)
-            else:
-                message = "您输入的口令有误。若要解除禁言，请输入“起床+群号”， 如：“起床436496941”"
-                bot.send_private_msg(user_id=user_id, message=message)
-
-        elif msg.startswith("#大航海"):
-            p = BotUtils()
-            return await p.proc_query_guard(user_id, msg=msg, group_id=None)
-
-        elif msg.lower() in ("#help", "#h", "#帮助"):
-            bot.send_private_msg(user_id=user_id, message="请在QQ群里发送`#help`以获取帮助。")
-
-        elif msg.startswith("ML"):
+        if msg.startswith("ML"):
             if msg.startswith("ML_BIND_BILI_"):
                 # ML_BIND_BILI_123_TO_QQ_456
                 try:
