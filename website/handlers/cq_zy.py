@@ -25,8 +25,16 @@ QQ_GROUP_STAR_LIGHT = 159855203
 
 
 class BotUtils:
-    def __init__(self):
+    def __init__(self, user_id=None, group_id=None):
         self.bot = bot
+        self.user_id = user_id
+        self.group_id = group_id
+
+    def response(self, msg):
+        if self.group_id is not None:
+            self.bot.send_group_msg(group_id=self.group_id, message=msg)
+        else:
+            self.bot.send_private_msg(user_id=self.user_id, message=msg)
 
     def post_word_audio(self, word, group_id):
         url = f"http://media.shanbay.com/audio/us/{word}.mp3"
@@ -248,7 +256,10 @@ class BotUtils:
         message = f"[CQ:music,type=163,id={song_id}]" if song_id else f"未找到歌曲「{song_name}」"
         self.bot.send_group_msg(group_id=group_id, message=message)
 
-    async def proc_query_raffle(self, msg, group_id):
+    async def proc_query_raffle(self, msg, user_id, group_id=None):
+        self.user_id = user_id
+        self.group_id = group_id
+
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
             return
@@ -260,7 +271,7 @@ class BotUtils:
 
         raffle_list = await ReqFreLimitApi.get_raffle_record(uid)
         if not raffle_list:
-            self.bot.send_group_msg(group_id=group_id, message=f"「{raw_uid_or_uname}」: 七天内没有中奖。")
+            self.response(f"{raw_uid_or_uname}: 七天内没有中奖。")
             return
 
         count = len(raffle_list)
@@ -283,9 +294,12 @@ class BotUtils:
             f"\n{'-'*20}\n".join(msg_list) +
             f"\n{'-' * 20}"
         )
-        self.bot.send_group_msg(group_id=group_id, message=message)
+        self.response(message)
 
-    async def proc_query_medal(self, msg, group_id):
+    async def proc_query_medal(self, msg, user_id, group_id=None):
+        self.user_id = user_id
+        self.group_id = group_id
+
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
             return
@@ -303,7 +317,7 @@ class BotUtils:
         flag, r = await BiliApi.get_user_medal_list(uid=uid)
         if not flag or not isinstance(r, list) or not r:
             message = f"未查询到{user_name}(uid: {uid})拥有的勋章。检查用户名或uid是否正确。"
-            self.bot.send_group_msg(group_id=group_id, message=message)
+            self.response(message)
             return
 
         medal_list = sorted(r, key=lambda x: (x["level"], x["intimacy"]), reverse=True)
@@ -316,27 +330,24 @@ class BotUtils:
             msg_list.append(f"[{name}] {level}级，{current}/{total}")
 
         message = "\n".join(msg_list)
-        self.bot.send_group_msg(group_id=group_id, message=f"{user_name}(uid: {uid})拥有的勋章如下：\n\n{message}")
+        self.response(f"{user_name}(uid: {uid})拥有的勋章如下：\n\n{message}")
 
-    async def proc_lt_status(self, user_id, msg, group_id=None):
-
-        def response(m):
-            if group_id:
-                self.bot.send_group_msg(group_id=group_id, message=m)
-            else:
-                self.bot.send_private_msg(user_id=user_id, message=m)
+    async def proc_lt_status(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
 
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
             if group_id:
                 message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
-                return self.bot.send_group_msg(group_id=group_id, message=message)
+                self.response(message)
+                return
 
             number = randint(1000, 9999)
             key = f"BILI_BIND_CHECK_KEY_{number}"
             await redis_cache.set(key=key, value=user_id, timeout=3600)
             message = f"你尚未绑定B站账号。请你现在去13369254直播间发送以下指令： 绑定{number}"
-            self.bot.send_private_msg(user_id=user_id, message=message)
+            self.response(message)
             return
 
         try:
@@ -347,13 +358,16 @@ class BotUtils:
             pass
 
         flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
-        response(msg)
+        self.response(msg)
 
-    async def proc_query_bag(self, user_id, msg, group_id):
+    async def proc_query_bag(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
+
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
             message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
-            self.bot.send_group_msg(group_id=group_id, message=message)
+            self.response(message)
             return True
 
         try:
@@ -366,13 +380,13 @@ class BotUtils:
         user = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
         if not user:
             message = f"未查询到用户「{bili_uid}」。可能用户已过期，请重新登录。"
-            self.bot.send_group_msg(group_id=group_id, message=message)
+            self.response(message)
             return
 
         bag_list = await BiliApi.get_bag_list(user.cookie)
         if not bag_list:
             message = f"{user.name}(uid: {user.uid})的背包里啥都没有。"
-            self.bot.send_group_msg(group_id=group_id, message=message)
+            self.response(message)
             return
 
         result = {}
@@ -390,21 +404,18 @@ class BotUtils:
 
         prompt = ',\n'.join(prompt)
         message = f"{user.name}(uid: {user.uid})的背包里有:\n{prompt}。"
-        self.bot.send_group_msg(group_id=group_id, message=message)
+        self.response(message)
 
-    async def proc_dynamic(self, user_id, msg, group_id=None):
-        def response(m):
-            if group_id is not None:
-                self.bot.send_group_msg(group_id=group_id, message=m)
-            else:
-                self.bot.send_private_msg(user_id=user_id, message=m)
+    async def proc_dynamic(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
 
         try:
             user_name_or_dynamic_id = msg[3:].strip()
             if not user_name_or_dynamic_id.isdigit():
                 bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
                 if bili_uid is None:
-                    response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
+                    self.response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
                     return
 
                 flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
@@ -418,7 +429,7 @@ class BotUtils:
                     raise ValueError("Fetch dynamics Failed!")
 
                 if not dynamics:
-                    response(f"该用户未发布B站动态。")
+                    self.response(f"该用户未发布B站动态。")
                     return
 
                 dynamic_id = dynamics[0]["desc"]["dynamic_id"]
@@ -427,12 +438,12 @@ class BotUtils:
                 dynamic_id = int(user_name_or_dynamic_id)
 
         except (TypeError, ValueError, IndexError):
-            response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
+            self.response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
             return
 
         flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=dynamic_id)
         if not flag:
-            response(f"未能获取到动态：{dynamic_id}.")
+            self.response(f"未能获取到动态：{dynamic_id}.")
             return
 
         master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
@@ -443,7 +454,7 @@ class BotUtils:
         content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
         if not pictures:
             message = prefix + "\n".join(content)
-            response(message)
+            self.response(message)
             return
 
         work_path = f"/tmp/bili_dynamic_{int(time.time())}"
@@ -472,14 +483,11 @@ class BotUtils:
             message = f"{message}\n [CQ:image,file={file_name}]"
         else:
             message = prefix + "\n".join(content) + "\n" + "\n".join(pictures)
-        response(message)
+        self.response(message)
 
-    async def proc_query_guard(self, user_id, msg, group_id=None):
-        def response(m):
-            if group_id is not None:
-                self.bot.send_group_msg(group_id=group_id, message=m)
-            else:
-                self.bot.send_private_msg(user_id=user_id, message=m)
+    async def proc_query_guard(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
 
         user_name_or_uid = msg[4:].strip()
         if not user_name_or_uid:
@@ -491,7 +499,8 @@ class BotUtils:
                 bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_uid)
 
         if not bili_uid:
-            return response(f"指令错误，不能查询到用户: {user_name_or_uid}")
+            self.response(f"指令错误，不能查询到用户: {user_name_or_uid}")
+            return
 
         if group_id:
             # 频率检查
@@ -507,21 +516,35 @@ class BotUtils:
             else:
                 has_prompted = await redis_cache.get(key=key2)
                 if not has_prompted:
-                    response(f"为防刷屏，请私聊发送指令(一分钟内本提示不再发出): \n{msg}")
+                    self.response(f"为防刷屏，请私聊发送指令(一分钟内本提示不再发出): \n{msg}")
                     await redis_cache.set(key=key2, value=1, timeout=50)
                 return
 
         data = await ReqFreLimitApi.get_guard_record(uid=int(bili_uid))
-        return response(data)
+        self.response(data)
+        return
+
+    async def proc_help(self, msg, user_id, group_id):
+        self.group_id = group_id
+        self.user_id = user_id
+        message = (
+            "所有指令必须以`#`号开始。公屏指令：\n"
+            "1.#一言\n"
+            "2.#点歌\n"
+            "3.#翻译\n"
+            "4.#动态\n\n"
+            "私聊指令：\n"
+            "1.#背包\n"
+            "2.#动态\n"
+            "3.#大航海\n"
+            "4.#中奖查询\n\n"
+            "5.#勋章查询\n\n"
+            "6.#挂机查询\n\n"
+        )
+        self.response(message)
 
 
 class BotHandler:
-    NOTICE_GROUP_ID_LIST = [
-        159855203,  # test
-        883237694,  # guard
-        436496941,
-        591691708,  # 禁言群
-    ]
 
     @classmethod
     async def handle_group_message(cls, context):
@@ -539,19 +562,8 @@ class BotHandler:
         )
 
         msg = msg.replace("＃", "#")
-        if msg == "一言":
-            msg = "#一言"
-        elif msg == "挂机查询":
-            msg = "#挂机查询"
-        elif msg == "背包":
-            msg = "#背包"
-
-        if not msg.startswith("#"):
-            return
-
         p = BotUtils()
-
-        if msg.startswith("#一言"):
+        if msg in ("一言", "#一言"):
             return p.proc_one_sentence(msg, group_id)
 
         elif msg.startswith("#点歌"):
@@ -560,27 +572,11 @@ class BotHandler:
         elif msg.startswith("#翻译"):
             return p.proc_translation(msg, group_id)
 
-        elif msg.startswith("#中奖查询"):
-            return await p.proc_query_raffle(msg, group_id)
-
-        elif msg.startswith("#勋章查询"):
-            return await p.proc_query_medal(msg, group_id)
-
-        elif msg.startswith("#大航海"):
-            return await p.proc_query_guard(user_id, msg=msg, group_id=group_id)
-
         elif msg.startswith("#动态"):
-            return await p.proc_dynamic(user_id, msg=msg, group_id=group_id)
+            return await p.proc_dynamic(msg, user_id, group_id=group_id)
 
-        # -------- 以下限制本群访问 ---------
-        if group_id != QQ_GROUP_STAR_LIGHT:
-            return
-
-        if msg.startswith("#挂机查询"):
-            return await p.proc_lt_status(user_id, msg=msg, group_id=group_id)
-
-        elif msg.startswith("#背包"):
-            return await p.proc_query_bag(user_id, msg=msg, group_id=group_id)
+        elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
+            return await p.proc_help(msg, user_id, group_id=group_id)
 
     @classmethod
     async def handle_private_message(cls, context):
@@ -589,14 +585,26 @@ class BotHandler:
         msg = context["raw_message"]
         p = BotUtils()
 
-        if msg.startswith("挂机查询"):
-            return await p.proc_lt_status(user_id, msg=f"#{msg}")
+        if msg.startswith("#背包"):
+            return await p.proc_query_bag(msg, user_id, group_id=None)
 
         elif msg.startswith("#动态"):
-            return await p.proc_dynamic(user_id, msg=msg)
+            return await p.proc_dynamic(msg, user_id, group_id=None)
 
         elif msg.startswith("#大航海"):
-            return await p.proc_query_guard(user_id, msg=msg)
+            return await p.proc_query_guard(msg, user_id, group_id=None)
+
+        elif msg.startswith("#中奖查询"):
+            return await p.proc_query_raffle(msg, user_id, group_id=None)
+
+        elif msg.startswith("#勋章查询"):
+            return await p.proc_query_medal(msg, user_id, group_id=None)
+
+        elif msg.startswith("#挂机查询"):
+            return await p.proc_lt_status(msg, user_id, group_id=None)
+
+        elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
+            return await p.proc_help(msg, user_id, group_id=None)
 
     @classmethod
     async def handle_message(cls, context):
