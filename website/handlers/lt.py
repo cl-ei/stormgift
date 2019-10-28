@@ -144,6 +144,13 @@ async def post_settings(request):
         guard_percent = int(data["guard_percent"])
         pk_percent = int(data["pk_percent"])
         storm_percent = int(data["storm_percent"])
+        md = {}
+        print(data)
+        for i in [1, 2, 3]:
+            key = f"medal_{i}"
+            value = (data.get(key) or "").strip()
+            if 0 < len(value) <= 6:
+                md[key] = value
     except (KeyError, TypeError, ValueError):
         return json_response({"code": 403, "err_msg": "你提交了不正确的参数 ！"})
 
@@ -160,7 +167,8 @@ async def post_settings(request):
         tv_percent=tv_percent,
         guard_percent=guard_percent,
         pk_percent=pk_percent,
-        storm_percent=storm_percent
+        storm_percent=storm_percent,
+        **md
     )
     return json_response({"code": 0})
 

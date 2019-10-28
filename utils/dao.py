@@ -550,10 +550,26 @@ class LTUserSettings:
         if "storm_percent" not in settings:
             settings["storm_percent"] = 0
 
+        for i in [1, 2, 3]:
+            key = f"medal_{i}"
+            if key not in settings:
+                settings[key] = ""
+
         return settings
 
     @classmethod
-    async def set(cls, uid, tv_percent=100, guard_percent=100, pk_percent=100, storm_percent=0):
+    async def set(
+        cls,
+        uid,
+        tv_percent=100,
+        guard_percent=100,
+        pk_percent=100,
+        storm_percent=0,
+        medal_1="",
+        medal_2="",
+        medal_3="",
+    ):
+
         key = f"{cls.key}_{uid}"
         settings = await redis_cache.get(key=key)
         if not isinstance(settings, dict):
@@ -562,6 +578,9 @@ class LTUserSettings:
         settings["guard_percent"] = guard_percent
         settings["pk_percent"] = pk_percent
         settings["storm_percent"] = storm_percent
+        settings["medal_1"] = medal_1
+        settings["medal_2"] = medal_2
+        settings["medal_3"] = medal_3
         await redis_cache.set(key=key, value=settings)
         return True
 

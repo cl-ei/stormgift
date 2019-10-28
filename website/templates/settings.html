@@ -96,6 +96,15 @@
     <label>⑥ 大乱斗PK获胜参与率
         <input class="input-number" type="number" name="pk-percent" value="{{ settings.pk_percent }}">%
     </label>
+    <label>* 自动送辣条1（填勋章名）
+        <input class="input-number" type="text" name="medal_1" value="{{ settings.medal_1 }}">
+    </label>
+    <label>* 自动送辣条2
+        <input class="input-number" type="text" name="medal_2" value="{{ settings.medal_2 }}">
+    </label>
+    <label>* 自动送辣条3
+        <input class="input-number" type="text" name="medal_3" value="{{ settings.medal_3 }}">
+    </label>
     <button class="button center" id="submit-settings">保存设置</button>
 
 </div>
@@ -144,6 +153,10 @@ $(function () {
             return;
         }
 
+        let medal_1 = $("input[name=medal_1]").val() || "";
+        let medal_2 = $("input[name=medal_2]").val() || "";
+        let medal_3 = $("input[name=medal_3]").val() || "";
+
         $("#submit-settings").off("click");
         $.ajax({
             url: "/lt/post_settings",
@@ -153,6 +166,9 @@ $(function () {
                 guard_percent: guard_percent,
                 pk_percent: pk_percent,
                 storm_percent: storm_percent,
+                medal_1: medal_1,
+                medal_2: medal_2,
+                medal_3: medal_3
             },
             success: function (r){
                 if (r.code !== 0){
