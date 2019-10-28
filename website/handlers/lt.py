@@ -145,7 +145,7 @@ async def post_settings(request):
         pk_percent = int(data["pk_percent"])
         storm_percent = int(data["storm_percent"])
         md = {}
-        print(data)
+
         for i in [1, 2, 3]:
             key = f"medal_{i}"
             value = (data.get(key) or "").strip()

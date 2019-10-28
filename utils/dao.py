@@ -537,6 +537,23 @@ class LTUserSettings:
     key = f"LT_USER_SETTINGS"
 
     @classmethod
+    async def get_all(cls):
+        keys = await redis_cache.keys(f"{cls.key}_*")
+        settings = await redis_cache.mget(*keys)
+        result = {}
+        for i, key in enumerate(keys):
+            setting = settings[i]
+            user_id = int(key[len(cls.key) + 1:])
+
+            for _ in [1, 2, 3]:
+                madel_i = f"medal_{_}"
+                if madel_i not in setting:
+                    setting[madel_i] = ""
+            result[user_id] = setting
+
+        return result
+
+    @classmethod
     async def get(cls, uid):
         key = f"{cls.key}_{uid}"
         settings = await redis_cache.get(key=key)

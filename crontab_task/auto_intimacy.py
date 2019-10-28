@@ -1,6 +1,7 @@
 import asyncio
 from config.log4 import crontab_task_logger as logging
 from utils.highlevel_api import DBCookieOperator
+from utils.dao import LTUserSettings
 
 
 async def send_gift(cookie, medal, user_name=""):
@@ -85,6 +86,18 @@ async def send_gift(cookie, medal, user_name=""):
 
 
 async def main():
+    r = await LTUserSettings.get_all()
+    for user_id, setting in r.items():
+        obj = await DBCookieOperator.get_by_uid(user_id=user_id, available=True)
+        if not obj:
+            continue
+
+        for i in [1, 2, 3]:
+            medal = setting.get(f"medal_{i}") or ""
+            if not medal:
+                continue
+            await send_gift(cookie=obj.cookie, medal=medal, user_name=obj.name)
+
     obj = await DBCookieOperator.get_by_uid(20932326)
     if obj:
         await send_gift(cookie=obj.cookie, medal="小孩梓", user_name="打盹")
