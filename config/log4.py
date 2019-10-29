@@ -154,6 +154,18 @@ silver_box_logger.setLevel(logging.DEBUG)
 silver_box_logger.addHandler(console)
 silver_box_logger.addHandler(silver_box_fh)
 
+
+def config_logger(file_name):
+    file_name = file_name.lower()
+    if not file_name.endswith(".log"):
+        file_name += ".log"
+
+    fh = logging.FileHandler(os.path.join(LOG_PATH, file_name))
+    fh.setFormatter(log_format)
+    console_logger.addHandler(fh)
+    return console_logger
+
+
 __all__ = (
     "log_format",
     "console_logger",
@@ -174,4 +186,5 @@ __all__ = (
     "bili_api_logger",
     "model_operation_logger",
     "silver_box_logger",
+    "config_logger",
 )

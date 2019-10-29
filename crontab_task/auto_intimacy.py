@@ -1,7 +1,17 @@
 import asyncio
-from config.log4 import crontab_task_logger as logging
+from config.log4 import config_logger
 from utils.highlevel_api import DBCookieOperator
 from utils.dao import LTUserSettings
+
+logging = config_logger("auto_intimacy")
+
+
+NON_LIMIT_UID_LIST = (
+    20932326,  # dd
+    39748080,  # 录屏
+    312186483,  # 桃子
+    87301592,  # 酋长
+)
 
 
 async def send_gift(cookie, medal, user_name=""):
@@ -31,7 +41,7 @@ async def send_gift(cookie, medal, user_name=""):
     logging.info(f"今日剩余亲密度: {left_intimacy}")
 
     bag_list = await BiliApi.get_bag_list(cookie)
-    available_bags = [bag for bag in bag_list if bag["gift_name"] == "辣条"]
+    available_bags = [bag for bag in bag_list if bag["gift_name"] == "辣条" and bag["expire_at"] > 0]
     available_bags.sort(key=lambda x: x["expire_at"])
 
     # 获取背包中的辣条
@@ -55,7 +65,7 @@ async def send_gift(cookie, medal, user_name=""):
             break
 
     # 获取钱包 赠送银瓜子辣条
-    if left_intimacy > 0:
+    if uid in NON_LIMIT_UID_LIST and left_intimacy > 0:
         wallet_info = await BiliApi.get_wallet(cookie)
         silver = wallet_info.get("silver", 0)
         supplement_lt_num = min(silver // 100, left_intimacy)
