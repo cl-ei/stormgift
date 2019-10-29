@@ -5,9 +5,10 @@ import datetime
 import traceback
 from random import random
 from config import config
+from config.g import *
 from utils.biliapi import BiliApi
-from utils.cq import CQClient, qq
-from utils.dao import redis_cache, RaffleToCQPushList
+from utils.cq import CQClient, qq, qq_zy
+from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo
 from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
@@ -99,12 +100,22 @@ class Worker(object):
             await Raffle.update_raffle_result(raffle_obj, **update_param)
             log_msg = f"Raffle saved! cmd: {cmd}, save result: id: {raffle_obj.id}. "
 
-            qq = await RaffleToCQPushList.get(bili_uid=winner_uid)
-            if qq:
-                message = f"恭喜{winner_name}[{winner_uid}]中了{prize_gift_name}！\n[CQ:at,qq={qq}]"
+            qq_1 = await RaffleToCQPushList.get(bili_uid=winner_uid)
+            if qq_1:
+                message = f"恭喜{winner_name}[{winner_uid}]中了{prize_gift_name}！\n[CQ:at,qq={qq_1}]"
                 r = await ml_qq.send_group_msg(group_id=981983464, message=message)
                 log_msg += f"__ML NOTICE__ r: {r}"
 
+            qq_2 = await BiliToQQBindInfo.get_by_bili(bili=winner_uid)
+            if qq_2:
+                info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
+                room_id = info.get("short_id", msg_from_room_id) or msg_from_room_id
+                message = (
+                    f"[CQ:at,qq={qq_2}]\n恭喜{winner_name}(uid: {winner_uid})"
+                    f"在{room_id}直播间中了{prize_gift_name}!\n"
+                    f"https://live.bilibili.com/{room_id}"
+                )
+                await qq_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
             logging.info(log_msg)
 
         else:

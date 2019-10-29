@@ -21,9 +21,6 @@ from utils.highlevel_api import ReqFreLimitApi
 from utils.highlevel_api import DBCookieOperator
 
 
-QQ_GROUP_STAR_LIGHT = 159855203
-
-
 class BotUtils:
     def __init__(self, user_id=None, group_id=None):
         self.bot = bot
