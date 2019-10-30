@@ -3,9 +3,8 @@ import sys
 import asyncio
 import weakref
 import traceback
-from utils.mq import mq_raffle_broadcast
 from aiohttp import web
-from website.handlers import lt, cq, dxj
+from website.handlers import lt, cq, dxj, ws
 
 if sys.platform == "linux":
     import pyinotify
@@ -34,58 +33,6 @@ def handle_read_callback(notifier):
     log_file_content_size = current_size
 
 
-async def ws_log_broadcast_handler(request):
-    remote_ip = request.headers.get("X-Real-IP", "")
-
-    ws = web.WebSocketResponse()
-    await ws.prepare(request)
-
-    request.app['websockets'].add(ws)
-    await ws.send_str(f"Connected. Your ip is {remote_ip}, transferring data...\n")
-    try:
-        async for msg in ws:
-            pass
-    finally:
-        request.app['websockets'].discard(ws)
-    return ws
-
-
-async def ws_notify_log_broadcast(app):
-    while True:
-        content = await log_file_changed_content_q.get()
-        try:
-            content = content.decode("utf-8")
-        except UnicodeDecodeError:
-            continue
-
-        for ws in set(app['websockets']):
-            await ws.send_str(content)
-
-
-async def ws_raffle_broadcast_handler(request):
-    ws = web.WebSocketResponse()
-    await ws.prepare(request)
-
-    request.app['websockets_raffle'].add(ws)
-    try:
-        async for msg in ws:
-            pass
-    finally:
-        request.app['websockets_raffle'].discard(ws)
-    return ws
-
-
-async def ws_notify_raffle(app):
-    if sys.platform != "linux":
-        return
-
-    while True:
-        message, has_read = await mq_raffle_broadcast.get()
-        for ws in set(app['websockets_raffle']):
-            await ws.send_str(f"{message}\n")
-        await has_read()
-
-
 async def proc_status(request):
     console_conn_count = len(request.app['websockets'])
     raffle_conn_count = len(request.app['websockets_raffle'])
@@ -94,7 +41,15 @@ async def proc_status(request):
 
 
 async def start_web_site():
-    app = web.Application()
+    from aiohttp.web import middleware
+
+    @middleware
+    async def set_server_name(request, handler):
+        resp = await handler(request)
+        resp.headers['Server'] = 'madliar/0.1.15a6(Darwin)'
+        return resp
+
+    app = web.Application(middlewares=[set_server_name])
     app.add_routes([
         web.get('/lt', lt.lt),
         web.get('/lt/dxj/login', dxj.login),
@@ -104,8 +59,8 @@ async def start_web_site():
         web.post('/lt/dxj/post_settings', dxj.post_settings),
         web.get('/lt/dxj/logout', dxj.logout),
         web.get('/lt/status', proc_status),
-        web.get('/console_wss', ws_log_broadcast_handler),
-        web.get('/raffle_wss', ws_raffle_broadcast_handler),
+        web.get('/console_wss', ws.log_broadcast_handler),
+        web.get('/raffle_wss', ws.raffle_broadcast_handler),
         web.get('/lt/broadcast', lt.raffle_broadcast),
         web.post('/lt/login', lt.login),
         web.get('/lt/settings', lt.settings),
@@ -120,10 +75,15 @@ async def start_web_site():
     app['websockets_raffle'] = weakref.WeakSet()
     runner = web.AppRunner(app)
     await runner.setup()
+
     site = web.TCPSite(runner, '0.0.0.0', 1024)
     await site.start()
     print("Site started.")
-    await asyncio.gather(ws_notify_log_broadcast(app), ws_notify_raffle(app))
+
+    await asyncio.gather(
+        ws.notify_log_broadcast(app, log_file_changed_content_q),
+        ws.notify_raffle(app)
+    )
 
 
 loop = asyncio.get_event_loop()
