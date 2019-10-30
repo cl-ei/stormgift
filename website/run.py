@@ -41,9 +41,8 @@ async def proc_status(request):
 
 
 async def start_web_site():
-    from aiohttp.web import middleware
 
-    @middleware
+    @web.middleware
     async def set_server_name(request, handler):
         resp = await handler(request)
         resp.headers['Server'] = 'madliar/0.1.15a6(Darwin)'
