@@ -6,7 +6,8 @@ import traceback
 from random import randint
 from aiohttp import web
 from jinja2 import Template
-from config import CDN_URL
+from config import CDN_URL, g
+from config.log4 import website_logger as logging
 from utils.cq import bot_zy, bot
 from utils.biliapi import BiliApi
 from utils.dao import redis_cache, HansyDynamicNotic, LTUserSettings
@@ -484,8 +485,8 @@ async def trends_qq_notice(request):
 
                 bili_user_name = await BiliApi.get_user_name(uid=uid)
                 message = f"{bili_user_name}(uid: {uid})的动态监测已经添加！"
-                bot_zy.send_private_msg(user_id=171660901, message=message)
-                bot_zy.send_private_msg(user_id=80873436, message=message)
+                bot_zy.send_private_msg(user_id=g.QQ_NUMBER_雨声雷鸣, message=message)
+                bot_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
                 return web.Response(status=206)
 
             new_dynamics = dynamic_id_set - existed_dynamic_id_set
@@ -525,17 +526,15 @@ async def trends_qq_notice(request):
                         f"title={content[:30].replace(',', '，')},content=Bilibili动态,image={image}]"
                     )
                     bot_zy.send_private_msg(user_id=171660901, message=message_share)
-                    bot_zy.send_private_msg(user_id=80873436, message=message_share)
 
                 except Exception as e:
                     error_msg = f"Error happened when fetching user dynamic: {e}\n\n{traceback.format_exc()}"
-                    bot_zy.send_private_msg(user_id=80873436, message=error_msg)
+                    logging.error(error_msg)
 
                     bili_user_name = await BiliApi.get_user_name(uid=uid)
                     message = f"{bili_user_name}(uid: {uid})有新动态啦! 动态id：{dynamic_id_list[0]}！"
 
                 bot_zy.send_private_msg(user_id=171660901, message=message)
-                bot_zy.send_private_msg(user_id=80873436, message=message)
 
         return web.Response(status=206)
     return web.Response(status=403)
