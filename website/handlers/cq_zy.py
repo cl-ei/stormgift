@@ -336,7 +336,7 @@ class BotUtils:
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
             if group_id:
-                message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
+                message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"#挂机查询\"以完成绑定。"
                 self.response(message)
                 return
 
@@ -363,7 +363,7 @@ class BotUtils:
 
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
-            message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"挂机查询\"以完成绑定。"
+            message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"#挂机查询\"以完成绑定。"
             self.response(message)
             return True
 
