@@ -368,6 +368,7 @@ class BiliApi:
         if url in (
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
             "https://api.live.bilibili.com/gift/v3/smalltv/check",
+            "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check",
             "https://api.live.bilibili.com/lottery/v1/Storm/check",
             "https://api.live.bilibili.com/activity/v1/s9/sign",
             "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",
@@ -518,13 +519,12 @@ class BiliApi:
 
     @classmethod
     async def get_tv_raffle_id(cls, room_id, timeout=5):
-        # req_url = "https://api.live.bilibili.com/gift/v3/smalltv/check"
         req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check"
         data = {"roomid": room_id}
         flag, r = await cls.get(url=req_url, data=data, timeout=timeout, check_error_code=True)
         if not flag:
             return False, r
-
+        print(r)
         raffle_id_list = r.get("data", {}).get("gift", [])
         if raffle_id_list:
             return True, raffle_id_list
@@ -533,26 +533,17 @@ class BiliApi:
 
     @classmethod
     async def get_guard_raffle_id(cls, room_id, timeout=5):
-        req_url = "https://api.live.bilibili.com/lottery/v1/Lottery/check_guard?roomid=%s" % room_id
-        flag, r = await cls.get(req_url, timeout=timeout, check_response_json=True, check_error_code=True)
+        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check"
+        data = {"roomid": room_id}
+        flag, r = await cls.get(url=req_url, data=data, timeout=timeout, check_error_code=True)
         if not flag:
             return flag, r
 
-        raffle_id_list = r.get("data", [])
-        if not raffle_id_list:
-            return False, f"Empty raffle_id_list in response."
-
-        return_data = {}
-        for raffle in raffle_id_list:
-            raffle_id = raffle.get("id", 0)
-            if raffle_id:
-                return_data[raffle_id] = raffle
-
-        return_data = return_data.values()
-        if return_data:
-            return True, return_data
+        raffle_id_list = r.get("data", {}).get("guard", []) or []
+        if raffle_id_list:
+            return True, raffle_id_list
         else:
-            return False, f"Cannot get valid raffleId from list, r:{r}"
+            return False, f"Empty raffle_id_list in response."
 
     @classmethod
     async def get_guard_room_list(cls, timeout=5):
@@ -1534,7 +1525,7 @@ class BiliApi:
 
 
 async def test():
-    r = await BiliApi.get_uid_by_live_room_id(room_id=1108)
+    r = await BiliApi.get_tv_raffle_id(room_id=2516117)
     print(f"f -> {r}")
 
 if __name__ == "__main__":
