@@ -122,14 +122,6 @@ super_dxj_logger.addHandler(console)
 super_dxj_logger.addHandler(file_handler)
 
 
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_wanzi.log"))
-file_handler.setFormatter(log_format)
-dxj_wanzi_logger = logging.getLogger("dxj_wanzi")
-dxj_wanzi_logger.setLevel(logging.DEBUG)
-dxj_wanzi_logger.addHandler(console)
-dxj_wanzi_logger.addHandler(file_handler)
-
-
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "bili_api.log"))
 file_handler.setFormatter(log_format)
 bili_api_logger = logging.getLogger("bili_api")
@@ -180,7 +172,6 @@ __all__ = (
     "lt_db_sync_logger",
     "dxj_hansy_logger",
     "dxj_xiaoke_logger",
-    "dxj_wanzi_logger",
     "dxj_dd_logger",
     "super_dxj_logger",
     "bili_api_logger",
