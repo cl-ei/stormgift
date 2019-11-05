@@ -518,18 +518,14 @@ class BiliApi:
 
     @classmethod
     async def get_tv_raffle_id(cls, room_id, timeout=5):
-        req_url = "https://api.live.bilibili.com/gift/v3/smalltv/check"
-        flag, r = await cls.get(
-            url=req_url,
-            data={"roomid": room_id},
-            timeout=timeout,
-            check_response_json=True,
-            check_error_code=True
-        )
+        # req_url = "https://api.live.bilibili.com/gift/v3/smalltv/check"
+        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check"
+        data = {"roomid": room_id}
+        flag, r = await cls.get(url=req_url, data=data, timeout=timeout, check_error_code=True)
         if not flag:
             return False, r
 
-        raffle_id_list = r.get("data", {}).get("list", [])
+        raffle_id_list = r.get("data", {}).get("gift", [])
         if raffle_id_list:
             return True, raffle_id_list
         else:
