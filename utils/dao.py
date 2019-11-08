@@ -31,8 +31,8 @@ class RedisCache(object):
         keys = await self.execute("keys", pattern)
         return [k.decode("utf-8") for k in keys]
 
-    async def set(self, key, value, timeout=0):
-        v = pickle.dumps(value)
+    async def set(self, key, value, timeout=0, _un_pickle=False):
+        v = value if _un_pickle else pickle.dumps(value)
         if timeout > 0:
             return await self.execute("setex", key, timeout, v)
         else:
@@ -309,7 +309,7 @@ class MonitorLiveRooms(object):
 
         go_value = "$".join([str(_) for _ in sorted(live_room_id_set)])
         key = "LT_MONITOR_LIVE_ROOMS"
-        await cls._go_redis_client.set(key=key, value=go_value)
+        await cls._go_redis_client.set(key=key, value=go_value, _un_pickle=True)
 
         r = await redis_cache.set(cls._key, live_room_id_set)
         r2 = await redis_cache.set(cls._version_key, str(time.time()))
