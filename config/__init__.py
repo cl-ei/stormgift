@@ -21,6 +21,14 @@ REDIS_CONFIG = {
     "db": int(config["redis"]["stormgift_db"]),
 }
 
+REDIS_CONFIG_FOR_GO = {
+    "host": config["redis"]["host"],
+    "port": int(config["redis"]["port"]),
+    "password": config["redis"]["password"],
+    "db": int(config["redis"]["go_storm_db"]),
+}
+
+
 REDIS_CONFIG_X_NODE = {
     "host": config["redis_x_node"]["host"],
     "port": int(config["redis_x_node"]["port"]),

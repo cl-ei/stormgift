@@ -5,7 +5,7 @@ import random
 import pickle
 import aioredis
 import datetime
-from config import REDIS_CONFIG
+from config import REDIS_CONFIG, REDIS_CONFIG_FOR_GO
 
 
 class RedisCache(object):
@@ -280,6 +280,8 @@ class MonitorLiveRooms(object):
     __version_of_last_get = None
     __data_of_last_get = None
 
+    _go_redis_client = None
+
     @classmethod
     async def get(cls):
         version = await redis_cache.get(cls._version_key)
@@ -301,6 +303,14 @@ class MonitorLiveRooms(object):
             int(room_id) for room_id in live_room_id_set
             if room_id not in (0, "0", None, "")
         }
+
+        if cls._go_redis_client is None:
+            cls._go_redis_client = RedisCache(**REDIS_CONFIG_FOR_GO)
+
+        go_value = "$".join(sorted(live_room_id_set))
+        key = "LT_MONITOR_LIVE_ROOMS"
+        await cls._go_redis_client.set(key=key, value=go_value)
+
         r = await redis_cache.set(cls._key, live_room_id_set)
         r2 = await redis_cache.set(cls._version_key, str(time.time()))
         return r, r2
