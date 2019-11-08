@@ -11,7 +11,7 @@ from config import REDIS_CONFIG, REDIS_CONFIG_FOR_GO
 class RedisCache(object):
     def __init__(self, host, port, db, password):
         self.uri = f'redis://{host}:{port}'
-        self.db = 3 # db
+        self.db = db
         self.password = password
         self.redis_conn = None
 
