@@ -11,7 +11,7 @@ from config import REDIS_CONFIG, REDIS_CONFIG_FOR_GO
 class RedisCache(object):
     def __init__(self, host, port, db, password):
         self.uri = f'redis://{host}:{port}'
-        self.db = db
+        self.db = 3 # db
         self.password = password
         self.redis_conn = None
 
@@ -307,7 +307,7 @@ class MonitorLiveRooms(object):
         if cls._go_redis_client is None:
             cls._go_redis_client = RedisCache(**REDIS_CONFIG_FOR_GO)
 
-        go_value = "$".join(sorted(live_room_id_set))
+        go_value = "$".join([str(_) for _ in sorted(live_room_id_set)])
         key = "LT_MONITOR_LIVE_ROOMS"
         await cls._go_redis_client.set(key=key, value=go_value)
 
@@ -753,7 +753,7 @@ class SuperDxjUserAccounts:
 
 
 async def test():
-    r = await SuperDxjUserSettings.get_all_live_rooms()
+    r = await MonitorLiveRooms.get()
     print(r)
     # room_id = 13369254
     # cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{room_id}"
