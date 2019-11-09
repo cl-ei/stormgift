@@ -27,7 +27,7 @@ class WsClient:
 
         self.is_closed = False
         self.url = "ws://www.madliar.com:1024/console_wss"
-        self.url = "ws://broadcastlv.chat.bilibili.com:2244/sub"
+        # self.url = "ws://broadcastlv.chat.bilibili.com:2244/sub"
         self.join_package = WsApi.gen_join_room_pkg(room_id=self.room_id)
         self.heart_beat_package = WsApi.gen_heart_beat_pkg()
 
