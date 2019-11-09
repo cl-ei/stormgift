@@ -36,6 +36,7 @@ class WsClient:
 
         async def keep_alive(client):
             async with client.session.ws_connect(url=client.url) as ws:
+                # assert isinstance(ws, aiohttp.ClientWebSocketResponse)
                 client.ws = ws
 
                 await ws.send_bytes(client.join_package)
@@ -44,14 +45,14 @@ class WsClient:
                         await client.on_error(msg)
                         return
                     await client.on_message(msg.data, msg.type)
-
             await client.close()
 
         self.task = asyncio.create_task(keep_alive(self))
         return self
 
     async def heart_beat(self):
-        await self.ws.send_bytes(self.heart_beat_package)
+        if isinstance(self.ws, aiohttp.ClientWebSocketResponse) and self.ws.closed:
+            await self.ws.send_bytes(self.heart_beat_package)
 
     async def close(self):
         if self.is_closed:
@@ -118,7 +119,7 @@ class Handler:
             count = 0
             for room_id in self.clients_map:
                 client = self.clients_map[room_id].get("client")
-                if isinstance(client, WsClient):
+                if isinstance(client, WsClient) and not client.is_closed:
                     await client.heart_beat()
                     count += 1
 
@@ -138,7 +139,7 @@ class Handler:
             if self.clients_map[room_id].get("remove") is True:
                 client = self.clients_map[room_id].get("client")
                 if isinstance(client, WsClient):
-                    client.on_error = nop
+                    client.on_close = nop
                     await client.close()
                     self.clients_map[room_id]["client"] = None
             else:
@@ -157,17 +158,22 @@ class Handler:
             await self.update()
 
     async def load_target_clients_from_redis(self):
-        room_id_list = await MonitorLiveRooms.get()
-        for room_id in room_id_list:
+        target_rooms = await MonitorLiveRooms.get()
+        existed = set(self.clients_map.keys())
+
+        need_add = target_rooms - existed
+        need_del = existed - target_rooms
+
+        for room_id in list(need_add)[:9000]:
             if room_id not in self.clients_map:
                 self.clients_map[room_id] = {}
-
             if self.clients_map[room_id].get("remove") is True:
                 self.clients_map[room_id]["remove"] = False
 
-        for room_id in self.clients_map:
-            if room_id not in room_id_list:
-                self.clients_map[room_id]["remove"] = True
+        for room_id in need_del:
+            if room_id not in self.clients_map:
+                continue
+            self.clients_map[room_id]["remove"] = True
 
     async def run(self):
         await self.load_target_clients_from_redis()
