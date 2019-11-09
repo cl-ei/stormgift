@@ -40,6 +40,7 @@ class WsClient:
                 client.ws = ws
 
                 await ws.send_bytes(client.join_package)
+                await ws.send_bytes(client.heart_beat_package)
                 async for msg in ws:
                     if msg.type == aiohttp.WSMsgType.ERROR:
                         await client.on_error(msg)
@@ -75,7 +76,7 @@ class Handler:
         # }
         self._closed_ws_trigger_q = asyncio.Queue()
         self.msg_speed = 0
-        self.heart_beat_interval = 10
+        self.heart_beat_interval = 30
 
     async def on_message(self, msg_data, msg_type):
         self.msg_speed += 1
