@@ -27,7 +27,7 @@ class WsClient:
 
         self.is_closed = False
         self.url = "ws://www.madliar.com:1024/console_wss"
-        # self.url = "ws://broadcastlv.chat.bilibili.com:2244/sub"
+        self.url = "ws://broadcastlv.chat.bilibili.com:2244/sub"
         self.join_package = WsApi.gen_join_room_pkg(room_id=self.room_id)
         self.heart_beat_package = WsApi.gen_heart_beat_pkg()
 
@@ -43,7 +43,7 @@ class WsClient:
                 async for msg in ws:
                     if msg.type == aiohttp.WSMsgType.ERROR:
                         await client.on_error(msg)
-                        return
+                        break
                     await client.on_message(msg.data, msg.type)
             await client.close()
 
@@ -75,6 +75,7 @@ class Handler:
         # }
         self._closed_ws_trigger_q = asyncio.Queue()
         self.msg_speed = 0
+        self.heart_beat_interval = 10
 
     async def on_message(self, msg_data, msg_type):
         self.msg_speed += 1
@@ -124,10 +125,10 @@ class Handler:
                     count += 1
 
             cost_time = time.time() - start_time
-            if cost_time > 25:
+            if cost_time > self.heart_beat_interval:
                 sleep_time = 0
             else:
-                sleep_time = 25 - cost_time
+                sleep_time = self.heart_beat_interval - cost_time
             print(f"Heart beat cost: {cost_time:.3f}, sleep_time: {sleep_time:.3f}, proc count: {count}")
             await asyncio.sleep(sleep_time)
 
