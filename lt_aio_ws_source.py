@@ -73,6 +73,13 @@ class Handler:
         #   ...
         # }
         self._closed_ws_trigger_q = asyncio.Queue()
+        self.msg_speed = 0
+
+    async def on_message(self, msg_data, msg_type):
+        self.msg_speed += 1
+
+    async def on_error(self, msg):
+        print(f"Error: {msg}")
 
     async def on_closed(self, client):
         print(f"room_id crashed: {client.room_id}")
@@ -83,6 +90,27 @@ class Handler:
             return
 
         self._closed_ws_trigger_q.put_nowait(f"Client closed: {client.room_id}")
+
+    async def print_msg_speed(self):
+        time_cycle = 0
+        total_msg_count = 0
+        msg_speed_peek = 0
+        while True:
+            await asyncio.sleep(1)
+            time_cycle += 1
+
+            total_msg_count += self.msg_speed
+            if self.msg_speed > msg_speed_peek:
+                msg_speed_peek = self.msg_speed
+            self.msg_speed = 0
+
+            if time_cycle % 20 == 0:
+                time_cycle = 0
+
+                print(f"Message speed avg: {float(total_msg_count/20):.3f}, peek: {msg_speed_peek}")
+
+                total_msg_count = 0
+                msg_speed_peek = 0
 
     async def heart_beat(self):
         while True:
@@ -116,9 +144,9 @@ class Handler:
             else:
                 self.clients_map[room_id]["client"] = client = WsClient(
                     room_id=room_id,
+                    on_message=self.on_message,
                     on_close=self.on_closed,
-                    on_error=nop,
-                    on_message=nop,
+                    on_error=self.on_error,
                 )
                 await client.start()
 
@@ -142,15 +170,15 @@ class Handler:
                 self.clients_map[room_id]["remove"] = True
 
     async def run(self):
-        t = asyncio.create_task(self.heart_beat())
-
         await self.load_target_clients_from_redis()
+        self._closed_ws_trigger_q.put_nowait("Startup.")
         print(f"clients_map len: {len(self.clients_map)}")
 
-        self._closed_ws_trigger_q.put_nowait("Startup.")
-        await self.update_connections()
-
-        await t
+        await asyncio.gather(
+            self.heart_beat(),
+            self.update_connections(),
+            self.print_msg_speed(),
+        )
 
 
 async def main():
