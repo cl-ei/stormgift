@@ -160,6 +160,47 @@ class RedisCache(object):
     async def incr(self, key):
         return await self.execute("INCR", key)
 
+    async def sorted_set_zadd(self, key, *args):
+        # member, score
+        safe_args = []
+        if len(args) % 2 != 0:
+            raise ValueError("Error args.")
+
+        for i, arg in enumerate(args):
+            if i % 2 == 1:
+                safe_args.append(str(arg))
+            else:
+                safe_args.append(float(arg))
+        return await self.execute("	ZADD", key, *safe_args)
+
+    async def sorted_set_zcard(self, key):
+        return await self.execute("ZCARD", key)
+
+    async def sorted_set_zrange_by_score(self, key, min_="-inf", max_="+inf", with_scores=False, offset=0, limit=1000):
+        args = ["ZRANGEBYSCORE", key, min_, max_]
+        if with_scores:
+            args.append("WITHSCORES")
+        args.extend(["limit", offset, limit])
+        r = await self.execute(*args)
+        if not with_scores:
+            return [str(_) for _ in r]
+        result = []
+        for i, data in enumerate(r):
+            if i % 2 == 0:
+                result.append(data.decode("utf-8"))
+            else:
+                result.append(float(data))
+        return result
+
+    async def sorted_set_zrem(self, key, *members):
+        return await self.execute("ZREM", key, *members)
+
+    async def sorted_set_zrem_by_rank(self, key, start, stop):
+        return await self.execute("ZREMRANGEBYRANK", key, start, stop)
+
+    async def sorted_set_zrem_by_score(self, key, min_, max_):
+        return await self.execute("ZREMRANGEBYSCORE", key, min_, max_)
+
 
 redis_cache = RedisCache(**REDIS_CONFIG)
 
