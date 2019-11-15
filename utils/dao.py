@@ -767,17 +767,22 @@ class SuperDxjUserAccounts:
 
 
 class SuperDxjCookieMgr:
-    def __init__(self, room_id):
-        self.key = f"LT_SUPER_DXJ_LIVE_ROOM_COOKIE_{room_id}"
+    key_prefix = f"LT_SUPER_DXJ_USER_COOKIE"
 
-    async def save_cookie(self, cookie):
-        await redis_cache.set(self.key, cookie, timeout=3600*24*30)
+    @classmethod
+    async def save_cookie(cls, account, cookie):
+        key = f"{cls.key_prefix}_{account}"
+        await redis_cache.set(key, cookie, timeout=3600*24*30)
 
-    async def load_cookie(self):
-        return await redis_cache.get(self.key)
+    @classmethod
+    async def load_cookie(cls, account):
+        key = f"{cls.key_prefix}_{account}"
+        return await redis_cache.get(key)
 
-    async def set_invalid(self):
-        await redis_cache.delete(self.key)
+    @classmethod
+    async def set_invalid(cls, account):
+        key = f"{cls.key_prefix}_{account}"
+        await redis_cache.delete(key)
 
 
 async def test():

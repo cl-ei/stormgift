@@ -152,7 +152,7 @@ async def post_settings(request):
         old_config.get("account") != config.get("account")
         or old_config.get("password") != config.get("password")
     ):
-        await SuperDxjCookieMgr(room_id=room_id).set_invalid()
+        await SuperDxjCookieMgr.set_invalid(account=account)
 
     await SuperDxjUserSettings.set(room_id=room_id, **config)
     return web.json_response({"code": 0, "err_msg": "设置成功！"})

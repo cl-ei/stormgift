@@ -13,8 +13,8 @@ class DanmakuProcessor:
         self.short_room_id = short_room_id or room_id
         self.name = name
 
-        self._settings_load_time = 0
         self._cached_settings = None
+        self._settings_expire_time = 0
 
         self._is_live = False
         self._last_live_time = 0
@@ -24,7 +24,6 @@ class DanmakuProcessor:
         self.carousel_msg_index = 0
         self.dmk_q = asyncio.Queue()
 
-        self.cookie_mgr = SuperDxjCookieMgr(room_id=self.room_id)
         self.cookie = ""
         self.cookie_expire_time = None
 
@@ -39,21 +38,21 @@ class DanmakuProcessor:
         if self.cookie and self.cookie_expire_time > time.time():
             return self.cookie
 
-        cookie = await self.cookie_mgr.load_cookie()
+        config = await self.load_config()
+        account = config["account"]
+        password = config["password"]
+        cookie = await SuperDxjCookieMgr.load_cookie(account=account)
         if cookie:
             self.cookie = cookie
             self.cookie_expire_time = time.time() + 60
             return True, cookie
 
-        config = await self.load_config()
-        account = config["account"]
-        password = config["password"]
         flag, cookie = await CookieFetcher.get_cookie(account=account, password=password)
         if not flag:
             logging.info(f"Super dxj CookieFetcher.get_cookie Error: {cookie}")
             return False, f"登录失败：{cookie}"
 
-        await self.cookie_mgr.save_cookie(cookie=cookie)
+        await SuperDxjCookieMgr.save_cookie(account=account, cookie=cookie)
         self.cookie = cookie
         self.cookie_expire_time = time.time() + 60
         logging.info(f"Super dxj CookieFetcher.get_cookie 登录成功！{self.room_id}.")
@@ -61,7 +60,9 @@ class DanmakuProcessor:
 
     async def set_cookie_invalid(self):
         self.cookie = ""
-        await self.cookie_mgr.set_invalid()
+        config = await self.load_config()
+        account = config["account"]
+        await SuperDxjCookieMgr.set_invalid(account=account)
         return True
 
     async def get_live_status(self):
@@ -124,11 +125,11 @@ class DanmakuProcessor:
                 logging.error(f"{self.short_room_id}-{self.name} 弹幕发送失败！{msg}.\n\t{dmk}")
 
     async def load_config(self):
-        if int(time.time()) - self._settings_load_time < 60 and self._cached_settings:
+        if self._cached_settings and self._settings_expire_time > time.time():
             return self._cached_settings
 
         self._cached_settings = await SuperDxjUserSettings.get(room_id=self.room_id)
-        self._settings_load_time = time.time()
+        self._settings_expire_time = time.time() + 60
         return self._cached_settings
 
     async def proc_one_danmaku(self, dmk):
@@ -144,10 +145,10 @@ class DanmakuProcessor:
             d = info[3]
             dl = d[0] if d else "-"
             deco = d[1] if d else "undefined"
-            logging.info(
-                f"{self.short_room_id}-{self.name}"
-                f"\n\t{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
-            )
+            # logging.info(
+            #     f"{self.short_room_id}-{self.name}"
+            #     f"\n\t{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
+            # )
 
             if msg in settings["carousel_msg"]:
                 return
