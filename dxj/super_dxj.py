@@ -89,10 +89,10 @@ class DanmakuProcessor:
     async def send_danmaku(self):
         while True:
             dmk = await self.dmk_q.get()
-            logging.info(f"Need send dmk: {self.short_room_id}-{self.name}\n\t{dmk}")
 
             now = time.time()
             if now < self.msg_block_until:
+                logging.info(f"DMK BLOCK: {self.short_room_id}-{self.name} -> {dmk}")
                 continue
 
             # 计数
@@ -109,9 +109,11 @@ class DanmakuProcessor:
             if not flag:
                 # 登录失败，冷却1分钟
                 self.msg_block_until = now + 60
+                logging.info(f"DMK BLOCK(Login failed): {self.short_room_id}-{self.name} -> {dmk}")
                 continue
 
             flag, msg = await BiliApi.send_danmaku(message=dmk, room_id=self.room_id, cookie=cookie)
+            logging.info(f"DMK r: {flag}. {self.short_room_id}-{self.name} -> {dmk}\n\t{msg}")
             if flag:
                 continue
 
@@ -120,9 +122,6 @@ class DanmakuProcessor:
 
             elif "账号未登录" in msg:
                 await self.set_cookie_invalid()
-
-            else:
-                logging.error(f"{self.short_room_id}-{self.name} 弹幕发送失败！{msg}.\n\t{dmk}")
 
     async def load_config(self):
         if self._cached_settings and self._settings_expire_time > time.time():
