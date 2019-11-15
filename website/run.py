@@ -22,16 +22,20 @@ else:
 
 def handle_read_callback(notifier):
     print(f"handle_read_callback: {notifier}")
-    global log_file_content_size
-    current_size = os.path.getsize(monitor_log_file)
+
     try:
-        with open(monitor_log_file, "rb") as f:
-            f.seek(log_file_content_size)
-            content = f.read(current_size - log_file_content_size)
-            log_file_changed_content_q.put_nowait(content)
+        global log_file_content_size
+        current_size = os.path.getsize(monitor_log_file)
+        try:
+            with open(monitor_log_file, "rb") as f:
+                f.seek(log_file_content_size)
+                content = f.read(current_size - log_file_content_size)
+                log_file_changed_content_q.put_nowait(content)
+        except Exception as e:
+            print(f"Error happened in handle_read_callback: {e}\n{traceback.format_exc()}")
+        log_file_content_size = current_size
     except Exception as e:
-        return f"Error happened in handle_read_callback: {e}\n{traceback.format_exc()}"
-    log_file_content_size = current_size
+        print(f"handle_read_callback E: {e}")
 
 
 async def proc_status(request):
