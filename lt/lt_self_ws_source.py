@@ -9,9 +9,6 @@ from config.log4 import lt_ws_source_logger as logging
 from utils.model import objects, MonitorWsClient
 
 
-BiliApi.USE_ASYNC_REQUEST_METHOD = True
-
-
 class WsManager(object):
 
     def __init__(self):

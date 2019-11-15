@@ -6,8 +6,6 @@ from utils.biliapi import BiliApi
 from utils.db_raw_query import AsyncMySQL
 
 
-BiliApi.USE_ASYNC_REQUEST_METHOD = True
-
 template_text = """
 <div class="room-introduction">
 <div class="room-introduction-scroll-wrapper">

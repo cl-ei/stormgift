@@ -10,9 +10,6 @@ from utils.dao import InLotteryLiveRooms
 from utils.mq import mq_source_to_raffle
 
 
-BiliApi.USE_ASYNC_REQUEST_METHOD = True
-
-
 class TvScanner(object):
     AREA_MAP = {
         0: "全区",

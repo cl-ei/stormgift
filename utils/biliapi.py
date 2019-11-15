@@ -361,7 +361,6 @@ class BiliApi:
             "Chrome/70.0.3538.110 Safari/537.36"
         ),
     }
-    USE_ASYNC_REQUEST_METHOD = True
 
     @classmethod
     async def _request_async(cls, method, url, headers, data, timeout):
@@ -381,6 +380,7 @@ class BiliApi:
             "https://api.live.bilibili.com/room/v1/Area/getListByAreaID",
             "https://api.live.bilibili.com/room/v1/Room/get_info",
             "https://api.live.bilibili.com/guard/topList",
+            "https://api.live.bilibili.com/msg/send",
 
         ):
             req_json = {
@@ -417,29 +417,15 @@ class BiliApi:
         else:
             headers = cls.headers
 
-        if cls.USE_ASYNC_REQUEST_METHOD:
-            try:
-                status_code, content = await cls._request_async(method, url, headers, data, timeout)
-            except asyncio.TimeoutError:
-                return False, "Bili api HTTP request timeout!"
-
-            except Exception as e:
-                from config.log4 import bili_api_logger as logging
-                error_message = f"Async _request Error: {e}, {traceback.format_exc()}"
-                logging.error(error_message)
-                return False, error_message
-
-        else:
-            fn = requests.post if method == "post" else requests.get
-            try:
-                r = fn(url=url, data=data, headers=headers, timeout=timeout)
-            except Exception as e:
-                return False, f"Response Error: {e}"
-
-            if r.status_code != 200:
-                return False, f"Status code Error: {r.status_code}"
-
-            content = r.text
+        try:
+            status_code, content = await cls._request_async(method, url, headers, data, timeout)
+        except asyncio.TimeoutError:
+            return False, "Bili api HTTP request timeout!"
+        except Exception as e:
+            from config.log4 import bili_api_logger as logging
+            error_message = f"Async _request Error: {e}, {traceback.format_exc()}"
+            logging.error(error_message)
+            return False, error_message
 
         if not check_response_json:
             return True, content
