@@ -551,7 +551,7 @@ class BotHandler:
         title = sender.get("title", "--")
         card = sender.get("card", "--")
         group_id = context["group_id"]
-        msg = context["raw_message"]
+        msg = context["message"]
         logging.info(f"群消息: ({group_id}) [{title}][{card}]{user_nickname}({user_id}) -> {msg}")
 
         msg = msg.replace("＃", "#")
