@@ -4,7 +4,7 @@ from random import randint
 from aiohttp import web
 from config import CDN_URL
 from utils.biliapi import BiliApi
-from utils.dao import redis_cache, SuperDxjUserSettings, SuperDxjUserAccounts
+from utils.dao import redis_cache, SuperDxjUserSettings, SuperDxjUserAccounts, SuperDxjCookieMgr
 from website.handlers.lt import render_to_response
 
 
@@ -146,6 +146,13 @@ async def post_settings(request):
         if not isinstance(v, str) or len(v) > 30:
             continue
         config["auto_response"].append([k, v])
+
+    old_config = await SuperDxjUserSettings.get(room_id=room_id)
+    if (
+        old_config.get("account") != config.get("account")
+        or old_config.get("password") != config.get("password")
+    ):
+        await SuperDxjCookieMgr(room_id=room_id).set_invalid()
 
     await SuperDxjUserSettings.set(room_id=room_id, **config)
     return web.json_response({"code": 0, "err_msg": "设置成功！"})

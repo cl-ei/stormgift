@@ -5,17 +5,13 @@ import logging
 import asyncio
 import datetime
 import requests
-from config import CQBOT
-from cqhttp import CQHttp
+from utils.cq import bot
 from random import choice, random
 from utils.biliapi import WsApi, BiliApi
 from utils.ws import RCWebSocketClient
 from utils.dao import HansyGiftRecords
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import dxj_hansy_logger as logging
-
-
-bot = CQHttp(**CQBOT)
 
 
 class DanmakuSetting(object):

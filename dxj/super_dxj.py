@@ -1,8 +1,7 @@
 import time
 import asyncio
-import traceback
 from utils.ws import RCWebSocketClient
-from utils.dao import SuperDxjUserAccounts, SuperDxjUserSettings, redis_cache
+from utils.dao import SuperDxjUserAccounts, SuperDxjUserSettings, SuperDxjCookieMgr
 from utils.biliapi import BiliApi, WsApi, CookieFetcher
 from config.log4 import super_dxj_logger as logging
 
@@ -25,45 +24,44 @@ class DanmakuProcessor:
         self.carousel_msg_index = 0
         self.dmk_q = asyncio.Queue()
 
+        self.cookie_mgr = SuperDxjCookieMgr(room_id=self.room_id)
         self.cookie = ""
+        self.cookie_expire_time = None
+
         self.msg_speed_counter = 0
         self.msg_speed_counter_start_time = 0
         self.msg_block_until = 0
-
-        self.cookie_cache_key = None
 
         self.master_uid = None
         self.followers = []
 
     async def load_cookie(self):
-        if self.cookie:
-            return True, self.cookie
+        if self.cookie and self.cookie_expire_time > time.time():
+            return self.cookie
+
+        cookie = await self.cookie_mgr.load_cookie()
+        if cookie:
+            self.cookie = cookie
+            self.cookie_expire_time = time.time() + 60
+            return True, cookie
 
         config = await self.load_config()
         account = config["account"]
         password = config["password"]
-
-        if not self.cookie_cache_key:
-            self.cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{account}"
-        cookie = await redis_cache.get(self.cookie_cache_key)
-        if cookie:
-            self.cookie = cookie
-            return True, cookie
-
         flag, cookie = await CookieFetcher.get_cookie(account=account, password=password)
         if not flag:
             logging.info(f"Super dxj CookieFetcher.get_cookie Error: {cookie}")
             return False, f"登录失败：{cookie}"
 
-        await redis_cache.set(self.cookie_cache_key, cookie)
+        await self.cookie_mgr.save_cookie(cookie=cookie)
         self.cookie = cookie
-
-        logging.info(f"Super dxj CookieFetcher.get_cookie 登录成功！")
+        self.cookie_expire_time = time.time() + 60
+        logging.info(f"Super dxj CookieFetcher.get_cookie 登录成功！{self.room_id}.")
         return True, cookie
 
     async def set_cookie_invalid(self):
         self.cookie = ""
-        await redis_cache.delete(self.cookie_cache_key)
+        await self.cookie_mgr.set_invalid()
         return True
 
     async def get_live_status(self):
@@ -135,7 +133,7 @@ class DanmakuProcessor:
 
     async def proc_one_danmaku(self, dmk):
         settings = await self.load_config()
-        cmd = dmk["cmd"]
+        cmd = dmk.get("cmd", "") or ""
         if cmd.startswith("DANMU_MSG"):
             info = dmk.get("info", {})
             msg = str(info[1])
@@ -224,10 +222,6 @@ class DanmakuProcessor:
 
         elif cmd == "PREPARING":
             self._is_live = False
-
-        else:
-            # print(f"room_id: {self.room_id}: {dmk}")
-            pass
 
     async def thank_gift(self):
         while True:
@@ -431,10 +425,7 @@ class WsManager(object):
             dp = DanmakuProcessor(q=q, room_id=room_id, short_room_id=short_room_id, name=user_name)
             dps.append(asyncio.create_task(dp.run()))
 
-
-        logging.info(
-            f"Ws monitor settings read finished, Need add: {expected}."
-        )
+        logging.info(f"Ws monitor settings read finished, Need add: {expected}.")
         for dp_task in dps:
             await dp_task
 

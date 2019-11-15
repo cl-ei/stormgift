@@ -40,7 +40,7 @@ class RedisCache(object):
 
     async def expire(self, key, timeout):
         if timeout > 0:
-            return await self.execute("	EXPIRE", key, timeout)
+            return await self.execute("EXPIRE", key, timeout)
 
     async def set_if_not_exists(self, key, value, timeout=3600*24*7):
         v = pickle.dumps(value)
@@ -171,7 +171,7 @@ class RedisCache(object):
                 safe_args.append(str(arg))
             else:
                 safe_args.append(float(arg))
-        return await self.execute("	ZADD", key, *safe_args)
+        return await self.execute("ZADD", key, *safe_args)
 
     async def sorted_set_zcard(self, key):
         return await self.execute("ZCARD", key)
@@ -355,33 +355,6 @@ class MonitorLiveRooms(object):
         r = await redis_cache.set(cls._key, live_room_id_set)
         r2 = await redis_cache.set(cls._version_key, str(time.time()))
         return r, r2
-
-
-class DXJMonitorLiveRooms(object):
-    """
-
-    返回值是set 类型！
-
-    """
-    _key = "LT_DXJ_MONITOR_LIVE_ROOMS"
-
-    @classmethod
-    async def get(cls):
-        data = await redis_cache.get(cls._key)
-        if not isinstance(data, list):
-            data = []
-        return data
-
-    @classmethod
-    async def add(cls, live_room_id):
-        live_room_id = int(live_room_id)
-        data = await redis_cache.get(cls._key)
-        if not isinstance(data, list):
-            data = []
-        if live_room_id not in data:
-            data.append(live_room_id)
-        await redis_cache.set(cls._key, data)
-        return data
 
 
 class LtUserLoginPeriodOfValidity(object):
@@ -791,6 +764,20 @@ class SuperDxjUserAccounts:
                 continue
 
         return result
+
+
+class SuperDxjCookieMgr:
+    def __init__(self, room_id):
+        self.key = f"LT_SUPER_DXJ_LIVE_ROOM_COOKIE_{room_id}"
+
+    async def save_cookie(self, cookie):
+        await redis_cache.set(self.key, cookie, timeout=3600*24*30)
+
+    async def load_cookie(self):
+        return await redis_cache.get(self.key)
+
+    async def set_invalid(self):
+        await redis_cache.delete(self.key)
 
 
 async def test():
