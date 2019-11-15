@@ -63,7 +63,7 @@ async def save_gift(uid, uname, gift_name, coin_type, price, count, created_time
 
 
 async def proc_message(message):
-    cmd = message.get("cmd")
+    cmd = message.get("cmd", "") or ""
     if cmd.startswith("DANMU_MSG"):
         info = message.get("info", {})
         msg = str(info[1])
