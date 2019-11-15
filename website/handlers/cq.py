@@ -530,6 +530,7 @@ class BotHandler:
 
     @classmethod
     async def handle_group_message(cls, context):
+        logging.info(f"group_message: {context}")
         sender = context["sender"]
         user_id = sender["user_id"]
         user_nickname = sender["nickname"]
@@ -538,10 +539,7 @@ class BotHandler:
         group_id = context["group_id"]
         msg = context["raw_message"]
 
-        logging.info(
-            "Group message received: group_%s [%s][%s](%s qq: %s) -> %s"
-            % (group_id, title, card, user_nickname, user_id, msg)
-        )
+        logging.info(f"群消息: ({group_id}) [{title}][{card}]({user_nickname} qq: {user_id}) -> {msg}")
 
         p = BotUtils()
         msg = msg.replace("＃", "#")
@@ -576,7 +574,7 @@ class BotHandler:
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
-        logging.info("Private message received: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))
+        logging.info("初号机收到私聊: %s(qq: %s) -> %s" % (user_nickname, user_id, msg))
 
         if msg.startswith("起床"):
             try:
@@ -807,7 +805,7 @@ class BotHandler:
 
     @classmethod
     async def handle_request(cls, context):
-        logging.info(f"Received request context: {context}")
+        logging.info(f"Request context: {context}")
         if context["request_type"] != "group":
             return
 
