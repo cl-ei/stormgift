@@ -115,7 +115,7 @@ class DanmakuProcessor:
             flag, msg = await BiliApi.send_danmaku(message=dmk, room_id=self.room_id, cookie=cookie)
             logging.info(f"DMK r: {flag}. {self.short_room_id}-{self.name} -> {dmk}\n\t{msg}")
             if flag:
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(1)
                 continue
 
             if "412" in msg:
