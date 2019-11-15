@@ -36,7 +36,7 @@ class DanmakuProcessor:
 
     async def load_cookie(self):
         if self.cookie and self.cookie_expire_time > time.time():
-            return self.cookie
+            return True, self.cookie
 
         config = await self.load_config()
         account = config["account"]
