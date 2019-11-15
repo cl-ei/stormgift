@@ -21,6 +21,7 @@ else:
 
 
 def handle_read_callback(notifier):
+    print(f"handle_read_callback: {notifier}")
     global log_file_content_size
     current_size = os.path.getsize(monitor_log_file)
     try:
