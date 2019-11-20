@@ -27,6 +27,7 @@ async def send_gift(cookie, medal, user_name=""):
     if not target_model:
         return
     target_model = target_model[0]
+    print(f"target_model: {target_model}")
     logging.info(
         f"\n{'-'*80}\n"
         f"开始处理：{uid} {user_name} -> {target_model['medal_name']}"
