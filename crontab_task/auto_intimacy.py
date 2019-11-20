@@ -23,11 +23,10 @@ async def send_gift(cookie, medal, user_name=""):
         return
 
     uid = r[0]["uid"]
-    target_model = [_ for _ in r if _["medal_name"] == medal]
+    target_model = [_ for _ in r if _["medal_name"] == medal and "roomid" in _]
     if not target_model:
         return
     target_model = target_model[0]
-    print(f"target_model: {target_model}")
     logging.info(
         f"\n{'-'*80}\n"
         f"开始处理：{uid} {user_name} -> {target_model['medal_name']}"
