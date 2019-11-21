@@ -153,14 +153,8 @@ class TvScanner(object):
 
         elif cmd == "NOTICE_MSG":
             msg_self = message.get("msg_self", "")
-            matched_notice_area = False
-
-            if area_id == 1 and msg_self.startswith("全区"):
-                matched_notice_area = True
-            elif msg_self.startswith(area_name):
-                matched_notice_area = True
-
-            if matched_notice_area:
+            msg_type = message.get("msg_type")
+            if msg_type in (2, 8):
                 real_room_id = message['real_roomid']
                 r = await mq_source_to_raffle.put((message, time.time(), real_room_id))
                 r2 = await InLotteryLiveRooms.add(real_room_id)
@@ -170,7 +164,7 @@ class TvScanner(object):
                     f"source: {area_id}-[{area_name}]-{room_id}, mq put result: {r}, update lottery_rooms r: {r2}"
                 )
 
-        elif cmd == "GUARD_MSG" and message.get("buy_type") == 1 and area_id == 1:
+        elif cmd == "GUARD_MSG" and message.get("buy_type") == 1:  # and area_id == 1:
             # {
             #   'cmd': 'GUARD_MSG',
             #   'msg': '用户 :?菜刀刀的鸭鸭:? 在主播 小菜刀夫斯基 的直播间开通了总督',
