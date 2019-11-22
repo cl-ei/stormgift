@@ -9,7 +9,7 @@ from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
 from utils.email import send_cookie_invalid_notice
-from utils.dao import LtUserLoginPeriodOfValidity
+from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord
 
 
 BLOCK_FRESH_TIME = 1
@@ -505,51 +505,41 @@ class DBCookieOperator:
 
         start_time = time.time()
 
-        most_recently = await AsyncMySQL.execute(
-            "select created_time from userrafflerecord "
-            "where user_id = %s order by created_time desc limit 1;",
-            (uid,)
-        )
-        if most_recently:
-            interval = (datetime.datetime.now() - most_recently[0][0]).total_seconds()
-            most_recently = gen_time_prompt(interval)
-        else:
-            most_recently = "约100年前"
+        most_recently, rows = await UserRaffleRecord.get_by_user_id(user_id=uid)
+        most_recently = gen_time_prompt(most_recently)
 
         if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * BLOCK_FRESH_TIME:
-            interval = (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds()
+            interval_seconds = (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds()
             return False, (
                 f"{cookie_obj.name}(uid: {cookie_obj.uid}):\n"
-                f"{gen_time_prompt(interval)}发现你被关进了小黑屋，最后一次抽奖时间：{most_recently}。"
+                f"{gen_time_prompt(interval_seconds)}发现你被关进了小黑屋，最后一次抽奖时间：{most_recently}。"
             )
-
-        rows = await AsyncMySQL.execute(
-            (
-                "select gift_name, count(raffle_id), sum(intimacy) "
-                "from userrafflerecord "
-                "where user_id = %s and created_time >= %s "
-                "group by gift_name;"
-            ), (uid, datetime.datetime.now() - datetime.timedelta(hours=24))
-        )
         process_time = time.time() - start_time
+        calc = {}
+        total_intimacy = 0
+        raffle_count = len(rows)
+        for row in rows:
+            gift_name, raffle_id, intimacy = row.split("$")
+            if gift_name not in calc:
+                calc[gift_name] = 1
+            else:
+                calc[gift_name] += 1
 
-        raffle_result = [(r[0], r[1], r[2]) for r in rows]
+            if gift_name != "宝箱":
+                total_intimacy += intimacy
 
-        def sort_func(row):
+        def sort_func(r):
             priority_map = {
                 "宝箱": 0,
                 "总督": 1,
                 "提督": 2,
                 "舰长": 3,
             }
-            return priority_map.get(row[0], 4)
+            return priority_map.get(r[0], 4)
 
-        total_intimacy = sum([r[2] for r in raffle_result if r[0] != "宝箱"])
         postfix = []
-        for r in sorted(raffle_result, key=sort_func):
-            gift_name = r[0]
-            award_name = "银瓜子" if gift_name == "宝箱" else "辣条"
-            postfix.append(f"{gift_name}: {r[1]}次({r[2]}{award_name})")
+        for gift_name, times in sorted([(gift_name, times) for gift_name, times in calc.items()], key=sort_func):
+            postfix.append(f"{gift_name}: {times}次")
         if postfix:
             postfix = f"{'-'*20}\n" + "、".join(postfix) + "。"
         else:
@@ -557,7 +547,7 @@ class DBCookieOperator:
 
         prompt = [
             f"{cookie_obj.name}(uid: {cookie_obj.uid})正常领取辣条中:\n",
-            f"最后一次抽奖在{str(most_recently)}，24小时内共获得{total_intimacy}辣条。\n",
+            f"最后一次抽奖在{str(most_recently)}，24小时内累计抽奖{raffle_count}次，共获得{total_intimacy}辣条。\n",
             postfix,
             f"\n处理时间：{process_time:.3f}"
         ]

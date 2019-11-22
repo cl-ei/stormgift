@@ -202,6 +202,9 @@ class RedisCache(object):
     async def sorted_set_zrem_by_score(self, key, min_, max_):
         return await self.execute("ZREMRANGEBYSCORE", key, min_, max_)
 
+    async def sorted_set_zscore(self, key, member):
+        return await self.execute("ZSCORE", key, member)
+
 
 redis_cache = RedisCache(**REDIS_CONFIG)
 
@@ -815,7 +818,7 @@ class UserRaffleRecord:
         await redis_cache.sorted_set_zrem_by_score(key=key, min_="-inf", max_=time.time() - 25*3600)
 
     @classmethod
-    async def get_by_user_id(cls, user_id):
+    async def get_by_user_id(cls, user_id):  # -> list(float, list)
         key = f"{cls.key}_{user_id}"
         r = await redis_cache.sorted_set_zrange_by_score(
             key,
@@ -824,12 +827,14 @@ class UserRaffleRecord:
             with_scores=False,
             offset=0, limit=50000
         )
-        return r
+        score = await redis_cache.sorted_set_zscore(key=key, member=r[-1])
+        return float(score), r
 
 
 async def test():
-    r = await UserRaffleRecord.get_by_user_id(user_id=20932326)
+    last_time, r = await UserRaffleRecord.get_by_user_id(user_id=20932326)
     print(r)
+    print(time.time() - last_time)
     # room_id = 13369254
     # cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{room_id}"
     # await redis_cache.delete(cookie_cache_key)

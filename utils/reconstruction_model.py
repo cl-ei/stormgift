@@ -252,28 +252,6 @@ class Raffle(peewee.Model):
         return raffle_obj
 
 
-class UserRaffleRecord(peewee.Model):
-    user_id = peewee.IntegerField()
-    gift_name = peewee.CharField()
-    raffle_id = peewee.IntegerField()
-    intimacy = peewee.IntegerField()
-    created_time = peewee.DateTimeField(default=datetime.datetime.now, index=True)
-
-    class Meta:
-        database = mysql_db
-
-    @classmethod
-    async def create(cls, user_id, gift_name, raffle_id, intimacy=0, created_time=None):
-        return await objects.create(
-            UserRaffleRecord,
-            user_id=user_id,
-            gift_name=gift_name,
-            raffle_id=raffle_id,
-            intimacy=intimacy,
-            created_time=created_time or datetime.datetime.now()
-        )
-
-
 class LTUserCookie(peewee.Model):
     name = peewee.CharField(index=True, null=True)
     assign_machine = peewee.IntegerField(default=0)

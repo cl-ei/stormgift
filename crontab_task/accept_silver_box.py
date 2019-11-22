@@ -4,7 +4,7 @@ import asyncio
 from utils.biliapi import BiliApi
 from config.log4 import silver_box_logger as logging
 from utils.highlevel_api import DBCookieOperator
-from utils.reconstruction_model import UserRaffleRecord
+from utils.dao import UserRaffleRecord
 
 
 async def accept(user):
