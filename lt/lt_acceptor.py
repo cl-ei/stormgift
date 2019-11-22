@@ -123,7 +123,6 @@ class Worker(object):
         gift_name = gift_name.replace("抽奖", "")
 
         success = []
-        last_raffle_id = None
         for index, cookie_obj in enumerate(user_cookie_objs):
             flag, message = result_list[index]
 
@@ -152,8 +151,7 @@ class Worker(object):
                 logging.error(f"Cannot fetch award_num from message. {e}", exc_info=True)
                 award_num = 1
 
-            r = await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
-            last_raffle_id = r.id
+            await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
             success.append(f"{message} <- {index}-{cookie_obj.uid}-{cookie_obj.name}")
 
         success_users = "\n".join(success)
@@ -162,7 +160,6 @@ class Worker(object):
         logging.info(
             f"\n{'-'*split_char_count}{title}{'-'*split_char_count}\n"
             f"{success_users}\n\n"
-            f"last_raffle_id: {last_raffle_id}\n"
             f"cloud_acceptor_url: {cloud_acceptor_url[-20:]}\n"
             f"{'-'*80}"
         )
