@@ -184,7 +184,7 @@ class RedisCache(object):
         args.extend(["limit", offset, limit])
         r = await self.execute(*args)
         if not with_scores:
-            return [str(_) for _ in r]
+            return [_.decode() for _ in r]
         result = []
         for i, data in enumerate(r):
             if i % 2 == 0:
@@ -811,7 +811,8 @@ class UserRaffleRecord:
         key = f"{cls.key}_{user_id}"
         if created_time is None:
             created_time = time.time()
-        return await redis_cache.sorted_set_zadd(key, created_time, f"{gift_name}${raffle_id}${intimacy}")
+        await redis_cache.sorted_set_zadd(key, created_time, f"{gift_name}${raffle_id}${intimacy}")
+        await redis_cache.sorted_set_zrem_by_score(key=key, min_="-inf", max_=time.time() - 25*3600)
 
     @classmethod
     async def get_by_user_id(cls, user_id):
@@ -827,7 +828,7 @@ class UserRaffleRecord:
 
 
 async def test():
-    r = await UserRaffleRecord.get_by_user_id(user_id=123)
+    r = await UserRaffleRecord.get_by_user_id(user_id=20932326)
     print(r)
     # room_id = 13369254
     # cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{room_id}"
