@@ -827,7 +827,10 @@ class UserRaffleRecord:
             with_scores=False,
             offset=0, limit=50000
         )
-        score = await redis_cache.sorted_set_zscore(key=key, member=r[-1])
+        if r:
+            score = await redis_cache.sorted_set_zscore(key=key, member=r[-1])
+        else:
+            score = 0
         return float(score), r
 
 
