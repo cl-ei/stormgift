@@ -128,9 +128,6 @@ class Worker(object):
 
         if not await redis_cache.set_if_not_exists(key, gift_info):
             return
-
-        print(f"获取到raffle id: G -> {key}")
-
         await mq_raffle_to_acceptor.put(key)
 
         privilege_type = gift_info["privilege_type"]
@@ -235,7 +232,6 @@ class Worker(object):
                 key = f"T${room_id}${gift_id}${gift_type}${time_accept}"
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
-                print(f"获取到raffle id: T -> {key}")
                 await mq_raffle_to_acceptor.put(key)
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
