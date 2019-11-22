@@ -70,10 +70,10 @@ async def flush_in_lottery_live_rooms():
 
     if target_monitor_live_rooms != monitor_live_rooms:
         await MonitorLiveRooms.set(target_monitor_live_rooms)
-    logging.info(
-        f"In lottery live room update! "
-        f"count: {len(monitor_live_rooms)}, total: {len(target_monitor_live_rooms)}."
-    )
+    # logging.info(
+    #     f"In lottery live room update! "
+    #     f"count: {len(monitor_live_rooms)}, total: {len(target_monitor_live_rooms)}."
+    # )
 
 
 async def main():
