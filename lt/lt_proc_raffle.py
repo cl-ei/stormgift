@@ -229,9 +229,10 @@ class Worker(object):
                     "time": info.get("time"),
                 }
                 result.setdefault(user_name, []).append(i)
-                key = f"T${room_id}${gift_id}${gift_type}${time_accept}"
+                key = f"T${room_id}${gift_id}"
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
+
                 await mq_raffle_to_acceptor.put(key)
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,

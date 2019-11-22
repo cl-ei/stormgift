@@ -24,23 +24,10 @@ class Worker(object):
     def __init__(self, index):
         self.worker_index = index
         self.__busy_time = 0
-        self.accepted_keys = []
 
         self._cookie_objs_non_skip = []
         self._cookie_objs = []
         self._cookie_objs_update_time = 0
-
-    def _is_new_gift(self, *args):
-        key = "$".join([str(_) for _ in args])
-        if key in self.accepted_keys:
-            return False
-
-        self.accepted_keys.insert(0, key)
-
-        while len(self.accepted_keys) >= 10000:
-            self.accepted_keys.pop()
-
-        return True
 
     async def load_cookie(self):
         if time.time() - self._cookie_objs_update_time > 100:
@@ -54,12 +41,12 @@ class Worker(object):
         key_type, room_id, gift_id, *other_args = key.split("$")
         room_id = int(room_id)
         gift_id = int(gift_id)
-        if not self._is_new_gift(key_type, room_id, gift_id):
-            return "Repeated gift, skip it."
         gift_type = ""
 
         if key_type == "T":
-            gift_type, accept_time, *_ = other_args
+            info = await redis_cache.get(key)
+            gift_type = info["type"]
+            accept_time = int(time.time() + info["time_wait"])
             delay_accept_q.put_nowait((room_id, gift_id, gift_type, int(accept_time)))
             return
         elif key_type == "T_NOW":
