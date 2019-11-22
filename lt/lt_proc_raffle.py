@@ -214,7 +214,7 @@ class Worker(object):
                 gift_id = info.get("raffleId", 0)
                 gift_type = info.get("type")
                 gift_name = info.get("thank_text", "").split("赠送的", 1)[-1]
-                time_accept = int(time.time() + 5 + info.get("time_wait"))
+                # time_accept = int(time.time() + 5 + info.get("time_wait"))
 
                 i = {
                     "name": user_name,

@@ -10,8 +10,7 @@ from config import cloud_acceptors
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import acceptor_logger as logging
-from utils.reconstruction_model import UserRaffleRecord, objects
-
+from utils.dao import UserRaffleRecord
 
 NON_SKIP_USER_ID = [
     20932326,  # DD
@@ -123,12 +122,10 @@ class Worker(object):
             gift_name = "未知"
         gift_name = gift_name.replace("抽奖", "")
 
-        index = 0
         success = []
         last_raffle_id = None
-        for cookie_obj in user_cookie_objs:
+        for index, cookie_obj in enumerate(user_cookie_objs):
             flag, message = result_list[index]
-            index += 1
 
             if flag is not True:
                 if "访问被拒绝" in message:
@@ -217,7 +214,6 @@ async def main():
     logging.info("-" * 80)
     logging.info("LT ACCEPTOR started!")
     logging.info("-" * 80)
-    await objects.connect()
 
     tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(64)]
     tasks.append(asyncio.create_task(Worker(99).waiting_delay_raffles()))

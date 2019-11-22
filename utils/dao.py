@@ -162,7 +162,7 @@ class RedisCache(object):
         return await self.execute("INCR", key)
 
     async def sorted_set_zadd(self, key, *args):
-        # member, score
+        # score, member
         safe_args = []
         if len(args) % 2 != 0:
             raise ValueError("Error args.")
@@ -803,8 +803,31 @@ class SuperDxjCookieMgr:
         await redis_cache.delete(key)
 
 
+class UserRaffleRecord:
+    key = "LT_USER_RAFFLE_RECORD"
+
+    @classmethod
+    async def create(cls, user_id, gift_name, raffle_id, intimacy=0, created_time=None):
+        key = f"{cls.key}_{user_id}"
+        if created_time is None:
+            created_time = time.time()
+        return await redis_cache.sorted_set_zadd(key, created_time, f"{gift_name}${raffle_id}${intimacy}")
+
+    @classmethod
+    async def get_by_user_id(cls, user_id):
+        key = f"{cls.key}_{user_id}"
+        r = await redis_cache.sorted_set_zrange_by_score(
+            key,
+            min_=time.time() - 24*3600,
+            max_="+inf",
+            with_scores=False,
+            offset=0, limit=50000
+        )
+        return r
+
+
 async def test():
-    r = await MonitorLiveRooms.get()
+    r = await UserRaffleRecord.get_by_user_id(user_id=123)
     print(r)
     # room_id = 13369254
     # cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{room_id}"
