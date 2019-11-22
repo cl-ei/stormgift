@@ -506,7 +506,7 @@ class DBCookieOperator:
         start_time = time.time()
 
         most_recently, rows = await UserRaffleRecord.get_by_user_id(user_id=uid)
-        most_recently = gen_time_prompt(most_recently)
+        most_recently = gen_time_prompt(time.time() - most_recently)
 
         if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * BLOCK_FRESH_TIME:
             interval_seconds = (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds()
