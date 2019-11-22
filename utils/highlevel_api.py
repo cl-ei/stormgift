@@ -520,6 +520,7 @@ class DBCookieOperator:
         raffle_count = len(rows)
         for row in rows:
             gift_name, raffle_id, intimacy = row.split("$")
+            intimacy = int(intimacy)
             if gift_name not in calc:
                 calc[gift_name] = 1
             else:
