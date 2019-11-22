@@ -219,21 +219,19 @@ class Raffle(peewee.Model):
         except peewee.IntegrityError as e:
             error_msg = f"{e}"
             if "Duplicate entry" in error_msg:
-                logging.warning(
-                    f"Raffle Duplicate entry -> id: {raffle_id}, E is ignored and do force update guard record."
-                )
+                old_rec = await objects.get(Raffle, id=raffle_id)
+                old_rec.room_id = room_id
+                old_rec.gift_name = gift_name
+                old_rec.gift_type = gift_type
+                old_rec.sender_obj_id = sender.id
+                old_rec.sender_name = sender_name
+                old_rec.created_time = created_time
+                old_rec.expire_time = expire_time
 
-            old_rec = await objects.get(Raffle, id=raffle_id)
-            old_rec.room_id = room_id
-            old_rec.gift_name = gift_name
-            old_rec.gift_type = gift_type
-            old_rec.sender_obj_id = sender.id
-            old_rec.sender_name = sender_name
-            old_rec.created_time = created_time
-            old_rec.expire_time = expire_time
-
-            await objects.update(old_rec)
-            return old_rec
+                await objects.update(old_rec)
+                return old_rec
+            logging.error(f"Error happened when create Raffle rec: {e}, {traceback.format_exc()}")
+            return None
 
     @classmethod
     async def update_raffle_result(
