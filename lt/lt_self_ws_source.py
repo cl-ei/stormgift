@@ -120,7 +120,7 @@ class WsManager(object):
             if count % 11 == 0:
                 speed = self.msg_count / 11
 
-                if self._broken_live_rooms:
+                if len(self._broken_live_rooms) > 50:
                     append_msg = (
                         f"broken count: {len(self._broken_live_rooms)}, "
                         f"{','.join([str(r) for r in self._broken_live_rooms[:10]])}"
@@ -129,7 +129,9 @@ class WsManager(object):
                 else:
                     append_msg = ""
 
-                logging.info(f"Message speed avg: {speed:0.2f}, peak: {msg_speed_peak}. {append_msg}")
+                if msg_speed_peak < 20:
+                    logging.info(f"Message speed avg: {speed:0.2f}, peak: {msg_speed_peak}. {append_msg}")
+
                 __monitor_info = {
                     "msg speed": speed,
                     "msg peak speed": msg_speed_peak,
@@ -149,7 +151,8 @@ class WsManager(object):
                     if c.status == "OPEN" and c.set_shutdown is False:
                         valid_client_count += 1
 
-                logging.info(f"Active client count: {valid_client_count}, total: {total}.")
+                if valid_client_count < total:
+                    logging.info(f"Active client count: {valid_client_count}, total: {total}.")
                 await MonitorWsClient.record({"active clients": valid_client_count, "total clients": total})
 
             count += 1
