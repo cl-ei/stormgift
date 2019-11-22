@@ -89,9 +89,6 @@ class WsManager(object):
 
         need_add = expected - existed
         need_del = existed - expected
-        logging.info(
-            f"Ws monitor settings read finished, Need add: {len(need_add)}, need del: {len(need_del)}."
-        )
 
         count = 0
         for room_id in need_del:
