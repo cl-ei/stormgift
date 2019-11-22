@@ -510,7 +510,6 @@ class BiliApi:
         flag, r = await cls.get(url=req_url, data=data, timeout=timeout, check_error_code=True)
         if not flag:
             return False, r
-        print(r)
         raffle_id_list = r.get("data", {}).get("gift", [])
         if raffle_id_list:
             return True, raffle_id_list
