@@ -13,8 +13,6 @@ SPECIFIED_ROOM_IDS = [
 
 
 async def get_live_rooms_from_api():
-    logging.info("Flush monitor live rooms...")
-
     flag, total = await BiliApi.get_all_lived_room_count()
     if not flag:
         logging.error(f"Cannot get lived room count! msg: {total}")
@@ -26,7 +24,6 @@ async def get_live_rooms_from_api():
         return
 
     in_lottery_live_rooms = await InLotteryLiveRooms().get_all()
-    logging.info(f"Get in_lottery_live_rooms count: {len(in_lottery_live_rooms)}")
     room_id_list.extend(in_lottery_live_rooms)
     room_id_list.extend(SPECIFIED_ROOM_IDS)
     room_id_set = set(room_id_list)
