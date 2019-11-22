@@ -43,7 +43,7 @@ class WsManager(object):
                     logging.info(f"SOURCE: {cmd}, room_id: {room_id}, msg: {msg}")
 
                 elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":
-                    await mq_source_to_raffle.put(("G", room_id))
+                    await mq_source_to_raffle.put(("S", room_id))
                     logging.info(f"SOURCE: {cmd}-节奏风暴, room_id: {room_id}")
 
                 # elif cmd.startswith("DANMU_MSG") and msg["info"][2][0] in (39748080, 65568410):
