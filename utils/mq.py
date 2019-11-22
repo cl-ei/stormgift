@@ -6,25 +6,8 @@ import asyncio
 import traceback
 from aiohttp import web
 from asyncio.queues import Queue
-from utils.dao import redis_cache
+from utils.dao import redis_cache, RedisLock
 from config.log4 import lt_source_logger as logging
-
-
-class RedisLock:
-    def __init__(self, key, timeout=30):
-        self.key = f"LT_LOCK_{key}"
-        self.timeout = timeout
-
-    async def __aenter__(self):
-        while True:
-            lock = await redis_cache.set_if_not_exists(key=self.key, value=1, timeout=self.timeout)
-            if lock:
-                return self
-            else:
-                await asyncio.sleep(0.2 + random.random())
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await redis_cache.delete(self.key)
 
 
 class CLMessageQServer:

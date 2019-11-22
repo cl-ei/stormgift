@@ -5,6 +5,7 @@ from random import randint
 from config.log4 import model_operation_logger as logging
 
 from utils.model import mysql_db, objects
+from utils.dao import RedisLock
 
 
 def random_datetime():
@@ -164,9 +165,6 @@ class Guard(peewee.Model):
                 old_rec.expire_time = expire_time
 
                 await objects.update(old_rec)
-                logging.warning(
-                    f"Guard Duplicate entry -> id: {gift_id}, E is ignored and do force update guard record."
-                )
                 return old_rec
             logging.error(f"Error happened when create guard rec: {e}, {traceback.format_exc()}")
             return None
