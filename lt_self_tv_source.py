@@ -5,9 +5,12 @@ import traceback
 from random import random
 from utils.ws import RCWebSocketClient
 from utils.biliapi import BiliApi, WsApi
-from config.log4 import lt_source_logger as logging
+from config.log4 import config_logger
 from utils.dao import InLotteryLiveRooms
 from utils.mq import mq_source_to_raffle
+
+
+logging = config_logger("lt_tv_source")
 
 
 class TvScanner(object):
@@ -125,7 +128,7 @@ class TvScanner(object):
             interval = time.time() - last_check_status_time
             if interval > cyclic_check_interval:
                 last_check_status_time = time.time()
-                logging.info(f"Now fully check status. interval: {interval:.3f}, time: {time.time():.3f}")
+                # logging.info(f"Now fully check status. interval: {interval:.3f}, time: {time.time():.3f}")
                 for area_id in [1, 2, 3, 4, 5, 6]:
                     old_room_id = getattr(self.__rws_clients.get(area_id), "room_id", None)
                     await self.check_status_for_single_area(
@@ -156,13 +159,10 @@ class TvScanner(object):
             msg_type = message.get("msg_type")
             if msg_type in (2, 8):
                 real_room_id = message['real_roomid']
-                r = await mq_source_to_raffle.put((message, time.time(), real_room_id))
-                r2 = await InLotteryLiveRooms.add(real_room_id)
+                await mq_source_to_raffle.put(("T", int(real_room_id)))
+                await InLotteryLiveRooms.add(real_room_id)
 
-                logging.info(
-                    f"PRIZE: [{msg_self[:2]}] room_id: {real_room_id}, msg: {msg_self}. "
-                    f"source: {area_id}-[{area_name}]-{room_id}, mq put result: {r}, update lottery_rooms r: {r2}"
-                )
+                logging.info(f"PRIZE: {area_id}-[{area_name}]-{room_id} -> [{msg_self}]")
 
         elif cmd == "GUARD_MSG" and message.get("buy_type") == 1:  # and area_id == 1:
             # {
@@ -177,7 +177,7 @@ class TvScanner(object):
 
             prize_room_id = message['roomid']  # TODO: need find real room id.
             logging.info(f"PRIZE 总督 room id: {prize_room_id}, msg: {message.get('msg_new')}")
-            await mq_source_to_raffle.put((message, time.time(), room_id))
+            await mq_source_to_raffle.put(("G", int(prize_room_id)))
 
     async def parse_message(self):
         while True:

@@ -183,39 +183,12 @@ class Worker(object):
             await Raffle.record_raffle_before_result(**create_param)
 
     async def proc_single_msg(self, msg):
-        danmaku, created_time, msg_from_room_id, *_ = msg
+        key_type, room_id, *danmakus = msg
 
-        if danmaku["cmd"] in ('RAFFLE_END', 'TV_END'):
-            return await self.record_raffle_info(danmaku, created_time, msg_from_room_id)
-
-        elif danmaku["cmd"].startswith("DANMU_MSG"):
-            return await self.tracking(danmaku, created_time, msg_from_room_id)
-
-        elif time.time() - created_time > 30:
-            return "EXPIRED DANMAKU !"
-
-        elif danmaku["cmd"] == "GUARD_MSG":
-            key_type = "G"
-            room_id = danmaku['roomid']
-
-        elif danmaku["cmd"] == "NOTICE_MSG":
-            key_type = "T"
-            room_id = danmaku['real_roomid']
-
-        elif danmaku["cmd"] == "GUARD_BUY":
-            key_type = "G"
-            room_id = msg_from_room_id
-
-        elif danmaku["cmd"] == "PK_LOTTERY_START":
-            key_type = "P"
-            room_id = msg_from_room_id
-
-        elif danmaku["cmd"] and danmaku["data"]["giftName"] == "节奏风暴":
-            key_type = "S"
-            room_id = msg_from_room_id
-
-        else:
-            return f"Error cmd `{danmaku['cmd']}`!"
+        if key_type == "R" and danmakus:
+            danmaku = danmakus[0]
+            created_time = time.time()
+            return await self.record_raffle_info(danmaku, created_time, room_id)
 
         created_time = datetime.datetime.now()
         if key_type == "G":
@@ -274,7 +247,8 @@ class Worker(object):
             for user_name, gift_list in result.items():
                 await self.proc_tv_gifts_by_single_user(user_name, gift_list)
 
-        elif key_type == "P":
+        elif key_type == "P" and danmakus:
+            danmaku = danmakus[0]
             raffle_id = danmaku["data"]["id"]
             key = f"P${room_id}${raffle_id}"
             info = {"room_id": room_id, "raffle_id": raffle_id}
@@ -288,7 +262,7 @@ class Worker(object):
                 }, ensure_ascii=False))
 
         elif key_type == "S":
-            flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=msg_from_room_id)
+            flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=room_id)
             if not flag:
                 logging.info(f"Error happened when get raffle id of storm gift: e: {raffle_id}")
                 return
@@ -306,21 +280,21 @@ class Worker(object):
 
     async def run_forever(self):
         while True:
-            msg, has_read = await mq_source_to_raffle.get()
+            msg = await mq_source_to_raffle.get()
 
             start_time = time.time()
             task_id = f"{int(str(random())[2:]):x}"
-            logging.info(f"RAFFLE Task {self.index}-[{task_id}] start...")
+            # logging.info(f"RAFFLE Task {self.index}-[{task_id}] start...")
 
             try:
                 r = await self.proc_single_msg(msg)
             except Exception as e:
                 logging.error(f"RAFFLE Task {self.index}-[{task_id}] error: {e}, {traceback.format_exc()}")
-            else:
-                cost_time = time.time() - start_time
+                continue
+
+            cost_time = time.time() - start_time
+            if cost_time > 5:
                 logging.info(f"RAFFLE Task {self.index}-[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
-            finally:
-                await has_read()
 
 
 async def main():

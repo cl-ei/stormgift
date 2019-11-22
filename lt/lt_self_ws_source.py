@@ -30,18 +30,26 @@ class WsManager(object):
                 self.msg_count += 1
 
                 cmd = msg["cmd"]
-                if cmd.startswith("DANMU_MSG") and msg["info"][2][0] in (39748080, 65568410):
-                    # uid = msg["info"][2][0]
-                    logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
-                    await mq_source_to_raffle.put((msg, time.time(), room_id))
+                if cmd == "GUARD_BUY":
+                    await mq_source_to_raffle.put(("G", room_id))
+                    logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
 
-                elif cmd in ("GUARD_BUY", "RAFFLE_END", "TV_END", "PK_LOTTERY_START"):
-                    r = await mq_source_to_raffle.put((msg, time.time(), room_id))
-                    logging.info(f"RECEIVED: {cmd}, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
+                elif cmd == "PK_LOTTERY_START":
+                    await mq_source_to_raffle.put(("P", room_id, msg))
+                    logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
+
+                elif cmd in ("RAFFLE_END", "TV_END"):
+                    await mq_source_to_raffle.put(("R", room_id, msg))
+                    logging.info(f"SOURCE: {cmd}, room_id: {room_id}, msg: {msg}")
 
                 elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":
-                    r = await mq_source_to_raffle.put((msg, time.time(), room_id))
-                    logging.info(f"RECEIVED: {cmd}-节奏风暴, put to mq r: {r}, room_id: {room_id}, msg: {msg}")
+                    await mq_source_to_raffle.put(("G", room_id))
+                    logging.info(f"SOURCE: {cmd}-节奏风暴, room_id: {room_id}")
+
+                # elif cmd.startswith("DANMU_MSG") and msg["info"][2][0] in (39748080, 65568410):
+                #     # uid = msg["info"][2][0]
+                #     logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
+                #     await mq_source_to_raffle.put(("D", room_id, msg))
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
