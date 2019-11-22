@@ -220,14 +220,14 @@ class Worker(object):
 
             start_time = time.time()
             task_id = f"{int(str(random.random())[2:]):x}"
-            logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] start...")
-
             try:
                 r = await self.proc_single(message)
             except Exception as e:
                 logging.error(f"Acceptor Task {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
-            else:
-                cost_time = time.time() - start_time
+                continue
+
+            cost_time = time.time() - start_time
+            if cost_time > 5:
                 logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
 
 
