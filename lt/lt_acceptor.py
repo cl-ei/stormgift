@@ -191,7 +191,6 @@ class Worker(object):
 
                 tasks = [delay_accept_q.get_nowait() for _ in range(delay_accept_q.qsize())]
                 execute_count = 0
-                total = len(tasks)
                 for task in tasks:
                     room_id, gift_id, gift_type, exec_time, *_ = task
 
@@ -204,12 +203,8 @@ class Worker(object):
 
                 end_time = time.time()
                 sleep_time = start_time + exec_interval - end_time
-                if total > 0:
-                    logging.debug(
-                        f"delay_raffles {self.worker_index}-sleep: {sleep_time:.3f}, "
-                        f"exec: {execute_count}/{total}"
-                    )
                 await asyncio.sleep(max(sleep_time, 0))
+
         except Exception as e:
             logging.exception(f"Error happened in waiting_delay_raffles: {e}", exc_info=True)
             sys.exit(-1)
