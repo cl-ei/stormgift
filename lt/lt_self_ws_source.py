@@ -40,7 +40,8 @@ class WsManager(object):
 
                 elif cmd in ("RAFFLE_END", "TV_END"):
                     await mq_source_to_raffle.put(("R", room_id, msg))
-                    logging.info(f"SOURCE: {cmd}, room_id: {room_id}, msg: {msg}")
+                    display_msg = msg.get("data", {}).get("win", {}).get("msg", "")
+                    logging.info(f"SOURCE: {cmd}, room_id: {room_id}, msg: {display_msg}")
 
                 elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":
                     await mq_source_to_raffle.put(("S", room_id))
