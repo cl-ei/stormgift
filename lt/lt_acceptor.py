@@ -216,7 +216,7 @@ class Worker(object):
 
     async def run_forever(self):
         while True:
-            message, has_read = await mq_raffle_to_acceptor.get()
+            message = await mq_raffle_to_acceptor.get()
 
             start_time = time.time()
             task_id = f"{int(str(random.random())[2:]):x}"
@@ -229,8 +229,6 @@ class Worker(object):
             else:
                 cost_time = time.time() - start_time
                 logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
-            finally:
-                await has_read()
 
 
 async def main():
