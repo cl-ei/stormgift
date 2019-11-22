@@ -811,6 +811,5 @@ async def test():
     # await redis_cache.delete(cookie_cache_key)
 
 if __name__ == "__main__":
-    import asyncio
     loop = asyncio.get_event_loop()
     loop.run_until_complete(test())
