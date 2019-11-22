@@ -43,10 +43,10 @@ async def get_live_rooms_from_api():
         cache_hit_rate = 0
 
     r = await MonitorLiveRooms.set(monitor_live_rooms)
-    logging.info(
-        f"monitor_live_rooms updated! r: {r} api count: {api_count}, valuable: {valuable_count}, "
-        f"total: {total_count}, cache_hit_rate: {cache_hit_rate:.1f}%"
-    )
+    # logging.info(
+    #     f"monitor_live_rooms updated! r: {r} api count: {api_count}, valuable: {valuable_count}, "
+    #     f"total: {total_count}, cache_hit_rate: {cache_hit_rate:.1f}%"
+    # )
 
     established, time_wait = get_ws_established_and_time_wait()
     __monitor_info = {
