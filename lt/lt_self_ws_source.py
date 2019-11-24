@@ -47,10 +47,10 @@ class WsManager(object):
                     await mq_source_to_raffle.put(("S", room_id))
                     logging.info(f"SOURCE: {cmd}-节奏风暴, room_id: {room_id}")
 
-                # elif cmd.startswith("DANMU_MSG") and msg["info"][2][0] in (39748080, 65568410):
-                #     # uid = msg["info"][2][0]
-                #     logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
-                #     await mq_source_to_raffle.put(("D", room_id, msg))
+                elif cmd.startswith("DANMU_MSG") and msg["info"][2][0] == 64782616:
+                    # uid = msg["info"][2][0]
+                    await mq_source_to_raffle.put(("D", room_id, msg))
+                    logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))

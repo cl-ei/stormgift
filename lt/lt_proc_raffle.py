@@ -7,7 +7,7 @@ from random import random
 from config import config
 from config.g import *
 from utils.biliapi import BiliApi
-from utils.cq import CQClient, qq, qq_zy
+from utils.cq import CQClient, qq, async_zy
 from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo
 from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
 from utils.highlevel_api import ReqFreLimitApi
@@ -188,6 +188,21 @@ class Worker(object):
             danmaku = danmakus[0]
             created_time = time.time()
             return await self.record_raffle_info(danmaku, created_time, room_id)
+
+        elif key_type == "D":
+            danmaku = danmakus[0]
+            info = danmaku.get("info", {})
+            msg = str(info[1])
+            uid = info[2][0]
+            user_name = info[2][1]
+            is_admin = info[2][2]
+            ul = info[4][0]
+            d = info[3]
+            dl = d[0] if d else "-"
+            deco = d[1] if d else "undefined"
+            message = f"{room_id} ->\n\n{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
+            logging.info(message)
+            await async_zy.send_private_msg(user_id=80873436, message=message)
 
         created_time = datetime.datetime.now()
         if key_type == "G":
