@@ -146,7 +146,15 @@ class Worker(object):
                 continue
 
             try:
-                award_num = int(message.split("_", 1)[0])
+                award_num, award_name = message.split("_", 1)
+                award_num = int(award_num)
+                if award_name in ("辣条", "亲密度"):
+                    pass
+                elif award_name in ("银瓜子", "金瓜子"):
+                    award_num //= 100
+                else:
+                    award_num = 0
+
             except Exception as e:
                 logging.error(f"Cannot fetch award_num from message. {e}", exc_info=True)
                 award_num = 1
