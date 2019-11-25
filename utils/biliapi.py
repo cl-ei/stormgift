@@ -1508,6 +1508,27 @@ class BiliApi:
         card = r["data"]["card"] or {}
         return bool(card), card
 
+    @classmethod
+    async def change_title(cls, title, room_id, cookie, timeout=30):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.live.bilibili.com/room/v1/Room/update"
+        data = {
+            "room_id": room_id,
+            "title": title,
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "visit_id": "",
+        }
+        headers = {"Cookie": cookie}
+        flag, r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_response_json=True)
+        if flag:
+            return True, ""
+        return False, r.get("message") or r.get("msg")
+
 
 async def test():
     r = await BiliApi.get_tv_raffle_id(room_id=2516117)

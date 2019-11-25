@@ -833,6 +833,11 @@ class UserRaffleRecord:
             score = 0
         return float(score), r
 
+    @classmethod
+    async def get_count(cls, user_id):
+        key = f"{cls.key}_{user_id}"
+        return await redis_cache.sorted_set_zcard(key)
+
 
 async def test():
     last_time, r = await UserRaffleRecord.get_by_user_id(user_id=20932326)
