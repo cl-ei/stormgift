@@ -189,9 +189,9 @@ class Worker(object):
 
     async def accept_delayed(self):
         while True:
+            message = await delay_accept_q.get()
             start_time = time.time()
             task_id = f"{int(str(random.random())[2:]):x}"
-            message = await delay_accept_q.get()
             try:
                 r = await self.proc_single(message)
             except Exception as e:
