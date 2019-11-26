@@ -157,7 +157,7 @@ class Worker(object):
             success.append(f"{cookie_obj.name}({cookie_obj.uid})")
 
         success_users = []
-        for i, s in success:
+        for i, s in enumerate(success):
             success_users.append(s)
             if i > 0 and i % 4 == 0:
                 success_users.append("\n")
