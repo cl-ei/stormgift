@@ -154,15 +154,20 @@ class Worker(object):
                 award_num = 1
 
             await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
-            success.append(f"{message} <- {index}-{cookie_obj.uid}-{cookie_obj.name}")
+            success.append(f"{cookie_obj.name}({cookie_obj.uid})")
 
-        success_users = "\n".join(success)
+        success_users = []
+        for i, s in success:
+            success_users.append(s)
+            if i > 0 and i % 4 == 0:
+                success_users.append("\n")
+        success_users = "".join(success_users)
         title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"
         split_char_count = max(0, (80 - len(title)) // 2)
         logging.info(
             f"\n{'-'*split_char_count}{title}{'-'*split_char_count}\n"
             f"{success_users}\n\n"
-            f"worker_index: {self.worker_index}, cloud_acceptor_url: {cloud_acceptor_url[-20:]}\n"
+            f"Woker: {self.worker_index}, cloud_acceptor: {cloud_acceptor_url[-20:]}, total: {len(success)}\n"
             f"{'-'*80}"
         )
 
