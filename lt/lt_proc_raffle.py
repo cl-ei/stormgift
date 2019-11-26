@@ -108,14 +108,17 @@ class Worker(object):
 
             qq_2 = await BiliToQQBindInfo.get_by_bili(bili=winner_uid)
             if qq_2:
-                info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
-                room_id = info.get("short_id", msg_from_room_id) or msg_from_room_id
+                flag, info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
+                if flag:
+                    room_id = info.get("short_id", msg_from_room_id) or msg_from_room_id
+                else:
+                    room_id = msg_from_room_id
                 message = (
                     f"[CQ:at,qq={qq_2}]\n恭喜{winner_name}(uid: {winner_uid})"
                     f"在{room_id}直播间中了{prize_gift_name}!\n"
                     f"https://live.bilibili.com/{room_id}"
                 )
-                await qq_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+                await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
             logging.info(log_msg)
 
         else:
