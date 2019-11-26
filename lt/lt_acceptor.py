@@ -166,26 +166,7 @@ class Worker(object):
             f"{'-'*80}"
         )
 
-    async def delay_raffles(self):
-        while True:
-            start_time = time.time()
-            message = await DelayAcceptGiftsMQ.get()
-            if not message:
-                await asyncio.sleep(2 + random.randint(1, 3))
-                continue
-
-            task_id = f"{int(str(random.random())[2:]):x}"
-            try:
-                r = await self.proc_single(message)
-            except Exception as e:
-                logging.error(f"DELAY Acceptor {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
-                continue
-
-            cost_time = time.time() - start_time
-            if cost_time > 5:
-                logging.info(f"DELAY Acceptor {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
-
-    async def run_forever(self):
+    async def accept_guard(self):
         while True:
             message = await mq_raffle_to_acceptor.get()
 
@@ -201,14 +182,43 @@ class Worker(object):
             if cost_time > 5:
                 logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
 
+    async def accept_delayed(self):
+        while True:
+            start_time = time.time()
+            task_id = f"{int(str(random.random())[2:]):x}"
+            message = await delay_accept_q.get()
+            try:
+                r = await self.proc_single(message)
+            except Exception as e:
+                logging.error(f"DELAY Acceptor {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
+                continue
+
+            cost_time = time.time() - start_time
+            if cost_time > 5:
+                logging.info(f"DELAY Acceptor {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
+
+    @staticmethod
+    async def monitor_delayed():
+        while True:
+            messages = await DelayAcceptGiftsMQ.get()
+            if not messages:
+                await asyncio.sleep(3)
+                continue
+
+            for m in messages:
+                logging.info(f"monitor_delayed find key: {m}")
+                delay_accept_q.put_nowait(m)
+
 
 async def main():
     logging.info("-" * 80)
     logging.info("LT ACCEPTOR started!")
     logging.info("-" * 80)
 
-    tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(64)]
-    delays = [asyncio.create_task(Worker(100 + index).delay_raffles()) for index in range(10)]
+    tasks = [asyncio.create_task(Worker(index).accept_guard()) for index in range(8)]
+    delays = [asyncio.create_task(Worker(100 + index).accept_delayed()) for index in range(32)]
+
+    await Worker(1001).monitor_delayed()
     for t in tasks + delays:
         await t
 
