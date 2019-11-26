@@ -162,7 +162,7 @@ class RedisCache(object):
         return await self.execute("INCR", key)
 
     async def sorted_set_zadd(self, key, *args):
-        # score, member
+        # args: score, member, ...
         safe_args = []
         if len(args) % 2 != 0:
             raise ValueError("Error args.")
@@ -839,13 +839,30 @@ class UserRaffleRecord:
         return await redis_cache.sorted_set_zcard(key)
 
 
+class DelayAcceptGiftsMQ:
+    key = "LT_DELAY_ACCEPT"
+
+    @classmethod
+    async def put(cls, gift_key, accept_time):
+        await redis_cache.sorted_set_zadd(cls.key, accept_time, gift_key)
+
+    @classmethod
+    async def get(cls):
+        now = time.time()
+        r = await redis_cache.sorted_set_zrange_by_score(key=cls.key, max_=now, with_scores=True, limit=1)
+        if r:
+            await redis_cache.sorted_set_zrem(cls.key, r[0])
+        return r
+
+
 async def test():
-    last_time, r = await UserRaffleRecord.get_by_user_id(user_id=20932326)
-    print(r)
-    print(time.time() - last_time)
-    # room_id = 13369254
-    # cookie_cache_key = f"LT_SUPER_DXJ_USER_COOKIE_{room_id}"
-    # await redis_cache.delete(cookie_cache_key)
+    # now = time.time() + 10
+    # r = await DelayAcceptGiftsMQ.put("T1234", now)
+    # print(r)
+
+    s = await DelayAcceptGiftsMQ.get()
+    print(s)
+
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

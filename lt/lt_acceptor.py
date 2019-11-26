@@ -5,7 +5,7 @@ import random
 import asyncio
 import requests
 import traceback
-from utils.dao import redis_cache, LTUserSettings, StormGiftBlackRoom
+from utils.dao import redis_cache, LTUserSettings, StormGiftBlackRoom, DelayAcceptGiftsMQ
 from config import cloud_acceptors
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
@@ -43,12 +43,6 @@ class Worker(object):
         gift_type = ""
 
         if key_type == "T":
-            info = await redis_cache.get(key)
-            gift_type = info["type"]
-            accept_time = int(time.time() + info["time_wait"])
-            delay_accept_q.put_nowait((room_id, gift_id, gift_type, int(accept_time)))
-            return
-        elif key_type == "T_NOW":
             gift_type, *_ = other_args
             act = "join_tv_v5"
         elif key_type == "G":
@@ -168,35 +162,28 @@ class Worker(object):
         logging.info(
             f"\n{'-'*split_char_count}{title}{'-'*split_char_count}\n"
             f"{success_users}\n\n"
-            f"cloud_acceptor_url: {cloud_acceptor_url[-20:]}\n"
+            f"worker_index: {self.worker_index}, cloud_acceptor_url: {cloud_acceptor_url[-20:]}\n"
             f"{'-'*80}"
         )
 
-    async def waiting_delay_raffles(self):
-        exec_interval = 5
-        try:
-            while True:
-                start_time = time.time()
+    async def delay_raffles(self):
+        while True:
+            start_time = time.time()
+            message = await DelayAcceptGiftsMQ.get()
+            if not message:
+                await asyncio.sleep(2 + random.randint(1, 3))
+                continue
 
-                tasks = [delay_accept_q.get_nowait() for _ in range(delay_accept_q.qsize())]
-                execute_count = 0
-                for task in tasks:
-                    room_id, gift_id, gift_type, exec_time, *_ = task
+            task_id = f"{int(str(random.random())[2:]):x}"
+            try:
+                r = await self.proc_single(message)
+            except Exception as e:
+                logging.error(f"DELAY Acceptor {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
+                continue
 
-                    if exec_time < start_time:
-                        key = f"T_NOW${room_id}${gift_id}${gift_type}"
-                        await mq_raffle_to_acceptor.put(key)
-                        execute_count += 1
-                    else:
-                        delay_accept_q.put_nowait(task)
-
-                end_time = time.time()
-                sleep_time = start_time + exec_interval - end_time
-                await asyncio.sleep(max(sleep_time, 0))
-
-        except Exception as e:
-            logging.exception(f"Error happened in waiting_delay_raffles: {e}", exc_info=True)
-            sys.exit(-1)
+            cost_time = time.time() - start_time
+            if cost_time > 5:
+                logging.info(f"DELAY Acceptor {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
 
     async def run_forever(self):
         while True:
@@ -221,8 +208,8 @@ async def main():
     logging.info("-" * 80)
 
     tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(64)]
-    tasks.append(asyncio.create_task(Worker(99).waiting_delay_raffles()))
-    for t in tasks:
+    delays = [asyncio.create_task(Worker(100 + index).delay_raffles()) for index in range(10)]
+    for t in tasks + delays:
         await t
 
 loop = asyncio.get_event_loop()

@@ -8,7 +8,7 @@ from config import config
 from config.g import *
 from utils.biliapi import BiliApi
 from utils.cq import CQClient, qq, async_zy
-from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo
+from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo, DelayAcceptGiftsMQ
 from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
@@ -229,7 +229,7 @@ class Worker(object):
                 gift_id = info.get("raffleId", 0)
                 gift_type = info.get("type")
                 gift_name = info.get("thank_text", "").split("赠送的", 1)[-1]
-                # time_accept = int(time.time() + 5 + info.get("time_wait"))
+                time_accept = int(time.time() + 1 + info.get("time_wait"))
 
                 i = {
                     "name": user_name,
@@ -248,7 +248,11 @@ class Worker(object):
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
 
-                await mq_raffle_to_acceptor.put(key)
+                # await mq_raffle_to_acceptor.put(key)
+                await DelayAcceptGiftsMQ.put(f"T${room_id}${gift_id}${gift_type}", accept_time=time_accept)
+                # key_type, room_id, gift_id, *other_args = key.split("$")
+                # gift_type, *_ = other_args
+
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": gift_id,
