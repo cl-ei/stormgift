@@ -18,6 +18,7 @@ expected = [
     # 910884,  # 浙江共青团
     13369254,
     2516117,
+    # 21339081,  # 言和 2019生日会
 ]
 
 
@@ -47,7 +48,7 @@ class SignRecord:
 
         if sign_success:
 
-            today_sign_key = f"{self.key_root}_{total_key}_sign_count"
+            today_sign_key = f"{self.key_root}_{today_str}_sign_count"
             today_sign_count = await redis_cache.incr(key=today_sign_key)
             await redis_cache.expire(key=today_sign_key, timeout=3600*24)
             dec_score = 0.001*int(today_sign_count)
@@ -70,6 +71,9 @@ class SignRecord:
 
         rank = await redis_cache.sorted_set_zrank(key=self.key_root, member=user_id)
         return bool(sign_success), continue_days, total_days, rank + 1
+
+    async def get_info(self):
+        return await redis_cache.sorted_set_zrange_by_score(key=self.key_root, with_scores=True)
 
 
 async def send_danmaku(msg, room_id, user="DD"):
@@ -256,6 +260,8 @@ async def main():
 
     mgr = WsManager()
     await mgr.run()
+    # r = await SignRecord(room_id=2516117).get_info()
+    # print(r)
 
 
 loop = asyncio.get_event_loop()
