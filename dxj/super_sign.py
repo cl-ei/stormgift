@@ -9,6 +9,17 @@ from utils.highlevel_api import DBCookieOperator
 
 logging = config_logger("super_sign")
 
+send_danmak_rooms = [
+    13369254,
+    2516117,
+]
+
+expected = [
+    # 910884,  # 浙江共青团
+    13369254,
+    2516117,
+]
+
 
 class SignRecord:
 
@@ -121,6 +132,9 @@ class DanmakuProcessor:
                 return
 
             sign, conti, total, rank = await self.s.sign(user_id=uid)
+            if self.room_id not in send_danmak_rooms:
+                return
+
             prompt = f"{msg}成功！" if sign else f"已{msg}，"
             message = f"{user_name}{prompt}连续{msg}{conti}天、累计{total}天，排名第{rank}."
 
@@ -212,11 +226,6 @@ class WsManager(object):
             del self._clients[room_id]
 
     async def run(self):
-        expected = [
-            # 910884,  # 浙江共青团
-            13369254,
-            2516117,
-        ]
         self.monitor_live_rooms = expected
         dps = []
 
