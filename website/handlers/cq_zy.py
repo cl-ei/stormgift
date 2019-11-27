@@ -411,6 +411,10 @@ class BotUtils:
 
         try:
             user_name_or_dynamic_id = msg[3:].strip()
+            if not user_name_or_dynamic_id:
+                self.response(f"请输入正确的用户名。")
+                return
+
             if not user_name_or_dynamic_id.isdigit():
                 bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
                 if bili_uid is None:
