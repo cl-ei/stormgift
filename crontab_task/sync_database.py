@@ -183,14 +183,14 @@ class SyncTool(object):
             except Exception as e:
                 logging.error(
                     f"Update Failed! {i}/{total_search_count} -> "
-                    f"room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
-                    f" attention: {attention}, guard: {guard_count}, e: {e}"
+                    f"{name}(uid: {uid}), room_id: {real_room_id}, short {short_room_id}, "
+                    f"attention: {attention}, guard: {guard_count}, e: {e}"
                 )
             else:
                 logging.info(
                     f"Update success {i}/{total_search_count} -> "
-                    f"room_id: {real_room_id} -> {short_room_id}, {uid} -> {name},"
-                    f" attention: {attention}, guard: {guard_count}, obj: {obj.id}"
+                    f"{name}(uid: {uid}): room_id: {real_room_id}, short: {short_room_id}, "
+                    f"attention: {attention}, guard: {guard_count}, obj: {obj.id}"
                 )
 
     @classmethod
