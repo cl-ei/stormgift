@@ -301,6 +301,9 @@ class BotUtils:
 
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
+            raw_uid_or_uname = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        if not raw_uid_or_uname:
+            self.response(f"请输入正确的用户名。")
             return
 
         try:
