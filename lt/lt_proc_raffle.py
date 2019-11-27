@@ -114,8 +114,8 @@ class Worker(object):
                 else:
                     room_id = msg_from_room_id
                 message = (
-                    f"[CQ:at,qq={qq_2}]\n恭喜{winner_name}(uid: {winner_uid})"
-                    f"在{room_id}直播间中了{prize_gift_name}!\n"
+                    f"恭喜{winner_name}({winner_uid})[CQ:at,qq={qq_2}]"
+                    f"获得了{sender_name}提供的{prize_gift_name}!\n"
                     f"https://live.bilibili.com/{room_id}"
                 )
                 await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
