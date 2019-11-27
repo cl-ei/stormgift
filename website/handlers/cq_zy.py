@@ -259,6 +259,8 @@ class BotUtils:
 
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
+            raw_uid_or_uname = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        if not raw_uid_or_uname:
             return
 
         try:
@@ -576,8 +578,20 @@ class BotHandler:
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
-        p = BotUtils()
 
+        for short, full in [
+            ("1", "#背包"),
+            ("2", "#动态"),
+            ("3", "#大航海"),
+            ("4", "#中奖查询"),
+            ("5", "#勋章查询"),
+            ("6", "#挂机查询"),
+        ]:
+            if msg.startswith(short):
+                msg = msg.replace(short, full, 1)
+                break
+
+        p = BotUtils()
         if msg.startswith("#背包"):
             return await p.proc_query_bag(msg, user_id, group_id=None)
 
