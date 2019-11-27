@@ -1,15 +1,11 @@
-import time
 import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
 from utils.dao import MonitorLiveRooms
 from utils.mq import mq_source_to_raffle
-from utils.biliapi import BiliApi, WsApi
+from utils.biliapi import WsApi
 from config.log4 import lt_ws_source_logger as logging
 from utils.model import objects, MonitorWsClient
-
-noticed = set()
-from utils.cq import async_zy
 
 
 class WsManager(object):
@@ -55,12 +51,6 @@ class WsManager(object):
                         # uid = msg["info"][2][0]
                         await mq_source_to_raffle.put(("D", room_id, msg))
                         logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
-                    elif msg["info"][1] in ("打卡", "签到"):
-                        if room_id in noticed:
-                            continue
-                        noticed.add(room_id)
-                        m = f"{msg['info'][1]}_{room_id}"
-                        await async_zy.send_private_msg(user_id=80873436, message=m)
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
