@@ -177,6 +177,9 @@ class RedisCache(object):
     async def sorted_set_zcard(self, key):
         return await self.execute("ZCARD", key)
 
+    async def sorted_set_zincr(self, key, member, increment):
+        return await self.execute("ZINCRBY", key, increment, member)
+
     async def sorted_set_zrange_by_score(self, key, min_="-inf", max_="+inf", with_scores=False, offset=0, limit=1000):
         args = ["ZRANGEBYSCORE", key, min_, max_]
         if with_scores:
@@ -195,6 +198,10 @@ class RedisCache(object):
 
     async def sorted_set_zrem(self, key, *members):
         return await self.execute("ZREM", key, *members)
+
+    async def sorted_set_zrank(self, key, member, reversed=True):
+        cmd = "ZREVRANK" if reversed else "ZRANK"
+        return await self.execute(cmd, key, member)
 
     async def sorted_set_zrem_by_rank(self, key, start, stop):
         return await self.execute("ZREMRANGEBYRANK", key, start, stop)
