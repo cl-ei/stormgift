@@ -92,6 +92,10 @@ class BiliUser(peewee.Model):
             create_at, attention, guard_count, room_info_update_time
     ):
         obj = await cls.get_by_uid(uid)
+        if not obj:
+            objs = await objects.execute(cls.select().where(cls.real_room_id == real_room_id))
+            if objs:
+                obj = objs[0]
         if obj:
             obj.name = name
             obj.face = face

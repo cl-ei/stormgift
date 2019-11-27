@@ -1,4 +1,5 @@
 import time
+import random
 import logging
 import asyncio
 import datetime
@@ -46,7 +47,7 @@ class SyncTool(object):
 
             uid = await ReqFreLimitApi.get_uid_by_name(lastest_user_name)
             if not uid:
-                await redis_cache.set(fix_failed_key, "f", 3600*72)
+                await redis_cache.set(fix_failed_key, "f", 3600*24*random.randint(4, 7))
                 logging.warning(f"Cannot get uid by name: `{non_uid_user_obj.name}`")
                 continue
 
@@ -55,9 +56,7 @@ class SyncTool(object):
             )
             if has_uid_user_objs:
                 has_uid_user_obj = has_uid_user_objs[0]
-                logging.info(
-                    f"User uid: {uid} -> name: {lastest_user_name} duplicated! "
-                )
+                logging.info(f"User uid: {uid} -> name: {lastest_user_name} duplicated! ")
 
                 # 有两个user_obj
                 # 1.先把旧的existed_user_obj的name更新
