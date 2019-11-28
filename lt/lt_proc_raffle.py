@@ -305,9 +305,10 @@ class Worker(object):
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
-                    "gift_name": "ANCHOR_LOT",
+                    "gift_name": f"{data['award_name']}*{data['award_num']}",
                     "raffle_type": "anchor",
-                    "extra": f"{data['require_text']} -> {data['award_name']}"
+                    "join_type": data["join_type"],
+                    "require": f"{data['require_text']}, {data['gift_num']}*{data['gift_name']}({data['gift_price']})",
                 }, ensure_ascii=False))
 
     async def run_forever(self):
