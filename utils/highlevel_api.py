@@ -37,7 +37,7 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def get_uid_by_name(cls, user_name, wait_time=2):
-        r = await DBCookieOperator.get_by_uid("DD")
+        r = await DBCookieOperator.get_by_uid("LP")
         cookie = r.cookie if r else ""
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
