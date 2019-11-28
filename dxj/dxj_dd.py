@@ -74,24 +74,32 @@ async def send_danmaku(msg, user=""):
         logging.error(f"Cannot get cookie for user: {user}.")
         return
 
-    while msg:
+    while True:
         send_m = msg[:30]
         for _ in range(3):
             flag, data = await BiliApi.send_danmaku(message=send_m, room_id=MONITOR_ROOM_ID, cookie=cookie_obj.cookie)
             if flag:
+                logging.info(f"DMK success: {send_m}, reason: {data}")
                 break
             else:
-                logging.error(f"Dmk send failed, msg: {msg}, reason: {data}")
+                logging.error(f"Dmk send failed, msg: {send_m}, reason: {data}")
+                await asyncio.sleep(0.4)
+        else:
+            logging.error(f"Cannot send danmaku {send_m}. now return.")
+            return
+
         msg = msg[30:]
         if msg:
             await asyncio.sleep(1.1)
+        else:
+            return
 
 
 s = SignRecord(room_id=MONITOR_ROOM_ID)
 
 
 async def proc_message(message):
-    cmd = message.get("cmd")
+    cmd = message.get("cmd", "")
     if cmd.startswith("DANMU_MSG"):
         info = message.get("info", {})
         msg = str(info[1])
