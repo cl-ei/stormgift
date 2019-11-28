@@ -296,7 +296,8 @@ async def query_raffles(request):
                 "   prize_gift_name, expire_time, sender_name, winner_name "
                 "from raffle "
                 "where expire_time >= %s "
-                "order by expire_time desc, id desc ;"
+                "order by expire_time desc, id desc "
+                "limit 1000;"
             ), (start_date, )
         )
         user_obj_ids = set()
