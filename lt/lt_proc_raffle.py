@@ -163,6 +163,8 @@ class Worker(object):
                     winner_name=winner_name,
                     prize_gift_name=prize_gift_name,
                     prize_count=prize_count,
+                    created_time=datetime.datetime.now() - datetime.timedelta(seconds=600),
+                    expire_time=datetime.datetime.now()
                 )
                 logging.info(f"Raffle saved! cmd: {cmd}, save result: id: {r.id}. ")
 
