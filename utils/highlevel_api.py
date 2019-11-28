@@ -37,7 +37,7 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def get_uid_by_name(cls, user_name, wait_time=2):
-        r = await DBCookieOperator.get_by_uid("LP")
+        r = await DBCookieOperator.get_by_uid("TZ")
         cookie = r.cookie if r else ""
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
@@ -448,6 +448,8 @@ class DBCookieOperator:
             user_id = 20932326
         elif user_id == "LP":
             user_id = 39748080
+        elif user_id == "TZ":
+            user_id = 312186483
 
         if available is None:
             query = LTUserCookie.select().where(LTUserCookie.DedeUserID == user_id)
