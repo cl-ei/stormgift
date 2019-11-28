@@ -305,10 +305,12 @@ class Worker(object):
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
-                    "gift_name": f"{data['award_name']}*{data['award_num']}",
+                    "gift_name": "天选时刻",
                     "raffle_type": "anchor",
-                    "join_type": data["join_type"],
-                    "require": f"{data['require_text']}, {data['gift_num']}*{data['gift_name']}({data['gift_price']})",
+                    # f"{data['award_name']}*{data['award_num']}",
+                    # "join_type": data["join_type"],
+                    # "require":
+                    # f"{data['require_text']}, {data['gift_num']}*{data['gift_name']}({data['gift_price']})",
                 }, ensure_ascii=False))
 
     async def run_forever(self):
@@ -317,7 +319,6 @@ class Worker(object):
 
             start_time = time.time()
             task_id = f"{int(str(random())[2:]):x}"
-            # logging.info(f"RAFFLE Task {self.index}-[{task_id}] start...")
 
             try:
                 r = await self.proc_single_msg(msg)

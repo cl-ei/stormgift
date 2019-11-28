@@ -618,6 +618,8 @@ class LTUserSettings:
 
         if "storm_percent" not in settings:
             settings["storm_percent"] = 0
+        if "anchor_percent" not in settings:
+            settings["anchor_percent"] = 0
 
         for i in [1, 2, 3]:
             key = f"medal_{i}"
@@ -634,6 +636,7 @@ class LTUserSettings:
         guard_percent=100,
         pk_percent=100,
         storm_percent=0,
+        anchor_percent=0,
         medal_1="",
         medal_2="",
         medal_3="",
@@ -647,6 +650,7 @@ class LTUserSettings:
         settings["guard_percent"] = guard_percent
         settings["pk_percent"] = pk_percent
         settings["storm_percent"] = storm_percent
+        settings["anchor_percent"] = anchor_percent
         settings["medal_1"] = medal_1
         settings["medal_2"] = medal_2
         settings["medal_3"] = medal_3
@@ -666,7 +670,7 @@ class LTUserSettings:
             if not isinstance(setting, dict):
                 setting = {}
 
-            if key == "storm_percent":
+            if key in ("storm_percent", "anchor_percent"):
                 percent = setting.get(key, 0)
             else:
                 percent = setting.get(key, 100)

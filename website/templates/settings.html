@@ -97,6 +97,9 @@
     <label>⑥ 大乱斗PK获胜参与率
         <input class="input-number" type="number" name="pk-percent" value="{{ settings.pk_percent }}">%
     </label>
+    <label>⑦ 天选时刻参与率
+        <input class="input-number" type="number" name="anchor-percent" value="{{ settings.anchor_percent }}">%
+    </label>
     <label>* 自动送辣条1（填勋章名）
         <input class="input-number" type="text" name="medal_1" value="{{ settings.medal_1 }}">
     </label>
@@ -155,6 +158,12 @@ $(function () {
             warning("节奏风暴参与率超过范围，请设置： 0~100 !");
             return;
         }
+        let anchor_percent = parseInt($("input[name=anchor-percent]").val()) || 0;
+        if (anchor_percent < 0 || anchor_percent > 100){
+            warning("节奏风暴参与率超过范围，请设置： 0~100 !");
+            return;
+        }
+
 
         let medal_1 = $("input[name=medal_1]").val() || "";
         let medal_2 = $("input[name=medal_2]").val() || "";
@@ -169,6 +178,7 @@ $(function () {
                 guard_percent: guard_percent,
                 pk_percent: pk_percent,
                 storm_percent: storm_percent,
+                anchor_percent: anchor_percent,
                 medal_1: medal_1,
                 medal_2: medal_2,
                 medal_3: medal_3

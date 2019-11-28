@@ -145,6 +145,7 @@ async def post_settings(request):
         guard_percent = int(data["guard_percent"])
         pk_percent = int(data["pk_percent"])
         storm_percent = int(data["storm_percent"])
+        anchor_percent = int(data["anchor_percent"])
         md = {}
 
         for i in [1, 2, 3]:
@@ -160,6 +161,7 @@ async def post_settings(request):
         or not 0 <= guard_percent <= 100
         or not 0 <= pk_percent <= 100
         or not 0 <= storm_percent <= 100
+        or not 0 <= anchor_percent <= 100
     ):
         return json_response({"code": 403, "err_msg": "范围错误！请设置0~100 ！"})
 
@@ -169,6 +171,7 @@ async def post_settings(request):
         guard_percent=guard_percent,
         pk_percent=pk_percent,
         storm_percent=storm_percent,
+        anchor_percent=anchor_percent,
         **md
     )
     return json_response({"code": 0})
