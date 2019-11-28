@@ -121,6 +121,10 @@ class Worker(object):
                 await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
             logging.info(log_msg)
 
+        elif cmd == "ANCHOR_LOT_AWARD":
+            logging.info(f"ANCHOR_LOT_AWARD: {danmaku}")
+
+
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"
 
