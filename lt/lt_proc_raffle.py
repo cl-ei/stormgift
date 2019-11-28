@@ -295,6 +295,21 @@ class Worker(object):
                     "raffle_type": "storm"
                 }, ensure_ascii=False))
 
+        elif key_type == "A":
+            danmaku = danmakus[0]
+            data = danmaku["data"]
+            raffle_id = data["id"]
+            key = f"A${room_id}${raffle_id}"
+            if await redis_cache.set_if_not_exists(key, 1):
+                await mq_raffle_to_acceptor.put(key)
+                await mq_raffle_broadcast.put(json.dumps({
+                    "real_room_id": room_id,
+                    "raffle_id": raffle_id,
+                    "gift_name": "ANCHOR_LOT",
+                    "raffle_type": "anchor",
+                    "extra": f"{data['require_text']} -> {data['award_name']}"
+                }, ensure_ascii=False))
+
     async def run_forever(self):
         while True:
             msg = await mq_source_to_raffle.get()
