@@ -122,7 +122,6 @@ class Worker(object):
             logging.info(log_msg)
 
         elif cmd == "ANCHOR_LOT_AWARD":
-            logging.info(f"ANCHOR_LOT_AWARD: {danmaku}")
             flag, info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
             if not flag:
                 logging.error(f"ANCHOR_LOT_AWARD Cannot get live room info of {msg_from_room_id}, reason: {info}.")
