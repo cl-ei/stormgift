@@ -122,21 +122,28 @@ class Worker(object):
             logging.info(log_msg)
 
         elif cmd == "ANCHOR_LOT_AWARD":
-            flag, info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
-            if not flag:
-                logging.error(f"ANCHOR_LOT_AWARD Cannot get live room info of {msg_from_room_id}, reason: {info}.")
-                return
+            objs = await objects.execute(BiliUser.select().where(BiliUser.real_room_id == msg_from_room_id))
+            if objs:
+                sender = objs[0]
+                sender_name = sender.name
+                short_room_id = sender.short_room_id or msg_from_room_id
+            else:
+                flag, info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
+                if not flag:
+                    logging.error(f"ANCHOR_LOT_AWARD Cannot get live room info of {msg_from_room_id}, reason: {info}.")
+                    return
 
-            short_room_id = info["short_id"] or msg_from_room_id
-            sender_uid = info["uid"]
-            flag, info = await BiliApi.get_user_info(uid=sender_uid)
-            if not flag:
-                logging.error(f"ANCHOR_LOT_AWARD Cannot get get_user_info. uid: {sender_uid}, reason: {info}.")
-                return
+                short_room_id = info["short_id"] or msg_from_room_id
+                sender_uid = info["uid"]
+                flag, info = await BiliApi.get_user_info(uid=sender_uid)
+                if not flag:
+                    logging.error(f"ANCHOR_LOT_AWARD Cannot get get_user_info. uid: {sender_uid}, reason: {info}.")
+                    return
 
-            sender_name = info["name"]
-            sender_face = info["face"]
-            sender = await BiliUser.get_or_update(uid=sender_uid, name=sender_name, face=sender_face)
+                sender_name = info["name"]
+                sender_face = info["face"]
+                sender = await BiliUser.get_or_update(uid=sender_uid, name=sender_name, face=sender_face)
+                logging.info(f"ANCHOR_LOT_AWARD Sender info get from biliapi. {sender_name}({sender_uid})")
 
             data = danmaku["data"]
             prize_gift_name = data["award_name"]
