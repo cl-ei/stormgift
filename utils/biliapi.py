@@ -757,9 +757,9 @@ class BiliApi:
 
         result = r.get("code") == 0
         if result:
-            return True, r.get("message", "")
+            return True, r.get("message") or r.get("msg")
         else:
-            return False, r.get("message", "-")
+            return False, r.get("message") or r.get("msg")
 
     @classmethod
     async def enter_room(cls, room_id, cookie, timeout=5):

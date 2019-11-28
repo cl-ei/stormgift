@@ -1,5 +1,3 @@
-import time
-import random
 import logging
 import asyncio
 import datetime
@@ -15,6 +13,60 @@ MONITOR_ROOM_ID = 13369254
 bot = CQHttp(**CQBOT)
 
 
+class SignRecord:
+
+    def __init__(self, room_id):
+        self.key_root = F"LT_SIGN_{room_id}"
+
+    async def sign(self, user_id):
+        """
+
+        :param user_id:
+        :return: sign success. continue, total, rank
+        """
+        ukey = f"{self.key_root}_{user_id}"
+        offset = 0
+        today_str = str(datetime.datetime.now().date() + datetime.timedelta(days=offset))
+        yesterday = str(datetime.datetime.now().date() - datetime.timedelta(days=1) + datetime.timedelta(days=offset))
+
+        continue_key = f"{ukey}_c"
+        total_key = f"{ukey}_t"
+
+        user_today = f"{ukey}_{today_str}"
+        sign_success = await redis_cache.set_if_not_exists(key=user_today, value=1, timeout=3600*36)
+        continue_days = None
+        total_days = None
+
+        if sign_success:
+
+            today_sign_key = f"{self.key_root}_{today_str}_sign_count"
+            today_sign_count = await redis_cache.incr(key=today_sign_key)
+            await redis_cache.expire(key=today_sign_key, timeout=3600*24)
+            dec_score = 0.001*int(today_sign_count)
+
+            user_yesterday = f"{self.key_root}_{user_id}_{yesterday}"
+
+            if not await redis_cache.get(user_yesterday):
+                await redis_cache.delete(continue_key)
+
+            continue_days = await redis_cache.incr(continue_key)
+            total_days = await redis_cache.incr(total_key)
+
+            incr_score = 50 + min(84, 12 * (continue_days - 1)) - dec_score
+            await redis_cache.sorted_set_zincr(key=self.key_root, member=user_id, increment=incr_score)
+
+        if continue_days is None:
+            continue_days = int(await redis_cache.get(continue_key))
+        if total_days is None:
+            total_days = int(await redis_cache.get(total_key))
+
+        rank = await redis_cache.sorted_set_zrank(key=self.key_root, member=user_id)
+        return bool(sign_success), continue_days, total_days, rank + 1
+
+    async def get_info(self):
+        return await redis_cache.sorted_set_zrange_by_score(key=self.key_root, with_scores=True)
+
+
 async def send_danmaku(msg, user=""):
     user = user or "LP"
     cookie_obj = await DBCookieOperator.get_by_uid(user_id=user)
@@ -22,13 +74,20 @@ async def send_danmaku(msg, user=""):
         logging.error(f"Cannot get cookie for user: {user}.")
         return
 
-    flag, msg = await BiliApi.send_danmaku(
-        message=msg,
-        room_id=MONITOR_ROOM_ID,
-        cookie=cookie_obj.cookie
-    )
-    if not flag:
-        logging.error(f"Danmaku [{msg}] send failed, msg: {msg}, user: {user}.")
+    while msg:
+        send_m = msg[:30]
+        for _ in range(3):
+            flag, data = await BiliApi.send_danmaku(message=send_m, room_id=MONITOR_ROOM_ID, cookie=cookie_obj.cookie)
+            if flag:
+                break
+            else:
+                logging.error(f"Dmk send failed, msg: {msg}, reason: {data}")
+        msg = msg[30:]
+        if msg:
+            await asyncio.sleep(1.1)
+
+
+s = SignRecord(room_id=MONITOR_ROOM_ID)
 
 
 async def proc_message(message):
@@ -73,13 +132,7 @@ async def proc_message(message):
                 date_time_str = f"{int(interval/(3600*24))}天前"
 
             msg = f"{latest[0]}在7天内中奖{count}次，最后一次{date_time_str}在{latest[1]}直播间获得{latest[2]}."
-            if len(msg) <= 30:
-                return await send_danmaku(msg)
-
-            while msg:
-                await send_danmaku(msg[:29])
-                msg = msg[29:]
-                await asyncio.sleep(1)
+            return await send_danmaku(msg)
 
         elif msg.startswith("小电视"):
             int_str = msg.replace("小电视", "").strip()
@@ -105,21 +158,13 @@ async def proc_message(message):
                 f"{'今日' if int_str == 0 else str(int_str) + '天前'}统计到{r}, "
                 f"共{result['total']}个，{path_prompt}。"
             )
-
-            while danmaku:
-                await send_danmaku(danmaku[:30])
-                danmaku = danmaku[30:]
-                await asyncio.sleep(1)
+            await send_danmaku(danmaku)
 
         elif msg.strip() in ("船员", ):
             result = await ReqFreLimitApi.get_guard_count()
             r = "、".join([f"{v}个{k}" for k, v in result["gift_list"].items()])
             danmaku = f"今日统计到{r}, 共{result['total']}个"
-
-            while danmaku:
-                await send_danmaku(danmaku[:30])
-                danmaku = danmaku[30:]
-                await asyncio.sleep(0.5)
+            await send_danmaku(danmaku)
 
         elif msg.startswith("绑定"):
             try:
@@ -136,6 +181,13 @@ async def proc_message(message):
 
             await BiliToQQBindInfo.bind(qq=qq, bili=uid)
             await send_danmaku(f"已为你绑定到QQ：{str(qq)[:-4]}****")
+
+        elif msg in ("签到", "打卡"):
+            sign, conti, total, rank = await s.sign(user_id=uid)
+
+            prompt = f"{msg}成功！" if sign else f"已{msg}，"
+            message = f"{user_name}{prompt}连续{msg}{conti}天、累计{total}天，排名第{rank}."
+            await send_danmaku(msg=message)
 
         else:
             bot.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
