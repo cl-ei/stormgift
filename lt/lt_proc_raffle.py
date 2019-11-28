@@ -185,6 +185,7 @@ class Worker(object):
             await Raffle.record_raffle_before_result(**create_param)
 
     async def proc_single_msg(self, msg):
+        created_time = datetime.datetime.now()
         key_type, room_id, *danmakus = msg
 
         if key_type == "R" and danmakus:
@@ -207,8 +208,7 @@ class Worker(object):
             logging.info(message)
             await async_zy.send_private_msg(user_id=80873436, message=message)
 
-        created_time = datetime.datetime.now()
-        if key_type == "G":
+        elif key_type == "G":
             flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
             if not flag:
                 logging.error(f"Guard proc_single_room, room_id: {room_id}, e: {gift_info_list}")
@@ -251,11 +251,7 @@ class Worker(object):
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
 
-                # await mq_raffle_to_acceptor.put(key)
                 await DelayAcceptGiftsMQ.put(f"T${room_id}${gift_id}${gift_type}", accept_time=time_accept)
-                # key_type, room_id, gift_id, *other_args = key.split("$")
-                # gift_type, *_ = other_args
-
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": gift_id,
