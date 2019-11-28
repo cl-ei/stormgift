@@ -1531,7 +1531,8 @@ class BiliApi:
 
 
 async def test():
-    r = await BiliApi.get_tv_raffle_id(room_id=2516117)
+    r = await BiliApi.get_live_room_info_by_room_id(room_id=2516117)
+    # r = await BiliApi.get_user_info(uid=r)
     print(f"f -> {r}")
 
 if __name__ == "__main__":

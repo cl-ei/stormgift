@@ -12,7 +12,7 @@ from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo, DelayAc
 from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
-from utils.reconstruction_model import Guard, Raffle, objects
+from utils.reconstruction_model import Guard, Raffle, objects, BiliUser
 
 GIFT_TYPE_TO_NAME = {
     "small_tv": "小电视飞船抽奖",
@@ -123,7 +123,58 @@ class Worker(object):
 
         elif cmd == "ANCHOR_LOT_AWARD":
             logging.info(f"ANCHOR_LOT_AWARD: {danmaku}")
+            flag, info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
+            if not flag:
+                logging.error(f"ANCHOR_LOT_AWARD Cannot get live room info of {msg_from_room_id}, reason: {info}.")
+                return
 
+            short_room_id = info["short_id"] or msg_from_room_id
+            sender_uid = info["uid"]
+            flag, info = await BiliApi.get_user_info(uid=sender_uid)
+            if not flag:
+                logging.error(f"ANCHOR_LOT_AWARD Cannot get get_user_info. uid: {sender_uid}, reason: {info}.")
+                return
+
+            sender_name = info["name"]
+            sender_face = info["face"]
+            sender = await BiliUser.get_or_update(uid=sender_uid, name=sender_name, face=sender_face)
+
+            data = danmaku["data"]
+            prize_gift_name = data["award_name"]
+            prize_count = data["award_num"]
+            gift_name = "天选时刻"
+            gift_type = "ANCHOR"
+            raffle_id = data["id"]*10000
+
+            for i, user in enumerate(data["award_users"]):
+                inner_raffle_id = raffle_id + i
+                winner_name = user["uname"]
+                winner_uid = user["uid"]
+                winner_face = user["face"]
+                winner = await BiliUser.get_or_update(uid=winner_uid, name=winner_name, face=winner_face)
+                r = await objects.create(
+                    Raffle,
+                    id=inner_raffle_id,
+                    room_id=msg_from_room_id,
+                    gift_name=gift_name,
+                    gift_type=gift_type,
+                    sender_obj_id=sender.id,
+                    sender_name=sender_name,
+                    winner_obj_id=winner.id,
+                    winner_name=winner_name,
+                    prize_gift_name=prize_gift_name,
+                    prize_count=prize_count,
+                )
+                logging.info(f"Raffle saved! cmd: {cmd}, save result: id: {r.id}. ")
+
+                qq_2 = await BiliToQQBindInfo.get_by_bili(bili=winner_uid)
+                if qq_2:
+                    message = (
+                        f"恭喜{winner_name}({winner_uid})[CQ:at,qq={qq_2}]"
+                        f"在天选时刻抽奖中了{prize_gift_name}!\n"
+                        f"https://live.bilibili.com/{short_room_id}"
+                    )
+                    await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
 
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"
