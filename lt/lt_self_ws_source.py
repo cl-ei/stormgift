@@ -28,7 +28,7 @@ class WsManager(object):
             for msg in WsApi.parse_msg(message):
                 self.msg_count += 1
 
-                cmd = msg["cmd"]
+                cmd = msg.get("cmd", "")
                 if cmd == "GUARD_BUY":
                     await mq_source_to_raffle.put(("G", room_id))
                     logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
@@ -51,6 +51,9 @@ class WsManager(object):
                         # uid = msg["info"][2][0]
                         await mq_source_to_raffle.put(("D", room_id, msg))
                         logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
+
+                elif "ANCHOR_LOT" in cmd:
+                    logging.info(f"{cmd} -> {msg}")
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
