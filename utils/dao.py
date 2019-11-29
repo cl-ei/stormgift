@@ -477,7 +477,7 @@ class BiliToQQBindInfo(object):
             elif b == bili:
                 unbind.append(f"Bilibili: {bili}")
                 continue
-            dist.append((qq, bili))
+            dist.append((q, b))
         if len(dist) != r:
             await redis_cache.set(key=cls.key, value=dist)
         return unbind
