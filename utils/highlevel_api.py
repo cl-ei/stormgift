@@ -56,7 +56,7 @@ class ReqFreLimitApi(object):
             r = json.loads(content)
             assert r[0] is True
         except (json.JSONDecodeError, AssertionError) as e:
-            logging.error(f"Error happened when get_uid_by_name({user_name}), e: {e}")
+            logging.error(f"Error happened when get_uid_by_name({user_name}), e: {e}, content: {content}")
             return None
 
         return r[1]
