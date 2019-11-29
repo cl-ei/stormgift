@@ -393,13 +393,13 @@ class BotUtils:
             self.response("你的登录已过期！请登录辣条宝藏站点重新登录。")
             return
 
-        key = f"LT_FOLLOWINGS_{bili_uid}"
-        follows = await redis_cache.get(key)
-        if not isinstance(follows, (list, set)):
-            self.response("你没有记录你的关注列表，不能操作。")
-            return
-
         async with RedisLock(key=f"LT_UNFOLLOW_{user_id}") as _:
+            key = f"LT_FOLLOWINGS_{bili_uid}"
+            follows = await redis_cache.get(key)
+            if not isinstance(follows, (list, set)):
+                self.response("你没有记录你的关注列表，不能操作。")
+                return
+
             flag, current_follows = await BiliApi.get_followings(user_id=bili_uid)
             if not flag:
                 self.response(f"操作失败，未能获取你的关注列表: {current_follows}")

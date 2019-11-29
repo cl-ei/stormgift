@@ -153,6 +153,7 @@ class Worker(object):
             gift_type = "ANCHOR"
             raffle_id = data["id"]*10000
 
+            qq_notice_list = []
             for i, user in enumerate(data["award_users"]):
                 inner_raffle_id = raffle_id + i
                 winner_name = user["uname"]
@@ -183,7 +184,9 @@ class Worker(object):
                         f"在天选时刻抽奖中了{prize_gift_name}!\n"
                         f"https://live.bilibili.com/{short_room_id}"
                     )
-                    await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+                    qq_notice_list.append(message)
+            if qq_notice_list:
+                await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message="\n".join(qq_notice_list))
 
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"
