@@ -162,8 +162,9 @@ class ReqFreLimitApi(object):
 
         result = await AsyncMySQL.execute(
             "select max(id), min(id) "
-            "from raffle where created_time >= %s and created_time < %s;",
-            (start_datetime, end_date_time)
+            "from raffle "
+            "where created_time >= %s and created_time < %s and gift_type != %s;",
+            (start_datetime, end_date_time, "ANCHOR")
         )
         max_raffle_id, min_raffle_id = result[0]
 
