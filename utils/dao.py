@@ -485,6 +485,8 @@ class BiliToQQBindInfo(object):
     @classmethod
     async def get_by_qq(cls, qq):
         r = await redis_cache.get(cls.key)
+        if not isinstance(r, (list, tuple)):
+            r = []
         for qq_num, bili in r:
             if qq_num == qq:
                 return int(bili)
@@ -493,6 +495,8 @@ class BiliToQQBindInfo(object):
     @classmethod
     async def get_by_bili(cls, bili):
         r = await redis_cache.get(cls.key)
+        if not isinstance(r, (list, tuple)):
+            r = []
         for qq, b in r:
             if b == bili:
                 return qq
