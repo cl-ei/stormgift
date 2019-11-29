@@ -400,7 +400,11 @@ class BotUtils:
             return
 
         with RedisLock(key=f"LT_UNFOLLOW_{user_id}") as _:
-            current_follows = await BiliApi.get_followings(user_id=bili_uid)
+            flag, current_follows = await BiliApi.get_followings(user_id=bili_uid)
+            if not flag:
+                self.response(f"操作失败，未能获取你的关注列表: {current_follows}")
+                return
+
             total = 0
             for i, uid in enumerate(list(set(current_follows) - set(follows))):
                 flag, msg = await BiliApi.unfollow(user_id=uid, cookie=cookie_obj.cookie)

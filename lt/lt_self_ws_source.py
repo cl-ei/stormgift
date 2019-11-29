@@ -70,7 +70,7 @@ class WsManager(object):
             on_error=on_error,
             on_connect=on_connect,
             heart_beat_pkg=self.heartbeat_pkg,
-            heart_beat_interval=30
+            heart_beat_interval=28
         )
         new_client.room_id = room_id
         self._clients[room_id] = new_client
