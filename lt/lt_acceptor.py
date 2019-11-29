@@ -134,7 +134,7 @@ class Worker(object):
 
                 if index != 0:
                     message = message[:100]
-                failed.append(f"{cookie_obj.name}({cookie_obj.uid}){message}^")
+                failed.append(f"{cookie_obj.name}({cookie_obj.uid}){message}")
                 continue
 
             try:
@@ -160,7 +160,7 @@ class Worker(object):
             if i > 0 and i % 4 == 0:
                 success_users.append("\n")
         success_users = "".join(success_users)
-        failed_prompt = f"{'-'*20} FAILED {'-'*20}\n{''.join(failed)}\n" if failed else ""
+        failed_prompt = f"{'-'*20} FAILED {'-'*20}\n{'^'.join(failed)}\n" if failed else ""
         title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"
         split_char_count = max(0, (80 - len(title)) // 2)
         logging.info(
