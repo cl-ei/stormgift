@@ -364,7 +364,12 @@ class Worker(object):
             raffle_id = data["id"]
             key = f"A${room_id}${raffle_id}"
             if await redis_cache.set_if_not_exists(key, 1):
-                await mq_raffle_to_acceptor.put(key)
+
+                logging.info(f"A-> {danmaku}")
+
+                # accept_key = f"A${room_id}${raffle_id}${}"
+                # await mq_raffle_to_acceptor.put(accept_key)
+
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
