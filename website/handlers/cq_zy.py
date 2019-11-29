@@ -362,6 +362,23 @@ class BotUtils:
         flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
         self.response(msg)
 
+    async def proc_record_followings(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
+
+        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        if not bili_uid:
+            self.response(f"你尚未绑定B站账号，请私聊我然后发送#挂机查询进行绑定。")
+            return
+
+        flag, fs = await BiliApi.get_followings(user_id=bili_uid)
+        if not flag:
+            self.response(f"记录失败！{fs}")
+            return
+        key = f"LT_FOLLOWINGS_{bili_uid}"
+        await redis_cache.set(key, fs, timeout=3600*24*30)
+        self.response(f"操作成功！你关注了{len(fs)}个up主。")
+
     async def proc_query_bag(self, msg, user_id, group_id=None):
         self.group_id = group_id
         self.user_id = user_id
@@ -545,7 +562,8 @@ class BotUtils:
             "3.#大航海\n"
             "4.#中奖查询\n"
             "5.#勋章查询\n"
-            "6.#挂机查询"
+            "6.#挂机查询\n"
+            "7.#记录关注列表"
         )
         self.response(message)
 
@@ -593,6 +611,7 @@ class BotHandler:
             ("4", "#中奖查询"),
             ("5", "#勋章查询"),
             ("6", "#挂机查询"),
+            ("7", "#记录关注列表")
         ]:
             if msg.startswith(short):
                 msg = msg.replace(short, full, 1)
@@ -616,6 +635,9 @@ class BotHandler:
 
         elif msg.startswith("#挂机查询"):
             return await p.proc_lt_status(msg, user_id, group_id=None)
+
+        elif msg.startswith("#记录关注列表"):
+            return await p.proc_record_followings(msg, user_id, group_id=None)
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=None)

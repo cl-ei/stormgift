@@ -1548,11 +1548,34 @@ class BiliApi:
             return True, ""
         return False, r.get("message") or r.get("msg")
 
+    @classmethod
+    async def get_followings(cls, user_id, timeout=30):
+        url = "https://api.bilibili.com/x/relation/followings"
+        params = {
+            "vmid": user_id,
+            "pn": 1,
+            "order": "desc",
+            "jsonp": "jsonp",
+        }
+        result = []
+        for _ in range(5):
+            flag, r = await cls.get(url=url, data=params, timeout=timeout, check_error_code=True)
+            if not flag:
+                break
+            result.extend([_["mid"] for _ in r["data"]["list"]])
+            total = r["data"]["total"]
+            if len(result) >= total:
+                break
+            params["pn"] += 1
+
+        return True, list(set(result))
+
 
 async def test():
-    r = await BiliApi.get_live_room_info_by_room_id(room_id=2516117)
+    r = await BiliApi.get_followings(user_id=20932326)
     # r = await BiliApi.get_user_info(uid=r)
     print(f"f -> {r}")
+
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
