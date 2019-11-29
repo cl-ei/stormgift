@@ -401,7 +401,7 @@ class BotUtils:
 
         current_follows = await BiliApi.get_followings(user_id=bili_uid)
         total = 0
-        for i, uid in enumerate(set(current_follows) - set(follows)):
+        for i, uid in enumerate(list(set(current_follows) - set(follows))):
             flag, msg = await BiliApi.unfollow(user_id=uid, cookie=cookie_obj.cookie)
             if not flag:
                 self.response(f"在处理第{i}个时发生了错误：{msg}.")
