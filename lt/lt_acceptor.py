@@ -117,6 +117,7 @@ class Worker(object):
         gift_name = gift_name.replace("抽奖", "")
 
         success = []
+        failed = []
         for index, cookie_obj in enumerate(user_cookie_objs):
             flag, message = result_list[index]
 
@@ -133,10 +134,7 @@ class Worker(object):
 
                 if index != 0:
                     message = message[:100]
-                logging.warning(
-                    f"{act.upper()} FAILED! {index}-{cookie_obj.name}({cookie_obj.uid}) "
-                    f"@{room_id}${gift_id}, message: {message}"
-                )
+                failed.append(f"{cookie_obj.name}({cookie_obj.uid}){message}^")
                 continue
 
             try:
@@ -162,12 +160,14 @@ class Worker(object):
             if i > 0 and i % 4 == 0:
                 success_users.append("\n")
         success_users = "".join(success_users)
+        failed_prompt = f"{'-'*20} FAILED {'-'*20}\n{''.join(failed)}\n" if failed else ""
         title = f"{act.upper()} OK {gift_name} @{room_id}${gift_id}"
         split_char_count = max(0, (80 - len(title)) // 2)
         logging.info(
             f"\n{'-'*split_char_count}{title}{'-'*split_char_count}\n"
-            f"{success_users}\n\n"
-            f"Woker: {self.worker_index}, cloud_acceptor: {cloud_acceptor_url[-20:]}, total: {len(success)}\n"
+            f"{success_users}\n"
+            f"{failed_prompt}"
+            f"\nWorker: {self.worker_index}, cloud_acceptor: {cloud_acceptor_url[-20:]}, total: {len(success)}\n"
             f"{'-'*80}"
         )
 
