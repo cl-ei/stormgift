@@ -604,7 +604,7 @@ class BotUtils:
             "7.#记录关注列表\n"
             "8.#清除天选up\n"
             "9.#绑定\n"
-            "10.#解绑"
+            "a.#解绑"
         )
         self.response(message)
 
@@ -655,7 +655,7 @@ class BotHandler:
             ("7", "#记录关注列表"),
             ("8", "#清除天选up"),
             ("9", "#绑定"),
-            ("10", "#解绑"),
+            ("a", "#解绑"),
         ]:
             if msg.startswith(short):
                 msg = msg.replace(short, full, 1)
