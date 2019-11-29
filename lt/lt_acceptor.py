@@ -3,6 +3,7 @@ import time
 import json
 import random
 import asyncio
+import aiohttp
 import requests
 import traceback
 from utils.dao import redis_cache, LTUserSettings, StormGiftBlackRoom, DelayAcceptGiftsMQ
@@ -17,6 +18,19 @@ NON_SKIP_USER_ID = [
     39748080,  # LP
 ]
 delay_accept_q = asyncio.Queue()
+
+
+async def async_post(url, data=None, json=None, headers=None, timeout=30):
+    client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
+    try:
+        async with client_session as session:
+            async with session.post(url, data=data, json=json, headers=headers) as resp:
+                status_code = resp.status
+                content = await resp.text()
+                return status_code, content
+
+    except Exception as e:
+        return 5000, f"Error in request: {e}"
 
 
 class Worker(object):
@@ -69,16 +83,11 @@ class Worker(object):
             "gift_type": gift_type,
         }
         cloud_acceptor_url = random.choice(cloud_acceptors)
-        try:
-            r = requests.post(url=cloud_acceptor_url, json=req_json, timeout=20)
-        except Exception as e:
-            logging.error(f"Cannot access cloud acceptor! e: {e}")
-            return
+        status_code, content = await async_post(url=cloud_acceptor_url, json=req_json)
+        if status_code != 200:
+            return logging.error(f"Accept Failed! e: {content}")
 
-        if r.status_code != 200:
-            return logging.error(f"Accept Failed! e: {r.content.decode('utf-8')}")
-
-        result_list = json.loads(r.content.decode('utf-8'))
+        result_list = json.loads(content)
         if act == "join_pk":
             gift_name = "PK"
         elif act == "join_tv_v5":
