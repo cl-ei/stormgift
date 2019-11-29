@@ -463,6 +463,26 @@ class BiliToQQBindInfo(object):
         return await redis_cache.set(key=cls.key, value=r)
 
     @classmethod
+    async def unbind(cls, qq=None, bili=None):
+        r = await redis_cache.get(cls.key)
+        if not isinstance(r, (list, tuple)):
+            r = []
+
+        unbind = []
+        dist = []
+        for q, b in r:
+            if q == qq:
+                unbind.append(f"QQ: {qq}")
+                continue
+            elif b == bili:
+                unbind.append(f"Bilibili: {bili}")
+                continue
+            dist.append((qq, bili))
+        if len(dist) != r:
+            await redis_cache.set(key=cls.key, value=dist)
+        return unbind
+
+    @classmethod
     async def get_by_qq(cls, qq):
         r = await redis_cache.get(cls.key)
         for qq_num, bili in r:

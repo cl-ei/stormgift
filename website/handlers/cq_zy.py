@@ -209,30 +209,6 @@ class BotUtils:
             message = f"Error happened: {e}, {traceback.format_exc()}"
             self.bot.send_group_msg(group_id=group_id, message=message)
 
-    def proc_sleep(self, msg, group_id, user_id):
-        postfix = msg.replace(" ", "").replace("　", "").replace("#睡觉", "").strip().lower()
-
-        duration_str = ""
-        for s in postfix:
-            if s in "0123456789":
-                duration_str += s
-        try:
-            duration = abs(int(duration_str.strip()))
-        except (ValueError, TypeError):
-            return {}
-
-        if postfix[-1] == "m":
-            duration *= 60
-        elif postfix[-1] == "h":
-            duration *= 3600
-        elif postfix[-1] == "d":
-            duration *= 3600*24
-
-        if duration <= 0:
-            return {}
-
-        self.bot.set_group_ban(group_id=group_id, user_id=user_id, duration=min(duration, 720*3600))
-
     async def proc_song(self, msg, group_id):
         song_name = msg.split("点歌")[-1].strip()
         if not song_name:
@@ -260,7 +236,9 @@ class BotUtils:
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
             raw_uid_or_uname = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+
         if not raw_uid_or_uname:
+            self.response(f"请绑定你的B站账号，或者在指令后加上正确的B站用户id。")
             return
 
         try:
@@ -340,15 +318,7 @@ class BotUtils:
 
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
-            if group_id:
-                message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"#挂机查询\"以完成绑定。"
-                self.response(message)
-                return
-
-            number = randint(1000, 9999)
-            key = f"BILI_BIND_CHECK_KEY_{number}"
-            await redis_cache.set(key=key, value=user_id, timeout=3600)
-            message = f"你尚未绑定B站账号。请你现在去13369254直播间发送以下指令： 绑定{number}"
+            message = f"你尚未绑定B站账号。请私聊我然后发送\"#绑定\"以完成绑定。"
             self.response(message)
             return
 
@@ -368,7 +338,7 @@ class BotUtils:
 
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
-            self.response(f"你尚未绑定B站账号，请私聊我然后发送#挂机查询进行绑定。")
+            self.response(f"你尚未绑定B站账号，请私聊我然后发送\"#绑定\"进行绑定。")
             return
 
         flag, fs = await BiliApi.get_followings(user_id=bili_uid)
@@ -377,7 +347,7 @@ class BotUtils:
             return
         key = f"LT_FOLLOWINGS_{bili_uid}"
         await redis_cache.set(key, fs, timeout=3600*24*30)
-        self.response(f"操作成功！你关注了{len(fs)}个up主。")
+        self.response(f"操作成功！记录下了你最新关注的{len(fs)}个up主。")
 
     async def proc_unfollow(self, msg, user_id, group_id=None):
         self.group_id = group_id
@@ -385,7 +355,7 @@ class BotUtils:
 
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
-            self.response(f"你尚未绑定B站账号，请私聊我然后发送#挂机查询进行绑定。")
+            self.response(f"你尚未绑定B站账号，请私聊我然后发送“#绑定”进行绑定。")
             return
 
         cookie_obj = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
@@ -421,7 +391,7 @@ class BotUtils:
 
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
         if not bili_uid:
-            message = f"[CQ:at,qq={user_id}] 你尚未绑定B站账号。请私聊我然后发送\"#挂机查询\"以完成绑定。"
+            message = f"你尚未绑定B站账号。请私聊我然后发送\"#绑定\"以完成绑定。"
             self.response(message)
             return True
 
@@ -583,6 +553,38 @@ class BotUtils:
         self.response(data)
         return
 
+    async def proc_bind(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
+
+        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        if bili_uid:
+            self.response(f"你已经绑定到Bili用户: {bili_uid}！")
+            return
+
+        number = randint(1000, 9999)
+        key = f"BILI_BIND_CHECK_KEY_{number}"
+        if await redis_cache.set_if_not_exists(key=key, value=user_id, timeout=3600):
+            message = f"你尚未绑定B站账号。请你现在去13369254直播间发送以下指令:\n\n绑定{number}"
+        else:
+            message = f"操作失败！系统繁忙，请5秒后再试。"
+        self.response(message)
+        return
+
+    async def proc_unbind(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
+
+        unbind = await BiliToQQBindInfo.unbind(qq=user_id)
+        if not unbind:
+            message = f"你没有绑定Bili账号，无需解绑。"
+            self.response(message)
+            return
+
+        message = f"解绑成功：{'、'.join(unbind)}。"
+        self.response(message)
+        return
+
     async def proc_help(self, msg, user_id, group_id):
         self.group_id = group_id
         self.user_id = user_id
@@ -601,6 +603,8 @@ class BotUtils:
             "6.#挂机查询\n"
             "7.#记录关注列表\n"
             "8.#清除天选up\n"
+            "9.#绑定\n"
+            "10.#解绑"
         )
         self.response(message)
 
@@ -650,6 +654,8 @@ class BotHandler:
             ("6", "#挂机查询"),
             ("7", "#记录关注列表"),
             ("8", "#清除天选up"),
+            ("9", "#绑定"),
+            ("10", "#解绑"),
         ]:
             if msg.startswith(short):
                 msg = msg.replace(short, full, 1)
@@ -679,6 +685,12 @@ class BotHandler:
 
         elif msg.startswith("#清除天选up"):
             return await p.proc_unfollow(msg, user_id, group_id=None)
+
+        elif msg.startswith("#绑定"):
+            return await p.proc_bind(msg, user_id, group_id=None)
+
+        elif msg.startswith("#解绑"):
+            return await p.proc_unbind(msg, user_id, group_id=None)
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=None)
