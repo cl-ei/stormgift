@@ -37,6 +37,32 @@ def request(method, url, headers, data=None, params=None, timeout=10):
     return status_code, content
 
 
+def join_anchor(room_id, gift_id, cookie, gift_type=None):
+    csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+    req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/Anchor/Join"
+    headers = {"Cookie": cookie}
+    data = {
+        "id": gift_id,
+        "platform": "pc",
+        "csrf_token": csrf_token,
+        "csrf": csrf_token,
+        "visit_id": "",
+    }
+    status_code, content = request(method="post", url=req_url, headers=headers, data=data)
+    if status_code != 200:
+        return False, "Status code is not 200! content: %s" % content
+
+    try:
+        r = json.loads(content)
+    except Exception as e:
+        return False, "Not json response: %s, content: %s" % (e, content)
+
+    if r.get("code") != 0:
+        return False, r.get("msg") or r.get("message")
+
+    return True, f"0_天选时刻"
+
+
 def join_tv(room_id, gift_id, cookie, gift_type=None):
     csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
     req_url = "https://api.live.bilibili.com/gift/v3/smalltv/join"
@@ -210,6 +236,8 @@ def accept_handler(q, act, room_id, gift_id, cookie, gift_type=None):
         f = join_pk
     elif act == "join_storm":
         f = join_storm
+    elif act == "join_anchor":
+        f = join_anchor
     else:
         q.put(None)
         return

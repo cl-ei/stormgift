@@ -665,6 +665,25 @@ class BiliApi:
             return False, r.get("msg", "-")
 
     @classmethod
+    async def join_anchor(cls, raffle_id, cookie, gift_id=None, gift_num=None, timeout=5):
+        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
+        if not csrf_token_list:
+            return False, f"Cannot get csrf_token!"
+
+        csrf_token = csrf_token_list[0]
+        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/Anchor/Join"
+        headers = {"Cookie": cookie}
+        data = {
+            "id": raffle_id,
+            "platform": "pc",
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+            "visit_id": "",
+        }
+        flag, r = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_error_code=True)
+        return flag, r
+
+    @classmethod
     async def join_guard(cls, room_id, gift_id, cookie, timeout=5):
         csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
         if not csrf_token_list:
