@@ -79,6 +79,9 @@ async def send_danmaku(msg, user=""):
         for _ in range(3):
             flag, data = await BiliApi.send_danmaku(message=send_m, room_id=MONITOR_ROOM_ID, cookie=cookie_obj.cookie)
             if flag:
+                if data == "fire":
+                    return
+
                 logging.info(f"DMK success: {send_m}, reason: {data}")
                 break
             else:
