@@ -364,21 +364,30 @@ class Worker(object):
             raffle_id = data["id"]
             key = f"A${room_id}${raffle_id}"
             if await redis_cache.set_if_not_exists(key, 1):
-
                 logging.info(f"A-> {danmaku}")
 
-                # accept_key = f"A${room_id}${raffle_id}${}"
-                # await mq_raffle_to_acceptor.put(accept_key)
+                join_type = data["join_type"]
+                require_type = data["require_type"]
+                if join_type == 0:  # 免费参与
+                    if require_type in (0, 1, 2):  # 0: 无限制; 1: 关注主播; 2: 粉丝勋章
+                        await mq_raffle_to_acceptor.put(key)
+                    else:
+                        require_value = data["require_value"]
+                        require_text = data["require_text"]
+                        message = (
+                            f"join_type: {join_type}, require_value: {require_value}, "
+                            f"require_text:{require_text}\n\n dan: {danmaku}"
+                        )
+                        await async_zy.send_private_msg(user_id=80873436, message=message)
+                else:
+                    message = f"join_type: {join_type}\n\n dan: {danmaku}"
+                    await async_zy.send_private_msg(user_id=80873436, message=message)
 
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
                     "gift_name": "天选时刻",
                     "raffle_type": "anchor",
-                    # f"{data['award_name']}*{data['award_num']}",
-                    # "join_type": data["join_type"],
-                    # "require":
-                    # f"{data['require_text']}, {data['gift_num']}*{data['gift_name']}({data['gift_price']})",
                 }, ensure_ascii=False))
 
     async def run_forever(self):
