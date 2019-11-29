@@ -346,21 +346,28 @@ class Worker(object):
                 }, ensure_ascii=False))
 
         elif key_type == "S":
-            flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=room_id)
-            if not flag:
-                logging.info(f"Error happened when get raffle id of storm gift: e: {raffle_id}")
-                return
+            await mq_raffle_broadcast.put(json.dumps({
+                "real_room_id": room_id,
+                "raffle_id": None,
+                "gift_name": "节奏风暴",
+                "raffle_type": "storm"
+            }, ensure_ascii=False))
 
-            key = f"S${room_id}${raffle_id}"
-            info = {"room_id": room_id, "raffle_id": raffle_id}
-            if await redis_cache.set_if_not_exists(key, info):
-                # await mq_raffle_to_acceptor.put(key)
-                await mq_raffle_broadcast.put(json.dumps({
-                    "real_room_id": room_id,
-                    "raffle_id": raffle_id,
-                    "gift_name": "节奏风暴",
-                    "raffle_type": "storm"
-                }, ensure_ascii=False))
+            # flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=room_id)
+            # if not flag:
+            #     logging.info(f"Error happened when get raffle id of storm gift: e: {raffle_id}")
+            #     return
+            #
+            # key = f"S${room_id}${raffle_id}"
+            # info = {"room_id": room_id, "raffle_id": raffle_id}
+            # if await redis_cache.set_if_not_exists(key, info):
+            #     # await mq_raffle_to_acceptor.put(key)
+            #     await mq_raffle_broadcast.put(json.dumps({
+            #         "real_room_id": room_id,
+            #         "raffle_id": raffle_id,
+            #         "gift_name": "节奏风暴",
+            #         "raffle_type": "storm"
+            #     }, ensure_ascii=False))
 
         elif key_type == "A":
             # require_type = data["require_type"]
