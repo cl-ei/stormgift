@@ -369,7 +369,7 @@ class Worker(object):
             if await redis_cache.set_if_not_exists(key, 1):
                 join_type = data["join_type"]
                 if join_type == 0:  # 免费参与
-                    await mq_raffle_to_acceptor.put(key)
+                    await DelayAcceptGiftsMQ.put(f"A${room_id}${raffle_id}", accept_time=int(time.time() + 120))
                 else:
                     award_name = data["award_name"]
                     gift_name = data["gift_name"]
