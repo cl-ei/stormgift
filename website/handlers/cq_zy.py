@@ -379,6 +379,37 @@ class BotUtils:
         await redis_cache.set(key, fs, timeout=3600*24*30)
         self.response(f"操作成功！你关注了{len(fs)}个up主。")
 
+    async def proc_unfollow(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
+
+        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
+        if not bili_uid:
+            self.response(f"你尚未绑定B站账号，请私聊我然后发送#挂机查询进行绑定。")
+            return
+
+        cookie_obj = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
+        if not cookie_obj:
+            self.response("你的登录已过期！请登录辣条宝藏站点重新登录。")
+            return
+
+        key = f"LT_FOLLOWINGS_{bili_uid}"
+        follows = await redis_cache.get(key)
+        if not isinstance(follows, (list, set)):
+            self.response("你没有记录你的关注列表，不能操作。")
+            return
+
+        current_follows = await BiliApi.get_followings(user_id=bili_uid)
+        total = 0
+        for i, uid in enumerate(set(current_follows) - set(follows)):
+            flag, msg = await BiliApi.unfollow(user_id=uid, cookie=cookie_obj.cookie)
+            if not flag:
+                self.response(f"在处理第{i}个时发生了错误：{msg}.")
+                return
+            await asyncio.sleep(0.2)
+            total = i + 1
+        self.response(f"操作成功！取关了{total}个up主。")
+
     async def proc_query_bag(self, msg, user_id, group_id=None):
         self.group_id = group_id
         self.user_id = user_id
@@ -563,7 +594,8 @@ class BotUtils:
             "4.#中奖查询\n"
             "5.#勋章查询\n"
             "6.#挂机查询\n"
-            "7.#记录关注列表"
+            "7.#记录关注列表\n"
+            "8.#清除天选up\n"
         )
         self.response(message)
 
@@ -611,7 +643,8 @@ class BotHandler:
             ("4", "#中奖查询"),
             ("5", "#勋章查询"),
             ("6", "#挂机查询"),
-            ("7", "#记录关注列表")
+            ("7", "#记录关注列表"),
+            ("8", "#清除天选up"),
         ]:
             if msg.startswith(short):
                 msg = msg.replace(short, full, 1)
@@ -638,6 +671,9 @@ class BotHandler:
 
         elif msg.startswith("#记录关注列表"):
             return await p.proc_record_followings(msg, user_id, group_id=None)
+
+        elif msg.startswith("#清除天选up"):
+            return await p.proc_unfollow(msg, user_id, group_id=None)
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=None)

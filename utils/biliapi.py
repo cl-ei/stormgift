@@ -381,6 +381,7 @@ class BiliApi:
             "https://api.live.bilibili.com/room/v1/Room/get_info",
             "https://api.live.bilibili.com/guard/topList",
             "https://api.live.bilibili.com/msg/send",
+            "https://api.bilibili.com/x/relation/modify",
 
         ):
             req_json = {
@@ -1569,6 +1570,25 @@ class BiliApi:
             params["pn"] += 1
 
         return True, list(set(result))
+
+    @classmethod
+    async def unfollow(cls, user_id, cookie, timeout=30):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.bilibili.com/x/relation/modify"
+        data = {
+            "fid": user_id,
+            "act": 2,
+            "re_src": 11,
+            "jsonp": "jsonp",
+            "csrf": csrf_token
+        }
+        headers = {"Cookie": cookie}
+        flag, r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+        return flag, r
 
 
 async def test():
