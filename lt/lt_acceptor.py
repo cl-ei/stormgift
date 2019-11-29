@@ -42,45 +42,30 @@ class Worker(object):
         gift_id = int(gift_id)
         gift_type = ""
 
+        non_skip, normal_objs = await self.load_cookie()
+        user_cookie_objs = non_skip + normal_objs
+
         if key_type == "T":
             gift_type, *_ = other_args
-            act = "join_tv_v5"
+            act, filter_k = "join_tv_v5", "tv_percent"
         elif key_type == "G":
-            act = "join_guard"
+            act, filter_k = "join_guard", "guard_percent"
         elif key_type == "P":
-            act = "join_pk"
-        elif key_type == "S":
-            act = "join_storm"
+            act, filter_k = "join_pk", "pk_percent"
+        elif key_type == "A":
+            act, filter_k = "join_anchor", "anchor_percent"
         else:
             return
 
-        non_skip, normal_objs = await self.load_cookie()
-        user_cookie_objs = non_skip + normal_objs
-        if act == "join_tv_v5":
-            user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="tv_percent")
-        elif act == "join_guard":
-            user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="guard_percent")
-        elif act == "join_pk":
-            user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="pk_percent")
-        elif act == "join_storm":
-            user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key="storm_percent")
-
-            non_blocked = []
-            for c in user_cookie_objs:
-                if await StormGiftBlackRoom.is_blocked(c.uid):
-                    continue
-                non_blocked.append(c)
-            user_cookie_objs = non_blocked
-
-        cookies = [c.cookie for c in user_cookie_objs]
-        if not cookies:
+        user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key=filter_k)
+        if not user_cookie_objs:
             return
 
         req_json = {
             "act": act,
             "room_id": room_id,
             "gift_id": gift_id,
-            "cookies": cookies,
+            "cookies": [c.cookie for c in user_cookie_objs],
             "gift_type": gift_type,
         }
         cloud_acceptor_url = random.choice(cloud_acceptors)
@@ -112,6 +97,8 @@ class Worker(object):
                 gift_name = "大航海"
         elif act == "join_storm":
             gift_name = "节奏风暴"
+        elif act == "join_anchor":
+            gift_name = "天选时刻"
         else:
             gift_name = "未知"
         gift_name = gift_name.replace("抽奖", "")
