@@ -12,6 +12,7 @@ from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo, DelayAc
 from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
+from config.log4 import anchor_logger
 from utils.reconstruction_model import Guard, Raffle, objects, BiliUser
 
 GIFT_TYPE_TO_NAME = {
@@ -387,6 +388,27 @@ class Worker(object):
                     "gift_name": "天选时刻",
                     "raffle_type": "anchor",
                 }, ensure_ascii=False))
+
+                id_ = data["id"]
+                room_id = data["room_id"]
+                award_name = data["award_name"]
+                award_num = data["award_num"]
+                cur_gift_num = data["cur_gift_num"]
+                gift_name = data["gift_name"]
+                gift_num = data["gift_num"]
+                gift_price = data["gift_price"]
+                join_type = data["join_type"]
+                require_type = data["require_type"]
+                require_value = data["require_value"]
+                require_text = data["require_text"]
+                danmu = data["danmu"]
+                record = (
+                    f"{id_}^{room_id}^{award_name}^{award_num}^"
+                    f"{cur_gift_num}^{gift_name}^{gift_num}^{gift_price}^"
+                    f"{join_type}^{require_type}^{require_value}^"
+                    f"{require_text}^{danmu}"
+                )
+                anchor_logger.info(record)
 
     async def run_forever(self):
         while True:
