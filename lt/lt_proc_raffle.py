@@ -359,6 +359,9 @@ class Worker(object):
                 }, ensure_ascii=False))
 
         elif key_type == "A":
+            # require_type = data["require_type"]
+            # 0: 无限制; 1: 关注主播; 2: 粉丝勋章; 3大航海； 4用户等级；5主站等级
+
             danmaku = danmakus[0]
             data = danmaku["data"]
             raffle_id = data["id"]
@@ -367,20 +370,17 @@ class Worker(object):
                 logging.info(f"A-> {danmaku}")
 
                 join_type = data["join_type"]
-                require_type = data["require_type"]
                 if join_type == 0:  # 免费参与
-                    if require_type in (0, 1, 2):  # 0: 无限制; 1: 关注主播; 2: 粉丝勋章
-                        await mq_raffle_to_acceptor.put(key)
-                    else:
-                        require_value = data["require_value"]
-                        require_text = data["require_text"]
-                        message = (
-                            f"join_type: {join_type}, require_value: {require_value}, "
-                            f"require_text:{require_text}\n\n dan: {danmaku}"
-                        )
-                        await async_zy.send_private_msg(user_id=80873436, message=message)
+                    await mq_raffle_to_acceptor.put(key)
                 else:
-                    message = f"join_type: {join_type}\n\n dan: {danmaku}"
+                    award_name = data["award_name"]
+                    gift_name = data["gift_name"]
+                    gift_num = data["gift_num"]
+                    gift_price = data["gift_price"]
+                    message = (
+                        f"join_type: {join_type} -> {award_name}, need: {gift_name}*{gift_num}({gift_price})\n\n "
+                        f"dan: {danmaku}"
+                    )
                     await async_zy.send_private_msg(user_id=80873436, message=message)
 
                 await mq_raffle_broadcast.put(json.dumps({
