@@ -367,8 +367,6 @@ class Worker(object):
             raffle_id = data["id"]
             key = f"A${room_id}${raffle_id}"
             if await redis_cache.set_if_not_exists(key, 1):
-                logging.info(f"A-> {danmaku}")
-
                 join_type = data["join_type"]
                 if join_type == 0:  # 免费参与
                     await mq_raffle_to_acceptor.put(key)
@@ -381,7 +379,7 @@ class Worker(object):
                         f"join_type: {join_type} -> {award_name}, need: {gift_name}*{gift_num}({gift_price})\n\n "
                         f"dan: {danmaku}"
                     )
-                    await async_zy.send_private_msg(user_id=80873436, message=message)
+                    logging.info(f"ANCHOR_LOG-> {message}")
 
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
