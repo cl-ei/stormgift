@@ -399,7 +399,7 @@ class BotUtils:
             self.response("你没有记录你的关注列表，不能操作。")
             return
 
-        with RedisLock(key=f"LT_UNFOLLOW_{user_id}") as _:
+        async with RedisLock(key=f"LT_UNFOLLOW_{user_id}") as _:
             flag, current_follows = await BiliApi.get_followings(user_id=bili_uid)
             if not flag:
                 self.response(f"操作失败，未能获取你的关注列表: {current_follows}")
