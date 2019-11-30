@@ -656,6 +656,10 @@ class BotHandler:
                 u = int(msg[2:])
                 r = await QQTrustList.remove(u)
                 await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"dt r: {r}")
+            elif msg == "qt":
+                r = await QQTrustList.get_all()
+                message = "\n".join(r)
+                await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"qt r: \n{message}")
 
         for short, full in [
             ("1", "#背包"),
