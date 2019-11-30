@@ -649,11 +649,11 @@ class BotHandler:
 
         if user_id == 80873436:
             if msg.startswith("#at"):
-                u = int(msg[2:])
+                u = int(msg[3:])
                 r = await QQTrustList.add(u)
                 await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"r: {r}")
             elif msg.startswith("#dt"):
-                u = int(msg[2:])
+                u = int(msg[3:])
                 r = await QQTrustList.remove(u)
                 await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"dt r: {r}")
             elif msg == "#qt":
