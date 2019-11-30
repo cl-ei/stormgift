@@ -8,7 +8,7 @@ from config import config
 from config.g import *
 from utils.biliapi import BiliApi
 from utils.cq import CQClient, qq, async_zy
-from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo, DelayAcceptGiftsMQ
+from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo, DelayAcceptGiftsMQ, AnchorBlackList
 from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
@@ -372,25 +372,28 @@ class Worker(object):
         elif key_type == "A":
             # require_type = data["require_type"]
             # 0: 无限制; 1: 关注主播; 2: 粉丝勋章; 3大航海； 4用户等级；5主站等级
-
             danmaku = danmakus[0]
+
             data = danmaku["data"]
             raffle_id = data["id"]
+            award_name = data["award_name"]
+            danmu = data["danmu"]
+
             key = f"A${room_id}${raffle_id}"
             if await redis_cache.set_if_not_exists(key, 1):
                 join_type = data["join_type"]
                 if join_type == 0:  # 免费参与
-                    await DelayAcceptGiftsMQ.put(f"A${room_id}${raffle_id}", accept_time=int(time.time() + 120))
-                else:
-                    award_name = data["award_name"]
-                    gift_name = data["gift_name"]
-                    gift_num = data["gift_num"]
-                    gift_price = data["gift_price"]
-                    message = (
-                        f"join_type: {join_type} -> {award_name}, need: {gift_name}*{gift_num}({gift_price})\n\n "
-                        f"dan: {danmaku}"
-                    )
-                    logging.info(f"ANCHOR_LOG-> {message}")
+
+                    in_black_list = False
+                    for value in (award_name, room_id, danmu):
+                        if await AnchorBlackList.is_include(str(value)):
+                            in_black_list = True
+                            break
+
+                    if in_black_list:
+                        logging.info(f"Anchor in black list! room_id: {room_id}, award: {award_name}, danmu: {danmu}")
+                    else:
+                        await DelayAcceptGiftsMQ.put(f"A${room_id}${raffle_id}", accept_time=int(time.time() + 120))
 
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,

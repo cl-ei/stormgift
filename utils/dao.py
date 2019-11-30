@@ -148,6 +148,9 @@ class RedisCache(object):
         r = await self.execute("SREM", name, *[pickle.dumps(e) for e in items])
         return r
 
+    async def set_is_member(self, name, item):
+        return await self.execute("SISMEMBER", name, pickle.dumps(item))
+
     async def set_get_all(self, name):
         r = await self.execute("SMEMBERS", name)
         if isinstance(r, list):
@@ -890,14 +893,71 @@ class DelayAcceptGiftsMQ:
         return r
 
 
+class AnchorBlackList:
+    key = "LT_ANCHOR_BLACK_LIST"
+
+    @classmethod
+    async def add(cls, value):
+        return await redis_cache.set_add(cls.key, value)
+
+    @classmethod
+    async def remove(cls, value):
+        return await redis_cache.set_remove(cls.key, value)
+
+    @classmethod
+    async def is_include(cls, value):
+        r = await redis_cache.set_is_member(cls.key, value)
+        return bool(r)
+
+    @classmethod
+    async def get_all(cls):
+        return await redis_cache.set_get_all(cls.key)
+
+
+class QQTrustList:
+    key = "LT_QQ_TRUST_LIST"
+
+    @classmethod
+    async def add(cls, user_id):
+        return await redis_cache.set_add(cls.key, user_id)
+
+    @classmethod
+    async def remove(cls, user_id):
+        return await redis_cache.set_remove(cls.key, user_id)
+
+    @classmethod
+    async def get_all(cls):
+        return await redis_cache.set_get_all(cls.key)
+
+    @classmethod
+    async def is_include(cls, user_id):
+        return await redis_cache.set_is_member(cls.key, user_id)
+
+
 async def test():
-    # now = time.time() + 10
-    # r = await DelayAcceptGiftsMQ.put("T1234", now)
-    # print(r)
+    r = await AnchorBlackList.get_all()
+    print(r)
 
-    s = await DelayAcceptGiftsMQ.get()
-    print(s)
+    r = await AnchorBlackList.add(123)
+    print(r)
 
+    r = await AnchorBlackList.get_all()
+    print(r)
+
+    r = await AnchorBlackList.is_include(123)
+    print(f"in: {r}")
+
+    r = await AnchorBlackList.is_include(1234)
+    print(f"in: {r} 1234")
+
+    r = await AnchorBlackList.remove(123)
+    print(r)
+
+    r = await AnchorBlackList.is_include(1234)
+    print(f"in: {r}")
+
+    r = await AnchorBlackList.get_all()
+    print(r)
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
