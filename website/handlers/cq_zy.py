@@ -648,15 +648,15 @@ class BotHandler:
         msg = context["raw_message"]
 
         if user_id == 80873436:
-            if msg.startswith("at"):
+            if msg.startswith("#at"):
                 u = int(msg[2:])
                 r = await QQTrustList.add(u)
                 await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"r: {r}")
-            elif msg.startswith("dt"):
+            elif msg.startswith("#dt"):
                 u = int(msg[2:])
                 r = await QQTrustList.remove(u)
                 await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"dt r: {r}")
-            elif msg == "qt":
+            elif msg == "#qt":
                 r = await QQTrustList.get_all()
                 message = "\n".join(r)
                 await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"qt r: \n{message}")
@@ -711,27 +711,27 @@ class BotHandler:
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=None)
 
-        elif msg.startswith("ab"):
+        elif msg.startswith("#ab"):
             if not await QQTrustList.is_include(user_id):
                 await async_zy.send_private_msg(user_id=user_id, message=f"你不是辣条机的管理员。")
                 return
-            content = msg[2:].strip()
+            content = msg[3:].strip()
             if not content:
                 return
             r = await AnchorBlackList.add(content)
             await async_zy.send_private_msg(user_id=user_id, message=f"【{content}】添加成功, 共计{r}条。")
 
-        elif msg.startswith("db"):
+        elif msg.startswith("#db"):
             if not await QQTrustList.is_include(user_id):
                 await async_zy.send_private_msg(user_id=user_id, message=f"你不是辣条机的管理员。")
                 return
-            content = msg[2:].strip()
+            content = msg[3:].strip()
             if not content:
                 return
             r = await AnchorBlackList.remove(content)
             await async_zy.send_private_msg(user_id=user_id, message=f"【{content}】删除成功, 共计{r}条。")
 
-        elif msg == "qb":
+        elif msg == "#qb":
             r = await AnchorBlackList.get_all()
             message = "\n".join(r)
             await async_zy.send_private_msg(user_id=user_id, message=f"以下是黑名单的内容：\n\n{message}")
