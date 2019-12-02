@@ -87,8 +87,8 @@ async def check_login(request):
 
 
 async def lt(request):
-    token = request.query.get("token")
-    r = await redis_cache.get()
+    # token = request.query.get("token")
+    # r = await redis_cache.get()
     context = {"CDN_URL": CDN_URL}
     return render_to_response("website/templates/website_homepage.html", context=context)
 
