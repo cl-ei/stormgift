@@ -8,9 +8,9 @@ from aiohttp import web
 from jinja2 import Template
 from config import CDN_URL, g
 from config.log4 import website_logger as logging
-from utils.cq import bot_zy, bot
+from utils.cq import bot_zy
 from utils.biliapi import BiliApi
-from utils.dao import redis_cache, HansyDynamicNotic, LTUserSettings
+from utils.dao import redis_cache, LTUserSettings
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import DBCookieOperator, ReqFreLimitApi
 from utils.dao import LtUserLoginPeriodOfValidity
@@ -88,6 +88,13 @@ async def check_login(request):
 
 async def lt(request):
     token = request.query.get("token")
+    if not token:
+        return web.HTTPForbidden()
+
+    ua = request.headers.get("User-Agent", "NON_UA")
+    remote_ip = request.headers.get("X-Real-IP", "")
+    logging.info(f"LT_ACCESS_TOKEN_RECEIVED: {token}, ip: {remote_ip}. UA: {ua}")
+
     key = F"LT_ACCESS_TOKEN_{token}"
     r = await redis_cache.get(key=key)
     if not r:
