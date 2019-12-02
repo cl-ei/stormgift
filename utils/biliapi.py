@@ -1,4 +1,5 @@
 import re
+import sys
 import rsa
 import json
 import time
@@ -57,6 +58,14 @@ class CookieFetcher:
         f'&mobi_app={mobi_app}'
         f'&platform={platform}'
     )
+
+    @classmethod
+    def record_captcha(cls, source, result):
+        if sys.platform.lower() != "linux":
+            return
+
+        with open("/home/wwwroot/captchars/c", "ab") as f:
+            f.write(f"{result}${source}\r\n".encode("utf-8"))
 
     @classmethod
     def calc_sign(cls, text):
@@ -148,7 +157,7 @@ class CookieFetcher:
             captcha = json.loads(json_rsp)['message']
         except json.JSONDecodeError:
             captcha = None
-        return captcha
+        return str_img, captcha
 
     @classmethod
     async def get_cookie(cls, account, password):
@@ -168,17 +177,22 @@ class CookieFetcher:
         if not flag:
             return False, json_rsp
 
-        for _try_fetch_captcha_times in range(20):
-            if json_rsp["code"] != -105:
+        if json_rsp["code"] == -105:  # need captchar
+            for _try_fetch_captcha_times in range(20):
+                source, result = await cls.fetch_captcha()
+                if not result:
+                    continue
+                flag, json_rsp = await cls.post_login_req(url_name, url_password, captcha=result)
+
+                if json_rsp["code"] == -105:  # need captchar
+                    continue
+
+                if json_rsp["code"] == 0:
+                    cls.record_captcha(source=source, result=result)
                 break
 
-            captcha = await cls.fetch_captcha()
-            if not captcha:
-                continue
-            flag, json_rsp = await cls.post_login_req(url_name, url_password, captcha)
-
         if json_rsp["code"] != 0:
-            return False, json_rsp.get("message", "unknown error in login!")
+            return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
 
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = []
@@ -205,17 +219,23 @@ class CookieFetcher:
         if not flag:
             return False, json_rsp
 
-        for _try_fetch_captcha_times in range(20):
-            if json_rsp["code"] != -105:
+        if json_rsp["code"] == -105:  # Need captcha
+
+            for _try_fetch_captcha_times in range(20):
+                source, result = await cls.fetch_captcha()
+                if not result:
+                    continue
+
+                flag, json_rsp = await cls.post_login_req(url_name, url_password, captcha=result)
+
+                if json_rsp["code"] == -105:
+                    continue
+                if json_rsp["code"] == 0:
+                    cls.record_captcha(source=source, result=result)
                 break
 
-            captcha = await cls.fetch_captcha()
-            if not captcha:
-                continue
-            flag, json_rsp = await cls.post_login_req(url_name, url_password, captcha)
-
         if json_rsp["code"] != 0:
-            return False, json_rsp.get("message", "unknown error in login!")
+            return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
 
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}
