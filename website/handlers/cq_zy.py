@@ -319,20 +319,28 @@ class BotUtils:
         self.group_id = group_id
         self.user_id = user_id
 
-        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
-        if not bili_uid:
+        bili_uid_list = await BiliToQQBindInfo.get_all_bili(qq=user_id)
+        if not bili_uid_list:
             message = f"你尚未绑定B站账号。请私聊我然后发送\"#绑定\"以完成绑定。"
             self.response(message)
             return
 
-        try:
-            postfix = int(msg[5:])
-            assert postfix > 0
-            bili_uid = postfix
-        except (ValueError, TypeError, AssertionError):
-            pass
+        bili_uid_str = msg[5:]
+        if bili_uid_str:
+            try:
+                assigned_uid = int(bili_uid_str)
+            except (TypeError, ValueError):
+                self.response("指令错误，拒绝服务。")
+                return
 
-        flag, msg = await DBCookieOperator.get_lt_status(uid=bili_uid)
+            if assigned_uid not in bili_uid_list:
+                self.response("未找到此用户。")
+                return
+
+        else:
+            assigned_uid = bili_uid_list[0]
+
+        flag, msg = await DBCookieOperator.get_lt_status(uid=assigned_uid)
         self.response(msg)
 
     async def proc_record_followings(self, msg, user_id, group_id=None):
