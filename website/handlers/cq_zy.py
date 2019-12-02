@@ -562,9 +562,11 @@ class BotUtils:
         self.group_id = group_id
         self.user_id = user_id
 
+        message = ""
         bili_uid_list = await BiliToQQBindInfo.get_all_bili(qq=user_id)
+
         if len(bili_uid_list) > 0:
-            self.response(f"你已经绑定到Bili用户:\n{'、'.join([str(_) for _ in bili_uid_list])}！")
+            message += f"你已经绑定到Bili用户:\n{'、'.join([str(_) for _ in bili_uid_list])}！\n"
 
         code = f"{randint(0x1000, 0xffff):0x}"
         key = f"BILI_BIND_CHECK_KEY_{code}"
@@ -572,7 +574,7 @@ class BotUtils:
             message = f"请你现在去1234567直播间发送以下指令:\n\n你好{code}"
         else:
             message = f"操作失败！系统繁忙，请5秒后再试。"
-        self.response(message)
+        self.response(message + message)
         return
 
     async def proc_unbind(self, msg, user_id, group_id=None):
