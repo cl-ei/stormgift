@@ -574,7 +574,7 @@ class BotUtils:
         bili_uid_list = await BiliToQQBindInfo.get_all_bili(qq=user_id)
 
         if len(bili_uid_list) > 0:
-            message += f"你已经绑定到Bili用户:\n{'、'.join([str(_) for _ in bili_uid_list])}！\n"
+            message += f"你已经绑定到Bili用户:\n{'、'.join([str(_) for _ in bili_uid_list])}。绑定更多账号请按如下操作：\n"
 
         code = f"{randint(0x1000, 0xffff):0x}"
         key = f"BILI_BIND_CHECK_KEY_{code}"
