@@ -7,7 +7,6 @@ import base64
 import asyncio
 import aiohttp
 import hashlib
-import requests
 import traceback
 from math import floor
 from urllib import parse
@@ -105,13 +104,16 @@ class CookieFetcher:
         if status_code != 200:
             return False, content
 
+        if "由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝。" in content:
+            return False, "412"
+
         try:
             json_response = json.loads(content)
-        except Exception as e:
-            return False, f"Not json response! {e}"
+        except json.JSONDecodeError:
+            return False, f"RESPONSE_JSON_DECODE_ERROR: {content}"
 
         if json_response["code"] != 0:
-            return False, json_response.get("message", "unknown error!")
+            return False, json_response.get("message") or json_response.get("msg") or "unknown error!"
 
         return True, json_response
 
@@ -448,13 +450,16 @@ class BiliApi:
             logging.error(error_message)
             return False, error_message
 
+        if "由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝" in content:
+            return False, "412"
+
         if not check_response_json:
             return True, content
 
         try:
             result = json.loads(content)
-        except Exception as e:
-            return False, f"Not json response: {e}, content: {content}"
+        except json.JSONDecodeError:
+            return False, f"RESPONSE_JSON_DECODE_ERROR: {content}"
 
         if not check_error_code:
             return True, result

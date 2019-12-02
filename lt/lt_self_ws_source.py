@@ -52,10 +52,10 @@ class WsManager(object):
                         await mq_source_to_raffle.put(("D", room_id, msg))
                         logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
 
-                elif cmd == "ANCHOR_LOT_START":
-                    await mq_source_to_raffle.put(("A", room_id, msg))
-                    data = msg["data"]
-                    logging.info(f"SOURCE: {cmd}, room_id: {room_id}, {data['require_text']} -> {data['award_name']}")
+                # elif cmd == "ANCHOR_LOT_START":
+                #     await mq_source_to_raffle.put(("A", room_id, msg))
+                #     data = msg["data"]
+                #     logging.info(f"SOURCE: {cmd}, room_id: {room_id}, {data['require_text']} -> {data['award_name']}")
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
