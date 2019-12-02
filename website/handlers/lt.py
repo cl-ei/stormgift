@@ -88,10 +88,12 @@ async def check_login(request):
 
 async def lt(request):
     token = request.query.get("token")
-    r = await redis_cache.get(F"LT_ACCESS_TOKEN_{token}")
+    key = F"LT_ACCESS_TOKEN_{token}"
+    r = await redis_cache.get(key=key)
     if not r:
         return web.HTTPNotFound()
 
+    await redis_cache.delete(key)
     context = {"CDN_URL": CDN_URL}
     return render_to_response("website/templates/website_homepage.html", context=context)
 
