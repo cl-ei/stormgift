@@ -598,7 +598,7 @@ class BotUtils:
             "4.#中奖查询\n"
             "5.#勋章查询\n"
             "6.#挂机查询\n"
-            "7.#绑定"
+            "7.#绑定\n"
             "8.#解绑"
         )
         self.response(message)
