@@ -719,7 +719,15 @@ class BotHandler:
     async def handle_request(cls, context):
         if context["request_type"] == "group":
             return
-        await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"friend req: {context}")
+        data = await async_zy.get_stranger_info(user_id=context['user_id'], no_cache=True)
+
+        message = (
+            f"梓亚收到好友请求:\n"
+            f"验证消息: {context['comment']}\n"
+            f"QQ 号: {context['user_id']}\n\n"
+            f"approve{context['flag']}\n\n{data}"
+        )
+        await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=message)
 
 
 async def handler(request):
