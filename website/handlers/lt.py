@@ -94,12 +94,10 @@ async def lt(request):
         return web.HTTPNotFound()
 
     r = await redis_cache.incr(key)
-    if r > 10:
-        await redis_cache.delete(key)
-        return web.HTTPNotFound()
     if r < 4:
         return web.HTTPServiceUnavailable()
 
+    await redis_cache.delete(key)
     context = {"CDN_URL": CDN_URL}
     return render_to_response("website/templates/website_homepage.html", context=context)
 
