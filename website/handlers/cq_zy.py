@@ -3,6 +3,7 @@ import os
 import time
 import json
 import uuid
+import random
 import asyncio
 import hashlib
 import aiohttp
@@ -648,6 +649,14 @@ class BotHandler:
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
+
+        if user_id == G.QQ_NUMBER_DD:
+            if msg == "g":
+                token = f"{random.randint(0x100000000000, 0xFFFFFFFFFFFF):0x}"
+                await redis_cache.set(F"LT_ACCESS_TOKEN_{token}", value=1, timeout=180)
+                message = f"https://www.madliar.com/lt?token={token}"
+                await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=message)
+                return
 
         for short, full in [
             ("1", "#背包"),
