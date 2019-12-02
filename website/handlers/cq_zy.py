@@ -579,10 +579,10 @@ class BotUtils:
         code = f"{randint(0x1000, 0xffff):0x}"
         key = f"BILI_BIND_CHECK_KEY_{code}"
         if await redis_cache.set_if_not_exists(key=key, value=user_id, timeout=3600):
-            message = f"请你现在去1234567直播间发送以下指令:\n\n你好{code}"
+            message += f"请你现在去1234567直播间发送以下指令:\n\n你好{code}"
         else:
-            message = f"操作失败！系统繁忙，请5秒后再试。"
-        self.response(message + message)
+            message += f"操作失败！系统繁忙，请5秒后再试。"
+        self.response(message)
         return
 
     async def proc_unbind(self, msg, user_id, group_id=None):
