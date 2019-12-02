@@ -692,7 +692,7 @@ class BotHandler:
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=None)
 
-        elif msg == "g":
+        elif msg == "lt":
             token = f"{random.randint(0x100000000000, 0xFFFFFFFFFFFF):0x}"
             key = F"LT_ACCESS_TOKEN_{token}"
             await redis_cache.incr(key=key)
