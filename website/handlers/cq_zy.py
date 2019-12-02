@@ -705,7 +705,8 @@ class BotHandler:
         if user_id == G.QQ_NUMBER_DD:
             if msg.startswith("approve"):
                 flag = msg[7:]
-                await async_zy.set_friend_add_request(flag=flag, approve=True)
+                r = await async_zy.set_friend_add_request(flag=flag, approve=True)
+                await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"已通过：{r}")
 
     @classmethod
     async def handle_message(cls, context):
@@ -721,11 +722,16 @@ class BotHandler:
             return
         data = await async_zy.get_stranger_info(user_id=context['user_id'], no_cache=True)
 
+        age = data.get("age", "-")
+        nickname = data.get("nickname", "-")
+        sex = data.get("sex", "-")
+
         message = (
             f"梓亚收到好友请求:\n"
             f"验证消息: {context['comment']}\n"
-            f"QQ 号: {context['user_id']}\n\n"
-            f"approve{context['flag']}\n\n{data}"
+            f"{nickname}({context['user_id']}) - {sex}\n"
+            f"年龄: {age}\n\n"
+            f"approve{context['flag']}"
         )
         await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=message)
 
