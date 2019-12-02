@@ -702,6 +702,11 @@ class BotHandler:
             await async_zy.send_private_msg(user_id=user_id, message=message)
             return
 
+        if user_id == G.QQ_NUMBER_DD:
+            if msg.startswith("approve"):
+                flag = msg[7:]
+                await async_zy.set_friend_add_request(flag=flag, approve=True)
+
     @classmethod
     async def handle_message(cls, context):
         if context["message_type"] == "group":
@@ -714,8 +719,7 @@ class BotHandler:
     async def handle_request(cls, context):
         if context["request_type"] == "group":
             return
-        else:
-            return {'approve': True}
+        await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"friend req: {context}")
 
 
 async def handler(request):
