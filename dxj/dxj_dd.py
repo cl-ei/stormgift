@@ -177,22 +177,6 @@ async def proc_message(message):
             danmaku = f"今日统计到{r}, 共{result['total']}个"
             await send_danmaku(danmaku)
 
-        elif msg.startswith("绑定"):
-            try:
-                number = int(msg[2:])
-                assert 1000 <= number <= 9999
-            except (ValueError, TypeError, IndexError, AssertionError):
-                await send_danmaku("指令不正确。")
-                return
-
-            key = f"BILI_BIND_CHECK_KEY_{number}"
-            qq = await redis_cache.get(key)
-            if not qq:
-                await send_danmaku("超时了。请重新绑定")
-
-            await BiliToQQBindInfo.bind(qq=qq, bili=uid)
-            await send_danmaku(f"已为你绑定到QQ：{str(qq)[:-4]}****")
-
         elif msg in ("签到", "打卡"):
             sign, conti, total, rank = await s.sign(user_id=uid)
 

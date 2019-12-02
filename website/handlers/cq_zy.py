@@ -562,15 +562,14 @@ class BotUtils:
         self.group_id = group_id
         self.user_id = user_id
 
-        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
-        if bili_uid:
-            self.response(f"你已经绑定到Bili用户: {bili_uid}！")
-            return
+        bili_uid_list = await BiliToQQBindInfo.get_all_bili(qq=user_id)
+        if len(bili_uid_list) > 0:
+            self.response(f"你已经绑定到Bili用户:\n{'、'.join([str(_) for _ in bili_uid_list])}！")
 
         number = randint(1000, 9999)
         key = f"BILI_BIND_CHECK_KEY_{number}"
         if await redis_cache.set_if_not_exists(key=key, value=user_id, timeout=3600):
-            message = f"你尚未绑定B站账号。请你现在去13369254直播间发送以下指令:\n\n绑定{number}"
+            message = f"请你现在去4424139直播间发送以下指令:\n\n你好{number}"
         else:
             message = f"操作失败！系统繁忙，请5秒后再试。"
         self.response(message)
@@ -580,15 +579,8 @@ class BotUtils:
         self.group_id = group_id
         self.user_id = user_id
 
-        unbind = await BiliToQQBindInfo.unbind(qq=user_id)
-        if not unbind:
-            message = f"你没有绑定Bili账号，无需解绑。"
-            self.response(message)
-            return
-
-        message = f"解绑成功：{'、'.join(unbind)}。"
+        message = f"要想解绑，请你现在去4424139直播间发送:\n\n再见"
         self.response(message)
-        return
 
     async def proc_help(self, msg, user_id, group_id):
         self.group_id = group_id
@@ -606,7 +598,7 @@ class BotUtils:
             "4.#中奖查询\n"
             "5.#勋章查询\n"
             "6.#挂机查询\n"
-            "7.#绑定\n"
+            "7.#绑定"
             "8.#解绑"
         )
         self.response(message)

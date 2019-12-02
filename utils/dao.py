@@ -453,37 +453,32 @@ class RaffleToCQPushList(object):
 
 class BiliToQQBindInfo(object):
     key = "BINDINFO_BILI_TO_QQ"
+    lock_key = "BINDINFO_BIND_LOCK"
 
     @classmethod
     async def bind(cls, qq, bili):
-        r = await redis_cache.get(cls.key)
+        bind_pair = (int(qq), int(bili))
 
+        r = await redis_cache.get(cls.key)
         if not isinstance(r, (list, tuple)):
             r = []
-        r = [_ for _ in r if _[0] != qq]
-        r.append((qq, bili))
-
+        if bili in [p[1] for p in r]:
+            return
+        r.append(bind_pair)
         return await redis_cache.set(key=cls.key, value=r)
 
     @classmethod
-    async def unbind(cls, qq=None, bili=None):
+    async def unbind(cls, bili):
         r = await redis_cache.get(cls.key)
         if not isinstance(r, (list, tuple)):
             r = []
+        qq = [p[0] for p in r if p[1] == bili]
+        if not qq:
+            return
 
-        unbind = []
-        dist = []
-        for q, b in r:
-            if q == qq:
-                unbind.append(f"QQ: {qq}")
-                continue
-            elif b == bili:
-                unbind.append(f"Bilibili: {bili}")
-                continue
-            dist.append((q, b))
-        if len(dist) != r:
-            await redis_cache.set(key=cls.key, value=dist)
-        return unbind
+        new_r = [p for p in r if p[1] != bili]
+        await redis_cache.set(key=cls.key, value=new_r)
+        return qq[0]
 
     @classmethod
     async def get_by_qq(cls, qq):
@@ -504,6 +499,11 @@ class BiliToQQBindInfo(object):
             if b == bili:
                 return qq
         return None
+
+    @classmethod
+    async def get_all_bili(cls, qq):
+        r = await redis_cache.get(cls.key)
+        return [p[1] for p in r if p[0] == qq]
 
 
 class HansyDynamicNotic(object):
