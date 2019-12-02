@@ -1590,12 +1590,25 @@ class BiliApi:
         flag, r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
         return flag, r
 
+    @classmethod
+    async def remove_dynamic(cls, dynamic_id, cookie, timeout=30):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/rm_dynamic"
+        data = {
+            "dynamic_id": dynamic_id,
+            "csrf_token": csrf_token,
+        }
+        headers = {"Cookie": cookie}
+        flag, r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+        return flag, r
+
 
 async def test():
-    r = await BiliApi.get_followings(user_id=20932326)
-    # r = await BiliApi.get_user_info(uid=r)
-    print(f"f -> {r}")
-
+    pass
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

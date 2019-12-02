@@ -377,15 +377,17 @@ class BotUtils:
                 self.response(f"操作失败，未能获取你的关注列表: {current_follows}")
                 return
 
-            total = 0
-            for i, uid in enumerate(list(set(current_follows) - set(follows))):
+            need_delete = list(set(current_follows) - set(follows))
+            if need_delete:
+                self.response(f"开始操作，需要取关{len(need_delete)}个up主。可能会耗费较久的时间，期间不要重复发送指令。")
+
+            for i, uid in enumerate(need_delete):
                 flag, msg = await BiliApi.unfollow(user_id=uid, cookie=cookie_obj.cookie)
                 if not flag:
                     self.response(f"在处理第{i}个时发生了错误：{msg}.")
                     return
                 await asyncio.sleep(0.2)
-                total = i + 1
-            self.response(f"操作成功！取关了{total}个up主。")
+            self.response(f"操作成功！取关了{len(need_delete)}个up主。")
 
     async def proc_query_bag(self, msg, user_id, group_id=None):
         self.group_id = group_id
