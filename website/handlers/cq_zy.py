@@ -650,14 +650,6 @@ class BotHandler:
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
 
-        if user_id == G.QQ_NUMBER_DD:
-            if msg == "g":
-                token = f"{random.randint(0x100000000000, 0xFFFFFFFFFFFF):0x}"
-                await redis_cache.set(F"LT_ACCESS_TOKEN_{token}", value=1, timeout=180)
-                message = f"https://www.madliar.com/lt?token={token}"
-                await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=message)
-                return
-
         for short, full in [
             ("1", "#背包"),
             ("2", "#动态"),
@@ -699,6 +691,15 @@ class BotHandler:
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=None)
+
+        elif msg == "g":
+            token = f"{random.randint(0x100000000000, 0xFFFFFFFFFFFF):0x}"
+            key = F"LT_ACCESS_TOKEN_{token}"
+            await redis_cache.incr(key=key)
+            await redis_cache.expire(key=key, timeout=180)
+            message = f"https://www.madliar.com/lt?token={token}"
+            await async_zy.send_private_msg(user_id=user_id, message=message)
+            return
 
     @classmethod
     async def handle_message(cls, context):
