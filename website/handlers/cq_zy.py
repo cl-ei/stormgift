@@ -605,10 +605,8 @@ class BotUtils:
             "4.#中奖查询\n"
             "5.#勋章查询\n"
             "6.#挂机查询\n"
-            "7.#记录关注列表\n"
-            "8.#清除天选up\n"
-            "9.#绑定\n"
-            "a.#解绑"
+            "7.#绑定\n"
+            "8.#解绑"
         )
         self.response(message)
 
@@ -625,6 +623,8 @@ class BotHandler:
         group_id = context["group_id"]
         msg = context["message"]
         logging.info(f"群消息: ({group_id}) [{title}][{card}]{user_nickname}({user_id}) -> {msg}")
+        if group_id != G.QQ_GROUP_STAR_LIGHT:
+            return
 
         msg = msg.replace("＃", "#")
         p = BotUtils()
@@ -649,20 +649,6 @@ class BotHandler:
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
 
-        if user_id == 80873436:
-            if msg.startswith("#at"):
-                u = int(msg[3:])
-                r = await QQTrustList.add(u)
-                await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"r: {r}")
-            elif msg.startswith("#dt"):
-                u = int(msg[3:])
-                r = await QQTrustList.remove(u)
-                await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"dt r: {r}")
-            elif msg == "#qt":
-                r = await QQTrustList.get_all()
-                message = "\n".join([str(_) for _ in r])
-                await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"qt 信赖的管理员： \n{message}")
-
         for short, full in [
             ("1", "#背包"),
             ("2", "#动态"),
@@ -670,10 +656,8 @@ class BotHandler:
             ("4", "#中奖查询"),
             ("5", "#勋章查询"),
             ("6", "#挂机查询"),
-            ("7", "#记录关注列表"),
-            ("8", "#清除天选up"),
-            ("9", "#绑定"),
-            ("a", "#解绑"),
+            ("7", "#绑定"),
+            ("8", "#解绑"),
         ]:
             if msg.startswith(short):
                 msg = msg.replace(short, full, 1)
@@ -698,12 +682,6 @@ class BotHandler:
         elif msg.startswith("#挂机查询"):
             return await p.proc_lt_status(msg, user_id, group_id=None)
 
-        elif msg.startswith("#记录关注列表"):
-            return await p.proc_record_followings(msg, user_id, group_id=None)
-
-        elif msg.startswith("#清除天选up"):
-            return await p.proc_unfollow(msg, user_id, group_id=None)
-
         elif msg.startswith("#绑定"):
             return await p.proc_bind(msg, user_id, group_id=None)
 
@@ -712,31 +690,6 @@ class BotHandler:
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=None)
-
-        elif msg.startswith("#ab"):
-            if not await QQTrustList.is_include(user_id):
-                await async_zy.send_private_msg(user_id=user_id, message=f"你不是辣条机的管理员。")
-                return
-            content = msg[3:].strip()
-            if not content:
-                return
-            r = await AnchorBlackList.add(content)
-            await async_zy.send_private_msg(user_id=user_id, message=f"【{content}】添加成功, 共计{r}条。")
-
-        elif msg.startswith("#db"):
-            if not await QQTrustList.is_include(user_id):
-                await async_zy.send_private_msg(user_id=user_id, message=f"你不是辣条机的管理员。")
-                return
-            content = msg[3:].strip()
-            if not content:
-                return
-            r = await AnchorBlackList.remove(content)
-            await async_zy.send_private_msg(user_id=user_id, message=f"【{content}】删除成功, 共计{r}条。")
-
-        elif msg == "#qb":
-            r = await AnchorBlackList.get_all()
-            message = "\n".join(r)
-            await async_zy.send_private_msg(user_id=user_id, message=f"以下是黑名单的内容：\n\n{message}")
 
     @classmethod
     async def handle_message(cls, context):
