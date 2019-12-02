@@ -93,7 +93,7 @@ async def lt(request):
     if not r:
         return web.HTTPNotFound()
 
-    r = redis_cache.incr(key)
+    r = await redis_cache.incr(key)
     if r > 10:
         await redis_cache.delete(key)
         return web.HTTPNotFound()
