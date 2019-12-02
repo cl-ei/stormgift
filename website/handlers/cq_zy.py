@@ -566,10 +566,10 @@ class BotUtils:
         if len(bili_uid_list) > 0:
             self.response(f"你已经绑定到Bili用户:\n{'、'.join([str(_) for _ in bili_uid_list])}！")
 
-        number = randint(1000, 9999)
-        key = f"BILI_BIND_CHECK_KEY_{number}"
+        code = f"{randint(0x1000, 0xffff):0x}"
+        key = f"BILI_BIND_CHECK_KEY_{code}"
         if await redis_cache.set_if_not_exists(key=key, value=user_id, timeout=3600):
-            message = f"请你现在去1234567直播间发送以下指令:\n\n你好{number}"
+            message = f"请你现在去1234567直播间发送以下指令:\n\n你好{code}"
         else:
             message = f"操作失败！系统繁忙，请5秒后再试。"
         self.response(message)

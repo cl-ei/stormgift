@@ -30,13 +30,11 @@ async def proc_message(message):
             await async_zy.send_private_msg(user_id=qq, message=f"你已成功解绑Bili账号:\n{user_name}({uid}).")
 
         elif msg.startswith("你好"):
-            try:
-                number = int(msg[2:])
-                assert 1000 <= number <= 9999
-            except (ValueError, TypeError, IndexError, AssertionError):
+            code = msg[2:]
+            if not code:
                 return
 
-            key = f"BILI_BIND_CHECK_KEY_{number}"
+            key = f"BILI_BIND_CHECK_KEY_{code}"
             qq = await redis_cache.get(key)
             if not qq:
                 return
