@@ -1,14 +1,13 @@
 import logging
 import asyncio
-import datetime
-from utils.dao import redis_cache, BiliToQQBindInfo
+from utils.cq import async_zy
 from utils.biliapi import WsApi
 from utils.ws import RCWebSocketClient
-from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import dxj_dd_logger as logging
-from utils.cq import async_zy
+from utils.dao import redis_cache, BiliToQQBindInfo
 
-MONITOR_ROOM_ID = 4424139
+
+MONITOR_ROOM_ID = 1234567
 
 
 async def proc_message(message):

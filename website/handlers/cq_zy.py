@@ -569,7 +569,7 @@ class BotUtils:
         number = randint(1000, 9999)
         key = f"BILI_BIND_CHECK_KEY_{number}"
         if await redis_cache.set_if_not_exists(key=key, value=user_id, timeout=3600):
-            message = f"请你现在去4424139直播间发送以下指令:\n\n你好{number}"
+            message = f"请你现在去1234567直播间发送以下指令:\n\n你好{number}"
         else:
             message = f"操作失败！系统繁忙，请5秒后再试。"
         self.response(message)
@@ -579,7 +579,7 @@ class BotUtils:
         self.group_id = group_id
         self.user_id = user_id
 
-        message = f"要想解绑，请你现在去4424139直播间发送:\n\n再见"
+        message = f"要想解绑，请你现在去1234567直播间发送:\n\n再见"
         self.response(message)
 
     async def proc_help(self, msg, user_id, group_id):
