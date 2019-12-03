@@ -58,7 +58,7 @@ class Worker(object):
 
         non_skip, normal_objs = await self.load_cookie()
         cookie_objs = non_skip + normal_objs
-        uid_is_in_black = await redis_cache.mget(*[F"LT_TEMP_BLACK_{uid}" for uid in cookie_objs])
+        uid_is_in_black = await redis_cache.mget(*[F"LT_TEMP_BLACK_{c.uid}" for c in cookie_objs])
         user_cookie_objs = []
         for i, is_blocked in enumerate(uid_is_in_black):
             if not is_blocked:
