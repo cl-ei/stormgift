@@ -102,7 +102,7 @@ async def lt(request):
 
     r = await redis_cache.incr(key)
     if r < 4:
-        return web.HTTPServiceUnavailable()
+        return web.Response(text="<h3>请刷新此页面，直到能够正常显示。</h3>", content_type="text/html")
 
     await redis_cache.delete(key)
     context = {"CDN_URL": CDN_URL}
