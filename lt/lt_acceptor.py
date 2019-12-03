@@ -4,7 +4,7 @@ import json
 import random
 import asyncio
 import aiohttp
-import requests
+import datetime
 import traceback
 from utils.dao import redis_cache, LTUserSettings, StormGiftBlackRoom, DelayAcceptGiftsMQ
 from config import cloud_acceptors
@@ -132,6 +132,14 @@ class Worker(object):
                 elif act == "join_storm" and "验证码没通过" in message:
                     logging.warning(f"{cookie_obj.name}(uid: {cookie_obj.uid}) {message}. set blocked.")
                     await StormGiftBlackRoom.set_blocked(cookie_obj.uid)
+                elif "你已经领取过" in message:
+                    key = F"LT_DUP_ACCEPT_COUNT_{cookie_obj.uid}"
+                    r = await redis_cache.incr(key)
+                    if r == 1:
+                        await redis_cache.expire(key, timeout=3600)
+                    elif r > 13:
+                        await redis_cache.delete(key)
+                        await redis_cache.set(F"LT_TEMP_BLACK_{cookie_obj.uid}", value=True, timeout=3600*4)
 
                 if index != 0:
                     message = message[:100]
