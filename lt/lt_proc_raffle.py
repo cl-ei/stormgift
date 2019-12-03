@@ -107,19 +107,27 @@ class Worker(object):
                 r = await ml_qq.send_group_msg(group_id=981983464, message=message)
                 log_msg += f"__ML NOTICE__ r: {r}"
 
-            qq_2 = await BiliToQQBindInfo.get_by_bili(bili=winner_uid)
-            if qq_2:
-                flag, info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
-                if flag:
-                    room_id = info.get("short_id", msg_from_room_id) or msg_from_room_id
-                else:
-                    room_id = msg_from_room_id
+            if winner_uid in (BILI_UID_DD, BILI_UID_TZ, BILI_UID_CZ):
                 message = (
-                    f"恭喜{winner_name}({winner_uid})[CQ:at,qq={qq_2}]"
+                    f"恭喜{winner_name}({winner_uid})[CQ:at,qq={QQ_NUMBER_DD}]"
                     f"获得了{sender_name}提供的{prize_gift_name}!\n"
-                    f"https://live.bilibili.com/{room_id}"
+                    f"https://live.bilibili.com/{msg_from_room_id}"
                 )
-                # await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
+                await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=message)
+
+            # qq_2 = await BiliToQQBindInfo.get_by_bili(bili=winner_uid)
+            # if qq_2:
+            #     flag, info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
+            #     if flag:
+            #         room_id = info.get("short_id", msg_from_room_id) or msg_from_room_id
+            #     else:
+            #         room_id = msg_from_room_id
+            #     message = (
+            #         f"恭喜{winner_name}({winner_uid})[CQ:at,qq={qq_2}]"
+            #         f"获得了{sender_name}提供的{prize_gift_name}!\n"
+            #         f"https://live.bilibili.com/{room_id}"
+            #     )
+            #     await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
             logging.info(log_msg)
 
         elif cmd == "ANCHOR_LOT_AWARD":
