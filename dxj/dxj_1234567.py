@@ -68,7 +68,7 @@ async def main():
         on_connect=on_connect,
         on_shut_down=on_shut_down,
         heart_beat_pkg=WsApi.gen_heart_beat_pkg(),
-        heart_beat_interval=10
+        heart_beat_interval=30
     )
 
     await new_client.start()
