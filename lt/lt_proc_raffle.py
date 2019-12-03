@@ -299,7 +299,7 @@ class Worker(object):
                 now = int(time.time())
                 accept_start_time = now + info["time_wait"]
                 accept_end_time = now + info["max_time"]
-                wait_time = int((accept_end_time - accept_start_time - 5)*random())
+                wait_time = int((accept_end_time - accept_start_time - 8)*random())
                 accept_time = accept_start_time + wait_time
 
                 i = {
