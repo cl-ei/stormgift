@@ -412,7 +412,7 @@ class Worker(object):
                     "raffle_type": "anchor",
                     "join_type": join_type,
                     "require": f"{require_type}-{require_value}:{require_text}",
-                    "gift": f"{gift_num}*{gift_name}({gift_price})",
+                    "gift": f"{gift_num}*{gift_name or 'null'}({gift_price})",
                     "award": f"{award_num}*{award_name}",
                 }, ensure_ascii=False))
 
