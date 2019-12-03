@@ -175,9 +175,12 @@ class CookieFetcher:
         url_password = parse.quote_plus(hashed_password)
         url_name = parse.quote_plus(account)
 
-        flag, json_rsp = await cls.post_login_req(url_name, url_password)
-        if not flag:
-            return False, json_rsp
+        for _try_times in range(10):
+            flag, json_rsp = await cls.post_login_req(url_name, url_password)
+            if not flag:
+                return False, json_rsp
+            if json_rsp["code"] != -449:
+                break
 
         if json_rsp["code"] == -105:  # need captchar
             for _try_fetch_captcha_times in range(20):
@@ -217,12 +220,16 @@ class CookieFetcher:
         url_password = parse.quote_plus(hashed_password)
         url_name = parse.quote_plus(account)
 
-        flag, json_rsp = await cls.post_login_req(url_name, url_password)
-        if not flag:
-            return False, json_rsp
+        for _try_times in range(10):
+            flag, json_rsp = await cls.post_login_req(url_name, url_password)
+
+            if not flag:
+                return False, json_rsp
+
+            if json_rsp["code"] != -449:
+                break
 
         if json_rsp["code"] == -105:  # Need captcha
-
             for _try_fetch_captcha_times in range(20):
                 source, result = await cls.fetch_captcha()
                 if not result:
@@ -1633,7 +1640,9 @@ class BiliApi:
 
 
 async def test():
-    pass
+    r = await CookieFetcher.login(account="18591981280", password="calom310300")
+    print(r)
+
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
