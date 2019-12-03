@@ -194,7 +194,7 @@ class Worker(object):
             return
         now = int(time.time())
         accept_time = now + randint(60, 600)
-        await DelayAcceptGiftsMQ.put(f"T${room_id}${gift_id}", accept_time=accept_time)
+        await DelayAcceptGiftsMQ.put(f"G${room_id}${gift_id}", accept_time=accept_time)
 
         privilege_type = gift_info["privilege_type"]
         if privilege_type == 3:
