@@ -3,7 +3,7 @@ import json
 import asyncio
 import datetime
 import traceback
-from random import random
+from random import random, randint
 from config import config
 from config.g import *
 from utils.biliapi import BiliApi
@@ -114,20 +114,6 @@ class Worker(object):
                     f"https://live.bilibili.com/{msg_from_room_id}"
                 )
                 await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=message)
-
-            # qq_2 = await BiliToQQBindInfo.get_by_bili(bili=winner_uid)
-            # if qq_2:
-            #     flag, info = await BiliApi.get_live_room_info_by_room_id(room_id=msg_from_room_id)
-            #     if flag:
-            #         room_id = info.get("short_id", msg_from_room_id) or msg_from_room_id
-            #     else:
-            #         room_id = msg_from_room_id
-            #     message = (
-            #         f"恭喜{winner_name}({winner_uid})[CQ:at,qq={qq_2}]"
-            #         f"获得了{sender_name}提供的{prize_gift_name}!\n"
-            #         f"https://live.bilibili.com/{room_id}"
-            #     )
-            #     await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message=message)
             logging.info(log_msg)
 
         elif cmd == "ANCHOR_LOT_AWARD":
@@ -206,7 +192,9 @@ class Worker(object):
 
         if not await redis_cache.set_if_not_exists(key, gift_info):
             return
-        await mq_raffle_to_acceptor.put(key)
+        now = int(time.time())
+        accept_time = now + randint(60, 600)
+        await DelayAcceptGiftsMQ.put(f"T${room_id}${gift_id}", accept_time=accept_time)
 
         privilege_type = gift_info["privilege_type"]
         if privilege_type == 3:
@@ -307,7 +295,12 @@ class Worker(object):
                 gift_id = info.get("raffleId", 0)
                 gift_type = info.get("type")
                 gift_name = info.get("thank_text", "").split("赠送的", 1)[-1]
-                time_accept = int(time.time() + 1 + info.get("time_wait"))
+
+                now = int(time.time())
+                accept_start_time = now + info["time_wait"]
+                accept_end_time = now + info["max_time"]
+                wait_time = int((accept_end_time - accept_start_time)*random())
+                accept_time = accept_start_time + wait_time
 
                 i = {
                     "name": user_name,
@@ -326,7 +319,7 @@ class Worker(object):
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
 
-                await DelayAcceptGiftsMQ.put(f"T${room_id}${gift_id}${gift_type}", accept_time=time_accept)
+                await DelayAcceptGiftsMQ.put(f"T${room_id}${gift_id}${gift_type}", accept_time=accept_time)
                 await mq_raffle_broadcast.put(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": gift_id,
@@ -360,22 +353,6 @@ class Worker(object):
                 "gift_name": "节奏风暴",
                 "raffle_type": "storm"
             }, ensure_ascii=False))
-
-            # flag, raffle_id = await BiliApi.get_storm_raffle_id(room_id=room_id)
-            # if not flag:
-            #     logging.info(f"Error happened when get raffle id of storm gift: e: {raffle_id}")
-            #     return
-            #
-            # key = f"S${room_id}${raffle_id}"
-            # info = {"room_id": room_id, "raffle_id": raffle_id}
-            # if await redis_cache.set_if_not_exists(key, info):
-            #     # await mq_raffle_to_acceptor.put(key)
-            #     await mq_raffle_broadcast.put(json.dumps({
-            #         "real_room_id": room_id,
-            #         "raffle_id": raffle_id,
-            #         "gift_name": "节奏风暴",
-            #         "raffle_type": "storm"
-            #     }, ensure_ascii=False))
 
         elif key_type == "A":
             # require_type = data["require_type"]
