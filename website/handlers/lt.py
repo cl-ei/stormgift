@@ -87,7 +87,7 @@ async def check_login(request):
 
 
 async def lt(request):
-    token = request.query.get("token")
+    token = request.match_info['token']
     if not token:
         return web.HTTPForbidden()
 

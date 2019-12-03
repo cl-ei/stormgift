@@ -55,7 +55,7 @@ async def start_web_site():
 
     app = web.Application(middlewares=[set_server_name])
     app.add_routes([
-        web.get('/lt', lt.lt),
+        web.get('/lt_{token}', lt.lt),
         web.get('/lt/dxj/login', dxj.login),
         web.post('/lt/dxj/login', dxj.login),
         web.get('/lt/dxj/settings', dxj.settings),

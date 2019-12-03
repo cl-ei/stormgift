@@ -699,7 +699,7 @@ class BotHandler:
             key = F"LT_ACCESS_TOKEN_{token}"
             await redis_cache.incr(key=key)
             await redis_cache.expire(key=key, timeout=180)
-            message = f"宝藏站点地址: （如果出现503错误请多刷新几次。）\n\nhttps://www.madliar.com/lt?token={token}"
+            message = f"宝藏站点地址: （如果出现503错误请多刷新几次）\n\nhttps://www.madliar.com/lt_{token}"
             logging.info(F"LT_ACCESS_TOKEN_GEND: {token}, user_id: {user_id}")
             await async_zy.send_private_msg(user_id=user_id, message=message)
             return
