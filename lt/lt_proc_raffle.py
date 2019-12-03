@@ -376,7 +376,17 @@ class Worker(object):
 
             data = danmaku["data"]
             raffle_id = data["id"]
+            room_id = data["room_id"]
             award_name = data["award_name"]
+            award_num = data["award_num"]
+            cur_gift_num = data["cur_gift_num"]
+            gift_name = data["gift_name"]
+            gift_num = data["gift_num"]
+            gift_price = data["gift_price"]
+            join_type = data["join_type"]
+            require_type = data["require_type"]
+            require_value = data["require_value"]
+            require_text = data["require_text"]
             danmu = data["danmu"]
 
             key = f"A${room_id}${raffle_id}"
@@ -400,23 +410,14 @@ class Worker(object):
                     "raffle_id": raffle_id,
                     "gift_name": "天选时刻",
                     "raffle_type": "anchor",
+                    "join_type": join_type,
+                    "require": f"{require_type}-{require_value}:{require_text}",
+                    "gift": f"{gift_num}*{gift_name}({gift_price})",
+                    "award": f"{award_num}*{award_name}",
                 }, ensure_ascii=False))
 
-                id_ = data["id"]
-                room_id = data["room_id"]
-                award_name = data["award_name"]
-                award_num = data["award_num"]
-                cur_gift_num = data["cur_gift_num"]
-                gift_name = data["gift_name"]
-                gift_num = data["gift_num"]
-                gift_price = data["gift_price"]
-                join_type = data["join_type"]
-                require_type = data["require_type"]
-                require_value = data["require_value"]
-                require_text = data["require_text"]
-                danmu = data["danmu"]
                 record = (
-                    f"{id_}^{room_id}^{award_name}^{award_num}^"
+                    f"{raffle_id}^{room_id}^{award_name}^{award_num}^"
                     f"{cur_gift_num}^{gift_name}^{gift_num}^{gift_price}^"
                     f"{join_type}^{require_type}^{require_value}^"
                     f"{require_text}^{danmu}"

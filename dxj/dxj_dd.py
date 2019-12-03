@@ -1,16 +1,15 @@
 import logging
 import asyncio
 import datetime
-from cqhttp import CQHttp
-from config import CQBOT
-from utils.dao import redis_cache, BiliToQQBindInfo
-from utils.biliapi import WsApi, BiliApi
+from utils.cq import async_zy
+from utils.dao import redis_cache
 from utils.ws import RCWebSocketClient
-from utils.highlevel_api import ReqFreLimitApi, DBCookieOperator
+from utils.biliapi import WsApi, BiliApi
 from config.log4 import dxj_dd_logger as logging
+from utils.highlevel_api import ReqFreLimitApi, DBCookieOperator
+
 
 MONITOR_ROOM_ID = 13369254
-bot = CQHttp(**CQBOT)
 
 
 class SignRecord:
@@ -185,7 +184,7 @@ async def proc_message(message):
             await send_danmaku(msg=message)
 
         else:
-            bot.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
+            await async_zy.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
 
 
 async def main():
