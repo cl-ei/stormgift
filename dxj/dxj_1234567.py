@@ -38,7 +38,7 @@ async def proc_message(message):
             qq = await redis_cache.get(key)
             if not qq:
                 return
-
+            await redis_cache.delete(key)
             await BiliToQQBindInfo.bind(qq=qq, bili=uid)
             await async_zy.send_private_msg(
                 user_id=qq,
