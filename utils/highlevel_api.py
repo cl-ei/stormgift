@@ -297,7 +297,7 @@ class DBCookieOperator:
             return False, "你不在白名单里。提前联系站长经过允许才可以使用哦。"
 
         lt_user = objs[0]
-        if lt_user.available and (lt_user.cookie_expire_time - datetime.datetime.now()).total_seconds() > 3600*24*10:
+        if lt_user.available:
             return True, lt_user
 
         flag, data = await CookieFetcher.login(account, password)
