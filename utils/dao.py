@@ -68,6 +68,10 @@ class RedisCache(object):
 
         result = []
         for _ in r:
+            if _ is None:
+                result.append(None)
+                continue
+
             try:
                 _ = pickle.loads(_)
             except (TypeError, pickle.UnpicklingError):

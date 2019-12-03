@@ -57,7 +57,12 @@ class Worker(object):
         gift_type = ""
 
         non_skip, normal_objs = await self.load_cookie()
-        user_cookie_objs = non_skip + normal_objs
+        cookie_objs = non_skip + normal_objs
+        uid_is_in_black = await redis_cache.mget(*[F"LT_TEMP_BLACK_{uid}" for uid in cookie_objs])
+        user_cookie_objs = []
+        for i, is_blocked in enumerate(uid_is_in_black):
+            if not is_blocked:
+                user_cookie_objs.append(cookie_objs[i])
 
         if key_type == "T":
             gift_type, *_ = other_args
