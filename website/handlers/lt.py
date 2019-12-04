@@ -574,7 +574,10 @@ async def calc_sign(request):
     key = post_data["key"]
     hast_str = post_data["hast_str"]
     password = post_data["password"]
-
-    pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
-    hashed_password = base64.b64encode(rsa.encrypt((hast_str + password).encode('utf-8'), pubkey))
-    return web.Response(text=hashed_password)
+    try:
+        pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
+        hashed_password = base64.b64encode(rsa.encrypt((hast_str + password).encode('utf-8'), pubkey))
+        return web.Response(text=hashed_password)
+    except Exception as e:
+        text = f"e: {e}\n{traceback.format_exc()}"
+        return web.Response(text=text)
