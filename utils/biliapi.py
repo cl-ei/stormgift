@@ -411,7 +411,7 @@ class BiliApi:
             "https://api.live.bilibili.com/guard/topList",
             "https://api.live.bilibili.com/msg/send",
             "https://api.bilibili.com/x/relation/modify",
-
+            "https://api.live.bilibili.com/lottery/v1/SilverBox/getCurrentTask",
         ):
             req_json = {
                 "method": method,
