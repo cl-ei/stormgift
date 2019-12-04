@@ -183,6 +183,7 @@ class CookieFetcher:
 
             if json_rsp["code"] != -449:
                 break
+            time.sleep(0.5)
 
         if json_rsp["code"] == -449:
             return 500, {"code": -449, "msg": "登录失败: -449"}

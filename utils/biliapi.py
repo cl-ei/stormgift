@@ -1,6 +1,5 @@
 import re
 import sys
-import rsa
 import json
 import time
 import base64
@@ -9,7 +8,6 @@ import aiohttp
 import hashlib
 import traceback
 from math import floor
-from urllib import parse
 from random import random
 from utils.dao import redis_cache
 from config.log4 import bili_api_logger as logging
@@ -168,6 +166,7 @@ class CookieFetcher:
         status_code, content = await cls._request(method="post", url=cloud_login, json=req_json, timeout=50)
         if status_code != 200:
             return False, f"Login failed: {content}"
+
         try:
             json_rsp = json.loads(content)
             assert "code" in json_rsp
