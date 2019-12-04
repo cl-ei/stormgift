@@ -413,6 +413,7 @@ class BiliApi:
             "https://api.bilibili.com/x/relation/modify",
             "https://api.live.bilibili.com/lottery/v1/SilverBox/getCurrentTask",
             "https://api.live.bilibili.com/room/v1/Area/getLiveRoomCountByAreaID",
+            "https://api.live.bilibili.com/activity/v1/task/receive_award",
         ):
             req_json = {
                 "method": method,
@@ -1640,10 +1641,24 @@ class BiliApi:
         flag, r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
         return flag, r
 
+    @classmethod
+    async def watch_tv(cls, cookie, timeout=50):
+        url = f'https://api.live.bilibili.com/activity/v1/task/receive_award'
+        data = {'task_id': 'double_watch_task'}
+        headers = {"Cookie": cookie}
+        headers.update(CookieFetcher.app_headers)
+        flag, data = await cls.post(
+            url=url,
+            data=data,
+            headers=headers,
+            timeout=timeout,
+            check_error_code=True
+        )
+        return flag, data
+
 
 async def test():
-    r = await CookieFetcher.login(account="18591981280", password="calom310300")
-    print(r)
+    pass
 
 
 if __name__ == "__main__":
