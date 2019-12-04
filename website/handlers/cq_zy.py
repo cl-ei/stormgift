@@ -825,7 +825,16 @@ class BotHandler:
     async def handle_request(cls, context):
         if context["request_type"] == "group":
             return
-        data = await async_zy.get_stranger_info(user_id=context['user_id'], no_cache=True)
+        try:
+            data = await async_zy.get_stranger_info(user_id=context['user_id'], no_cache=True)
+        except Exception as e:
+            message = (
+                f"Error happened in handle_request -> get_stranger_info. "
+                f"e: {e}. "
+                f"context: {context}\b{traceback.format_exc()}"
+            )
+            await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
+            data = {}
 
         age = data.get("age", "-")
         nickname = data.get("nickname", "-")
