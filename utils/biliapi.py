@@ -14,6 +14,7 @@ from random import random
 from utils.dao import redis_cache
 from config.log4 import bili_api_logger as logging
 from config import cloud_function_url
+from config import cloud_login
 
 
 class CookieFetcher:
@@ -162,45 +163,31 @@ class CookieFetcher:
         return str_img, captcha
 
     @classmethod
-    async def get_cookie(cls, account, password):
-        flag, json_rsp = await cls.fetch_key()
-        if not flag:
-            return False, "Cannot fetch key."
+    async def get_bili_login_response(cls, account, password):
+        req_json = {"account": account, "password": password}
+        status_code, content = await cls._request(method="post", url=cloud_login, json=req_json, timeout=50)
+        if status_code != 200:
+            return False, f"Login failed: {content}"
+        try:
+            json_rsp = json.loads(content)
+            assert "code" in json_rsp
 
-        key = json_rsp['data']['key']
-        hash_ = str(json_rsp['data']['hash'])
+        except json.JSONDecodeError:
+            return False, f"Not json respones: {content}"
 
-        pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
-        hashed_password = base64.b64encode(rsa.encrypt((hash_ + password).encode('utf-8'), pubkey))
-        url_password = parse.quote_plus(hashed_password)
-        url_name = parse.quote_plus(account)
-
-        for _try_times in range(10):
-            flag, json_rsp = await cls.post_login_req(url_name, url_password)
-            if not flag:
-                return False, json_rsp
-            if json_rsp["code"] != -449:
-                break
-
-        if json_rsp["code"] == -449:
-            return False, "登录失败: -449"
-
-        if json_rsp["code"] == -105:  # need captchar
-            for _try_fetch_captcha_times in range(20):
-                source, result = await cls.fetch_captcha()
-                if not result:
-                    continue
-                flag, json_rsp = await cls.post_login_req(url_name, url_password, captcha=result)
-
-                if json_rsp["code"] == -105:  # need captchar
-                    continue
-
-                if json_rsp["code"] == 0:
-                    cls.record_captcha(source=source, result=result)
-                break
+        except AssertionError:
+            return False, f"Respones Syntext Error: {content}"
 
         if json_rsp["code"] != 0:
             return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
+
+        return True, json_rsp
+
+    @classmethod
+    async def get_cookie(cls, account, password):
+        flag, json_rsp = await cls.get_bili_login_response(account=account, password=password)
+        if not flag:
+            return flag, json_rsp
 
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = []
@@ -211,43 +198,9 @@ class CookieFetcher:
 
     @classmethod
     async def login(cls, account, password):
-        flag, json_rsp = await cls.fetch_key()
+        flag, json_rsp = await cls.get_bili_login_response(account=account, password=password)
         if not flag:
-            return False, "Cannot fetch key."
-
-        key = json_rsp['data']['key']
-        hash_ = str(json_rsp['data']['hash'])
-
-        pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
-        hashed_password = base64.b64encode(rsa.encrypt((hash_ + password).encode('utf-8'), pubkey))
-        url_password = parse.quote_plus(hashed_password)
-        url_name = parse.quote_plus(account)
-
-        for _try_times in range(10):
-            flag, json_rsp = await cls.post_login_req(url_name, url_password)
-
-            if not flag:
-                return False, json_rsp
-
-            if json_rsp["code"] != -449:
-                break
-
-        if json_rsp["code"] == -105:  # Need captcha
-            for _try_fetch_captcha_times in range(20):
-                source, result = await cls.fetch_captcha()
-                if not result:
-                    continue
-
-                flag, json_rsp = await cls.post_login_req(url_name, url_password, captcha=result)
-
-                if json_rsp["code"] == -105:
-                    continue
-                if json_rsp["code"] == 0:
-                    cls.record_captcha(source=source, result=result)
-                break
-
-        if json_rsp["code"] != 0:
-            return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
+            return flag, json_rsp
 
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}

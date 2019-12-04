@@ -164,15 +164,12 @@ class CookieFetcher:
         def get_hashed_password(k, h, p):
             url = "https://www.madliar.com/lt/calc_sign"
             data = {"key": k, "hash_str": h, "password": p}
-
             r = requests.post(url=url, data=data)
-            logging.info(f"r: {r.status_code}, c: {r.content} data: {data}")
             if r.status_code != 200:
                 return
-            return r.content.decode("utf-8")
+            return r.content
 
         hashed_password = get_hashed_password(k=key, h=hash_str, p=password)
-        logging.info(f"from madliar.com: get_hashed_password: {hashed_password}")
         if not hashed_password:
             return 500, {"code": 6003, "msg": "MADLIAR.com cannot access!"}
 

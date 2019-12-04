@@ -61,7 +61,7 @@ mail_auth_pass = config["mail"]["mail_auth_pass"]
 cloud_function_url = config["cloud_function"]["url"]
 cloud_get_uid = config["cloud_function"]["get_uid"]
 cloud_acceptors = [v for _, v in config["cloud_acceptor"].items()]
-
+cloud_login = config["cloud_function"]["login"]
 
 local_keys = sorted([_ for _ in dir() if not _.startswith("_") and _ not in ("config", "configparser")])
 local_vars = locals()
