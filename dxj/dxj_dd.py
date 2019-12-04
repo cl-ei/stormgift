@@ -68,15 +68,15 @@ class SignRecord:
 
 async def send_danmaku(msg, user=""):
     user = user or "LP"
-    cookie_obj = await DBCookieOperator.get_by_uid(user_id=user)
-    if not cookie_obj:
+    c = await DBCookieOperator.get_by_uid(user_id=user)
+    if not c:
         logging.error(f"Cannot get cookie for user: {user}.")
         return
 
     while True:
         send_m = msg[:30]
         for _ in range(3):
-            flag, data = await BiliApi.send_danmaku(message=send_m, room_id=MONITOR_ROOM_ID, cookie=cookie_obj.cookie)
+            flag, data = await BiliApi.send_danmaku(message=send_m, room_id=MONITOR_ROOM_ID, cookie=c.cookie)
             if flag:
                 if data == "fire":
                     return
@@ -84,6 +84,9 @@ async def send_danmaku(msg, user=""):
                 logging.info(f"DMK success: {send_m}, reason: {data}")
                 break
             else:
+                if "账号未登录" in data:
+                    await DBCookieOperator.add_cookie_by_account(account=c.account, password=c.password)
+                    continue
                 logging.error(f"Dmk send failed, msg: {send_m}, reason: {data}")
                 await asyncio.sleep(0.4)
         else:
