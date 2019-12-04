@@ -607,7 +607,7 @@ class BotUtils:
             )
         else:
             message = (
-                "私聊指令如下：（可以使用前面的数字序号代替）"
+                "私聊指令如下：（可以使用前面的数字序号代替）\n"
                 "1.#背包\n"
                 "2.#动态\n"
                 "3.#大航海\n"
@@ -617,6 +617,14 @@ class BotUtils:
                 "7.#绑定\n"
                 "8.#解绑"
             )
+            if user_id == g.QQ_NUMBER_DD:
+                message += (
+                    f"\n"
+                    f"ac、dc: 辣条白名单\n"
+                    f"as、ds: 超级答谢鸡\n"
+                    f"++123+1212、--33234: 绑定解绑\n"
+                    f"approve、11、33、44、g、r"
+                )
         self.response(message)
 
 
@@ -742,7 +750,7 @@ class BotHandler:
                 return
 
             elif msg.startswith("++"):
-                qq, bili = [int(_) for _ in msg[2:].split("$")]
+                qq, bili = [int(_) for _ in msg[2:].split("+")]
                 r = await BiliToQQBindInfo.bind(qq=qq, bili=bili)
                 all_bili = await BiliToQQBindInfo.get_all_bili(qq=qq)
                 message = f"绑定结果: {r}。{qq} -> {'、'.join([str(b) for b in all_bili])}"
