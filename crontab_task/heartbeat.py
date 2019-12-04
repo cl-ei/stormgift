@@ -17,6 +17,11 @@ async def post_heartbeat(lt_user_obj):
     if not r:
         logging.error(f"Cannot post last time st! msg: {data}")
         return
+
+    r, data = await BiliApi.post_heartbeat_app(cookie=cookie, access_token=lt_user_obj.access_token)
+    if not r:
+        logging.error(f"Cannot post last time st! msg: {data}")
+        return
     logging.info(f"Post heartbeat success!")
 
 

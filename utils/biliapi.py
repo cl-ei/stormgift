@@ -1091,6 +1091,43 @@ class BiliApi:
         return await cls.get(req_url, headers=headers, timeout=timeout, check_error_code=True)
 
     @classmethod
+    async def post_heartbeat_app(cls, cookie, access_token, timeout=30):
+        temp_params = f'access_key={access_token}&{CookieFetcher.app_params}&ts={int(time.time())}'
+        sign = CookieFetcher.calc_sign(temp_params)
+        url = f'https://api.live.bilibili.com/mobile/userOnlineHeart?{temp_params}&sign={sign}'
+        headers = {"cookie": cookie}
+        headers.update(CookieFetcher.app_headers)
+        req_json = {
+            "method": "get",
+            "url": url,
+            "headers": headers,
+            "data": {},
+            "params": {},
+            "timeout": timeout
+        }
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
+                async with session.post(cloud_function_url, json=req_json) as resp:
+                    status_code = resp.status
+                    content = await resp.text(encoding="utf-8", errors="ignore")
+        except Exception as e:
+            return False, f"Error happened when post heartbeat app: {e}"
+
+        if status_code != 200:
+            return False, f"status_code NOT 200: {status_code}, content: {content}"
+
+        if "由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝" in content:
+            return False, "412"
+
+        try:
+            r = json.loads(content)
+        except json.JSONDecodeError:
+            return False, f"json.JSONDecodeError: {content}"
+
+        code = r["code"]
+        return code == 0, r.get("message") or r.get("msg") or "no response msg."
+
+    @classmethod
     async def do_sign(cls, cookie, timeout=10):
         req_url = f"https://api.live.bilibili.com/sign/doSign"
         headers = {"Cookie": cookie}
@@ -1645,16 +1682,39 @@ class BiliApi:
     async def watch_tv(cls, cookie, timeout=50):
         url = f'https://api.live.bilibili.com/activity/v1/task/receive_award'
         data = {'task_id': 'double_watch_task'}
-        headers = {"Cookie": cookie}
-        headers.update(CookieFetcher.app_headers)
-        flag, data = await cls.post(
+        cookie = ";".join([_.strip() for _ in cookie.split(";")]).strip(";")
+        headers = {
+            "User-Agent": "bili-universal/6570 CFNetwork/894 Darwin/17.4.0",
+            "Accept-encoding": "gzip",
+            "Buvid": "000ce0b9b9b4e342ad4f421bcae5e0ce",
+            "Display-ID": "146771405-1521008435",
+            "Accept-Language": "zh-CN",
+            "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+            "Connection": "keep-alive",
+            "cookie": cookie
+        }
+        status_code, content = await cls._request_async(
+            method="post",
             url=url,
             data=data,
             headers=headers,
-            timeout=timeout,
-            check_error_code=True
+            timeout=timeout
         )
-        return flag, data
+        if status_code != 200:
+            return False, f"status_code NOT 200: {status_code}, content: {content}"
+
+        if "由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝" in content:
+            return False, "412"
+
+        try:
+            r = json.loads(content)
+        except json.JSONDecodeError:
+            return False, f"json.JSONDecodeError: {content}"
+
+        # 返回样式:
+        # {"code": -400, "msg": "奖励尚未完成", "message": "奖励尚未完成", "data": []}
+        code = r["code"]
+        return code == 0, r.get("message") or r.get("msg") or "no response msg."
 
 
 async def test():
