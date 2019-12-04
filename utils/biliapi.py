@@ -182,6 +182,9 @@ class CookieFetcher:
             if json_rsp["code"] != -449:
                 break
 
+        if json_rsp["code"] == -449:
+            return False, "登录失败: -449"
+
         if json_rsp["code"] == -105:  # need captchar
             for _try_fetch_captcha_times in range(20):
                 source, result = await cls.fetch_captcha()
