@@ -1,6 +1,8 @@
+import rsa
 import time
 import json
 import copy
+import base64
 import datetime
 import traceback
 from random import randint
@@ -565,3 +567,15 @@ async def trends_qq_notice(request):
 async def raffle_broadcast(request):
     context = {"CDN_URL": CDN_URL}
     return render_to_response("website/templates/raffle_broadcast.html", context=context)
+
+
+async def calc_sign(request):
+    post_data = await request.post()
+    key = post_data["key"]
+    hast_str = post_data["hast_str"]
+    password = post_data["password"]
+
+    pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
+    hashed_password = base64.b64encode(rsa.encrypt((hast_str + password).encode('utf-8'), pubkey))
+
+    return web.Response(text="", )

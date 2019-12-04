@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import rsa
 import sys
 import json
 import time
@@ -59,11 +58,7 @@ class CookieFetcher:
 
     @classmethod
     def record_captcha(cls, source, result):
-        if sys.platform.lower() != "linux":
-            return
-
-        with open("/home/wwwroot/captchars/c", "ab") as f:
-            f.write(f"{result}${source}\r\n".encode("utf-8"))
+        pass
 
     @classmethod
     def calc_sign(cls, text):
@@ -158,28 +153,36 @@ class CookieFetcher:
         return str_img, captcha
 
     @classmethod
-    def get_cookie(cls, account, password):
+    def login(cls, account, password):
         flag, json_rsp = cls.fetch_key()
         if not flag:
-            return False, "Cannot fetch key."
+            return 500, {"code": 5000, "msg": "Cannot fetch key."}
 
         key = json_rsp['data']['key']
-        hash_ = str(json_rsp['data']['hash'])
+        hash_str = str(json_rsp['data']['hash'])
 
-        pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
-        hashed_password = base64.b64encode(rsa.encrypt((hash_ + password).encode('utf-8'), pubkey))
+        def get_hashed_password(k, h, p):
+            url = "https://www.madliar.com/lt/calc_sign"
+            data = {"key": k, "hash_str": h, "password": p}
+            r = requests.post(url=url, data=data)
+            if r.status_code != 200:
+                return
+            return r.content.decode("utf-8")
+
+        hashed_password = get_hashed_password(k=key, h=hash_str, p=password)
         url_password = parse.quote_plus(hashed_password)
         url_name = parse.quote_plus(account)
 
         for _try_times in range(10):
             flag, json_rsp = cls.post_login_req(url_name, url_password)
             if not flag:
-                return False, json_rsp
+                return 500, {"code": 500, "msg": json_rsp}
+
             if json_rsp["code"] != -449:
                 break
 
         if json_rsp["code"] == -449:
-            return False, "登录失败: -449"
+            return 500, {"code": -449, "msg": "登录失败: -449"}
 
         if json_rsp["code"] == -105:  # need captchar
             for _try_fetch_captcha_times in range(20):
@@ -195,61 +198,10 @@ class CookieFetcher:
                     cls.record_captcha(source=source, result=result)
                 break
 
-        if json_rsp["code"] != 0:
-            return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
+        if json_rsp["code"] == 0:
+            return 200, json_rsp
 
-        cookies = json_rsp["data"]["cookie_info"]["cookies"]
-        result = []
-        for c in cookies:
-            result.append(f"{c['name']}={c['value']}; ")
-
-        return True, "".join(result).strip()
-
-    @classmethod
-    def login(cls, account, password):
-        flag, json_rsp = cls.fetch_key()
-        if not flag:
-            return False, "Cannot fetch key."
-
-        key = json_rsp['data']['key']
-        hash_ = str(json_rsp['data']['hash'])
-
-        pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
-        hashed_password = base64.b64encode(rsa.encrypt((hash_ + password).encode('utf-8'), pubkey))
-        url_password = parse.quote_plus(hashed_password)
-        url_name = parse.quote_plus(account)
-
-        for _try_times in range(10):
-            flag, json_rsp = cls.post_login_req(url_name, url_password)
-
-            if not flag:
-                return False, json_rsp
-
-            if json_rsp["code"] != -449:
-                break
-
-        if json_rsp["code"] == -105:  # Need captcha
-            for _try_fetch_captcha_times in range(20):
-                source, result = cls.fetch_captcha()
-                if not result:
-                    continue
-
-                flag, json_rsp = cls.post_login_req(url_name, url_password, captcha=result)
-
-                if json_rsp["code"] == -105:
-                    continue
-                if json_rsp["code"] == 0:
-                    cls.record_captcha(source=source, result=result)
-                break
-
-        if json_rsp["code"] != 0:
-            return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
-
-        cookies = json_rsp["data"]["cookie_info"]["cookies"]
-        result = {c['name']: c['value'] for c in cookies}
-        result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
-        result["refresh_token"] = json_rsp["data"]["token_info"]["refresh_token"]
-        return True, result
+        return 503, {"code": 504, "msg": json_rsp}
 
     @classmethod
     def is_token_usable(cls, cookie, access_token):
@@ -326,7 +278,6 @@ def main_handler(event, context):
 
         account = request_params["account"]
         password = request_params["password"]
-        method = request_params.get("method", "get_cookie")  # "get_cookie" or "login"
     except Exception as e:
         return {
             "headers": {"Content-Type": "text"},
@@ -334,22 +285,12 @@ def main_handler(event, context):
             "body": "Request Param Error: %s\n\n%s" % (e, traceback.format_exc())
         }
 
-    if method == "login":
-        f = CookieFetcher.login
-    else:
-        f = CookieFetcher.get_cookie
-
-    flag, data = f(account=account, password=password)
-    if flag:
-        status_code = 200
-    else:
-        status_code = 404
-
-    if isinstance(data, dict):
-        data = json.dumps(data)
+    status_code, content = CookieFetcher.login(account=account, password=password)
+    if isinstance(content, dict):
+        content = json.dumps(content)
 
     return {
         "headers": {"Content-Type": "text"},
         "statusCode": status_code,
-        "body": data
+        "body": content
     }

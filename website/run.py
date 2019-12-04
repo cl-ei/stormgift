@@ -74,6 +74,7 @@ async def start_web_site():
         web.get('/lt/query_raffles_by_user', lt.query_raffles_by_user),
         web.get('/lt/trends_qq_notice', lt.trends_qq_notice),
         web.route('*', "/lt/cq_handler", cq.handler),
+        web.post('/lt/calc_sign', lt.calc_sign),
     ])
     app['websockets'] = weakref.WeakSet()
     app['websockets_raffle'] = weakref.WeakSet()
