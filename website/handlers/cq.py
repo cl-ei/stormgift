@@ -5,9 +5,7 @@ import traceback
 from aiohttp import web
 from utils.cq import async_qq, bot
 from config.log4 import cqbot_logger as logging
-from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList, SuperDxjUserAccounts
-from utils.biliapi import BiliApi
-from utils.highlevel_api import DBCookieOperator
+from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList
 from website.handlers.cq_zy import handler as zy_handler
 
 
@@ -88,80 +86,6 @@ class BotHandler:
             return bot.send_private_msg(
                 user_id=user_id,
                 message=f"ML_BIND_BILI_123_TO_QQ_456\nML_GET\nML_DEL_BY_BILI_123\nML_DEL_BY_QQ_456"
-            )
-
-        elif user_id == 80873436:
-            if msg.startswith("r"):
-                msg = msg[1:]
-                relay_user_id, raw_msg = msg.split("-", 1)
-                try:
-                    r = bot.send_private_msg(user_id=int(relay_user_id), message=raw_msg)
-                except Exception as e:
-                    r = f"E: {e}"
-                bot.send_private_msg(user_id=80873436, message=f"Result: {r}")
-
-            elif msg.startswith("ac"):
-                account = msg[2:]
-                cookie_obj = await DBCookieOperator.add_uid_or_account_to_white_list(account=account)
-                bot.send_private_msg(
-                    user_id=80873436,
-                    message=f"LTWhiteList add account: {account}, r: {cookie_obj.id}"
-                )
-
-            elif msg.startswith("dc"):
-                account = msg[2:]
-                r = await DBCookieOperator.del_uid_or_account_from_white_list(account=account)
-                bot.send_private_msg(user_id=80873436, message=f"LTWhiteList del account: {account}, r: {r}")
-
-            elif msg.startswith("44"):
-                message = msg[2:]
-                dd_obj = await DBCookieOperator.get_by_uid("DD")
-                await BiliApi.send_danmaku(
-                    message=message,
-                    room_id=2516117,
-                    cookie=dd_obj.cookie
-                )
-
-            elif msg.startswith("11"):
-                message = msg[2:]
-                dd_obj = await DBCookieOperator.get_by_uid("LP")
-                await BiliApi.send_danmaku(
-                    message=message,
-                    room_id=2516117,
-                    cookie=dd_obj.cookie
-                )
-
-            elif msg.startswith("33"):
-                message = msg[2:]
-                dd_obj = await DBCookieOperator.get_by_uid("DD")
-                await BiliApi.send_danmaku(
-                    message=message,
-                    room_id=13369254,
-                    cookie=dd_obj.cookie
-                )
-
-            elif msg.startswith("as"):
-                live_room_id = int(msg[2:])
-                real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
-                await SuperDxjUserAccounts.set(user_id=real_room_id, password="123456")
-
-                restart_info = os.popen("/usr/local/bin/supervisorctl restart dxj_super").read()
-                message = f"添加完成: {live_room_id} -> {real_room_id}. restart_info: \n{restart_info}"
-                bot.send_private_msg(user_id=80873436, message=message)
-
-            elif msg.startswith("ds"):
-                live_room_id = int(msg[2:])
-                real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
-                await SuperDxjUserAccounts.delete(user_id=real_room_id)
-                restart_info = os.popen("/usr/local/bin/supervisorctl restart dxj_super").read()
-                message = f"删除完成: {live_room_id} -> {real_room_id}. restart_info:\n{restart_info}"
-                bot.send_private_msg(user_id=80873436, message=message)
-
-        elif user_id not in (80873436, 310300788) and user_nickname not in ("mpqqnickname", "QQ看点"):
-            bot.send_private_msg(
-                user_id=80873436,
-                message=f"来自{user_nickname}(QQ: {user_id}) -> \n\n{msg}",
-                auto_escape=True,
             )
 
     @classmethod

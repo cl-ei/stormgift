@@ -457,7 +457,6 @@ class RaffleToCQPushList(object):
 
 class BiliToQQBindInfo(object):
     key = "BINDINFO_BILI_TO_QQ"
-    lock_key = "BINDINFO_BIND_LOCK"
 
     @classmethod
     async def bind(cls, qq, bili):

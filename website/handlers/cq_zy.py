@@ -10,18 +10,19 @@ import aiohttp
 import datetime
 import requests
 import traceback
-from config import g as G
+from config import g
 from aiohttp import web
 from random import randint
-from utils.cq import bot_zy as bot
 from utils.cq import async_zy
-from config import cloud_function_url
-from config.log4 import cqbot_logger as logging
-from utils.images import DynamicPicturesProcessor
-from utils.dao import redis_cache, BiliToQQBindInfo, RedisLock
 from utils.biliapi import BiliApi
+from utils.cq import bot_zy as bot
+from config import cloud_function_url
 from utils.highlevel_api import ReqFreLimitApi
+from config.log4 import cqbot_logger as logging
 from utils.highlevel_api import DBCookieOperator
+from utils.images import DynamicPicturesProcessor
+from utils.dao import redis_cache, BiliToQQBindInfo, RedisLock, SuperDxjUserAccounts
+
 
 
 class BotUtils:
@@ -595,22 +596,27 @@ class BotUtils:
     async def proc_help(self, msg, user_id, group_id):
         self.group_id = group_id
         self.user_id = user_id
-        message = (
-            "所有指令必须以`#`号开始。公屏指令：\n"
-            "1.#一言\n"
-            "2.#点歌\n"
-            "3.#翻译\n"
-            "4.#动态\n\n"
-            "私聊指令：\n"
-            "1.#背包\n"
-            "2.#动态\n"
-            "3.#大航海\n"
-            "4.#中奖查询\n"
-            "5.#勋章查询\n"
-            "6.#挂机查询\n"
-            "7.#绑定\n"
-            "8.#解绑"
-        )
+        if group_id:
+            message = (
+                "所有指令必须以`#`号开始。公屏指令：\n"
+                "1.#一言\n"
+                "2.#点歌\n"
+                "3.#翻译\n"
+                "4.#动态\n\n"
+                "私聊指令请私聊我然后发送#h。"
+            )
+        else:
+            message = (
+                "私聊指令如下：（可以使用前面的数字序号代替）"
+                "1.#背包\n"
+                "2.#动态\n"
+                "3.#大航海\n"
+                "4.#中奖查询\n"
+                "5.#勋章查询\n"
+                "6.#挂机查询\n"
+                "7.#绑定\n"
+                "8.#解绑"
+            )
         self.response(message)
 
 
@@ -626,8 +632,6 @@ class BotHandler:
         group_id = context["group_id"]
         msg = context["message"]
         logging.info(f"群消息: ({group_id}) [{title}][{card}]{user_nickname}({user_id}) -> {msg}")
-        if group_id != G.QQ_GROUP_STAR_LIGHT:
-            return
 
         msg = msg.replace("＃", "#")
         p = BotUtils()
@@ -666,6 +670,111 @@ class BotHandler:
                 msg = msg.replace(short, full, 1)
                 break
 
+        if user_id == g.QQ_NUMBER_DD:
+            if msg.startswith("approve"):
+                flag = msg[7:]
+                r = await async_zy.set_friend_add_request(flag=flag, approve=True)
+                await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=f"已通过：{r}")
+                return
+
+            elif msg.startswith("ac"):
+                account = msg[2:]
+                cookie_obj = await DBCookieOperator.add_uid_or_account_to_white_list(account=account)
+                bot.send_private_msg(
+                    user_id=80873436,
+                    message=f"白名单已添加: {account}, id: {cookie_obj.id}"
+                )
+                return
+
+            elif msg.startswith("dc"):
+                account = msg[2:]
+                r = await DBCookieOperator.del_uid_or_account_from_white_list(account=account)
+                bot.send_private_msg(user_id=80873436, message=f"白名单已删除: {account}, id: {r}")
+                return
+
+            elif msg.startswith("44"):
+                message = msg[2:]
+                dd_obj = await DBCookieOperator.get_by_uid("DD")
+                await BiliApi.send_danmaku(
+                    message=message,
+                    room_id=2516117,
+                    cookie=dd_obj.cookie
+                )
+                return
+
+            elif msg.startswith("11"):
+                message = msg[2:]
+                dd_obj = await DBCookieOperator.get_by_uid("LP")
+                await BiliApi.send_danmaku(
+                    message=message,
+                    room_id=2516117,
+                    cookie=dd_obj.cookie
+                )
+                return
+
+            elif msg.startswith("33"):
+                message = msg[2:]
+                dd_obj = await DBCookieOperator.get_by_uid("DD")
+                await BiliApi.send_danmaku(
+                    message=message,
+                    room_id=13369254,
+                    cookie=dd_obj.cookie
+                )
+                return
+
+            elif msg.startswith("as"):
+                live_room_id = int(msg[2:])
+                real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
+                await SuperDxjUserAccounts.set(user_id=real_room_id, password="123456")
+
+                restart_info = os.popen("/usr/local/bin/supervisorctl restart dxj_super").read()
+                message = f"添加完成: {live_room_id} -> {real_room_id}. restart_info: \n{restart_info}"
+                bot.send_private_msg(user_id=80873436, message=message)
+                return
+
+            elif msg.startswith("ds"):
+                live_room_id = int(msg[2:])
+                real_room_id = await BiliApi.force_get_real_room_id(room_id=live_room_id)
+                await SuperDxjUserAccounts.delete(user_id=real_room_id)
+                restart_info = os.popen("/usr/local/bin/supervisorctl restart dxj_super").read()
+                message = f"删除完成: {live_room_id} -> {real_room_id}. restart_info:\n{restart_info}"
+                bot.send_private_msg(user_id=80873436, message=message)
+                return
+
+            elif msg.startswith("++"):
+                qq, bili = [int(_) for _ in msg[2:].split("$")]
+                r = await BiliToQQBindInfo.bind(qq=qq, bili=bili)
+                all_bili = await BiliToQQBindInfo.get_all_bili(qq=qq)
+                message = f"绑定结果: {r}。{qq} -> {'、'.join([str(b) for b in all_bili])}"
+                await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
+                return
+
+            elif msg.startswith("--"):
+                bili = int(msg[2:])
+                qq = await BiliToQQBindInfo.unbind(bili=bili)
+                if qq:
+                    all_bili = await BiliToQQBindInfo.get_all_bili(qq=qq)
+                else:
+                    all_bili = []
+                message = f"解绑。{qq} -> {'、'.join([str(b) for b in all_bili])}"
+                await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
+                return
+
+            elif msg.startswith("g"):
+                group_number, message = msg[1:].split("g", 1)
+                if group_number == "#":
+                    group_id = g.QQ_GROUP_井
+                else:
+                    group_id = int(group_number)
+                await async_zy.send_group_msg(group_id=group_id, message=message)
+                return
+
+            elif msg.startswith("r"):
+                qq_number, message = msg[1:].split("r", 1)
+                qq_number = int(qq_number)
+                await async_zy.send_private_msg(user_id=qq_number, message=message)
+                return
+
         p = BotUtils()
         if msg.startswith("#背包"):
             return await p.proc_query_bag(msg, user_id, group_id=None)
@@ -703,12 +812,6 @@ class BotHandler:
             logging.info(F"LT_ACCESS_TOKEN_GEND: {token}, user_id: {user_id}")
             await async_zy.send_private_msg(user_id=user_id, message=message)
             return
-
-        if user_id == G.QQ_NUMBER_DD:
-            if msg.startswith("approve"):
-                flag = msg[7:]
-                r = await async_zy.set_friend_add_request(flag=flag, approve=True)
-                await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=f"已通过：{r}")
 
     @classmethod
     async def handle_message(cls, context):
