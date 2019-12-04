@@ -838,7 +838,7 @@ class BotHandler:
             f"年龄: {age}\n\n"
             f"approve{context['flag']}"
         )
-        await async_zy.send_private_msg(user_id=G.QQ_NUMBER_DD, message=message)
+        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
 
 
 async def handler(request):
