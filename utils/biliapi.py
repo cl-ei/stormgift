@@ -412,6 +412,7 @@ class BiliApi:
             "https://api.live.bilibili.com/msg/send",
             "https://api.bilibili.com/x/relation/modify",
             "https://api.live.bilibili.com/lottery/v1/SilverBox/getCurrentTask",
+            "https://api.live.bilibili.com/room/v1/Area/getLiveRoomCountByAreaID",
         ):
             req_json = {
                 "method": method,
@@ -1218,8 +1219,9 @@ class BiliApi:
 
     @classmethod
     async def get_all_lived_room_count(cls, timeout=10):
-        req_url = F"https://api.live.bilibili.com/room/v1/Area/getLiveRoomCountByAreaID?areaId=0"
-        r, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
+        req_url = F"https://api.live.bilibili.com/room/v1/Area/getLiveRoomCountByAreaID"
+        data = {"areaId": 0}
+        r, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
         if not r:
             return False, data
         num = data.get("data", {}).get("num", 0)
