@@ -672,7 +672,7 @@ class BotUtils:
 
             prompt.append(f"{p[0]}: {p[1]}, {time_prompt}后领取")
         message += "；\n".join(prompt)
-        await async_zy.send_group_msg(group_id=g.QQ_GROUP_井, message=message)
+        self.response(message)
 
     async def proc_help(self, msg, user_id, group_id):
         self.group_id = group_id
