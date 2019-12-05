@@ -594,13 +594,13 @@ class BotUtils:
         self.response(message)
 
     async def proc_chicken(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
+
         if not await redis_cache.set_if_not_exists("LT_PROC_CHICKEN", 1, timeout=60):
             ttl = await redis_cache.ttl("LT_PROC_CHICKEN")
             self.response(f"请{ttl}秒后再发送此命令。")
             return
-
-        self.group_id = group_id
-        self.user_id = user_id
 
         last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
         if not isinstance(last_active_time, int):
