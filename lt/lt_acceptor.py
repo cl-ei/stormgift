@@ -51,6 +51,8 @@ class Worker(object):
         return self._cookie_objs_non_skip, self._cookie_objs
 
     async def proc_single(self, key):
+        await redis_cache.set("LT_LAST_ACTIVE_TIME", value=int(time.time()))
+
         key_type, room_id, gift_id, *other_args = key.split("$")
         room_id = int(room_id)
         gift_id = int(gift_id)
