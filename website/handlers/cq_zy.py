@@ -594,6 +594,11 @@ class BotUtils:
         self.response(message)
 
     async def proc_chicken(self, msg, user_id, group_id=None):
+        if not await redis_cache.set_if_not_exists("LT_PROC_CHICKEN", 1, timeout=60):
+            ttl = await redis_cache.ttl("LT_PROC_CHICKEN")
+            self.response(f"请{ttl}秒后再发送此命令。")
+            return
+
         self.group_id = group_id
         self.user_id = user_id
 
@@ -659,7 +664,13 @@ class BotUtils:
         prompt_gift_list.sort(key=lambda x: (x[0], x[1], -x[2]))
         prompt = []
         for p in prompt_gift_list:
-            prompt.append(f"{p[0]}: {p[1]}, {p[2]}秒后领取")
+            minutes = p[2] // 60
+            seconds = p[2] % 60
+            time_prompt = f"{seconds}秒"
+            if minutes > 0:
+                time_prompt = f"{minutes}分" + time_prompt
+
+            prompt.append(f"{p[0]}: {p[1]}, {time_prompt}后领取")
         message += "；\n".join(prompt)
         await async_zy.send_group_msg(group_id=g.QQ_GROUP_井, message=message)
 
