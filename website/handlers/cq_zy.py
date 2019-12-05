@@ -861,8 +861,6 @@ class BotHandler:
 async def handler(request):
     context = await request.json()
 
-    await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=f"context: {context}")
-
     if context["post_type"] == "message":
         response = await BotHandler.handle_message(context)
     elif context["post_type"] == "request":
