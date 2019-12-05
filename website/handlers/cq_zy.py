@@ -21,7 +21,7 @@ from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import cqbot_logger as logging
 from utils.highlevel_api import DBCookieOperator
 from utils.images import DynamicPicturesProcessor
-from utils.dao import redis_cache, BiliToQQBindInfo, RedisLock, SuperDxjUserAccounts
+from utils.dao import redis_cache, BiliToQQBindInfo, RedisLock, SuperDxjUserAccounts, DelayAcceptGiftsMQ
 
 
 
@@ -657,6 +657,26 @@ class BotHandler:
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=group_id)
+
+        elif msg == "鸡" and group_id == g.QQ_GROUP_井:
+            last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
+            if not isinstance(last_active_time, int):
+                last_active_time = 0
+            i = int(time.time()) - last_active_time
+
+            def gen_time_prompt(interval):
+                if interval > 3600 * 24 * 365:
+                    return f"很久以前"
+                elif interval > 3600 * 24:
+                    return f"约{int(interval // (3600 * 24))}天前"
+                elif interval > 3600:
+                    return f"约{int(interval // 3600)}小时前"
+                elif interval > 60:
+                    return f"约{int(interval // 60)}分钟前"
+                return f"{int(interval)}秒前"
+            tasks = await DelayAcceptGiftsMQ.get(use_once=False)
+            message = f"辣🐔最后活跃时间: {gen_time_prompt(i)}，队列中有{len(tasks)}个未收大宝贝。"
+            await async_zy.send_group_msg(group_id=g.QQ_GROUP_井, message=message)
 
     @classmethod
     async def handle_private_message(cls, context):
