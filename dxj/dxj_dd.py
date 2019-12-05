@@ -65,6 +65,13 @@ class SignRecord:
     async def get_info(self):
         return await redis_cache.sorted_set_zrange_by_score(key=self.key_root, with_scores=True)
 
+    async def get_score(self, user_id):
+        score = await redis_cache.sorted_set_zscore(key=self.key_root, member=user_id)
+        try:
+            return float(score)
+        except (TypeError, ValueError):
+            return 0
+
 
 async def send_danmaku(msg, user=""):
     user = user or "LP"
@@ -184,6 +191,11 @@ async def proc_message(message):
 
             prompt = f"{msg}成功！" if sign else f"已{msg}，"
             message = f"{user_name}{prompt}连续{msg}{conti}天、累计{total}天，排名第{rank}."
+            await send_danmaku(msg=message)
+
+        elif msg == "积分":
+            score = await s.get_score(user_id=uid)
+            message = f"{user_name}现在拥有{score:.2f}积分."
             await send_danmaku(msg=message)
 
         else:
