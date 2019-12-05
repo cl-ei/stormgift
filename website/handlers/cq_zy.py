@@ -658,7 +658,7 @@ class BotHandler:
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=group_id)
 
-        elif msg == "鸡" and group_id == g.QQ_GROUP_井:
+        elif msg in ("鸡", "🐔") and group_id == g.QQ_GROUP_井:
             last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
             if not isinstance(last_active_time, int):
                 last_active_time = 0
