@@ -745,20 +745,6 @@ class BotHandler:
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
 
-        for short, full in [
-            ("1", "#背包"),
-            ("2", "#动态"),
-            ("3", "#大航海"),
-            ("4", "#中奖查询"),
-            ("5", "#勋章查询"),
-            ("6", "#挂机查询"),
-            ("7", "#绑定"),
-            ("8", "#解绑"),
-        ]:
-            if msg.startswith(short):
-                msg = msg.replace(short, full, 1)
-                break
-
         if user_id == g.QQ_NUMBER_DD:
             if msg.startswith("approve"):
                 flag = msg[7:]
@@ -863,6 +849,20 @@ class BotHandler:
                 qq_number = int(qq_number)
                 await async_zy.send_private_msg(user_id=qq_number, message=message)
                 return
+
+        for short, full in [
+            ("1", "#背包"),
+            ("2", "#动态"),
+            ("3", "#大航海"),
+            ("4", "#中奖查询"),
+            ("5", "#勋章查询"),
+            ("6", "#挂机查询"),
+            ("7", "#绑定"),
+            ("8", "#解绑"),
+        ]:
+            if msg.startswith(short):
+                msg = msg.replace(short, full, 1)
+                break
 
         p = BotUtils()
         if msg.startswith("#背包"):
