@@ -843,7 +843,7 @@ class BotHandler:
             )
             await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
             data = {}
-
+        print(f"data: {data}")
         age = data.get("age", "-")
         nickname = data.get("nickname", "-")
         sex = data.get("sex", "-")
