@@ -831,8 +831,8 @@ class BotHandler:
 
     @classmethod
     async def handle_request(cls, context):
-        if context["request_type"] == "group":
-            return
+        # if context["request_type"] == "group":
+        #     return
         try:
             data = await async_zy.get_stranger_info(user_id=context['user_id'], no_cache=True)
         except Exception as e:
