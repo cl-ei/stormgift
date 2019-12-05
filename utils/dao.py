@@ -897,7 +897,7 @@ class DelayAcceptGiftsMQ:
 
     @classmethod
     async def get_all(cls):
-        r = await redis_cache.sorted_set_zrange_by_score(key=cls.key)
+        r = await redis_cache.sorted_set_zrange_by_score(key=cls.key, with_scores=True)
         return r
 
 

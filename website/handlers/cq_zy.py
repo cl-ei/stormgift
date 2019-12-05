@@ -17,12 +17,12 @@ from utils.cq import async_zy
 from utils.biliapi import BiliApi
 from utils.cq import bot_zy as bot
 from config import cloud_function_url
+from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import cqbot_logger as logging
 from utils.highlevel_api import DBCookieOperator
 from utils.images import DynamicPicturesProcessor
 from utils.dao import redis_cache, BiliToQQBindInfo, RedisLock, SuperDxjUserAccounts, DelayAcceptGiftsMQ
-
 
 
 class BotUtils:
@@ -593,6 +593,76 @@ class BotUtils:
         message = f"要想解绑，请你现在去1234567直播间发送:\n\n再见"
         self.response(message)
 
+    async def proc_chicken(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
+
+        last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
+        if not isinstance(last_active_time, int):
+            last_active_time = 0
+        i = int(time.time()) - last_active_time
+
+        def gen_time_prompt(interval):
+            if interval > 3600 * 24 * 365:
+                return f"很久以前"
+            elif interval > 3600 * 24:
+                return f"约{int(interval // (3600 * 24))}天前"
+            elif interval > 3600:
+                return f"约{int(interval // 3600)}小时前"
+            elif interval > 60:
+                return f"约{int(interval // 60)}分钟前"
+            return f"{int(interval)}秒前"
+
+        all_gifts = await DelayAcceptGiftsMQ.get_all()
+        gifts = []
+        score = []
+        for i, gift in enumerate(all_gifts):
+            if i % 2 == 0:
+                gifts.append(gift)
+            else:
+                score.append(gift)
+
+        message = f"辣🐔最后活跃时间: {gen_time_prompt(i)}，队列中有{len(gifts)}个未收大宝贝：\n\n{'-'*20}\n"
+
+        room_id_q = await AsyncMySQL.execute(
+            "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
+            ({int(d.split("$")[1]) for d in gifts},)
+        )
+        room_id_map = {r[0]: r[1] for r in room_id_q if r[1]}
+        g_names_map = {}
+        prompt_gift_list = []
+        for i, gift in enumerate(gifts):
+            key_type, room_id, raffle_id, *args = gift.split("$")
+            room_id = int(room_id)
+            room_id = room_id_map.get(room_id, room_id)
+            accept_time = -1 * int(time.time() - score[i])
+            if accept_time < 0:
+                accept_time = 0
+
+            if key_type == "T":
+                gift_type = args[0]
+                if gift_type in g_names_map:
+                    gift_name = g_names_map[gift_type]
+                else:
+                    gift_name = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
+                    g_names_map[gift_type] = gift_name
+                prompt_gift_list.append((gift_name, room_id, accept_time))
+            elif key_type == "G":
+                privilege_type = args[0]
+                if privilege_type == "1":
+                    gift_name = "总督"
+                elif privilege_type == "2":
+                    gift_name = "提督"
+                else:
+                    gift_name = "舰长"
+                prompt_gift_list.append((gift_name, room_id, accept_time))
+        prompt_gift_list.sort(key=lambda x: (x[0], x[1], -x[2]))
+        prompt = []
+        for p in prompt_gift_list:
+            prompt.append(f"{p[0]}: {p[1]}, {p[2]}秒后领取")
+        message += "；\n".join(prompt)
+        await async_zy.send_group_msg(group_id=g.QQ_GROUP_井, message=message)
+
     async def proc_help(self, msg, user_id, group_id):
         self.group_id = group_id
         self.user_id = user_id
@@ -659,24 +729,7 @@ class BotHandler:
             return await p.proc_help(msg, user_id, group_id=group_id)
 
         elif msg in ("鸡", "🐔") and group_id == g.QQ_GROUP_井:
-            last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
-            if not isinstance(last_active_time, int):
-                last_active_time = 0
-            i = int(time.time()) - last_active_time
-
-            def gen_time_prompt(interval):
-                if interval > 3600 * 24 * 365:
-                    return f"很久以前"
-                elif interval > 3600 * 24:
-                    return f"约{int(interval // (3600 * 24))}天前"
-                elif interval > 3600:
-                    return f"约{int(interval // 3600)}小时前"
-                elif interval > 60:
-                    return f"约{int(interval // 60)}分钟前"
-                return f"{int(interval)}秒前"
-            tasks = await DelayAcceptGiftsMQ.get_all()
-            message = f"辣🐔最后活跃时间: {gen_time_prompt(i)}，队列中有{len(tasks)}个未收大宝贝。"
-            await async_zy.send_group_msg(group_id=g.QQ_GROUP_井, message=message)
+            return await p.proc_chicken(msg, user_id, group_id=group_id)
 
     @classmethod
     async def handle_private_message(cls, context):
