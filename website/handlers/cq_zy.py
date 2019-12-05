@@ -597,8 +597,8 @@ class BotUtils:
         self.group_id = group_id
         self.user_id = user_id
 
-        if not await redis_cache.set_if_not_exists("LT_PROC_CHICKEN", 1, timeout=60):
-            ttl = await redis_cache.ttl("LT_PROC_CHICKEN")
+        if not await redis_cache.set_if_not_exists(f"LT_PROC_CHICKEN_{user_id}", 1, timeout=180):
+            ttl = await redis_cache.ttl(f"LT_PROC_CHICKEN_{user_id}")
             self.response(f"请{ttl}秒后再发送此命令。")
             return
 
@@ -738,9 +738,6 @@ class BotHandler:
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help(msg, user_id, group_id=group_id)
-
-        elif msg in ("鸡", "🐔") and group_id == g.QQ_GROUP_井:
-            return await p.proc_chicken(msg, user_id, group_id=group_id)
 
     @classmethod
     async def handle_private_message(cls, context):
@@ -904,6 +901,9 @@ class BotHandler:
             logging.info(F"LT_ACCESS_TOKEN_GEND: {token}, user_id: {user_id}")
             await async_zy.send_private_msg(user_id=user_id, message=message)
             return
+
+        elif msg in ("鸡", "🐔"):
+            return await p.proc_chicken(msg, user_id)
 
     @classmethod
     async def handle_message(cls, context):
