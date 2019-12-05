@@ -192,9 +192,6 @@ class Worker(object):
 
         if not await redis_cache.set_if_not_exists(key, gift_info):
             return
-        now = int(time.time())
-        accept_time = now + randint(60, 600)
-        await DelayAcceptGiftsMQ.put(f"G${room_id}${gift_id}", accept_time=accept_time)
 
         privilege_type = gift_info["privilege_type"]
         if privilege_type == 3:
@@ -205,6 +202,9 @@ class Worker(object):
             gift_name = "总督"
         else:
             gift_name = "guard_%s" % privilege_type
+        now = int(time.time())
+        accept_time = now + randint(60, 600)
+        await DelayAcceptGiftsMQ.put(f"G${room_id}${gift_id}${privilege_type}", accept_time=accept_time)
 
         await mq_raffle_broadcast.put(json.dumps({
             "real_room_id": room_id,

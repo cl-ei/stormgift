@@ -674,7 +674,7 @@ class BotHandler:
                 elif interval > 60:
                     return f"约{int(interval // 60)}分钟前"
                 return f"{int(interval)}秒前"
-            tasks = await DelayAcceptGiftsMQ.get(use_once=False)
+            tasks = await DelayAcceptGiftsMQ.get_all()
             message = f"辣🐔最后活跃时间: {gen_time_prompt(i)}，队列中有{len(tasks)}个未收大宝贝。"
             await async_zy.send_group_msg(group_id=g.QQ_GROUP_井, message=message)
 

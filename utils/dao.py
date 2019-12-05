@@ -888,11 +888,16 @@ class DelayAcceptGiftsMQ:
         await redis_cache.sorted_set_zadd(cls.key, accept_time, gift_key)
 
     @classmethod
-    async def get(cls, use_once=True):
+    async def get(cls):
         now = time.time()
         r = await redis_cache.sorted_set_zrange_by_score(key=cls.key, max_=now)
-        if r and use_once:
+        if r:
             await redis_cache.sorted_set_zrem(cls.key, *r)
+        return r
+
+    @classmethod
+    async def get_all(cls):
+        r = await redis_cache.sorted_set_zrange_by_score(key=cls.key)
         return r
 
 
