@@ -662,7 +662,7 @@ class BotUtils:
                 else:
                     gift_name = "舰长"
                 prompt_gift_list.append((gift_name, room_id, accept_time))
-        prompt_gift_list.sort(key=lambda x: (x[0], -x[2], x[1]))
+        prompt_gift_list.sort(key=lambda x: (x[0], x[2], x[1]))
         prompt = []
         for p in prompt_gift_list:
             minutes = p[2] // 60

@@ -1697,6 +1697,49 @@ class BiliApi:
         code = r["code"]
         return code == 0, r.get("message") or r.get("msg") or "no response msg."
 
+    @classmethod
+    async def add_coin(cls, aid, cookie, multiply=1, timeout=30):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.bilibili.com/x/web-interface/coin/add"
+        data = {
+            "aid": aid,
+            "multiply": multiply,
+            "cross_domain": True,
+            "csrf": csrf_token,
+        }
+        headers = {
+            "Cookie": cookie,
+            "referer": f"https://www.bilibili.com/video/av{aid}",
+        }
+        flag, r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+        return flag, r
+
+    @classmethod
+    async def fetch_bili_main_tasks(cls, cookie, timeout=30):
+        url = 'https://account.bilibili.com/home/reward'
+        headers = {"Cookie": cookie}
+        flag, data = await cls.post(url=url, headers=headers, timeout=timeout, check_error_code=True)
+        if flag:
+            return flag, data["data"]
+        return flag, data
+
+    @classmethod
+    async def share_video(cls, aid, cookie, timeout=30):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = 'https://api.bilibili.com/x/web-interface/share/add'
+        data = {'aid': aid, 'jsonp': 'jsonp', 'csrf': csrf_token}
+        headers = {"Cookie": cookie}
+        r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_response_json=True)
+        return r
+
 
 async def test():
     pass
