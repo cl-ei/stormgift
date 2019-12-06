@@ -1284,6 +1284,32 @@ class BiliApi:
         return flag, r
 
     @classmethod
+    async def get_wear_medal(cls, cookie, timeout=10):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+            user_id = re.findall(r"DedeUserID=(\d+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_toke or user_id: {e}"
+
+        url = "https://api.live.bilibili.com/live_user/v1/UserInfo/get_weared_medal"
+        data = {
+            "source": 1,
+            "uid": user_id,
+            "target_id": user_id,
+            "csrf_token": csrf_token,
+            "csrf": csrf_token,
+        }
+        headers = {"Cookie": cookie}
+        flag, r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+        if not flag:
+            return False, r
+
+        if isinstance(r["data"], dict) and "medal_name" in r["data"]:
+            return True, r["data"]
+        else:
+            return False, None
+
+    @classmethod
     async def wear_medal(cls, cookie, medal_id, timeout=10):
         url = "https://api.live.bilibili.com/i/ajaxWearFansMedal"
         headers = {"Cookie": cookie}
@@ -1294,7 +1320,7 @@ class BiliApi:
             timeout=timeout,
             check_error_code=True
         )
-        return flag, r
+        return flag, r.get("message") or r.get("msg") or "Unknown result."
 
     @classmethod
     async def block_user(cls, cookie, room_id, user_id, timeout=5):

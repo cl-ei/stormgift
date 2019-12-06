@@ -597,10 +597,11 @@ class BotUtils:
         self.group_id = group_id
         self.user_id = user_id
 
-        if not await redis_cache.set_if_not_exists(f"LT_PROC_CHICKEN_{user_id}", 1, timeout=180):
-            ttl = await redis_cache.ttl(f"LT_PROC_CHICKEN_{user_id}")
-            self.response(f"请{ttl}秒后再发送此命令。")
-            return
+        if user_id != g.QQ_NUMBER_DD:
+            if not await redis_cache.set_if_not_exists(f"LT_PROC_CHICKEN_{user_id}", 1, timeout=180):
+                ttl = await redis_cache.ttl(f"LT_PROC_CHICKEN_{user_id}")
+                self.response(f"请{ttl}秒后再发送此命令。")
+                return
 
         last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
         if not isinstance(last_active_time, int):
@@ -661,7 +662,7 @@ class BotUtils:
                 else:
                     gift_name = "舰长"
                 prompt_gift_list.append((gift_name, room_id, accept_time))
-        prompt_gift_list.sort(key=lambda x: (x[0], x[1], -x[2]))
+        prompt_gift_list.sort(key=lambda x: (x[0], -x[2], x[1]))
         prompt = []
         for p in prompt_gift_list:
             minutes = p[2] // 60
