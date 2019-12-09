@@ -180,7 +180,7 @@ async def proc_message(message):
             )
             await send_danmaku(danmaku)
 
-        elif msg.strip() in ("船员", ):
+        elif msg == "船员":
             result = await ReqFreLimitApi.get_guard_count()
             r = "、".join([f"{v}个{k}" for k, v in result["gift_list"].items()])
             danmaku = f"今日统计到{r}, 共{result['total']}个"
@@ -199,6 +199,9 @@ async def proc_message(message):
             await send_danmaku(msg=message)
 
         else:
+            for key_word in ("大气大气~", "现在拥有", "连续打卡", "连续签到"):
+                if key_word in msg:
+                    return
             await async_zy.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
 
 
