@@ -8,8 +8,6 @@ import aioredis
 import datetime
 from config import REDIS_CONFIG, REDIS_CONFIG_FOR_GO
 
-import aiohttp
-aiohttp.request()
 
 class RedisCache(object):
     def __init__(self, host, port, db, password):
