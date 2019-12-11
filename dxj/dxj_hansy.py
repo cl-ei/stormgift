@@ -127,16 +127,16 @@ async def proc_message(message):
             created_timestamp=created_time,
         )
 
-    elif cmd == "LIVE":
-        key = "LT_HANSY_DXJ_QQ_NOTICE_TIME"
-        last_notice_time = await redis_cache.get(key)
-
-        if last_notice_time:
-            logging.info(f"Hansy lived notice time: {last_notice_time}")
-
-        else:
-            await redis_cache.set(key, f"{datetime.datetime.now()}", timeout=1800)
-            send_qq_notice_message()
+    # elif cmd == "LIVE":
+    #     key = "LT_HANSY_DXJ_QQ_NOTICE_TIME"
+    #     last_notice_time = await redis_cache.get(key)
+    #
+    #     if last_notice_time:
+    #         logging.info(f"Hansy lived notice time: {last_notice_time}")
+    #
+    #     else:
+    #         await redis_cache.set(key, f"{datetime.datetime.now()}", timeout=1800)
+    #         send_qq_notice_message()
 
     elif cmd == "PREPARING":
         bot.send_private_msg(user_id=291020256, message="大坏蛋记得把歌单发给我！\n [CQ:image,file=1.gif]")
