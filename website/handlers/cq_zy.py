@@ -22,7 +22,14 @@ from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import cqbot_logger as logging
 from utils.highlevel_api import DBCookieOperator
 from utils.images import DynamicPicturesProcessor
-from utils.dao import redis_cache, BiliToQQBindInfo, RedisLock, SuperDxjUserAccounts, DelayAcceptGiftsMQ
+from utils.dao import (
+    RedisLock,
+    redis_cache,
+    LTTempBlack,
+    BiliToQQBindInfo,
+    DelayAcceptGiftsMQ,
+    SuperDxjUserAccounts,
+)
 
 
 class BotUtils:
@@ -905,6 +912,15 @@ class BotHandler:
 
         elif msg in ("鸡", "🐔"):
             return await p.proc_chicken(msg, user_id)
+
+        elif msg.startswith("解冻"):
+            bili_uid = int(msg[2:].strip())
+            bili_uids = await BiliToQQBindInfo.get_all_bili(qq=user_id)
+            if bili_uid not in bili_uids:
+                await async_zy.send_private_msg(user_id=user_id, message="UID错误。")
+                return
+            await LTTempBlack.remove(uid=bili_uid)
+            await async_zy.send_private_msg(user_id=user_id, message="操作成功。")
 
     @classmethod
     async def handle_message(cls, context):

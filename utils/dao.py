@@ -868,11 +868,7 @@ class UserRaffleRecord:
             with_scores=False,
             offset=0, limit=50000
         )
-        if r:
-            score = await redis_cache.sorted_set_zscore(key=key, member=r[-1])
-        else:
-            score = 0
-        return float(score), r
+        return r
 
     @classmethod
     async def get_count(cls, user_id):
@@ -923,11 +919,50 @@ class LTTempBlack:
     async def get_blocking_time(cls, uid):
         return await redis_cache.ttl(f"{cls.key}_{uid}")
 
+    @classmethod
+    async def remove(cls, uid):
+        await redis_cache.delete(f"{cls.key}_{uid}")
+
+
+class LTLastAcceptTime:
+    key = "LT_LAST_ACCEPT_TIME"
+
+    @classmethod
+    async def update(cls, *uid_list):
+        r = await redis_cache.get(key=cls.key)
+        if not isinstance(r, dict):
+            r = {}
+        now = int(time.time())
+        for uid in uid_list:
+            r[int(uid)] = now
+        await redis_cache.set(key=cls.key, value=r)
+
+    @classmethod
+    async def get_all(cls):
+        r = await redis_cache.get(cls.key)
+        if not isinstance(r, dict):
+            r = {}
+        return r
+
+    @classmethod
+    async def get_by_uid(cls, uid):
+        r = await redis_cache.get(cls.key)
+        if not isinstance(r, dict):
+            r = {}
+        return r.get(uid) or 0
+
 
 async def test():
-    r = await LTTempBlack.get_blocked()
+    r = await LTLastAcceptTime.get_all()
     print(r)
-    r = await LTTempBlack.is_temporary_blocked(3)
+
+    r = await LTLastAcceptTime.update(123)
+    print(r)
+
+    r = await LTLastAcceptTime.get_all()
+    print(r)
+
+    r = await LTLastAcceptTime.get_by_uid(1235)
     print(r)
 
 

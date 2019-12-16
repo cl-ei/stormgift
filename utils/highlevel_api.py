@@ -9,7 +9,7 @@ from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
 from utils.email import send_cookie_invalid_notice
-from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord, LTTempBlack
+from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord, LTTempBlack, LTLastAcceptTime
 
 
 BLOCK_FRESH_TIME = 1
@@ -511,7 +511,8 @@ class DBCookieOperator:
 
         start_time = time.time()
 
-        most_recently, rows = await UserRaffleRecord.get_by_user_id(user_id=uid)
+        rows = await UserRaffleRecord.get_by_user_id(user_id=uid)
+        most_recently = await LTLastAcceptTime.get_by_uid(uid=uid)
         most_recently = gen_time_prompt(time.time() - most_recently)
         user_prompt = f"{user_prompt_title}\n最后一次抽奖时间：{most_recently}"
 

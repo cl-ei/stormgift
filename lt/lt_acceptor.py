@@ -15,6 +15,7 @@ from utils.dao import (
     LTTempBlack,
     LTUserSettings,
     UserRaffleRecord,
+    LTLastAcceptTime,
     StormGiftBlackRoom,
     DelayAcceptGiftsMQ,
 )
@@ -120,6 +121,7 @@ class Worker(object):
         gift_name = gift_name.replace("抽奖", "")
 
         success = []
+        success_uid_list = []
         failed = []
         for index, cookie_obj in enumerate(user_cookie_objs):
             flag, message = result_list[index]
@@ -158,6 +160,9 @@ class Worker(object):
 
             await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
             success.append(f"{cookie_obj.name}({cookie_obj.uid})")
+            success_uid_list.append(cookie_obj.uid)
+
+        await LTLastAcceptTime.update(*success_uid_list)
 
         success_users = []
         for i, s in enumerate(success):
