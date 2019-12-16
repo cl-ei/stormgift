@@ -561,8 +561,8 @@ class DBCookieOperator:
             postfix = ""
 
         prompt = [
-            f"{cookie_obj.name}(uid: {cookie_obj.uid})正常领取辣条中:\n",
-            f"最后一次抽奖在{str(most_recently)}，24小时内累计抽奖{raffle_count}次，共获得{total_intimacy}辣条。\n",
+            f"{user_prompt}，正常领取辣条中。\n",
+            f"24小时内累计抽奖{raffle_count}次，共获得{total_intimacy}辣条。\n",
             postfix,
             f"\n处理时间：{process_time:.3f}"
         ]
