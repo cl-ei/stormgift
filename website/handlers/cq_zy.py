@@ -341,7 +341,7 @@ class BotUtils:
                 self.response("指令错误，拒绝服务。")
                 return
 
-            if assigned_uid not in bili_uid_list:
+            if user_id != g.QQ_NUMBER_DD and assigned_uid not in bili_uid_list:
                 self.response("未找到此用户。")
                 return
 
