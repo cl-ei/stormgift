@@ -9,7 +9,7 @@ from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
 from utils.email import send_cookie_invalid_notice
-from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord
+from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord, LTTempBlack
 
 
 BLOCK_FRESH_TIME = 1
@@ -505,20 +505,29 @@ class DBCookieOperator:
                 return f"约{int(interval // 60)}分钟前"
             return f"{int(interval)}秒前"
 
+        user_prompt_title = f"{cookie_obj.name}（uid: {uid}）"
         if not cookie_obj.available:
-            return False, f"用户{cookie_obj.name}（uid: {uid}）的登录已过期，请重新登录。"
+            return False, f"{user_prompt_title}登录已过期，请重新登录。"
 
         start_time = time.time()
 
         most_recently, rows = await UserRaffleRecord.get_by_user_id(user_id=uid)
         most_recently = gen_time_prompt(time.time() - most_recently)
+        user_prompt = f"{user_prompt_title}\n最后一次抽奖时间：{most_recently}"
 
         if (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds() < 3600 * BLOCK_FRESH_TIME:
             interval_seconds = (datetime.datetime.now() - cookie_obj.blocked_time).total_seconds()
-            return False, (
-                f"{cookie_obj.name}(uid: {cookie_obj.uid}):\n"
-                f"{gen_time_prompt(interval_seconds)}发现你被关进了小黑屋，最后一次抽奖时间：{most_recently}。"
+            return False, f"{user_prompt}\n{gen_time_prompt(interval_seconds)}发现你被关进了小黑屋。"
+
+        ttl = await LTTempBlack.get_blocking_time(uid=uid)
+        if ttl > 0:
+            message = (
+                f"{user_prompt}\n"
+                f"系统发现你在手动领取高能，或者你在别处也参与了抢辣条,所以机器人现在冷却中。\n"
+                f"剩余冷却时间：{ttl//60}分钟"
             )
+            return False, message
+
         process_time = time.time() - start_time
         calc = {}
         total_intimacy = 0

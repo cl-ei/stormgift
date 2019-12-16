@@ -6,12 +6,18 @@ import asyncio
 import aiohttp
 import datetime
 import traceback
-from utils.dao import redis_cache, LTUserSettings, StormGiftBlackRoom, DelayAcceptGiftsMQ
 from config import cloud_acceptors
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import acceptor_logger as logging
-from utils.dao import UserRaffleRecord
+from utils.dao import (
+    redis_cache,
+    LTTempBlack,
+    LTUserSettings,
+    UserRaffleRecord,
+    StormGiftBlackRoom,
+    DelayAcceptGiftsMQ,
+)
 
 NON_SKIP_USER_ID = [
     20932326,  # DD
@@ -38,17 +44,15 @@ class Worker(object):
         self.worker_index = index
         self.__busy_time = 0
 
-        self._cookie_objs_non_skip = []
         self._cookie_objs = []
         self._cookie_objs_update_time = 0
 
     async def load_cookie(self):
         if time.time() - self._cookie_objs_update_time > 100:
-            objs = await DBCookieOperator.get_objs(available=True, non_blocked=True, separate=True)
-            self._cookie_objs_non_skip, self._cookie_objs = objs
+            self._cookie_objs = await DBCookieOperator.get_objs(available=True, non_blocked=True)
             self._cookie_objs_update_time = time.time()
 
-        return self._cookie_objs_non_skip, self._cookie_objs
+        return self._cookie_objs
 
     async def proc_single(self, key):
         await redis_cache.set("LT_LAST_ACTIVE_TIME", value=int(time.time()))
@@ -58,13 +62,9 @@ class Worker(object):
         gift_id = int(gift_id)
         gift_type = ""
 
-        non_skip, normal_objs = await self.load_cookie()
-        cookie_objs = non_skip + normal_objs
-        uid_is_in_black = await redis_cache.mget(*[F"LT_TEMP_BLACK_{c.uid}" for c in cookie_objs])
-        user_cookie_objs = []
-        for i, is_blocked in enumerate(uid_is_in_black):
-            if not is_blocked:
-                user_cookie_objs.append(cookie_objs[i])
+        cookie_objs = await self.load_cookie()
+        temporary_blocked = await LTTempBlack.get_blocked()
+        cookie_objs = [c for c in cookie_objs if c.uid not in temporary_blocked]
 
         if key_type == "T":
             gift_type, *_ = other_args
@@ -78,7 +78,7 @@ class Worker(object):
         else:
             return
 
-        user_cookie_objs = await LTUserSettings.filter_cookie(user_cookie_objs, key=filter_k)
+        user_cookie_objs = await LTUserSettings.filter_cookie(cookie_objs, key=filter_k)
         if not user_cookie_objs:
             return
 
@@ -135,13 +135,7 @@ class Worker(object):
                     logging.warning(f"{cookie_obj.name}(uid: {cookie_obj.uid}) {message}. set blocked.")
                     await StormGiftBlackRoom.set_blocked(cookie_obj.uid)
                 elif "你已经领取过" in message or "您已参加抽奖" in message:
-                    key = F"LT_DUP_ACCEPT_COUNT_{cookie_obj.uid}"
-                    r = await redis_cache.incr(key)
-                    if r == 1:
-                        await redis_cache.expire(key, timeout=3600)
-                    elif r > 20:
-                        await redis_cache.delete(key)
-                        await redis_cache.set(F"LT_TEMP_BLACK_{cookie_obj.uid}", value=True, timeout=3600*4)
+                    await LTTempBlack.manual_accept_once(uid=cookie_obj.uid)
 
                 if index != 0:
                     message = message[:100]

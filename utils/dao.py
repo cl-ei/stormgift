@@ -901,8 +901,34 @@ class DelayAcceptGiftsMQ:
         return r
 
 
+class LTTempBlack:
+    key = "LT_TEMP_BLACK"
+
+    @classmethod
+    async def manual_accept_once(cls, uid):
+        key = F"LT_DUP_ACCEPT_COUNT_{uid}"
+        r = await redis_cache.incr(key)
+        if r == 1:
+            await redis_cache.expire(key, timeout=3600)
+        elif r > 20:
+            await redis_cache.delete(key)
+            await redis_cache.set(F"{cls.key}_{uid}", value=True, timeout=3600 * 4)
+
+    @classmethod
+    async def get_blocked(cls):
+        blocked_keys = await redis_cache.keys("LT_TEMP_BLACK_*")
+        return [int(k[len(cls.key) + 1:]) for k in blocked_keys]
+
+    @classmethod
+    async def get_blocking_time(cls, uid):
+        return await redis_cache.ttl(f"{cls.key}_{uid}")
+
+
 async def test():
-    pass
+    r = await LTTempBlack.get_blocked()
+    print(r)
+    r = await LTTempBlack.is_temporary_blocked(3)
+    print(r)
 
 
 if __name__ == "__main__":
