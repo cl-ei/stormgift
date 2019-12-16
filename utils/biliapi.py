@@ -131,8 +131,7 @@ class CookieFetcher:
         )
         sign = cls.calc_sign(temp_params)
         payload = f'{temp_params}&sign={sign}'
-        url = "https://passport.bilibili.com/api/v2/oauth2/login"
-
+        url = "https://passport.bilibili.com/api/v3/oauth2/login"
         for _ in range(10):
             status_code, content = await cls._request('POST', url, params=payload)
             if status_code != 200:
