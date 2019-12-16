@@ -163,18 +163,15 @@ class CookieFetcher:
     async def get_bili_login_response(cls, account, password):
         req_json = {"account": account, "password": password}
         status_code, content = await cls._request(method="post", url=cloud_login, json=req_json, timeout=50)
-        if status_code != 200:
-            return False, f"Login failed: {content}"
-
         try:
             json_rsp = json.loads(content)
             assert "code" in json_rsp
+        except (AssertionError, json.JSONDecodeError) as e:
+            logging.error(f"get_bili_login_response from cloud: {e}, content: {content}")
+            return False, f"登录认证服务器返回的数据格式错误。"
 
-        except json.JSONDecodeError:
-            return False, f"Not json respones: {content}"
-
-        except AssertionError:
-            return False, f"Respones Syntext Error: {content}"
+        if json_rsp["code"] == -449:
+            return False, f"Bili服务器繁忙，请3秒后重试。"
 
         if json_rsp["code"] != 0:
             return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
