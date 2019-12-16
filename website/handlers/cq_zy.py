@@ -682,6 +682,28 @@ class BotUtils:
         message += "；\n".join(prompt)
         self.response(message)
 
+    async def proc_unfreeze(self, msg, user_id, group_id=None):
+        self.group_id = group_id
+        self.user_id = user_id
+
+        try:
+            bili_uid = int(msg[2:].strip())
+        except (IndexError, ValueError, TypeError):
+            self.response("指令错误。请发送“解冻”+B站uid， 如:\n解冻731556")
+            return
+
+        bili_uids = await BiliToQQBindInfo.get_all_bili(qq=user_id)
+        if bili_uid not in bili_uids:
+            self.response("UID错误。")
+            return
+
+        if bili_uid not in await LTTempBlack.get_blocked():
+            self.response(f"你（uid: {bili_uid}）没有被冻。此命令会加重辣🐔的工作负担，请不要频繁发送。\n\n爱护辣🐔，人人有责。")
+            return
+
+        await LTTempBlack.remove(uid=bili_uid)
+        self.response("操作成功。")
+
     async def proc_help(self, msg, user_id, group_id):
         self.group_id = group_id
         self.user_id = user_id
@@ -914,13 +936,7 @@ class BotHandler:
             return await p.proc_chicken(msg, user_id)
 
         elif msg.startswith("解冻"):
-            bili_uid = int(msg[2:].strip())
-            bili_uids = await BiliToQQBindInfo.get_all_bili(qq=user_id)
-            if bili_uid not in bili_uids:
-                await async_zy.send_private_msg(user_id=user_id, message="UID错误。")
-                return
-            await LTTempBlack.remove(uid=bili_uid)
-            await async_zy.send_private_msg(user_id=user_id, message="操作成功。")
+            return await p.proc_unfreeze(msg, user_id)
 
     @classmethod
     async def handle_message(cls, context):
