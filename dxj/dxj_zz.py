@@ -63,7 +63,7 @@ async def proc_message(message):
     elif cmd == "LIVE":
         await async_zy.send_private_msg(
             user_id=g.QQ_NUMBER_DD,
-            message=f"温柔祯开播了.\n\nhttps://www.bilibili.com/{MONITOR_ROOM_ID}"
+            message=f"温柔祯开播了.\n\nhttps://live.bilibili.com/{MONITOR_ROOM_ID}"
         )
 
     elif cmd == "PREPARING":
