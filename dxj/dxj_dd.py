@@ -200,10 +200,10 @@ async def proc_message(message):
             await send_danmaku(msg=message)
 
         else:
-            for key_word in ("大气大气~", "现在拥有", "连续打卡", "连续签到"):
+            for key_word in ("大气大气~", "现在拥有", "连续打卡", "连续签到", "."):
                 if key_word in msg:
                     return
-            if re.match(r"\S*第?\d+\.$", msg):
+            if re.match(r"\S*第?\d\.$", msg):
                 return
 
             await async_zy.send_private_msg(user_id=80873436, message=f"自己的直播间: \n\n{msg_record}")
