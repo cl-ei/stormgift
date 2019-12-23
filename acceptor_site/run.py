@@ -4,7 +4,13 @@ from acceptor_site.handlers import lt, cq, dxj
 
 
 async def main():
-    app = web.Application()
+    @web.middleware
+    async def set_server_name(request, handler):
+        resp = await handler(request)
+        resp.headers['Server'] = 'madliar/2.1.1a11(Darwin)'
+        return resp
+
+    app = web.Application(middlewares=[set_server_name])
     app.add_routes([
         web.get('/lt_{token}', lt.lt),
         web.get('/lt/dxj/login', dxj.login),
