@@ -47,5 +47,5 @@ async def main():
     while True:
         await asyncio.sleep(100)
 
-
-asyncio.run(main())
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
