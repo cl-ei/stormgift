@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from aiohttp import web
 from acceptor_site.handlers import lt, cq, dxj
 
@@ -11,7 +12,12 @@ async def main():
         return resp
 
     app = web.Application(middlewares=[set_server_name])
+
+    async def home_page(request):
+        return web.Response(text=f"OK.\n\n{datetime.datetime.now()}")
+
     app.add_routes([
+        web.get('/', home_page),
         web.get('/lt_{token}', lt.lt),
         web.get('/lt/dxj/login', dxj.login),
         web.post('/lt/dxj/login', dxj.login),
