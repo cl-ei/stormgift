@@ -775,7 +775,7 @@ class BotHandler:
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
 
-        await async_zy.send_private_msg(user_id=user_id, message="正在维护中。辣条机不影响，网站和QQ机器人将不可用。圣诞节之前恢复正常。")
+        await async_zy.send_private_msg(user_id=user_id, message="正在维护中。辣条机正常运作，网站和QQ机器人将不可用。圣诞节之前恢复正常。")
         return
 
         if user_id == g.QQ_NUMBER_DD:
