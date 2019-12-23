@@ -64,8 +64,8 @@ class Worker(object):
         gift_type = ""
 
         cookie_objs = await self.load_cookie()
-        temporary_blocked = await LTTempBlack.get_blocked()
-        cookie_objs = [c for c in cookie_objs if c.uid not in temporary_blocked]
+        # temporary_blocked = await LTTempBlack.get_blocked()
+        # cookie_objs = [c for c in cookie_objs if c.uid not in temporary_blocked]
 
         if key_type == "T":
             gift_type, *_ = other_args
