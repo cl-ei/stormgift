@@ -88,6 +88,9 @@ class BotHandler:
                 message=f"ML_BIND_BILI_123_TO_QQ_456\nML_GET\nML_DEL_BY_BILI_123\nML_DEL_BY_QQ_456"
             )
 
+        elif msg == "test":
+            return bot.send_private_msg(user_id=user_id, message=f"OK: {datetime.datetime.now()}")
+
     @classmethod
     async def handle_message(cls, context):
         if context["message_type"] == "group":
