@@ -6,7 +6,7 @@ from aiohttp import web
 from utils.cq import async_qq, bot
 from config.log4 import cqbot_logger as logging
 from utils.dao import HansyQQGroupUserInfo, RaffleToCQPushList
-from website.handlers.cq_zy import handler as zy_handler
+from acceptor_site.handlers.cq_zy import handler as zy_handler
 
 
 class BotHandler:

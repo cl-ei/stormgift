@@ -5,7 +5,7 @@ from aiohttp import web
 from config import CDN_URL
 from utils.biliapi import BiliApi
 from utils.dao import redis_cache, SuperDxjUserSettings, SuperDxjUserAccounts, SuperDxjCookieMgr
-from website.handlers.lt import render_to_response
+from acceptor_site.handlers.lt import render_to_response
 
 
 def login_required(r_type="html"):

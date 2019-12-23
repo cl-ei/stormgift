@@ -4,7 +4,7 @@ import asyncio
 import weakref
 import traceback
 from aiohttp import web
-from website.handlers import lt, cq, dxj, ws
+from acceptor_site.handlers import lt, cq, dxj, ws
 
 if sys.platform == "linux":
     import pyinotify
