@@ -138,8 +138,8 @@ async def proc_message(message):
     #         await redis_cache.set(key, f"{datetime.datetime.now()}", timeout=1800)
     #         send_qq_notice_message()
 
-    elif cmd == "PREPARING":
-        bot.send_private_msg(user_id=291020256, message="大坏蛋记得把歌单发给我！\n [CQ:image,file=1.gif]")
+    # elif cmd == "PREPARING":
+    #     bot.send_private_msg(user_id=291020256, message="大坏蛋记得把歌单发给我！\n [CQ:image,file=1.gif]")
 
 
 async def main():

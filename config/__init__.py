@@ -29,13 +29,6 @@ REDIS_CONFIG_FOR_GO = {
 }
 
 
-REDIS_CONFIG_X_NODE = {
-    "host": config["redis_x_node"]["host"],
-    "port": int(config["redis_x_node"]["port"]),
-    "password": config["redis_x_node"]["password"],
-    "db": int(config["redis_x_node"]["stormgift_db"]),
-}
-
 MYSQL_CONFIG = {
     "user": config["mysql"]["user"],
     "host": config["mysql"]["host"],
