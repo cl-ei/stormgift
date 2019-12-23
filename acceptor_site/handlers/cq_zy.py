@@ -981,7 +981,13 @@ async def handler(request):
     context = await request.json()
 
     if context["post_type"] == "message":
-        response = await BotHandler.handle_message(context)
+        try:
+            response = await BotHandler.handle_message(context)
+        except Exception as e:
+            message = f"一个异常引发了不可处理的错误，请稍后再试。\n\n{e}\n{traceback.format_exc()}"
+            await async_zy.send_group_msg(group_id=g.QQ_GROUP_井, message=message)
+            response = None
+
     elif context["post_type"] == "request":
         response = await BotHandler.handle_request(context)
     else:
