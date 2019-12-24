@@ -993,6 +993,62 @@ class LTLastAcceptTime:
         return r.get(uid) or 0
 
 
+class RedisGuard:
+    key = "LT_GUARD"
+
+    @classmethod
+    async def add(cls, *value):
+        await redis_cache.list_push(cls.key, *value)
+
+    @classmethod
+    async def get_all(cls):
+        result = []
+        async with XNodeRedis() as redis:
+            while True:
+                r = await redis.list_rpop(cls.key)
+                if r is None:
+                    break
+                else:
+                    result.append(r)
+        return result
+
+
+class RedisRaffle:
+    key = "LT_RAFFLE"
+
+    @classmethod
+    async def add(cls, raffle_id, value):
+        key = f"{cls.key}_{raffle_id}"
+        await redis_cache.set(key, value, timeout=24*3600*7)
+
+    @classmethod
+    async def get(cls, raffle_id):
+        key = f"{cls.key}_{raffle_id}"
+        return await redis_cache.get(key)
+
+    @classmethod
+    async def get_all(cls):
+        # result = []
+        # async with XNodeRedis() as redis:
+        #     while True:
+        #         r = await redis.list_rpop(cls.key)
+        #         if r is None:
+        #             break
+        #         else:
+        #             result.append(r)
+        # return result
+        pass
+
+
+class RedisAnchor:
+    key = "LT_ANCHOR"
+
+    @classmethod
+    async def add(cls, raffle_id, value):
+        key = f"{cls.key}_{raffle_id}"
+        await redis_cache.set(key, value, timeout=24*3600*7)
+
+
 async def test():
     r = await LTLastAcceptTime.get_all()
     print(r)

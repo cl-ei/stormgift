@@ -42,8 +42,7 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def get_uid_by_name(cls, user_name, wait_time=2):
-        r = await DBCookieOperator.get_by_uid("TZ")
-        cookie = r.cookie if r else ""
+        cookie = await cls.get_available_cookie()
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
                 async with session.post(cloud_get_uid, json={"cookie": cookie, "name": user_name}) as resp:
@@ -254,6 +253,7 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def set_available_cookie_for_xnode(cls):
+        key = "LT_AVAILABLE_COOKIES"
         cookies = []
         for uid in ("CZ", "TZ"):
             user = await DBCookieOperator.get_by_uid(uid, available=True)
@@ -261,8 +261,8 @@ class ReqFreLimitApi(object):
                 cookies.append(user.cookie)
 
         async with XNodeRedis() as redis:
-            key = "LT_AVAILABLE_COOKIES"
             await redis.set(key=key, value=cookies)
+        await redis_cache.set(key=key, value=cookies)
         logging.info("DATASYNC: available cookies uploaded.")
 
 

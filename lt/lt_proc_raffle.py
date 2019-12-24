@@ -4,17 +4,16 @@ import weakref
 import asyncio
 import datetime
 import traceback
-from config.g import *
 from aiohttp import web
 from config import config
 from random import random
+from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor
 from utils.biliapi import BiliApi
+from utils.mq import mq_source_to_raffle
 from utils.cq import CQClient, qq, async_zy
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.reconstruction_model import Guard, Raffle, objects, BiliUser
-from utils.mq import mq_source_to_raffle
-from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo
 
 
 GIFT_TYPE_TO_NAME = {
@@ -44,15 +43,45 @@ class Worker(object):
             winner_name = data["uname"]
             winner_uid = await ReqFreLimitApi.get_uid_by_name(winner_name)
             winner_face = data["win"]["face"]
-
             raffle_id = int(data["raffleId"])
             gift_type = data["type"]
             sender_name = data["from"]
             sender_face = data["fromFace"]
-
             prize_gift_name = data["giftName"]
             prize_count = int(data["win"]["giftNum"])
 
+            raffle = await RedisRaffle.get(raffle_id=raffle_id)
+            if not raffle:
+                sender_uid = await ReqFreLimitApi.get_uid_by_name(sender_name)
+                gift_gen_time = created_time - datetime.timedelta(seconds=180)
+
+                # TODO:
+                gift_name = GIFT_TYPE_TO_NAME.get(gift_type, "-")
+
+                raffle = {
+                    "raffle_id": raffle_id,
+                    "room_id": msg_from_room_id,
+                    "gift_name": gift_name,
+                    "gift_type": gift_type,
+                    "sender_uid": sender_uid,
+                    "sender_name": sender_name,
+                    "sender_face": sender_face,
+                    "created_time": gift_gen_time,
+                    "expire_time": created_time,
+                }
+
+            update_param = {
+                "prize_gift_name": prize_gift_name,
+                "prize_count": prize_count,
+                "winner_uid": winner_uid,
+                "winner_name": winner_name,
+                "winner_face": winner_face,
+                "danmaku_json_str": json.dumps(danmaku),
+            }
+            raffle.update(update_param)
+            await RedisRaffle.add(raffle_id=raffle_id, value=raffle)
+
+            # 以下为数据库
             raffle_obj = await Raffle.get_by_id(raffle_id)
             if not raffle_obj:
                 sender_uid = await ReqFreLimitApi.get_uid_by_name(sender_name)
@@ -80,24 +109,13 @@ class Worker(object):
                 "danmaku_json_str": json.dumps(danmaku),
             }
             await Raffle.update_raffle_result(raffle_obj, **update_param)
-            log_msg = f"Raffle saved! cmd: {cmd}, save result: id: {raffle_obj.id}. "
-
-            qq_1 = await RaffleToCQPushList.get(bili_uid=winner_uid)
-            if qq_1:
-                message = f"恭喜{winner_name}[{winner_uid}]中了{prize_gift_name}！\n[CQ:at,qq={qq_1}]"
-                r = await ml_qq.send_group_msg(group_id=981983464, message=message)
-                log_msg += f"__ML NOTICE__ r: {r}"
-
-            if winner_uid in (BILI_UID_DD, BILI_UID_TZ, BILI_UID_CZ):
-                message = (
-                    f"恭喜{winner_name}({winner_uid})[CQ:at,qq={QQ_NUMBER_DD}]"
-                    f"获得了{sender_name}提供的{prize_gift_name}!\n"
-                    f"https://live.bilibili.com/{msg_from_room_id}"
-                )
-                await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=message)
-            logging.info(log_msg)
 
         elif cmd == "ANCHOR_LOT_AWARD":
+            data = danmaku["data"]
+            raffle_id = data["id"]
+            await RedisAnchor.add(raffle_id=raffle_id, value=data)
+
+            # 以下为数据库
             objs = await objects.execute(BiliUser.select().where(BiliUser.real_room_id == msg_from_room_id))
             if objs:
                 sender = objs[0]
@@ -128,7 +146,6 @@ class Worker(object):
             gift_type = "ANCHOR"
             raffle_id = data["id"]*10000
 
-            qq_notice_list = []
             for i, user in enumerate(data["award_users"]):
                 inner_raffle_id = raffle_id + i
                 winner_name = user["uname"]
@@ -152,17 +169,6 @@ class Worker(object):
                 )
                 logging.info(f"Raffle saved! cmd: {cmd}, save result: id: {r.id}. ")
 
-                qq_2 = await BiliToQQBindInfo.get_by_bili(bili=winner_uid)
-                if qq_2:
-                    message = (
-                        f"恭喜{winner_name}({winner_uid})[CQ:at,qq={qq_2}]"
-                        f"在天选时刻抽奖中了{prize_gift_name}!\n"
-                        f"https://live.bilibili.com/{short_room_id}"
-                    )
-                    qq_notice_list.append(message)
-            # if qq_notice_list:
-            #     await async_zy.send_group_msg(group_id=QQ_GROUP_STAR_LIGHT, message="\n".join(qq_notice_list))
-
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"
 
@@ -170,7 +176,7 @@ class Worker(object):
         gift_id = gift_info.get('id', 0)
         key = F"G${room_id}${gift_id}"
 
-        if not await redis_cache.set_if_not_exists(key, gift_info):
+        if not await redis_cache.set_if_not_exists(key, "de-duplication"):
             return
 
         privilege_type = gift_info["privilege_type"]
@@ -204,6 +210,7 @@ class Worker(object):
             "expire_time": expire_time,
         }
         await Guard.create(**create_param)
+        await RedisGuard.add(create_param)
 
     @staticmethod
     async def proc_tv_gifts_by_single_user(user_name, gift_list):
@@ -223,6 +230,7 @@ class Worker(object):
                 "created_time": info["created_time"],
                 "expire_time": info["created_time"] + datetime.timedelta(seconds=info["time"])
             }
+            await RedisRaffle.add(raffle_id=info["gift_id"], value=create_param)
             await Raffle.record_raffle_before_result(**create_param)
 
     async def proc_single_msg(self, msg):
@@ -289,7 +297,7 @@ class Worker(object):
                 }
                 result.setdefault(user_name, []).append(i)
                 key = f"T${room_id}${gift_id}"
-                if not await redis_cache.set_if_not_exists(key, info):
+                if not await redis_cache.set_if_not_exists(key, "de-duplication"):
                     continue
 
                 await self.broadcast(json.dumps({
@@ -312,8 +320,7 @@ class Worker(object):
             danmaku = danmakus[0]
             raffle_id = danmaku["data"]["id"]
             key = f"P${room_id}${raffle_id}"
-            info = {"room_id": room_id, "raffle_id": raffle_id}
-            if await redis_cache.set_if_not_exists(key, info):
+            if await redis_cache.set_if_not_exists(key, "de-duplication"):
                 await self.broadcast(json.dumps({
                     "raffle_type": "pk",
                     "ts": int(now_ts),
@@ -352,7 +359,7 @@ class Worker(object):
             danmu = data["danmu"]
 
             key = f"A${room_id}${raffle_id}"
-            if await redis_cache.set_if_not_exists(key, 1):
+            if await redis_cache.set_if_not_exists(key, "de-duplication"):
                 # join_type = data["join_type"]
                 # if join_type == 0:  # 免费参与
                 #
