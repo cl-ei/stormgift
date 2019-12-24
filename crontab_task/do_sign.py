@@ -7,6 +7,8 @@ from config.log4 import crontab_task_logger as logging
 
 async def main():
     start_prompt = f"Start do sign task"
+    print(start_prompt)
+
     split_char_len = (100 - len(start_prompt)) // 2
     split_char = f"{'-' * split_char_len}"
     logging_msg_list = [
@@ -16,7 +18,9 @@ async def main():
     objs = await DBCookieOperator.get_objs(available=True)
 
     for obj in objs:
-        logging_msg_list.append(f"Now proc {obj.name}(uid: {obj.DedeUserID}): \n")
+        _m = f"Now proc {obj.name}(uid: {obj.DedeUserID}): \n"
+        print(_m)
+        logging_msg_list.append(_m)
 
         cookie = obj.cookie
         flag, result = await BiliApi.do_sign(cookie)
