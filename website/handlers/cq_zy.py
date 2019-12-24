@@ -27,7 +27,7 @@ from utils.dao import (
     redis_cache,
     LTTempBlack,
     BiliToQQBindInfo,
-    DelayAcceptGiftsMQ,
+    DelayAcceptGiftsQueue,
     SuperDxjUserAccounts,
 )
 
@@ -626,7 +626,7 @@ class BotUtils:
                 return f"约{int(interval // 60)}分钟前"
             return f"{int(interval)}秒前"
 
-        all_gifts = await DelayAcceptGiftsMQ.get_all()
+        all_gifts = await DelayAcceptGiftsQueue.get_all()
         gifts = []
         score = []
         for i, gift in enumerate(all_gifts):
@@ -774,16 +774,6 @@ class BotHandler:
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
-
-        if user_id != g.QQ_NUMBER_DD:
-            await async_zy.send_private_msg(
-                user_id=user_id,
-                message=(
-                    "正在维护中。辣条机正常运作，全面开放辣条领取，手动领取也不会干扰辣条机运行。"
-                    "网站和QQ机器人将暂时不可用。圣诞节之前恢复正常。"
-                )
-            )
-            return
 
         if user_id == g.QQ_NUMBER_DD:
             if msg.startswith("approve"):
