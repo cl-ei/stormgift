@@ -193,7 +193,9 @@ async def main():
         now = int(time.time())
         ts = data.get("ts", now)
 
-        if raffle_type == "tv":
+        if raffle_type in ("anchor", "storm"):
+            return
+        elif raffle_type == "tv":
             time_wait = data["time_wait"]
             max_time = data["max_time"]
             accept_start_time = ts + time_wait
