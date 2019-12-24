@@ -190,10 +190,11 @@ async def main():
             r = json.loads(message)
         except json.JSONDecodeError:
             return
+        print(f"received: {r}")
         monitor_q.put_nowait(r)
 
     new_client = RCWebSocketClient(
-        url="https://www.madliar.com/raffle_wss",
+        url="wss://www.madliar.com/raffle_wss",
         on_message=on_message,
         on_connect=nop,
         on_shut_down=nop,
