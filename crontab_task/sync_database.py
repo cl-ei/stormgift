@@ -51,18 +51,25 @@ class XNodeMySql:
 class SyncTool(object):
 
     @classmethod
-    async def sync_lt_user_cookie(cls):
-        query = await XNodeMySql.execute("select * from ltusercookie order by id desc;")
+    async def sync(cls, table_name="ltusercookie"):
+        table_desc = await XNodeMySql.execute(f"desc {table_name};")
+        id_index = [row[0] for row in table_desc].index("id")
+        query = await XNodeMySql.execute(f"select * from {table_name} order by id desc;")
+
         for row in query:
             row_sql = ",".join(["%s" for _ in range(len(query[0]))])
-            sql = f"INSERT INTO ltusercookie VALUES({row_sql});"
-            await AsyncMySQL.execute(sql, row, _commit=True)
+            sql = f"INSERT INTO {table_name} VALUES({row_sql});"
+            try:
+                await AsyncMySQL.execute(sql, row, _commit=True)
+            except Exception as e:
+                err_msg = f"{e}"
+                print(err_msg)
 
     @classmethod
     async def run(cls):
         start_time = time.time()
         logging.info(f"Start Sync Database...")
-        await cls.sync_lt_user_cookie()
+        await cls.sync()
 
         cost = time.time() - start_time
         logging.info(f"Execute finished, cost: {cost/60:.3f} min.\n\n")
