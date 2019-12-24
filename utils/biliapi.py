@@ -212,7 +212,7 @@ class CookieFetcher:
         params = '&'.join(sorted(list_url.split('&') + list_cookie))
         sign = cls.calc_sign(params)
 
-        url = f'https://passport.bilibili.com/api/v2/oauth2/info?{params}&sign={sign}'
+        url = f'https://passport.bilibili.com/api/v3/oauth2/info?{params}&sign={sign}'
         headers = {"cookie": cookie}
         headers.update(cls.app_headers)
         status_code, content = await cls._request("get", url=url, headers=headers)

@@ -56,6 +56,8 @@ class CookieFetcher:
         f'&platform={platform}'
     )
 
+    session = requests.session()
+
     @classmethod
     def record_captcha(cls, source, result):
         pass
@@ -69,9 +71,9 @@ class CookieFetcher:
     def _request(cls, method, url, params=None, data=None, json=None, headers=None, timeout=5, binary_rsp=False):
         try:
             if method.lower() == "get":
-                f = requests.get
+                f = cls.session.get
             else:
-                f = requests.post
+                f = cls.session.post
 
             r = f(url=url, params=params, data=data, json=json, headers=headers, timeout=timeout)
             status_code = r.status_code
@@ -110,23 +112,27 @@ class CookieFetcher:
 
     @classmethod
     def post_login_req(cls, url_name, url_password, captcha=''):
-        temp_params = (
-            f'actionKey={cls.actionKey}'
-            f'&appkey={cls.appkey}'
-            f'&build={cls.build}'
-            f'&captcha={captcha}'
-            f'&device={cls.device}'
-            f'&mobi_app={cls.mobi_app}'
-            f'&password={url_password}'
-            f'&platform={cls.platform}'
-            f'&username={url_name}'
-        )
-        sign = cls.calc_sign(temp_params)
-        payload = f'{temp_params}&sign={sign}'
+        params = [
+            f'actionKey={cls.actionKey}',
+            f'appkey={cls.appkey}',
+            f'build={cls.build}',
+            f'device={cls.device}',
+            f'mobi_app={cls.mobi_app}',
+            f'platform={cls.platform}',
+        ] + [
+            f'captcha={captcha}',
+            f'password={url_password}',
+            f'username={url_name}'
+        ]
+        text = "&".join(sorted(params))
+
+        text_with_appsecret = f'{text}{cls.app_secret}'
+        sign = hashlib.md5(text_with_appsecret.encode('utf-8')).hexdigest()
+        payload = f'{text}&sign={sign}'
         url = "https://passport.bilibili.com/api/v3/oauth2/login"
 
         for _ in range(10):
-            status_code, content = cls._request('POST', url, params=payload)
+            status_code, content = cls._request('POST', url, params=payload, headers=cls.app_headers)
             if status_code != 200:
                 time.sleep(0.75)
                 continue
@@ -162,7 +168,7 @@ class CookieFetcher:
         hash_str = str(json_rsp['data']['hash'])
 
         def get_hashed_password(k, h, p):
-            url = "https://www.madliar.com/lt/calc_sign"
+            url = "https://www.madliar.com/calc_sign"
             data = {"key": k, "hash_str": h, "password": p}
             r = requests.post(url=url, data=data)
             if r.status_code != 200:
@@ -216,7 +222,7 @@ class CookieFetcher:
         params = '&'.join(sorted(list_url.split('&') + list_cookie))
         sign = cls.calc_sign(params)
 
-        url = f'https://passport.bilibili.com/api/v2/oauth2/info?{params}&sign={sign}'
+        url = f'https://passport.bilibili.com/api/v3/oauth2/info?{params}&sign={sign}'
         headers = {"cookie": cookie}
         headers.update(cls.app_headers)
         status_code, content = cls._request("get", url=url, headers=headers)
