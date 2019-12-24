@@ -532,7 +532,7 @@ async def trends_qq_notice(request):
 
                     if uid == 337052615:
                         latest_dynamic_id = latest_dynamic["desc"]["dynamic_id"]
-                        from acceptor_site.handlers.cq_zy import BotUtils
+                        from website.handlers.cq_zy import BotUtils
                         await BotUtils().proc_dynamic(
                             user_id=250666570,
                             msg=f"#动态{latest_dynamic_id}",

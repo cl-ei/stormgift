@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 from aiohttp import web
-from acceptor_site.handlers import lt, cq, dxj
+from website.handlers import lt, cq, dxj
 
 
 async def main():
