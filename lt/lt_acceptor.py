@@ -60,7 +60,7 @@ class Worker(object):
         await redis_cache.set("LT_LAST_ACTIVE_TIME", value=int(time.time()))
 
         raffle_type = data.get("raffle_type")
-        room_id = data.get("room_id")
+        room_id = data.get("real_room_id")
         gift_id = data.get("raffle_id")
         gift_type = data.get("gift_type", "")
         gift_name = data.get("gift_name", "未知")
