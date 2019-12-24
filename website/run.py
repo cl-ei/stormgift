@@ -9,6 +9,11 @@ async def main():
     async def set_server_name(request, handler):
         resp = await handler(request)
         resp.headers['Server'] = 'madliar/2.1.1a11(Darwin)'
+        if resp.status > 400:
+            return web.Response(
+                status=resp.status,
+                text=f"<h3>最近在进行服务器迁移，部分服务将暂时不可用，预计圣诞节前恢复正常。</h3><pre>原返回值: {resp.text}</pre>"
+            )
         return resp
 
     app = web.Application(middlewares=[set_server_name])
