@@ -1,17 +1,11 @@
 import os
 import time
-import random
 import logging
 import asyncio
 import aiomysql
-import datetime
 import configparser
-from utils.biliapi import BiliApi
 from utils.db_raw_query import AsyncMySQL
-from utils.highlevel_api import ReqFreLimitApi
-from utils.dao import ValuableLiveRoom, redis_cache
 from config.log4 import lt_db_sync_logger as logging
-from utils.reconstruction_model import objects, BiliUser, Raffle, Guard
 
 
 loop = asyncio.get_event_loop()
@@ -55,6 +49,7 @@ class SyncTool(object):
         table_desc = await XNodeMySql.execute(f"desc {table_name};")
         table_fields = [row[0] for row in table_desc]
         id_index = table_fields.index("id")
+
         query = await XNodeMySql.execute(f"select * from {table_name} order by id desc;")
 
         for row in query:
@@ -67,7 +62,6 @@ class SyncTool(object):
                 if "(1062," in err_msg:
                     fields = ",".join([f"{f}=%s" for f in table_fields])
                     sql = f"UPDATE {table_name} SET {fields} WHERE id={row[id_index]};"
-                    print(sql)
                     await AsyncMySQL.execute(sql, row, _commit=True)
                 else:
                     logging.error(err_msg)
