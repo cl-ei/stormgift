@@ -1,15 +1,20 @@
+import os
 import time
 import json
+import random
 import asyncio
 import aiohttp
 import datetime
+from config import g
+import configparser
+from utils.dao import XNodeRedis
 from utils.biliapi import BiliApi, CookieFetcher
 from config import cloud_get_uid
 from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import LTUserCookie
 from utils.email import send_cookie_invalid_notice
-from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord, LTTempBlack, LTLastAcceptTime
+from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord, LTTempBlack, LTLastAcceptTime, redis_cache
 
 
 BLOCK_FRESH_TIME = 1
@@ -239,6 +244,25 @@ class ReqFreLimitApi(object):
         }
         return return_data
 
+    @classmethod
+    async def get_available_cookie(cls):
+        key = "LT_AVAILABLE_COOKIES"
+        r = await redis_cache.get(key)
+        if r and isinstance(r, list):
+            return random.choice(r)
+        return ""
+
+    @classmethod
+    async def set_available_cookie_for_xnode(cls):
+        cookies = [
+            await DBCookieOperator.get_by_uid("CZ"),
+            await DBCookieOperator.get_by_uid("TZ"),
+        ]
+        async with XNodeRedis() as redis:
+            key = "LT_AVAILABLE_COOKIES"
+            await redis.set(key=key, value=cookies)
+        logging.info("DATASYNC: available cookies uploaded.")
+
 
 class DBCookieOperator:
 
@@ -335,7 +359,8 @@ class DBCookieOperator:
             await cls._objects.delete(obj)
 
         await cls._objects.update(lt_user, only=attrs)
-
+        if lt_user.uid in (g.BILI_UID_CZ, g.BILI_UID_TZ):
+            await ReqFreLimitApi.set_available_cookie_for_xnode()
         return True, lt_user
 
     @classmethod
@@ -451,6 +476,8 @@ class DBCookieOperator:
             user_id = 39748080
         elif user_id == "TZ":
             user_id = 312186483
+        elif user_id == "CZ":
+            user_id = 87301592
 
         if available is None:
             query = LTUserCookie.select().where(LTUserCookie.DedeUserID == user_id)

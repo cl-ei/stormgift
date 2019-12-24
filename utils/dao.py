@@ -1,4 +1,6 @@
 import re
+import os
+import configparser
 import time
 import json
 import random
@@ -18,12 +20,18 @@ class RedisCache(object):
 
     async def execute(self, *args, **kwargs):
         if self.redis_conn is None:
-            self.redis_conn = await aioredis.create_pool(
+            self.redis_conn = await aioredis.create_redis_pool(
                 address=self.uri,
                 db=self.db,
                 password=self.password
             )
         return await self.redis_conn.execute(*args, **kwargs)
+
+    async def close(self):
+        if self.redis_conn is not None:
+            self.redis_conn.close()
+            await self.redis_conn.wait_closed()
+            self.redis_conn = None
 
     async def non_repeated_save(self, key, info, ex=3600*24*7):
         return await self.execute("set", key, json.dumps(info), "ex", ex, "nx")
@@ -221,6 +229,26 @@ class RedisCache(object):
 
 
 redis_cache = RedisCache(**REDIS_CONFIG)
+
+
+class XNodeRedis:
+    def __init__(self):
+        self._x_node_redis = None
+
+    async def __aenter__(self) -> RedisCache:
+        config_file = "/etc/madliar.settings.ini"
+        config = configparser.ConfigParser()
+        config.read(config_file)
+        self._x_node_redis = RedisCache(**{
+            "host": config["xnode_redis"]["host"],
+            "port": int(config["xnode_redis"]["port"]),
+            "password": config["xnode_redis"]["password"],
+            "db": int(config["xnode_redis"]["stormgift_db"]),
+        })
+        return self._x_node_redis
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._x_node_redis.close()
 
 
 class RedisLock:
