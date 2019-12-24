@@ -890,12 +890,24 @@ class DelayAcceptGiftsQueue:
         r = await redis_cache.sorted_set_zrange_by_score(key=cls.key, max_=now)
         if r:
             await redis_cache.sorted_set_zrem(cls.key, *r)
-        return [pickle.loads(d) for d in r]
+        result = []
+        for d in r:
+            try:
+                result.append(pickle.loads(d))
+            except (pickle.UnpicklingError, TypeError):
+                continue
+        return result
 
     @classmethod
     async def get_all(cls):
         r = await redis_cache.sorted_set_zrange_by_score(key=cls.key, with_scores=True)
-        return [pickle.loads(d) for d in r]
+        result = []
+        for d in r:
+            try:
+                result.append(pickle.loads(d))
+            except (pickle.UnpicklingError, TypeError):
+                continue
+        return result
 
 
 class LTTempBlack:
