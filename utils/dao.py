@@ -1005,6 +1005,12 @@ class RedisGuard:
         await redis_cache.list_push(cls.key, *value)
 
     @classmethod
+    async def get_one(cls):
+        async with XNodeRedis() as redis:
+            r = await redis.list_rpop(cls.key)
+            return r
+
+    @classmethod
     async def get_all(cls):
         result = []
         async with XNodeRedis() as redis:
@@ -1054,17 +1060,7 @@ class RedisAnchor:
 
 
 async def test():
-    r = await LTLastAcceptTime.get_all()
-    print(r)
-
-    r = await LTLastAcceptTime.update(123)
-    print(r)
-
-    r = await LTLastAcceptTime.get_all()
-    print(r)
-
-    r = await LTLastAcceptTime.get_by_uid(1235)
-    print(r)
+    pass
 
 
 if __name__ == "__main__":
