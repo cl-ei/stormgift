@@ -7,16 +7,14 @@ import traceback
 from config.g import *
 from aiohttp import web
 from config import config
+from random import random
 from utils.biliapi import BiliApi
-from random import random, randint
-from config.log4 import anchor_logger
 from utils.cq import CQClient, qq, async_zy
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.reconstruction_model import Guard, Raffle, objects, BiliUser
-from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
+from utils.mq import mq_source_to_raffle
 from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo
-from utils.dao import DelayAcceptGiftsQueue as DelayAcceptGiftsMQ
 
 
 GIFT_TYPE_TO_NAME = {
@@ -185,12 +183,6 @@ class Worker(object):
         else:
             gift_name = "guard_%s" % privilege_type
 
-        # TODO -DELETE-
-        now = int(time.time())
-        accept_time = now + randint(60, 600)
-        await DelayAcceptGiftsMQ.put(f"G${room_id}${gift_id}${privilege_type}", accept_time=accept_time)
-        # END
-
         await self.broadcast(json.dumps({
             "raffle_type": "guard",
             "ts": int(time.time()),
@@ -300,15 +292,6 @@ class Worker(object):
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
 
-                # TODO: -DELETE
-                now = int(time.time())
-                accept_start_time = now + info["time_wait"]
-                accept_end_time = now + info["max_time"]
-                wait_time = int((accept_end_time - accept_start_time - 8) * random())
-                accept_time = accept_start_time + wait_time
-                await DelayAcceptGiftsMQ.put(f"T${room_id}${gift_id}${gift_type}", accept_time=accept_time)
-                # END --
-
                 await self.broadcast(json.dumps({
                     "raffle_type": "tv",
                     "ts": int(now_ts),
@@ -331,10 +314,6 @@ class Worker(object):
             key = f"P${room_id}${raffle_id}"
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
-                # TODO: -DELETE-
-                await mq_raffle_to_acceptor.put(key)
-                # END
-
                 await self.broadcast(json.dumps({
                     "raffle_type": "pk",
                     "ts": int(now_ts),
@@ -385,8 +364,7 @@ class Worker(object):
                 #
                 #     if in_black_list:
                 #         logging.info(f"Anchor in black list! room_id: {room_id}, award: {award_name}, danmu: {danmu}")
-                #     else:
-                #         await DelayAcceptGiftsMQ.put(f"A${room_id}${raffle_id}", accept_time=int(time.time() + 120))
+                #     do: join
 
                 await self.broadcast(json.dumps({
                     "raffle_type": "anchor",
@@ -399,14 +377,6 @@ class Worker(object):
                     "gift": f"{gift_num}*{gift_name or 'null'}({gift_price})",
                     "award": f"{award_num}*{award_name}",
                 }, ensure_ascii=False))
-
-                record = (
-                    f"{raffle_id}^{room_id}^{award_name}^{award_num}^"
-                    f"{cur_gift_num}^{gift_name}^{gift_num}^{gift_price}^"
-                    f"{join_type}^{require_type}^{require_value}^"
-                    f"{require_text}^{danmu}"
-                )
-                anchor_logger.info(record)
 
     async def run_forever(self):
         while True:
