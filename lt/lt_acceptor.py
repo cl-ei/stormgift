@@ -205,7 +205,7 @@ async def main():
         else:
             recommended_implementation_time = now
 
-        print(f"received. delay: {recommended_implementation_time} -> {data}.")
+        print(f"received. delay: {recommended_implementation_time - ts:.0f} -> {data}.")
         await DelayAcceptGiftsQueue.put(data, recommended_implementation_time)
 
     new_client = RCWebSocketClient(
