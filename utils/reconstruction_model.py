@@ -5,7 +5,6 @@ from random import randint
 from config.log4 import model_operation_logger as logging
 
 from utils.model import mysql_db, objects
-from utils.dao import RedisLock
 
 
 def random_datetime():
