@@ -775,8 +775,15 @@ class BotHandler:
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
 
-        await async_zy.send_private_msg(user_id=user_id, message="正在维护中。辣条机正常运作，全面开放辣条领取，手动领取也不会干扰辣条机运行。网站和QQ机器人将暂时不可用。圣诞节之前恢复正常。")
-        return
+        if user_id != g.QQ_NUMBER_DD:
+            await async_zy.send_private_msg(
+                user_id=user_id,
+                message=(
+                    "正在维护中。辣条机正常运作，全面开放辣条领取，手动领取也不会干扰辣条机运行。"
+                    "网站和QQ机器人将暂时不可用。圣诞节之前恢复正常。"
+                )
+            )
+            return
 
         if user_id == g.QQ_NUMBER_DD:
             if msg.startswith("approve"):
@@ -930,9 +937,15 @@ class BotHandler:
             key = F"LT_ACCESS_TOKEN_{token}"
             await redis_cache.incr(key=key)
             await redis_cache.expire(key=key, timeout=180)
-            message = f"宝藏站点地址: （如果出现503错误请多刷新几次）\n\nhttps://www.madliar.com/lt_{token}"
+
             logging.info(F"LT_ACCESS_TOKEN_GEND: {token}, user_id: {user_id}")
-            await async_zy.send_private_msg(user_id=user_id, message=message)
+            await async_zy.send_private_msg(
+                user_id=user_id,
+                message=(
+                    f"宝藏站点地址: \n\nhttp://lt.madliar.com:1024/lt_{token}\n\n"
+                    f"本URL只可一次性使用，如遇404则说明已失效，请重新获取；否则，请一直刷新页面，直到能够正常显示。"
+                )
+            )
             return
 
         elif msg in ("鸡", "🐔"):
