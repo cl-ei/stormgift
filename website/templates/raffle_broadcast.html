@@ -143,8 +143,7 @@ $(function(){
     }
     var t1 = 0;
     var socketStatus = false;
-    var wsProtoco = window.location.protocol === "https:" ? "wss://" : "ws://";
-    var ws = new ReconnectingWebSocket(wsProtoco + window.location.host + "/raffle_wss");
+    var ws = new ReconnectingWebSocket("wss://www.madliar.com/raffle_wss");
     ws.onopen = function (evnt) {
         socketStatus = true;
         clearInterval(t1);
