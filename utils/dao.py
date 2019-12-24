@@ -930,11 +930,15 @@ class DelayAcceptGiftsQueue:
     async def get_all(cls):
         r = await redis_cache.sorted_set_zrange_by_score(key=cls.key, with_scores=True)
         result = []
-        for d in r:
-            try:
-                result.append(json.loads(d))
-            except (json.JSONDecodeError, TypeError):
-                continue
+        for i, d in enumerate(r):
+            if i % 2 == 0:
+                try:
+                    d = json.loads(d)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                result.append(d)
+            else:
+                result.append(d)
         return result
 
 

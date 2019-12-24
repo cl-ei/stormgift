@@ -639,36 +639,21 @@ class BotUtils:
 
         room_id_q = await AsyncMySQL.execute(
             "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
-            ({int(d.split("$")[1]) for d in gifts},)
+            ({int(d["real_room_id"]) for d in gifts},)
         )
         room_id_map = {r[0]: r[1] for r in room_id_q if r[1]}
-        g_names_map = {}
         prompt_gift_list = []
         for i, gift in enumerate(gifts):
-            key_type, room_id, raffle_id, *args = gift.split("$")
+            room_id = gift["real_room_id"]
+            gift_name = gift["gift_name"]
+
             room_id = int(room_id)
             room_id = room_id_map.get(room_id, room_id)
             accept_time = -1 * int(time.time() - score[i])
             if accept_time < 0:
                 accept_time = 0
+            prompt_gift_list.append((gift_name, room_id, accept_time))
 
-            if key_type == "T":
-                gift_type = args[0]
-                if gift_type in g_names_map:
-                    gift_name = g_names_map[gift_type]
-                else:
-                    gift_name = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
-                    g_names_map[gift_type] = gift_name
-                prompt_gift_list.append((gift_name, room_id, accept_time))
-            elif key_type == "G":
-                privilege_type = args[0]
-                if privilege_type == "1":
-                    gift_name = "总督"
-                elif privilege_type == "2":
-                    gift_name = "提督"
-                else:
-                    gift_name = "舰长"
-                prompt_gift_list.append((gift_name, room_id, accept_time))
         prompt_gift_list.sort(key=lambda x: (x[0], x[2], x[1]))
         prompt = []
         for p in prompt_gift_list:
