@@ -2,10 +2,10 @@ import asyncio
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import Guard, Raffle
 from config.log4 import crontab_task_logger as logging
-from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor
+from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, gen_x_node_redis
 
 
-async def sync_guard():
+async def sync_guard(redis):
     """
      {'gift_id': 1790852,
          'room_id': 813364,
@@ -17,14 +17,14 @@ async def sync_guard():
          'expire_time': datetime.datetime(2019, 12, 24, 19, 42, 27, 595228)
      }
     """
-    data = await RedisGuard.get_all()
+    data = await RedisGuard.get_all(redis=redis)
     for d in data:
         await Guard.create(**d)
         logging.info(f"Saved: G:{d['gift_id']} {d['sender_name']} -> {d['room_id']}")
 
 
-async def sync_raffle():
-    raffles = await RedisRaffle.get_all()
+async def sync_raffle(redis):
+    raffles = await RedisRaffle.get_all(redis=redis)
     for raffle in raffles:
         raffle_id = raffle["raffle_id"]
         if "winner_uid" in raffle and "winner_name" in raffle:
@@ -32,12 +32,21 @@ async def sync_raffle():
         else:
             r = await Raffle.record_raffle_before_result(**raffle)
         logging.info(f"Saved: T:{raffle['raffle_id']} {r.id}")
-        await RedisRaffle.delete(raffle_id)
+        await RedisRaffle.delete(raffle_id, redis=redis)
+
+
+async def sync_anchor():
+    pass
 
 
 async def main():
-    await sync_guard()
-    await sync_raffle()
+    x_node_redis = await gen_x_node_redis()
+
+    await sync_guard(x_node_redis)
+    await sync_raffle(x_node_redis)
+
+    # tears down.
+    await x_node_redis.close()
 
 
 loop = asyncio.get_event_loop()

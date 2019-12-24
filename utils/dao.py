@@ -231,7 +231,7 @@ class RedisCache(object):
 redis_cache = RedisCache(**REDIS_CONFIG)
 
 
-async def gen_xnode_redis() -> RedisCache:
+async def gen_x_node_redis() -> RedisCache:
     config_file = "/etc/madliar.settings.ini"
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -249,7 +249,7 @@ class XNodeRedis:
         self._x_node_redis = None
 
     async def __aenter__(self) -> RedisCache:
-        self._x_node_redis = await gen_xnode_redis()
+        self._x_node_redis = await gen_x_node_redis()
         return self._x_node_redis
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
