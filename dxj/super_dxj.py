@@ -108,7 +108,7 @@ class DanmakuProcessor:
             flag, cookie = await self.load_cookie()
             if not flag:
                 # 登录失败，冷却1分钟
-                self.msg_block_until = now + 60
+                self.msg_block_until = now + 30
                 logging.info(f"DMK BLOCK(Login failed): {self.short_room_id}-{self.name} -> {dmk}")
                 continue
 
