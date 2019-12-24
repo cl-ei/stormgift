@@ -562,23 +562,3 @@ async def trends_qq_notice(request):
 
         return web.Response(status=206)
     return web.Response(status=403)
-
-
-async def raffle_broadcast(request):
-    context = {"CDN_URL": CDN_URL}
-    return render_to_response("website/templates/raffle_broadcast.html", context=context)
-
-
-async def calc_sign(request):
-    try:
-        post_data = await request.post()
-        key = post_data["key"]
-        hash_str = post_data["hash_str"]
-        password = post_data["password"]
-
-        pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(key.encode())
-        hashed_password = base64.b64encode(rsa.encrypt((hash_str + password).encode('utf-8'), pubkey))
-        return web.Response(body=hashed_password)
-    except Exception as e:
-        text = f"e: {e}\n{traceback.format_exc()}"
-        return web.Response(text=text, status=500)

@@ -19,14 +19,14 @@ async def main():
     app.add_routes([
         web.get('/', home_page),
         web.get('/lt_{token}', lt.lt),
-        web.get('/lt/dxj/login', dxj.login),
-        web.post('/lt/dxj/login', dxj.login),
+
+        web.route('*', '/lt/dxj/login', dxj.login),
+
         web.get('/lt/dxj/settings', dxj.settings),
         web.post('/lt/dxj/change_password', dxj.change_password),
         web.post('/lt/dxj/post_settings', dxj.post_settings),
         web.get('/lt/dxj/logout', dxj.logout),
 
-        web.get('/lt/broadcast', lt.raffle_broadcast),
         web.post('/lt/login', lt.login),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),
@@ -35,7 +35,6 @@ async def main():
         web.get('/lt/query_raffles_by_user', lt.query_raffles_by_user),
         web.get('/lt/trends_qq_notice', lt.trends_qq_notice),
         web.route('*', "/lt/cq_handler", cq.handler),
-        web.post('/lt/calc_sign', lt.calc_sign),
     ])
     runner = web.AppRunner(app)
     await runner.setup()
