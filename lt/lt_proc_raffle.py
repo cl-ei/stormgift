@@ -15,7 +15,8 @@ from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.reconstruction_model import Guard, Raffle, objects, BiliUser
 from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
-from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo, DelayAcceptGiftsMQ
+from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo
+from utils.dao import DelayAcceptGiftsQueue as DelayAcceptGiftsMQ
 
 
 GIFT_TYPE_TO_NAME = {
