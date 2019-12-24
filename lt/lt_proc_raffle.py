@@ -312,6 +312,7 @@ class Worker(object):
                     "real_room_id": room_id,
                     "raffle_id": gift_id,
                     "gift_name": gift_name,
+                    "gift_type": gift_type,
                     "raffle_type": "tv"
                 }, ensure_ascii=False))
 

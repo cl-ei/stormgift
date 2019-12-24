@@ -6,6 +6,7 @@ import asyncio
 import aiohttp
 import datetime
 import traceback
+from utils.ws import RCWebSocketClient
 from config import cloud_acceptors
 from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
@@ -17,7 +18,6 @@ from utils.dao import (
     UserRaffleRecord,
     LTLastAcceptTime,
     StormGiftBlackRoom,
-    DelayAcceptGiftsMQ,
 )
 
 NON_SKIP_USER_ID = [
@@ -41,8 +41,9 @@ async def async_post(url, data=None, json=None, headers=None, timeout=30):
 
 
 class Worker(object):
-    def __init__(self, index):
+    def __init__(self, index, q):
         self.worker_index = index
+        self.q = q
         self.__busy_time = 0
 
         self._cookie_objs = []
@@ -55,26 +56,26 @@ class Worker(object):
 
         return self._cookie_objs
 
-    async def proc_single(self, key):
+    async def proc_single(self, data):
         await redis_cache.set("LT_LAST_ACTIVE_TIME", value=int(time.time()))
 
-        key_type, room_id, gift_id, *other_args = key.split("$")
-        room_id = int(room_id)
-        gift_id = int(gift_id)
-        gift_type = ""
+        raffle_type = data.get("raffle_type")
+        room_id = data.get("raffle_type")
+        gift_id = data.get("gift_id")
+        gift_type = data.get("gift_type", "")
+        gift_name = data.get("gift_name", "未知")
 
         cookie_objs = await self.load_cookie()
         # temporary_blocked = await LTTempBlack.get_blocked()
         # cookie_objs = [c for c in cookie_objs if c.uid not in temporary_blocked]
 
-        if key_type == "T":
-            gift_type, *_ = other_args
+        if raffle_type == "tv":
             act, filter_k = "join_tv_v5", "tv_percent"
-        elif key_type == "G":
+        elif raffle_type == "guard":
             act, filter_k = "join_guard", "guard_percent"
-        elif key_type == "P":
+        elif raffle_type == "pk":
             act, filter_k = "join_pk", "pk_percent"
-        elif key_type == "A":
+        elif raffle_type == "anchor":
             act, filter_k = "join_anchor", "anchor_percent"
         else:
             return
@@ -96,29 +97,6 @@ class Worker(object):
             return logging.error(f"Accept Failed! e: {content}")
 
         result_list = json.loads(content)
-        if act == "join_pk":
-            gift_name = "PK"
-        elif act == "join_tv_v5":
-            gift_name = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
-            gift_name = gift_name or "高能"
-        elif act == "join_guard":
-            info = await redis_cache.get(f"G${room_id}${gift_id}")
-            privilege_type = info["privilege_type"]
-            if privilege_type == 3:
-                gift_name = "舰长"
-            elif privilege_type == 2:
-                gift_name = "提督"
-            elif privilege_type == 1:
-                gift_name = "总督"
-            else:
-                gift_name = "大航海"
-        elif act == "join_storm":
-            gift_name = "节奏风暴"
-        elif act == "join_anchor":
-            gift_name = "天选时刻"
-        else:
-            gift_name = "未知"
-        gift_name = gift_name.replace("抽奖", "")
 
         success = []
         success_uid_list = []
@@ -181,29 +159,13 @@ class Worker(object):
             f"{'-'*80}"
         )
 
-    async def accept_guard(self):
-        while True:
-            message = await mq_raffle_to_acceptor.get()
-
-            start_time = time.time()
-            task_id = f"{int(str(random.random())[2:]):x}"
-            try:
-                r = await self.proc_single(message)
-            except Exception as e:
-                logging.error(f"Acceptor Task {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
-                continue
-
-            cost_time = time.time() - start_time
-            if cost_time > 5:
-                logging.info(f"Acceptor Task {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
-
     async def accept_delayed(self):
         while True:
-            message = await delay_accept_q.get()
+            data = await self.q.get()
             start_time = time.time()
             task_id = f"{int(str(random.random())[2:]):x}"
             try:
-                r = await self.proc_single(message)
+                r = await self.proc_single(data)
             except Exception as e:
                 logging.error(f"DELAY Acceptor {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
                 continue
@@ -212,30 +174,39 @@ class Worker(object):
             if cost_time > 5:
                 logging.info(f"DELAY Acceptor {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
 
-    @staticmethod
-    async def monitor_delayed():
-        while True:
-            messages = await DelayAcceptGiftsMQ.get()
-            if not messages:
-                await asyncio.sleep(3)
-                continue
-
-            for m in messages:
-                logging.info(f"monitor_delayed find key: {m}")
-                delay_accept_q.put_nowait(m)
-
 
 async def main():
     logging.info("-" * 80)
     logging.info("LT ACCEPTOR started!")
     logging.info("-" * 80)
 
-    tasks = [asyncio.create_task(Worker(index).accept_guard()) for index in range(8)]
-    delays = [asyncio.create_task(Worker(100 + index).accept_delayed()) for index in range(32)]
+    monitor_q = asyncio.Queue()
 
-    await Worker(1001).monitor_delayed()
-    for t in tasks + delays:
-        await t
+    async def nop(*args, **kw):
+        pass
+
+    async def on_message(message):
+        try:
+            r = json.loads(message)
+        except json.JSONDecodeError:
+            return
+        monitor_q.put_nowait(r)
+
+    new_client = RCWebSocketClient(
+        url="https://www.madliar.com/raffle_wss",
+        on_message=on_message,
+        on_connect=nop,
+        on_shut_down=nop,
+        heart_beat_pkg="a",
+        heart_beat_interval=300
+    )
+    await new_client.start()
+
+    await asyncio.gather(*[
+        asyncio.create_task(Worker(100 + index, monitor_q).accept_delayed())
+        for index in range(32)
+    ])
+
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
