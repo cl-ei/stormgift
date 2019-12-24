@@ -254,10 +254,12 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def set_available_cookie_for_xnode(cls):
-        cookies = [
-            await DBCookieOperator.get_by_uid("CZ"),
-            await DBCookieOperator.get_by_uid("TZ"),
-        ]
+        cookies = []
+        for uid in ("CZ", "TZ"):
+            user = await DBCookieOperator.get_by_uid(uid, available=True)
+            if user:
+                cookies.append(user.cookie)
+
         async with XNodeRedis() as redis:
             key = "LT_AVAILABLE_COOKIES"
             await redis.set(key=key, value=cookies)
