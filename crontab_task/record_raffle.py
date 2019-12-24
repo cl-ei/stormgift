@@ -79,7 +79,7 @@ async def sync_anchor(redis):
                 created_time=datetime.datetime.now() - datetime.timedelta(seconds=600),
                 expire_time=datetime.datetime.now()
             )
-            logging.info(f"Saved: Anchor:{raffle['raffle_id']} {r.id}")
+            logging.info(f"Saved: Anchor:{raffle_id} {r.id}")
 
         await RedisAnchor.delete(raffle_id, redis=redis)
 
