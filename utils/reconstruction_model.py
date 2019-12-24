@@ -237,6 +237,59 @@ class Raffle(peewee.Model):
             return None
 
     @classmethod
+    async def create(
+        cls,
+        raffle_id,
+        room_id,
+        gift_name,
+        gift_type,
+        sender_uid,
+        sender_name,
+        sender_face,
+        created_time,
+        expire_time,
+        prize_gift_name,
+        prize_count,
+        winner_uid,
+        winner_name,
+        winner_face,
+        **kw
+    ):
+        sender = await BiliUser.get_or_update(uid=sender_uid, name=sender_name, face=sender_face)
+        winner = await BiliUser.get_or_update(uid=winner_uid, name=winner_name, face=winner_face)
+        try:
+            return await objects.create(
+                cls,
+                id=raffle_id,
+                room_id=room_id,
+                gift_name=gift_name,
+                gift_type=gift_type,
+                sender_obj_id=sender.id,
+                sender_name=sender_name,
+                winner_obj_id=winner.id,
+                winner_name=winner_name,
+                prize_gift_name=prize_gift_name,
+                prize_count=prize_count,
+                created_time=created_time,
+                expire_time=expire_time
+            )
+        except peewee.IntegrityError as e:
+            if "Duplicate entry" in f"{e}":
+                old_rec = await objects.get(Raffle, id=raffle_id)
+                old_rec.prize_gift_name = prize_gift_name
+                old_rec.prize_count = prize_count
+                old_rec.winner_obj_id = winner.id
+
+                await objects.update(
+                    obj=old_rec,
+                    only=("prize_gift_name", "prize_count", "winner_obj_id")
+                )
+
+                return old_rec
+            logging.error(f"Error happened when create Raffle rec: {e}, {traceback.format_exc()}")
+            return None
+
+    @classmethod
     async def update_raffle_result(
             cls, raffle_obj, prize_gift_name, prize_count, winner_uid, winner_name, winner_face, danmaku_json_str=""
     ):

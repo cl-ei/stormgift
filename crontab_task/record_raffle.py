@@ -1,6 +1,6 @@
 import asyncio
 from utils.db_raw_query import AsyncMySQL
-from utils.reconstruction_model import Guard
+from utils.reconstruction_model import Guard, Raffle
 from config.log4 import crontab_task_logger as logging
 from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor
 
@@ -24,7 +24,16 @@ async def sync_guard():
 
 
 async def sync_raffle():
-    pass
+    raffles = await RedisRaffle.get_all()
+    done_ids = []
+    for raffle in raffles[:10]:
+        done_ids.append(raffle["raffle_id"])
+        if "winner_uid" in raffle and "winner_name" in raffle:
+            r = await Raffle.create(**raffle)
+        else:
+            r = await Raffle.record_raffle_before_result(**raffle)
+        logging.info(f"Saved: T:{raffle['raffle_id']} {r.id}")
+    await RedisRaffle.delete(*done_ids)
 
 
 async def main():
