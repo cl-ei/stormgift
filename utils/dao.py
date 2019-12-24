@@ -1045,9 +1045,6 @@ class RedisRaffle:
 
     @classmethod
     async def get_all(cls, redis=None):
-        if cls.redis is None:
-            cls.redis = await gen_xnode_redis()
-
         if redis:
             keys = await redis.keys(f"{cls.key}_*")
             if not keys:
