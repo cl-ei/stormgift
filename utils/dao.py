@@ -1006,28 +1006,37 @@ class RedisGuard:
     key = "LT_GUARD"
 
     @classmethod
-    async def add(cls, *value):
-        await redis_cache.list_push(cls.key, *value)
+    async def add(cls, raffle_id, value):
+        key = f"{cls.key}_{raffle_id}"
+        await redis_cache.set(key, value, timeout=24 * 3600 * 7)
 
     @classmethod
     async def get_all(cls, redis=None):
-        result = []
         if redis:
-            while True:
-                r = await redis.list_rpop(cls.key)
-                if r is None:
-                    break
-                else:
-                    result.append(r)
+            keys = await redis.keys(f"{cls.key}_*")
+            if not keys:
+                return []
+
+            values = await redis.mget(*keys)
+            return values
         else:
             async with XNodeRedis() as redis:
-                while True:
-                    r = await redis.list_rpop(cls.key)
-                    if r is None:
-                        break
-                    else:
-                        result.append(r)
-        return result
+                keys = await redis.keys(f"{cls.key}_*")
+                if not keys:
+                    return []
+
+                values = await redis.mget(*keys)
+                return values
+
+    @classmethod
+    async def delete(cls, *raffle_ids, redis=None):
+        if redis:
+            for raffle_id in raffle_ids:
+                await redis.delete(f"{cls.key}_{raffle_id}")
+        else:
+            async with XNodeRedis() as redis:
+                for raffle_id in raffle_ids:
+                    await redis.delete(f"{cls.key}_{raffle_id}")
 
 
 class RedisRaffle:

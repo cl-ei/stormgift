@@ -11,7 +11,9 @@ from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, gen_x_n
 async def sync_guard(redis):
     data = await RedisGuard.get_all(redis=redis)
     for d in data:
+        raffle_id = d["gift_id"]
         await Guard.create(**d)
+        await RedisGuard.delete(raffle_id, redis=redis)
         logging.info(f"Saved: G:{d['gift_id']} {d['sender_name']} -> {d['room_id']}")
 
 

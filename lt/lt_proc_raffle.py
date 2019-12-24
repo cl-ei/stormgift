@@ -211,7 +211,7 @@ class Worker(object):
             "expire_time": expire_time,
         }
         await Guard.create(**create_param)
-        await RedisGuard.add(create_param)
+        await RedisGuard.add(raffle_id=gift_id, value=create_param)
 
     @staticmethod
     async def proc_tv_gifts_by_single_user(user_name, gift_list):
