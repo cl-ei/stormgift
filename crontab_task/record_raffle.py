@@ -23,8 +23,13 @@ async def sync_guard():
         logging.info(f"Saved: G:{d['gift_id']} {d['sender_name']} -> {d['room_id']}")
 
 
+async def sync_raffle():
+    pass
+
+
 async def main():
     await sync_guard()
+    await sync_raffle()
 
 
 loop = asyncio.get_event_loop()
