@@ -180,19 +180,33 @@ async def main():
     logging.info("LT ACCEPTOR started!")
     logging.info("-" * 80)
 
-    monitor_q = asyncio.Queue()
-
     async def nop(*args, **kw):
         pass
 
     async def on_message(message):
         try:
-            r = json.loads(message)
+            data = json.loads(message)
         except json.JSONDecodeError:
             return
-        print(f"received: {r}")
-        reco_time = int(r.get("reco_time", time.time()))
-        await DelayAcceptGiftsQueue.put(r, reco_time)
+        print(f"received: {data}")
+
+        raffle_type = data.get("raffle_type")
+        now = int(time.time())
+        ts = data.get("ts", now)
+
+        if raffle_type == "tv":
+            time_wait = data["time_wait"]
+            max_time = data["max_time"]
+            accept_start_time = ts + time_wait
+            accept_end_time = ts + max_time
+            wait_time = int((accept_end_time - accept_start_time - 8) * random.random())
+            recommended_implementation_time = accept_start_time + wait_time
+        elif raffle_type == "guard":
+            recommended_implementation_time = ts + random.randint(60, 600)
+        else:
+            recommended_implementation_time = now
+
+        await DelayAcceptGiftsQueue.put(data, recommended_implementation_time)
 
     new_client = RCWebSocketClient(
         url="wss://www.madliar.com/raffle_wss",
@@ -204,10 +218,19 @@ async def main():
     )
     await new_client.start()
 
-    await asyncio.gather(*[
+    monitor_q = asyncio.Queue()
+
+    async def select_task():
+        while True:
+            r = await DelayAcceptGiftsQueue.get()
+            await asyncio.sleep(4)
+
+    tasks = [asyncio.create_task(select_task())]
+    tasks += [
         asyncio.create_task(Worker(100 + index, monitor_q).accept_delayed())
         for index in range(32)
-    ])
+    ]
+    await asyncio.gather(*tasks)
 
 
 loop = asyncio.get_event_loop()
