@@ -1,3 +1,4 @@
+import time
 import asyncio
 import datetime
 import traceback
@@ -87,12 +88,23 @@ async def sync_anchor(redis):
 async def main():
     await objects.connect()
     x_node_redis = await gen_x_node_redis()
-    try:
-        await sync_guard(x_node_redis)
-        await sync_raffle(x_node_redis)
-        await sync_anchor(x_node_redis)
-    except Exception as e:
-        logging.error(f"{e}\n{traceback.format_exc()}")
+
+    while True:
+        start_time = time.time()
+        try:
+            await sync_guard(x_node_redis)
+            await sync_raffle(x_node_redis)
+            await sync_anchor(x_node_redis)
+        except Exception as e:
+            logging.error(f"{e}\n{traceback.format_exc()}")
+
+        cost = time.time() - start_time
+        if cost < 60:
+            sleep_time = 60 - cost
+        else:
+            sleep_time = 0
+        logging.info(f"RECORD RAFFLE: Cost {cost:.3f}s, sleep {sleep_time:.3f}.")
+        await asyncio.sleep(sleep_time)
 
     # tears down.
     await x_node_redis.close()
