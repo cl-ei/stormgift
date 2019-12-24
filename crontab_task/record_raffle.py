@@ -29,7 +29,7 @@ async def sync_raffle(redis):
 async def sync_anchor(redis):
     raffles = await RedisAnchor.get_all(redis=redis)
     for raffle in raffles:
-        raffle_id = raffle["raffle_id"]
+        raffle_id = raffle["id"]
         room_id = raffle["room_id"]
         prize_gift_name = raffle["award_name"]
         prize_count = raffle["award_num"]
