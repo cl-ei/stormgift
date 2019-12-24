@@ -113,6 +113,7 @@ class Worker(object):
         elif cmd == "ANCHOR_LOT_AWARD":
             data = danmaku["data"]
             raffle_id = data["id"]
+            data["room_id"] = msg_from_room_id
             await RedisAnchor.add(raffle_id=raffle_id, value=data)
 
             # 以下为数据库
