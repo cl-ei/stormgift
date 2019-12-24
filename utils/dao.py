@@ -881,6 +881,7 @@ class DelayAcceptGiftsQueue:
 
     @classmethod
     async def put(cls, data, accept_time):
+        data = pickle.dumps(data)
         await redis_cache.sorted_set_zadd(cls.key, accept_time, data)
 
     @classmethod
@@ -889,12 +890,12 @@ class DelayAcceptGiftsQueue:
         r = await redis_cache.sorted_set_zrange_by_score(key=cls.key, max_=now)
         if r:
             await redis_cache.sorted_set_zrem(cls.key, *r)
-        return r
+        return [pickle.loads(d) for d in r]
 
     @classmethod
     async def get_all(cls):
         r = await redis_cache.sorted_set_zrange_by_score(key=cls.key, with_scores=True)
-        return r
+        return [pickle.loads(d) for d in r]
 
 
 class LTTempBlack:
