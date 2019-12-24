@@ -176,6 +176,9 @@ class CookieFetcher:
         if json_rsp["code"] != 0:
             return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
 
+        if json_rsp["data"]["status"] != 0:
+            return False, "需要升级APP版本"
+
         return True, json_rsp
 
     @classmethod
@@ -196,7 +199,7 @@ class CookieFetcher:
         flag, json_rsp = await cls.get_bili_login_response(account=account, password=password)
         if not flag:
             return flag, json_rsp
-        print(f"login: json_rsp ---> {json_rsp}")
+
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}
         result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
