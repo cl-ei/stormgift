@@ -53,7 +53,8 @@ class SyncTool(object):
     @classmethod
     async def sync(cls, table_name="ltusercookie"):
         table_desc = await XNodeMySql.execute(f"desc {table_name};")
-        id_index = [row[0] for row in table_desc].index("id")
+        table_fields = [row[0] for row in table_desc]
+        id_index = table_fields.index("id")
         query = await XNodeMySql.execute(f"select * from {table_name} order by id desc;")
 
         for row in query:
@@ -63,7 +64,13 @@ class SyncTool(object):
                 await AsyncMySQL.execute(sql, row, _commit=True)
             except Exception as e:
                 err_msg = f"{e}"
-                print(err_msg)
+                if "(1062," in err_msg:
+                    fields = ",".join([f"{f}=%s" for f in table_fields])
+                    sql = f"UPDATE {table_name} SET {fields} WHERE id={row[id_index]};"
+                    print(sql)
+                    await AsyncMySQL.execute(sql, row, _commit=True)
+                else:
+                    logging.error(err_msg)
 
     @classmethod
     async def run(cls):
