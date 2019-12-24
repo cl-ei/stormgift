@@ -61,7 +61,7 @@ class Worker(object):
 
         raffle_type = data.get("raffle_type")
         room_id = data.get("raffle_type")
-        gift_id = data.get("gift_id")
+        gift_id = data.get("raffle_id")
         gift_type = data.get("gift_type", "")
         gift_name = data.get("gift_name", "未知")
 
