@@ -894,7 +894,8 @@ class DelayAcceptGiftsQueue:
         for d in r:
             try:
                 result.append(pickle.loads(d))
-            except (pickle.UnpicklingError, TypeError):
+            except (pickle.UnpicklingError, TypeError) as e:
+                print(f"f -- e: {e}, {d}: {type(d)}")
                 continue
         return result
 
