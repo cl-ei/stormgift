@@ -1,19 +1,22 @@
 import time
 import json
+import weakref
 import asyncio
 import datetime
 import traceback
-from random import random, randint
-from config import config
 from config.g import *
+from aiohttp import web
+from config import config
 from utils.biliapi import BiliApi
+from random import random, randint
+from config.log4 import anchor_logger
 from utils.cq import CQClient, qq, async_zy
-from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo, DelayAcceptGiftsMQ
-from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
-from config.log4 import anchor_logger
 from utils.reconstruction_model import Guard, Raffle, objects, BiliUser
+from utils.mq import mq_raffle_to_acceptor, mq_source_to_raffle, mq_raffle_broadcast
+from utils.dao import redis_cache, RaffleToCQPushList, BiliToQQBindInfo, DelayAcceptGiftsMQ
+
 
 GIFT_TYPE_TO_NAME = {
     "small_tv": "小电视飞船抽奖",
@@ -28,30 +31,9 @@ ml_qq = CQClient(api_root=api_root, access_token=access_token)
 
 
 class Worker(object):
-    def __init__(self, index):
+    def __init__(self, index, broadcast_target):
         self.index = index
-
-    @staticmethod
-    async def tracking(danmaku, created_time, msg_from_room_id):
-        if msg_from_room_id == 2516117:
-            return
-
-        info = danmaku["info"]
-        uid = info[2][0]
-        if uid != 65568410:
-            return
-
-        msg = str(info[1])
-        user_name = info[2][1]
-        is_admin = info[2][2]
-        ul = info[4][0]
-        d = info[3]
-        dl = d[0] if d else "-"
-        deco = d[1] if d else "undefined"
-
-        qq_msg = f"{msg_from_room_id}: {'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
-        logging.info(qq_msg)
-        await qq.send_private_msg(user_id=80873436, message=qq_msg)
+        self.broadcast = broadcast_target
 
     @staticmethod
     async def record_raffle_info(danmaku, created_time, msg_from_room_id):
@@ -185,8 +167,7 @@ class Worker(object):
         else:
             return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"
 
-    @staticmethod
-    async def proc_single_gift_of_guard(room_id, gift_info):
+    async def proc_single_gift_of_guard(self, room_id, gift_info):
         gift_id = gift_info.get('id', 0)
         key = F"G${room_id}${gift_id}"
 
@@ -202,16 +183,21 @@ class Worker(object):
             gift_name = "总督"
         else:
             gift_name = "guard_%s" % privilege_type
+
+        # TODO -DELETE-
         now = int(time.time())
         accept_time = now + randint(60, 600)
         await DelayAcceptGiftsMQ.put(f"G${room_id}${gift_id}${privilege_type}", accept_time=accept_time)
+        # END
 
-        await mq_raffle_broadcast.put(json.dumps({
+        broadcast_message = json.dumps({
             "real_room_id": room_id,
             "raffle_id": gift_id,
             "gift_name": gift_name,
-            "raffle_type": "guard"
-        }, ensure_ascii=False))
+            "raffle_type": "guard",
+        }, ensure_ascii=False)
+        await self.broadcast(broadcast_message)
+        # await mq_raffle_broadcast.put()
 
         expire_time = gift_info["created_time"] + datetime.timedelta(seconds=gift_info["time"])
         sender = gift_info["sender"]
@@ -256,7 +242,7 @@ class Worker(object):
             created_time = time.time()
             return await self.record_raffle_info(danmaku, created_time, room_id)
 
-        elif key_type == "D":
+        elif key_type == "D":  # 弹幕追踪
             danmaku = danmakus[0]
             info = danmaku.get("info", {})
             msg = str(info[1])
@@ -296,12 +282,6 @@ class Worker(object):
                 gift_type = info.get("type")
                 gift_name = info.get("thank_text", "").split("赠送的", 1)[-1]
 
-                now = int(time.time())
-                accept_start_time = now + info["time_wait"]
-                accept_end_time = now + info["max_time"]
-                wait_time = int((accept_end_time - accept_start_time - 8)*random())
-                accept_time = accept_start_time + wait_time
-
                 i = {
                     "name": user_name,
                     "face": info.get("from_user").get("face"),
@@ -319,8 +299,16 @@ class Worker(object):
                 if not await redis_cache.set_if_not_exists(key, info):
                     continue
 
+                # TODO: -DELETE
+                now = int(time.time())
+                accept_start_time = now + info["time_wait"]
+                accept_end_time = now + info["max_time"]
+                wait_time = int((accept_end_time - accept_start_time - 8) * random())
+                accept_time = accept_start_time + wait_time
                 await DelayAcceptGiftsMQ.put(f"T${room_id}${gift_id}${gift_type}", accept_time=accept_time)
-                await mq_raffle_broadcast.put(json.dumps({
+                # END --
+
+                await self.broadcast(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": gift_id,
                     "gift_name": gift_name,
@@ -338,8 +326,11 @@ class Worker(object):
             key = f"P${room_id}${raffle_id}"
             info = {"room_id": room_id, "raffle_id": raffle_id}
             if await redis_cache.set_if_not_exists(key, info):
+                # TODO: -DELETE-
                 await mq_raffle_to_acceptor.put(key)
-                await mq_raffle_broadcast.put(json.dumps({
+                # END
+
+                await self.broadcast(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
                     "gift_name": "PK",
@@ -347,7 +338,7 @@ class Worker(object):
                 }, ensure_ascii=False))
 
         elif key_type == "S":
-            await mq_raffle_broadcast.put(json.dumps({
+            await self.broadcast(json.dumps({
                 "real_room_id": room_id,
                 "raffle_id": None,
                 "gift_name": "节奏风暴",
@@ -390,7 +381,7 @@ class Worker(object):
                 #     else:
                 #         await DelayAcceptGiftsMQ.put(f"A${room_id}${raffle_id}", accept_time=int(time.time() + 120))
 
-                await mq_raffle_broadcast.put(json.dumps({
+                await self.broadcast(json.dumps({
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
                     "gift_name": "天选时刻",
@@ -433,9 +424,38 @@ async def main():
     logging.info("-" * 80)
     await objects.connect()
 
-    worker_tasks = [asyncio.create_task(Worker(index).run_forever()) for index in range(4)]
-    for task in worker_tasks:
-        await task
+    app = web.Application()
+    app['ws'] = weakref.WeakSet()
+
+    async def broadcaster(request):
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        request.app['ws'].add(ws)
+        try:
+            async for msg in ws:
+                pass
+        finally:
+            request.app['ws'].discard(ws)
+        return ws
+
+    app.add_routes([web.get('/raffle_wss', broadcaster), ])
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    site = web.TCPSite(runner, '127.0.0.1', 1024)
+    await site.start()
+    print("Site started.")
+
+    async def broadcast_target(message):
+        logging.info(f"broadcast: {message}")
+        for ws in set(app['ws']):
+            await ws.send_str(f"{message}\n")
+
+    await asyncio.gather(*[
+        asyncio.create_task(Worker(index, broadcast_target).run_forever())
+        for index in range(8)
+    ])
 
 
 loop = asyncio.get_event_loop()
