@@ -52,7 +52,7 @@ class SyncTool(object):
 
     @classmethod
     async def sync_lt_user_cookie(cls):
-        query = await XNodeMySql.execute("select * from ltusercookie order by id desc limit 10;")
+        query = await XNodeMySql.execute("select * from ltusercookie order by id desc;")
         for row in query:
             row_sql = ",".join(["%s" for _ in range(len(query[0]))])
             sql = f"INSERT INTO ltusercookie VALUES({row_sql});"
