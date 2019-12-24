@@ -196,7 +196,7 @@ class CookieFetcher:
         flag, json_rsp = await cls.get_bili_login_response(account=account, password=password)
         if not flag:
             return flag, json_rsp
-
+        print(f"login: json_rsp ---> {json_rsp}")
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}
         result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
