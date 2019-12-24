@@ -105,7 +105,7 @@ async def main():
             sleep_time = 60 - cost
         else:
             sleep_time = 0
-        logging.info(f"RECORD RAFFLE: Cost {cost:.3f}s, sleep {sleep_time:.3f}.")
+        logging.info(f"RECORD RAFFLE: Cost {cost:.3f}s, sleep {sleep_time:.3f}.\n")
         await asyncio.sleep(sleep_time)
 
     # tears down.
