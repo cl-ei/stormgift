@@ -188,7 +188,6 @@ async def main():
             data = json.loads(message)
         except json.JSONDecodeError:
             return
-        print(f"received: {data}")
 
         raffle_type = data.get("raffle_type")
         now = int(time.time())
@@ -206,6 +205,7 @@ async def main():
         else:
             recommended_implementation_time = now
 
+        print(f"received. delay: {recommended_implementation_time} -> {data}.")
         await DelayAcceptGiftsQueue.put(data, recommended_implementation_time)
 
     new_client = RCWebSocketClient(
