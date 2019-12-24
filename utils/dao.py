@@ -876,12 +876,12 @@ class UserRaffleRecord:
         return await redis_cache.sorted_set_zcard(key)
 
 
-class DelayAcceptGiftsMQ:
+class DelayAcceptGiftsQueue:
     key = "LT_DELAY_ACCEPT"
 
     @classmethod
-    async def put(cls, gift_key, accept_time):
-        await redis_cache.sorted_set_zadd(cls.key, accept_time, gift_key)
+    async def put(cls, data, accept_time):
+        await redis_cache.sorted_set_zadd(cls.key, accept_time, data)
 
     @classmethod
     async def get(cls):

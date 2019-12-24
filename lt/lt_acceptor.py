@@ -8,8 +8,8 @@ import datetime
 import traceback
 from utils.ws import RCWebSocketClient
 from config import cloud_acceptors
-from utils.mq import mq_raffle_to_acceptor
 from utils.highlevel_api import DBCookieOperator
+from utils.dao import DelayAcceptGiftsQueue
 from config.log4 import acceptor_logger as logging
 from utils.dao import (
     redis_cache,
@@ -191,7 +191,8 @@ async def main():
         except json.JSONDecodeError:
             return
         print(f"received: {r}")
-        monitor_q.put_nowait(r)
+        reco_time = int(r.get("reco_time", time.time()))
+        await DelayAcceptGiftsQueue.put(r, reco_time)
 
     new_client = RCWebSocketClient(
         url="wss://www.madliar.com/raffle_wss",

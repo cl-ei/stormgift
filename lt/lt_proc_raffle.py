@@ -190,14 +190,13 @@ class Worker(object):
         await DelayAcceptGiftsMQ.put(f"G${room_id}${gift_id}${privilege_type}", accept_time=accept_time)
         # END
 
-        broadcast_message = json.dumps({
+        await self.broadcast(json.dumps({
+            "raffle_type": "guard",
+            "ts": int(time.time()),
             "real_room_id": room_id,
             "raffle_id": gift_id,
             "gift_name": gift_name,
-            "raffle_type": "guard",
-        }, ensure_ascii=False)
-        await self.broadcast(broadcast_message)
-        # await mq_raffle_broadcast.put()
+        }, ensure_ascii=False))
 
         expire_time = gift_info["created_time"] + datetime.timedelta(seconds=gift_info["time"])
         sender = gift_info["sender"]
@@ -235,6 +234,7 @@ class Worker(object):
 
     async def proc_single_msg(self, msg):
         created_time = datetime.datetime.now()
+        now_ts = time.time()
         key_type, room_id, *danmakus = msg
 
         if key_type == "R" and danmakus:
@@ -309,11 +309,14 @@ class Worker(object):
                 # END --
 
                 await self.broadcast(json.dumps({
+                    "raffle_type": "tv",
+                    "ts": int(now_ts),
                     "real_room_id": room_id,
                     "raffle_id": gift_id,
                     "gift_name": gift_name,
                     "gift_type": gift_type,
-                    "raffle_type": "tv"
+                    "time_wait": info["time_wait"],
+                    "max_time": info["max_time"],
                 }, ensure_ascii=False))
 
             await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)
@@ -332,18 +335,20 @@ class Worker(object):
                 # END
 
                 await self.broadcast(json.dumps({
+                    "raffle_type": "pk",
+                    "ts": int(now_ts),
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
                     "gift_name": "PK",
-                    "raffle_type": "pk"
                 }, ensure_ascii=False))
 
         elif key_type == "S":
             await self.broadcast(json.dumps({
+                "raffle_type": "storm",
+                "ts": int(now_ts),
                 "real_room_id": room_id,
                 "raffle_id": None,
                 "gift_name": "节奏风暴",
-                "raffle_type": "storm"
             }, ensure_ascii=False))
 
         elif key_type == "A":
@@ -383,10 +388,11 @@ class Worker(object):
                 #         await DelayAcceptGiftsMQ.put(f"A${room_id}${raffle_id}", accept_time=int(time.time() + 120))
 
                 await self.broadcast(json.dumps({
+                    "raffle_type": "anchor",
+                    "ts": int(now_ts),
                     "real_room_id": room_id,
                     "raffle_id": raffle_id,
                     "gift_name": "天选时刻",
-                    "raffle_type": "anchor",
                     "join_type": join_type,
                     "require": f"{require_type}-{require_value}:{require_text}",
                     "gift": f"{gift_num}*{gift_name or 'null'}({gift_price})",
