@@ -7,7 +7,11 @@ from website.handlers import lt, cq, dxj
 async def main():
     @web.middleware
     async def set_server_name(request, handler):
-        resp = await handler(request)
+        try:
+            resp = await handler(request)
+        except Exception as e:
+            resp = web.Response(status=500, text=f"{e}")
+
         resp.headers['Server'] = 'madliar/2.1.1a11(Darwin)'
         if resp.status > 400:
             return web.Response(
