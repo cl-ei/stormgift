@@ -881,7 +881,7 @@ class DelayAcceptGiftsQueue:
 
     @classmethod
     async def put(cls, data, accept_time):
-        data = pickle.dumps(data)
+        data = json.dumps(data)
         await redis_cache.sorted_set_zadd(cls.key, accept_time, data)
 
     @classmethod
@@ -893,9 +893,8 @@ class DelayAcceptGiftsQueue:
         result = []
         for d in r:
             try:
-                result.append(pickle.loads(d))
-            except (pickle.UnpicklingError, TypeError) as e:
-                print(f"f -- e: {e}, {d}: {type(d)}")
+                result.append(json.loads(d))
+            except (json.JSONDecodeError, TypeError):
                 continue
         return result
 
@@ -905,8 +904,8 @@ class DelayAcceptGiftsQueue:
         result = []
         for d in r:
             try:
-                result.append(pickle.loads(d))
-            except (pickle.UnpicklingError, TypeError):
+                result.append(json.loads(d))
+            except (json.JSONDecodeError, TypeError):
                 continue
         return result
 
