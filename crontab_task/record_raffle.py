@@ -35,8 +35,8 @@ async def sync_raffle(redis):
         await RedisRaffle.delete(raffle_id, redis=redis)
 
 
-async def sync_anchor():
-    pass
+async def sync_anchor(redis):
+     raffles = await RedisAnchor.get_all(redis=redis)
 
 
 async def main():
