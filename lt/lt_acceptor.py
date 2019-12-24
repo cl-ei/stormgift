@@ -222,7 +222,9 @@ async def main():
 
     async def select_task():
         while True:
-            r = await DelayAcceptGiftsQueue.get()
+            raffle_tasks = await DelayAcceptGiftsQueue.get()
+            for t in raffle_tasks:
+                monitor_q.put_nowait(t)
             await asyncio.sleep(4)
 
     tasks = [asyncio.create_task(select_task())]
