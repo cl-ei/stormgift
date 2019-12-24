@@ -90,6 +90,7 @@ async def main():
     try:
         await sync_guard(x_node_redis)
         await sync_raffle(x_node_redis)
+        await sync_anchor(x_node_redis)
     except Exception as e:
         logging.error(f"{e}\n{traceback.format_exc()}")
 
