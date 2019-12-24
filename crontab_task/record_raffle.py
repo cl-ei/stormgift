@@ -25,15 +25,14 @@ async def sync_guard():
 
 async def sync_raffle():
     raffles = await RedisRaffle.get_all()
-    done_ids = []
     for raffle in raffles:
-        done_ids.append(raffle["raffle_id"])
+        raffle_id = raffle["raffle_id"]
         if "winner_uid" in raffle and "winner_name" in raffle:
             r = await Raffle.create(**raffle)
         else:
             r = await Raffle.record_raffle_before_result(**raffle)
         logging.info(f"Saved: T:{raffle['raffle_id']} {r.id}")
-    await RedisRaffle.delete(*done_ids)
+        await RedisRaffle.delete(raffle_id)
 
 
 async def main():

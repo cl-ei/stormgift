@@ -231,20 +231,25 @@ class RedisCache(object):
 redis_cache = RedisCache(**REDIS_CONFIG)
 
 
+async def gen_xnode_redis() -> RedisCache:
+    config_file = "/etc/madliar.settings.ini"
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    redis = RedisCache(**{
+        "host": config["xnode_redis"]["host"],
+        "port": int(config["xnode_redis"]["port"]),
+        "password": config["xnode_redis"]["password"],
+        "db": int(config["xnode_redis"]["stormgift_db"]),
+    })
+    return redis
+
+
 class XNodeRedis:
     def __init__(self):
         self._x_node_redis = None
 
     async def __aenter__(self) -> RedisCache:
-        config_file = "/etc/madliar.settings.ini"
-        config = configparser.ConfigParser()
-        config.read(config_file)
-        self._x_node_redis = RedisCache(**{
-            "host": config["xnode_redis"]["host"],
-            "port": int(config["xnode_redis"]["port"]),
-            "password": config["xnode_redis"]["password"],
-            "db": int(config["xnode_redis"]["stormgift_db"]),
-        })
+        self._x_node_redis = await gen_xnode_redis()
         return self._x_node_redis
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -1005,21 +1010,23 @@ class RedisGuard:
         await redis_cache.list_push(cls.key, *value)
 
     @classmethod
-    async def get_one(cls):
-        async with XNodeRedis() as redis:
-            r = await redis.list_rpop(cls.key)
-            return r
-
-    @classmethod
-    async def get_all(cls):
+    async def get_all(cls, redis=None):
         result = []
-        async with XNodeRedis() as redis:
+        if redis:
             while True:
                 r = await redis.list_rpop(cls.key)
                 if r is None:
                     break
                 else:
                     result.append(r)
+        else:
+            async with XNodeRedis() as redis:
+                while True:
+                    r = await redis.list_rpop(cls.key)
+                    if r is None:
+                        break
+                    else:
+                        result.append(r)
         return result
 
 
@@ -1037,20 +1044,35 @@ class RedisRaffle:
         return await redis_cache.get(key)
 
     @classmethod
-    async def get_all(cls):
-        async with XNodeRedis() as redis:
+    async def get_all(cls, redis=None):
+        if cls.redis is None:
+            cls.redis = await gen_xnode_redis()
+
+        if redis:
             keys = await redis.keys(f"{cls.key}_*")
             if not keys:
                 return []
 
             values = await redis.mget(*keys)
             return values
+        else:
+            async with XNodeRedis() as redis:
+                keys = await redis.keys(f"{cls.key}_*")
+                if not keys:
+                    return []
+
+                values = await redis.mget(*keys)
+                return values
 
     @classmethod
-    async def delete(cls, *raffle_ids):
-        async with XNodeRedis() as redis:
+    async def delete(cls, *raffle_ids, redis=None):
+        if redis:
             for raffle_id in raffle_ids:
                 await redis.delete(f"{cls.key}_{raffle_id}")
+        else:
+            async with XNodeRedis() as redis:
+                for raffle_id in raffle_ids:
+                    await redis.delete(f"{cls.key}_{raffle_id}")
 
 
 class RedisAnchor:
