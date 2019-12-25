@@ -163,10 +163,7 @@ async def sync_raffle():
 
 async def main():
     # await sync_raffle()
-    while True:
-        r = await sync_guard()
-        if r is True:
-            break
+    await sync_guard()
     logging.info("ALL Done!")
 
 loop.run_until_complete(main())
