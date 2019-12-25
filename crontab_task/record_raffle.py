@@ -89,7 +89,7 @@ async def sync_anchor(redis):
 
 async def main():
     lock_key = "EXE_RECORD_RAFFLE"
-    if not redis_cache.set_if_not_exists(lock_key, value=1, timeout=60*3):
+    if not await redis_cache.set_if_not_exists(lock_key, value=1, timeout=60*3):
         logging.info("RECORD_RAFFLE Another proc is Running.")
         await redis_cache.close()
         return
