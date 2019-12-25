@@ -49,7 +49,7 @@ class DanmakuProcessor:
 
         flag, cookie = await CookieFetcher.get_cookie(account=account, password=password)
         if not flag:
-            logging.info(f"Super dxj CookieFetcher.get_cookie Error: {cookie}")
+            logging.error(f"Super dxj CookieFetcher.get_cookie Error: {cookie}")
             return False, f"登录失败：{cookie}"
 
         await SuperDxjCookieMgr.save_cookie(account=account, cookie=cookie)
@@ -92,7 +92,7 @@ class DanmakuProcessor:
 
             now = time.time()
             if now < self.msg_block_until:
-                logging.info(f"DMK BLOCK: {self.short_room_id}-{self.name} -> {dmk}")
+                logging.warning(f"DMK BLOCK: {self.short_room_id}-{self.name} -> {dmk}")
                 continue
 
             # 计数
@@ -109,7 +109,7 @@ class DanmakuProcessor:
             if not flag:
                 # 登录失败，冷却1分钟
                 self.msg_block_until = now + 30
-                logging.info(f"DMK BLOCK(Login failed): {self.short_room_id}-{self.name} -> {dmk}")
+                logging.warning(f"DMK BLOCK(Login failed): {self.short_room_id}-{self.name} -> {dmk}")
                 continue
 
             flag, msg = await BiliApi.send_danmaku(message=dmk, room_id=self.room_id, cookie=cookie)
@@ -167,10 +167,10 @@ class DanmakuProcessor:
             num = data.get("num", 0)
             created_time = data.get("start_time", 0)
 
-            logging.info(
-                f"{self.short_room_id}-{self.name} GUARD_GIFT: "
-                f"[{uid}] [{uname}] -> {gift_name}*{num} (price: {price})"
-            )
+            # logging.info(
+            #     f"{self.short_room_id}-{self.name} GUARD_GIFT: "
+            #     f"[{uid}] [{uname}] -> {gift_name}*{num} (price: {price})"
+            # )
 
             thank_gold = settings["thank_gold"]
             is_live = await self.get_live_status()
@@ -194,10 +194,10 @@ class DanmakuProcessor:
             num = data.get("num", "")
             is_live = await self.get_live_status()
 
-            logging.info(
-                f"{self.short_room_id}-{self.name} SEND_GIFT: "
-                f"[{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})"
-            )
+            # logging.info(
+            #     f"{self.short_room_id}-{self.name} SEND_GIFT: "
+            #     f"[{uid}] [{uname}] -> {gift_name}*{num} (total_coin: {total_coin})"
+            # )
 
             if coin_type == "gold":
                 thank_gold = settings["thank_gold"]

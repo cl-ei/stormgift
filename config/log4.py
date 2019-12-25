@@ -26,15 +26,6 @@ acceptor_logger.addHandler(acceptor_file_handler)
 acceptor_logger.addHandler(stormgift_file_handler)
 
 
-status_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "status_stormgift.log"))
-status_file_handler.setFormatter(log_format)
-status_logger = logging.getLogger("status_stormgift")
-status_logger.setLevel(logging.DEBUG)
-status_logger.addHandler(console)
-status_logger.addHandler(status_file_handler)
-status_logger.addHandler(stormgift_file_handler)
-
-
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "crontab_task.log"))
 file_handler.setFormatter(log_format)
 crontab_task_logger = logging.getLogger("crontab_task")
@@ -169,7 +160,6 @@ __all__ = (
     "log_format",
     "console_logger",
     "acceptor_logger",
-    "status_logger",
     "crontab_task_logger",
     "cqbot_logger",
     "website_logger",
