@@ -8,7 +8,7 @@ import pickle
 import asyncio
 import aioredis
 import datetime
-from config import REDIS_CONFIG, REDIS_CONFIG_FOR_GO
+from config import REDIS_CONFIG
 
 
 class RedisCache(object):

@@ -9,19 +9,54 @@ from utils.ws import get_ws_established_and_time_wait
 MONITOR_COUNT = 20000
 
 
+async def batch_get_live_room_ids(count):
+    pages = (count + 500) // 500
+    result = [[] for _ in range(pages)]
+
+    async def get_one_page(page_no):
+        for _try_times in range(3):
+            if _try_times != 0:
+                logging.info(f"get one page Failed: page no {page_no}")
+
+            flag, data = await BiliApi.get_lived_room_id_by_page(page=page_no, timeout=30)
+            if not flag:
+                await asyncio.sleep(1)
+                continue
+
+            result[page_no] = data
+            return
+
+    await asyncio.gather(*[
+        get_one_page(page_number)
+        for page_number in range(pages)
+    ])
+
+    living_rooms = set()
+    for page_data in result:
+        for room_id in page_data:
+            living_rooms.add(room_id)
+            if len(living_rooms) >= MONITOR_COUNT:
+                return living_rooms
+    return living_rooms
+
+
 async def get_live_rooms_from_api():
     start = time.time()
     flag, total = await BiliApi.get_all_lived_room_count()
     if not flag:
         logging.error(f"Cannot get lived room count! msg: {total}")
         return
+
     flag, living_room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, MONITOR_COUNT))
     if not flag:
         logging.error(f"Cannot get lived rooms. msg: {living_room_id_list}")
         return
+    api_cost = time.time() - start
+    start = time.time()
     r = await MonitorLiveRooms.set(living_room_id_list)
+    redis_cost = time.time() - start
     api_count = len(living_room_id_list)
-    logging.info(f"MonitorLiveRooms set, r: {r}, api count: {api_count}, api cost: {time.time() - start:.3f}")
+    logging.info(f"MonitorLiveRooms set {api_count}, r: {r}, api cost: {api_cost:.3f}, redis_cost: {redis_cost:.3f}")
 
     established, time_wait = get_ws_established_and_time_wait()
     __monitor_info = {
