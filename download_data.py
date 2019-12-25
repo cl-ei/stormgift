@@ -134,6 +134,10 @@ async def sync_raffle():
     for i, r in enumerate(records):
         sender_obj_id = r[4]
         winner_obj_id = r[6]
+
+        if sender_obj_id not in user_dict or winner_obj_id not in user_dict:
+            continue
+
         sender_uid, sender_name, sender_face = user_dict[sender_obj_id]
         winner_uid, winner_name, winner_face = user_dict[winner_obj_id]
         raffle_obj = await Raffle.create(
