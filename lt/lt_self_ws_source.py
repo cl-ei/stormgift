@@ -90,10 +90,15 @@ class WsManager(object):
         expected |= in_lottery
 
         valuable = await ValuableLiveRoom.get_all()
+        valuable_hit_count = 0
         for room_id in valuable:
-            if len(expected) >= MONITOR_COUNT:
+            expected_len = len(expected)
+            if expected_len >= MONITOR_COUNT:
                 break
             expected.add(room_id)
+            if len(expected) == expected_len:
+                valuable_hit_count += 1
+        cache_hit_rate = valuable_hit_count / len(valuable) * 100
 
         existed = set(self._clients.keys())
 
@@ -114,6 +119,14 @@ class WsManager(object):
             count += 1
             if count % 100 == 0:
                 await asyncio.sleep(1)
+
+        # record
+        __monitor_info = {
+            "valuable room": len(valuable),
+            "target clients": len(expected),
+            "valuable hit rate": cache_hit_rate,
+        }
+        await MonitorWsClient.record(__monitor_info)
 
     async def task_print_info(self):
         count = 0
