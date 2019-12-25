@@ -88,25 +88,21 @@ async def sync_anchor(redis):
 
 
 async def main():
+    lock_key = "EXE_RECORD_RAFFLE"
+    if not redis_cache.set_if_not_exists(lock_key, value=1, timeout=60*3):
+        logging.info("RECORD_RAFFLE Another proc is Running.")
+        await redis_cache.close()
+        return
+
     await objects.connect()
     x_node_redis = await gen_x_node_redis()
 
-    while True:
-        start_time = time.time()
-        try:
-            await sync_guard(x_node_redis)
-            await sync_raffle(x_node_redis)
-            await sync_anchor(x_node_redis)
-        except Exception as e:
-            logging.error(f"{e}\n{traceback.format_exc()}")
-
-        cost = time.time() - start_time
-        if cost < 60:
-            sleep_time = 60 - cost
-        else:
-            sleep_time = 0
-        logging.info(f"RECORD RAFFLE: Cost {cost:.3f}s, sleep {sleep_time:.3f}.\n")
-        await asyncio.sleep(sleep_time)
+    try:
+        await sync_guard(x_node_redis)
+        await sync_raffle(x_node_redis)
+        await sync_anchor(x_node_redis)
+    except Exception as e:
+        logging.error(f"{e}\n{traceback.format_exc()}")
 
     # tears down.
     await x_node_redis.close()
