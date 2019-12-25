@@ -10,17 +10,18 @@ MONITOR_COUNT = 20000
 
 
 async def get_live_rooms_from_api():
+    start = time.time()
     flag, total = await BiliApi.get_all_lived_room_count()
     if not flag:
         logging.error(f"Cannot get lived room count! msg: {total}")
         return
-
     flag, living_room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, MONITOR_COUNT))
     if not flag:
         logging.error(f"Cannot get lived rooms. msg: {living_room_id_list}")
         return
     r = await MonitorLiveRooms.set(living_room_id_list)
-    logging.info(f"MonitorLiveRooms set, r: {r}, api count: {len(living_room_id_list)}")
+    api_count = len(living_room_id_list)
+    logging.info(f"MonitorLiveRooms set, r: {r}, api count: {api_count}, api cost: {time.time() - start:.3f}")
 
     established, time_wait = get_ws_established_and_time_wait()
     __monitor_info = {
