@@ -194,7 +194,10 @@ async def sync_user():
             id_, uid, name, face = row
             if uid not in existed_user:
                 create_args.append((uid, name, face))
-        await objects.execute(BiliUser.insert_many(create_args, ["uid", "name", "face"]))
+
+        if create_args:
+            r = await objects.execute(BiliUser.insert_many(create_args, ["uid", "name", "face"]))
+            print(f"insert_many: {r}")
 
 
 async def main():
