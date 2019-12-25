@@ -124,7 +124,7 @@ async def sync_raffle():
     records = await XNodeMySql.execute(
         (
             f"select * from raffle "
-            f"where id in %s and winner_obj_id is not null and sender_obj_ids is not null "
+            f"where id in %s and winner_obj_id is not null and sender_obj_id is not null "
             f"order by id asc limit 100000"
         ),
         (id_list, )
@@ -159,7 +159,7 @@ async def sync_raffle():
             "expire_time": r[11],
             "raffle_result_danmaku": None,
         })
-    print(f"len(create_args): {len(create_args)}")
+    print(f"len(create_args): {len(create_args)}\n{create_args[0]}")
 
 
 async def sync_user():
