@@ -28,7 +28,7 @@ async def main():
         valuable_rooms.append(room_id)
 
     r = await ValuableLiveRoom.set(valuable_rooms)
-    logging.info(F"Valuable live rooms get from db success, count: {len(valuable_rooms)}")
+    logging.info(F"Valuable live rooms get from db success, count: {len(valuable_rooms)}, r: {r}")
 
 
 loop = asyncio.get_event_loop()
