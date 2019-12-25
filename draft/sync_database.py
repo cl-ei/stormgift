@@ -76,25 +76,4 @@ class SyncTool(object):
         logging.info(f"Execute finished, cost: {cost/60:.3f} min.\n\n")
 
 
-"""
-from utils.dao import RaffleToCQPushList, BiliToQQBindInfo
-
-qq_1 = await RaffleToCQPushList.get(bili_uid=winner_uid)
-if qq_1:
-    message = f"恭喜{winner_name}[{winner_uid}]中了{prize_gift_name}！\n[CQ:at,qq={qq_1}]"
-    r = await ml_qq.send_group_msg(group_id=981983464, message=message)
-    log_msg += f"__ML NOTICE__ r: {r}"
-
-if winner_uid in (BILI_UID_DD, BILI_UID_TZ, BILI_UID_CZ):
-    message = (
-        f"恭喜{winner_name}({winner_uid})[CQ:at,qq={QQ_NUMBER_DD}]"
-        f"获得了{sender_name}提供的{prize_gift_name}!\n"
-        f"https://live.bilibili.com/{msg_from_room_id}"
-    )
-    await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=message)
-logging.info(log_msg)
-
-
-"""
-
 loop.run_until_complete(SyncTool.run())
