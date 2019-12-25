@@ -124,45 +124,42 @@ async def sync_raffle():
     records = await XNodeMySql.execute(
         (
             f"select * from raffle "
-            f"where id in %s and winner_obj_id is not null "
+            f"where id in %s and winner_obj_id is not null and sender_obj_ids is not null "
             f"order by id asc limit 100000"
         ),
         (id_list, )
     )
-    sender_obj_ids = [row[4] for row in records]
-    winner_obj_ids = [row[6] for row in records]
+    user_objs_ids = set([row[4] for row in records] + [row[6] for row in records])
 
-    user_objs_ids = set(sender_obj_ids + winner_obj_ids)
-    users = await XNodeMySql.execute(f"select id, uid, name, face from biliuser where id in %s;", (user_objs_ids, ))
-    user_dict = {row[0]: (row[1], row[2], row[3]) for row in users}
+    users = await XNodeMySql.execute(f"select id, uid from biliuser where id in %s;", (user_objs_ids, ))
+    user_dict = {row[0]: row[1] for row in users}  # id -> uid
+    all_uids = {row[1] for row in users}
+    all_uids = await AsyncMySQL.execute(f"select id, uid from biliuser where uid in %s;", (all_uids, ))
+    my_users = {row[1]: row[0] for row in all_uids}  # uid -> id
 
+    create_args = []
     for i, r in enumerate(records):
-        sender_obj_id = r[4]
-        winner_obj_id = r[6]
-
-        if sender_obj_id not in user_dict or winner_obj_id not in user_dict:
+        my_sender_obj_id = my_users.get(user_dict.get(r[4]))  # id -> uid -> id
+        my_winner_obj_id = my_users.get(user_dict.get(r[6]))  # id -> uid -> id
+        if not my_sender_obj_id or not my_winner_obj_id:
             continue
 
-        sender_uid, sender_name, sender_face = user_dict[sender_obj_id]
-        winner_uid, winner_name, winner_face = user_dict[winner_obj_id]
-        raffle_obj = await Raffle.create(
-            raffle_id=r[0],
-            room_id=r[1],
-            gift_name=r[2],
-            gift_type=r[3],
-            sender_uid=sender_uid,
-            sender_name=sender_name,
-            sender_face=sender_face,
-            created_time=r[10],
-            expire_time=r[11],
-            prize_gift_name=r[8],
-            prize_count=r[9],
-            winner_uid=winner_uid,
-            winner_name=winner_name,
-            winner_face=winner_face,
-        )
-        if i % 1000 == 0:
-            logging.info(f"{i} raffle_obj created: {raffle_obj.id}, {raffle_obj.sender_name}")
+        create_args.append({
+            "id": r[0],
+            "room_id": r[1],
+            "gift_name": r[2],
+            "gift_type": r[3],
+            "sender_obj_id": my_sender_obj_id,
+            "sender_name": r[5],
+            "winner_obj_id": r[6],
+            "winner_name": r[7],
+            "prize_gift_name": r[8],
+            "prize_count": r[9],
+            "created_time": r[10],
+            "expire_time": r[11],
+            "raffle_result_danmaku": None,
+        })
+    print(f"len(create_args): {len(create_args)}")
 
 
 async def sync_user():
@@ -210,7 +207,7 @@ async def sync_user():
 
 async def main():
     await objects.connect()
-    await sync_user()
+    await sync_raffle()
 
     return
     r1 = await sync_raffle()
