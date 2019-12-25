@@ -47,7 +47,7 @@ async def get_live_rooms_from_api():
         logging.error(f"Cannot get lived room count! msg: {total}")
         return
 
-    flag, living_room_id_list = await BiliApi.get_lived_room_id_list(count=min(total, MONITOR_COUNT))
+    flag, living_room_id_list = await batch_get_live_room_ids(count=min(total, MONITOR_COUNT))
     if not flag:
         logging.error(f"Cannot get lived rooms. msg: {living_room_id_list}")
         return
