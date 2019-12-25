@@ -187,9 +187,14 @@ async def sync_user():
             f"where id in %s and uid is not null;",
             (users, )
         )
+        existed_user = await AsyncMySQL.execute(f"select distinct uid from biliuser where uid is not NULL;")
+        existed_user = {r[0] for r in existed_user}
+        create_args = []
         for row in users:
             id_, uid, name, face = row
-            await objects.create(BiliUser, uid=uid, name=name, face=face)
+            if uid not in existed_user:
+                create_args.append((uid, name, face))
+        await objects.execute(BiliUser.insert_many(create_args, ["uid", "name", "face"]))
 
 
 async def main():
