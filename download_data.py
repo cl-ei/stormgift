@@ -112,8 +112,15 @@ async def sync_guard():
 
 
 async def sync_raffle():
+    records = await XNodeMySql.execute("select id from raffle;")
     existed_ids = await AsyncMySQL.execute("select distinct id from raffle;")
-    id_list = [row[0] for row in existed_ids]
+    existed_ids = {row[0] for row in existed_ids}
+    need_sync = [r[0] for r in records if r[0] not in existed_ids]
+    print(f"Raffle need sync: {len(need_sync)}")
+    if len(need_sync) == 0:
+        return True
+
+    id_list = need_sync[:10000]
     records = await XNodeMySql.execute(
         (
             f"select * from raffle "
@@ -122,9 +129,6 @@ async def sync_raffle():
         ),
         (id_list, datetime.datetime.now() - datetime.timedelta(hours=1), )
     )
-    if not records:
-        logging.info("Raffle Done!")
-        return True
     sender_obj_ids = [row[4] for row in records]
     winner_obj_ids = [row[6] for row in records]
 
@@ -162,8 +166,12 @@ async def sync_raffle():
 
 
 async def main():
-    # await sync_raffle()
-    await sync_guard()
-    logging.info("ALL Done!")
+    r1 = await sync_raffle()
+    r2 = await sync_guard()
+    if r1 is True and r2 is True:
+        logging.info("ALL Done!")
+        while True:
+            await asyncio.sleep(100)
+
 
 loop.run_until_complete(main())
