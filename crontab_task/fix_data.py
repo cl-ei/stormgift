@@ -3,6 +3,7 @@ import random
 import logging
 import asyncio
 import datetime
+import traceback
 from utils.biliapi import BiliApi
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import ReqFreLimitApi
@@ -182,19 +183,23 @@ class SyncTool(object):
         execute_key = "LT_SYNC_DATABASE_TASK_RUNNING"
         finished = await redis_cache.set_if_not_exists(execute_key, 1, timeout=60*55)
         if not finished:
-            logging.error(f"FIX DATA running! Now exit...")
+            logging.error(f"FIX_DATA running! Now exit...")
             return
 
         await objects.connect()
-        await asyncio.gather(
-            # cls.sync_valuable_live_room(),
-            cls.fix_user_record_missed_uid(),
-            cls.update_live_room_info(),
-        )
-        await objects.close()
+        try:
+            await asyncio.gather(
+                # cls.sync_valuable_live_room(),
+                cls.fix_user_record_missed_uid(),
+                cls.update_live_room_info(),
+            )
+        except Exception as e:
+            logging.info(f"FIX_DATA Error: {e}\n{traceback.format_exc()}")
 
+        await objects.close()
         await redis_cache.delete(execute_key)
         await redis_cache.close()
+
         cost = time.time() - start_time
         logging.info(f"Execute finished, cost: {cost/60:.3f} min.\n\n")
 
