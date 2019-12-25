@@ -320,11 +320,13 @@ class ValuableLiveRoom(object):
     @classmethod
     async def set(cls, *room_ids):
         if not room_ids:
-            return 0
+            return False
         value = "_".join([str(room_id) for room_id in room_ids])
 
         async with XNodeRedis() as redis:
-            await redis.set(cls._key, value=value)
+            r = await redis.set(cls._key, value=value)
+        if not r:
+            return False
         return await redis_cache.set(cls._key, value=value)
 
     @classmethod

@@ -27,7 +27,7 @@ async def main():
         de_dup.add(room_id)
         valuable_rooms.append(room_id)
 
-    await ValuableLiveRoom.set(valuable_rooms)
+    r = await ValuableLiveRoom.set(valuable_rooms)
     logging.info(F"Valuable live rooms get from db success, count: {len(valuable_rooms)}")
 
 
