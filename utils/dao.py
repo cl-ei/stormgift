@@ -315,33 +315,40 @@ class HansyQQGroupUserInfo(object):
 
 
 class ValuableLiveRoom(object):
-    _key = "VALUABLE_LIVE_ROOM"
+    _key = "VALUABLE_LIVE_ROOM_LIST"
 
     @classmethod
-    async def add(cls, *room_id):
-        if not room_id:
+    async def set(cls, *room_ids):
+        if not room_ids:
             return 0
-        room_id = [int(r) for r in room_id if r not in (0, "", "0", None)]
-        r = await redis_cache.set_add(cls._key, *room_id)
-        return r
+        value = "_".join([str(room_id) for room_id in room_ids])
+
+        async with XNodeRedis() as redis:
+            await redis.set(cls._key, value=value)
+        return await redis_cache.set(cls._key, value=value)
 
     @classmethod
     async def get_all(cls):
-        r = await redis_cache.set_get_all(cls._key)
-        return r
+        value = await redis_cache.get(cls._key)
+        if not value or not isinstance(value, str):
+            return []
 
-    @classmethod
-    async def get_count(cls):
-        r = await redis_cache.set_get_count(cls._key)
-        return r
+        de_dup = set()
+        result = []
+        for room_id in value.split("_"):
+            try:
+                room_id = int(room_id)
+            except (TypeError, ValueError):
+                continue
 
-    @classmethod
-    async def delete(cls, *room_id):
-        if not room_id:
-            return 0
+            if room_id <= 0:
+                continue
 
-        r = await redis_cache.set_remove(cls._key, *room_id)
-        return r
+            if room_id in de_dup:
+                continue
+            de_dup.add(room_id)
+            result.append(room_id)
+        return result
 
 
 class InLotteryLiveRooms(object):

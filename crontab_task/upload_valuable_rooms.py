@@ -7,20 +7,28 @@ from config.log4 import lt_db_sync_logger as logging
 
 async def main():
     query = await AsyncMySQL.execute(
-        "select real_room_id from biliuser "
-        "where guard_count > 0 or attention > 10000 or real_room_id != short_room_id "
+        f"select distinct real_room_id from biliuser "
+        f"where short_room_id is not null and short_room_id != real_room_id ;"
+    )
+    forever_monitor_rooms = [r[0] for r in query]
+
+    query = await AsyncMySQL.execute(
+        "select distinct real_room_id from biliuser "
+        "where guard_count > 0 or attention > 10000 "
         "order by guard_count desc, attention desc ;"
     )
-    room_id = {row[0] for row in query}
+    recommend_room_id = [row[0] for row in query]
 
-    logging.info(F"Valuable live rooms get from db success, count: {len(room_id)}")
-    existed = set(await ValuableLiveRoom.get_all())
-    need_add = room_id - existed
-    need_del = existed - room_id
+    valuable_rooms = []
+    de_dup = set()
+    for room_id in forever_monitor_rooms + recommend_room_id:
+        if room_id in de_dup:
+            continue
+        de_dup.add(room_id)
+        valuable_rooms.append(room_id)
 
-    r = await ValuableLiveRoom.add(*need_add)
-    r2 = await ValuableLiveRoom.delete(*need_del)
-    logging.info(f"Save to redis result: add: {r}, del: {r2}")
+    await ValuableLiveRoom.set(valuable_rooms)
+    logging.info(F"Valuable live rooms get from db success, count: {len(valuable_rooms)}")
 
 
 loop = asyncio.get_event_loop()
