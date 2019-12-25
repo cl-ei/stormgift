@@ -89,26 +89,37 @@ async def sync_guard():
         return True
 
     this_time = new_id_list[:10000]
+
     records = await XNodeMySql.execute("select * from guard where id in %s;", (this_time, ))
     user_objs_ids = [row[3] for row in records]
-    users = await XNodeMySql.execute(f"select id, uid, name, face from biliuser where id in %s;", (user_objs_ids, ))
-    user_dict = {row[0]: (row[1], row[2], row[3]) for row in users}
+    users = await XNodeMySql.execute(f"select id, uid from biliuser where id in %s;", (user_objs_ids, ))
+    user_dict = {row[0]: row[1] for row in users}
+    all_uids = {row[1] for row in users}
+    all_uids = await AsyncMySQL.execute(f"select id, uid from biliuser where uid in %s;", (all_uids,))
+    my_users = {row[1]: row[0] for row in all_uids}  # uid -> id
 
+    create_args = []
     for i, r in enumerate(records):
         user_obj_id = r[3]
-        sender_uid, sender_name, sender_face = user_dict[user_obj_id]
-        guard_obj = await Guard.create(
-            gift_id=r[0],
-            room_id=r[1],
-            gift_name=r[2],
-            sender_uid=sender_uid,
-            sender_name=sender_name,
-            sender_face=sender_face,
-            created_time=r[5],
-            expire_time=r[6],
-        )
-        if i % 1000 == 0:
-            logging.info(f"{i} guard_obj created: {guard_obj.id}, {guard_obj.sender_name}")
+        my_user_obj_id = my_users.get(user_dict.get(user_obj_id))
+        if not my_user_obj_id:
+            continue
+
+        create_args.append({
+            "id": r[0],
+            "room_id": r[1],
+            "gift_name": r[2],
+            "sender_obj_id": my_user_obj_id,
+            "sender_name": r[4],
+            "created_time": r[5],
+            "expire_time": r[6],
+        })
+
+    print(f"len(create_args): {len(create_args)}")
+    if create_args:
+        print(f"{create_args[0]}")
+        r = await objects.execute(Guard.insert_many(create_args))
+        print(f"insert_many: {r}")
 
 
 async def sync_raffle():
@@ -211,7 +222,7 @@ async def sync_user():
 
 async def main():
     await objects.connect()
-    await sync_raffle()
+    await sync_guard()
 
     return
     r1 = await sync_raffle()
