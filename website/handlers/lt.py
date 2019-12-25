@@ -200,81 +200,62 @@ async def post_settings(request):
 async def query_gifts(request):
     json_req = request.query.get("json")
     start_time = time.time()
-    db_query_time = 0
+    db_start_time = time.time()
 
-    if time.time() < Cache.e_tag + 10:
-        records = Cache.data
-    else:
-        try:
-            db_start_time = time.time()
-            raffle_records = await AsyncMySQL.execute(
-                (
-                    "select id, room_id, gift_name, sender_name, expire_time "
-                    "from raffle where expire_time > %s order by id desc;"
-                ), (datetime.datetime.now(), )
-            )
-            guard_records = await AsyncMySQL.execute(
-                (
-                    "select id, room_id, gift_name, sender_name, expire_time "
-                    "from guard where expire_time > %s;"
-                ), (datetime.datetime.now(),)
-            )
-            room_id_list = [row[1] for row in guard_records + raffle_records]
-            room_info = await AsyncMySQL.execute(
-                (
-                    "select name, short_room_id, real_room_id "
-                    "from biliuser where real_room_id in %s;"
-                ), (room_id_list, )
-            )
-            room_dict = {}
-            for row in room_info:
-                name, short_room_id, real_room_id = row
-                room_dict[real_room_id] = (name, short_room_id)
+    raffle_records = await AsyncMySQL.execute(
+        (
+            "select id, room_id, gift_name, sender_name, expire_time "
+            "from raffle where expire_time > %s order by id desc;"
+        ), (datetime.datetime.now(), )
+    )
+    guard_records = await AsyncMySQL.execute(
+        (
+            "select id, room_id, gift_name, sender_name, expire_time "
+            "from guard where expire_time > %s;"
+        ), (datetime.datetime.now(),)
+    )
+    room_id_list = [row[1] for row in guard_records + raffle_records]
+    room_info = await AsyncMySQL.execute(
+        (
+            "select name, short_room_id, real_room_id "
+            "from biliuser where real_room_id in %s;"
+        ), (room_id_list, )
+    )
+    room_dict = {}
+    for row in room_info:
+        name, short_room_id, real_room_id = row
+        room_dict[real_room_id] = (name, short_room_id)
 
-            def get_price(g):
-                price_map = {
-                    "小电视飞船": 1250,
-                    "任意门": 600,
-                    "幻乐之声": 520,
-                    "摩天大楼": 450,
-                    "总督": -1,
-                    "提督": -2,
-                    "舰长": -3
-                }
-                return price_map.get(g, 0)
+    def get_price(g):
+        price_map = {
+            "小电视飞船": 1250,
+            "任意门": 600,
+            "幻乐之声": 520,
+            "摩天大楼": 450,
+            "总督": -1,
+            "提督": -2,
+            "舰长": -3
+        }
+        return price_map.get(g, 0)
 
-            records = []
-            for row in raffle_records + guard_records:
-                raffle_id, room_id, gift_name, sender_name, expire_time = row
-                master_name, short_room_id = room_dict.get(room_id, (None, None))
-                if short_room_id == room_id:
-                    short_room_id = "-"
+    records = []
+    for row in raffle_records + guard_records:
+        raffle_id, room_id, gift_name, sender_name, expire_time = row
+        master_name, short_room_id = room_dict.get(room_id, (None, None))
+        if short_room_id == room_id:
+            short_room_id = "-"
 
-                records.append({
-                    "gift_name": gift_name.replace("抽奖", ""),
-                    "short_room_id": short_room_id,
-                    "real_room_id": room_id,
-                    "master_name": master_name,
-                    "sender_name": sender_name,
-                    "raffle_id": raffle_id,
-                    "expire_time": expire_time,
-                })
-            records.sort(key=lambda x: (get_price(x["gift_name"]), x["real_room_id"]), reverse=True)
-            db_query_time = time.time() - db_start_time
-
-        except Exception as e:
-            msg = F"Error: {e} {traceback.format_exc()}"
-            if json_req:
-                text = json.dumps({"code": 500, "msg": msg})
-                content_type = "application/json"
-            else:
-                text = msg
-                content_type = "text/html"
-            return web.Response(text=text, content_type=content_type)
-
-        else:
-            Cache.e_tag = time.time()
-            Cache.data = records
+        records.append({
+            "gift_name": gift_name.replace("抽奖", ""),
+            "short_room_id": short_room_id,
+            "real_room_id": room_id,
+            "master_name": master_name,
+            "sender_name": sender_name,
+            "raffle_id": raffle_id,
+            "expire_time": expire_time,
+        })
+    records.sort(key=lambda x: (get_price(x["gift_name"]), x["real_room_id"]), reverse=True)
+    db_query_time = time.time() - db_start_time
 
     if json_req:
         json_result = [
