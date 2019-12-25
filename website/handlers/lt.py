@@ -200,8 +200,6 @@ async def post_settings(request):
 async def query_gifts(request):
     json_req = request.query.get("json")
     start_time = time.time()
-    db_start_time = time.time()
-
     raffle_records = await AsyncMySQL.execute(
         (
             "select id, room_id, gift_name, sender_name, expire_time "
@@ -255,7 +253,7 @@ async def query_gifts(request):
             "expire_time": expire_time,
         })
     records.sort(key=lambda x: (get_price(x["gift_name"]), x["real_room_id"]), reverse=True)
-    db_query_time = time.time() - db_start_time
+    db_query_time = time.time() - start_time
 
     if json_req:
         json_result = [
@@ -268,7 +266,7 @@ async def query_gifts(request):
         ]
         return web.Response(
             text=json.dumps(
-                {"code": 0, "e_tag": f"{hash(Cache.e_tag):0x}", "list": json_result},
+                {"code": 0, "e_tag": f"{hash(start_time):0x}", "list": json_result},
                 indent=2,
                 ensure_ascii=False,
             ),
@@ -276,7 +274,7 @@ async def query_gifts(request):
         )
 
     context = {
-        "e_tag": f"{hash(Cache.e_tag):0x}",
+        "e_tag": f"{hash(start_time):0x}",
         "records": records,
         "proc_time": f"{(time.time() - start_time):.3f}",
         "db_query_time": f"{db_query_time:.3f}",
