@@ -18,14 +18,6 @@ from utils.highlevel_api import DBCookieOperator, ReqFreLimitApi
 from utils.dao import LtUserLoginPeriodOfValidity
 
 
-class Cache:
-    e_tag = 0
-    data = None
-
-    raffle_e_tag = 0
-    raffle_data = None
-
-
 def request_frequency_control(time_interval=4):
     user_requests_records = []  # [(uniq, time), ... ]
 
@@ -265,83 +257,79 @@ async def query_gifts(request):
 
 async def query_raffles(request):
     json_req = request.query.get("json")
+    update_time = await redis_cache.get(key="LT_RAFFLE_DB_UPDATE_TIME")
+    e_tag = f"{hash(update_time):0x}"
 
-    if time.time() < Cache.raffle_e_tag + 300:
-        raffle_data = Cache.raffle_data
-    else:
-        start_date = datetime.datetime.now() - datetime.timedelta(hours=48)
-        records = await AsyncMySQL.execute(
-            (
-                "select id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, "
-                "   prize_gift_name, expire_time, sender_name, winner_name "
-                "from raffle "
-                "where expire_time >= %s "
-                "order by expire_time desc, id desc "
-                "limit 1000;"
-            ), (start_date, )
-        )
-        user_obj_ids = set()
-        room_ids = set()
-        for row in records:
-            (
-                id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id,
-                prize_gift_name, expire_time, sender_name, winner_name
-            ) = row
+    start_date = datetime.datetime.now() - datetime.timedelta(hours=48)
+    records = await AsyncMySQL.execute(
+        (
+            "select id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id, "
+            "   prize_gift_name, expire_time, sender_name, winner_name "
+            "from raffle "
+            "where expire_time >= %s "
+            "order by expire_time desc, id desc "
+            "limit 1000;"
+        ), (start_date, )
+    )
+    user_obj_ids = set()
+    room_ids = set()
+    for row in records:
+        (
+            id, room_id, gift_name, gift_type, sender_obj_id, winner_obj_id,
+            prize_gift_name, expire_time, sender_name, winner_name
+        ) = row
 
-            room_ids.add(room_id)
-            user_obj_ids.add(sender_obj_id)
-            user_obj_ids.add(winner_obj_id)
+        room_ids.add(room_id)
+        user_obj_ids.add(sender_obj_id)
+        user_obj_ids.add(winner_obj_id)
 
-        users = await AsyncMySQL.execute(
-            (
-                "select id, uid, name, short_room_id, real_room_id "
-                "from biliuser "
-                "where id in %s or real_room_id in %s "
-                "order by id desc ;"
-            ), (user_obj_ids, room_ids)
-        )
-        room_id_map = {}
-        user_obj_id_map = {}
-        for row in users:
-            id, uid, name, short_room_id, real_room_id = row
-            if short_room_id in (None, "", 0, "0"):
-                short_room_id = None
-            room_id_map[real_room_id] = (short_room_id, name)
-            user_obj_id_map[id] = (uid, name)
+    users = await AsyncMySQL.execute(
+        (
+            "select id, uid, name, short_room_id, real_room_id "
+            "from biliuser "
+            "where id in %s or real_room_id in %s "
+            "order by id desc ;"
+        ), (user_obj_ids, room_ids)
+    )
+    room_id_map = {}
+    user_obj_id_map = {}
+    for row in users:
+        id, uid, name, short_room_id, real_room_id = row
+        if short_room_id in (None, "", 0, "0"):
+            short_room_id = None
+        room_id_map[real_room_id] = (short_room_id, name)
+        user_obj_id_map[id] = (uid, name)
 
-        raffle_data = []
-        for row in records:
-            (
-                id, real_room_id, gift_name, gift_type, sender_obj_id, winner_obj_id,
-                prize_gift_name, expire_time, sender_name, winner_name
-            ) = row
+    raffle_data = []
+    for row in records:
+        (
+            id, real_room_id, gift_name, gift_type, sender_obj_id, winner_obj_id,
+            prize_gift_name, expire_time, sender_name, winner_name
+        ) = row
 
-            short_room_id, master_uname = room_id_map.get(real_room_id, (None, ""))
-            if short_room_id is None:
-                short_room_id = ""
-            elif short_room_id == real_room_id:
-                short_room_id = "-"
+        short_room_id, master_uname = room_id_map.get(real_room_id, (None, ""))
+        if short_room_id is None:
+            short_room_id = ""
+        elif short_room_id == real_room_id:
+            short_room_id = "-"
 
-            user_id, user_name = user_obj_id_map.get(winner_obj_id, ("", winner_name))
-            sender_uid, sender_name = user_obj_id_map.get(sender_obj_id, ("", sender_name))
+        user_id, user_name = user_obj_id_map.get(winner_obj_id, ("", winner_name))
+        sender_uid, sender_name = user_obj_id_map.get(sender_obj_id, ("", sender_name))
 
-            info = {
-                "short_room_id": short_room_id,
-                "real_room_id": real_room_id,
-                "raffle_id": id,
-                "gift_name": (gift_name.replace("抽奖", "") + "-" + gift_type) or "",
-                "prize_gift_name": prize_gift_name or "",
-                "created_time": expire_time,
-                "user_id": user_id or "",
-                "user_name": user_name or "",
-                "master_uname": master_uname or "",
-                "sender_uid": sender_uid or "",
-                "sender_name": sender_name or "",
-            }
-            raffle_data.append(info)
-
-        Cache.raffle_data = raffle_data
-        Cache.raffle_e_tag = time.time()
+        info = {
+            "short_room_id": short_room_id,
+            "real_room_id": real_room_id,
+            "raffle_id": id,
+            "gift_name": (gift_name.replace("抽奖", "") + "-" + gift_type) or "",
+            "prize_gift_name": prize_gift_name or "",
+            "created_time": expire_time,
+            "user_id": user_id or "",
+            "user_name": user_name or "",
+            "master_uname": master_uname or "",
+            "sender_uid": sender_uid or "",
+            "sender_name": sender_name or "",
+        }
+        raffle_data.append(info)
 
     if json_req:
         json_result = copy.deepcopy(raffle_data)
@@ -354,7 +342,7 @@ async def query_raffles(request):
 
         return web.Response(
             text=json.dumps(
-                {"code": 0, "e_tag": f"{hash(Cache.raffle_e_tag):0x}", "list": json_result},
+                {"code": 0, "e_tag": e_tag, "list": json_result},
                 indent=2,
                 ensure_ascii=False,
             ),
@@ -362,7 +350,7 @@ async def query_raffles(request):
         )
 
     context = {
-        "e_tag": f"{hash(Cache.raffle_e_tag):0x}",
+        "e_tag": e_tag,
         "raffle_data": raffle_data,
         "raffle_count": len(raffle_data),
         "CDN_URL": CDN_URL,
