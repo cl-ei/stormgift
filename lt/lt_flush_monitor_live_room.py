@@ -60,19 +60,6 @@ async def get_live_rooms_from_api():
     await MonitorWsClient.record(__monitor_info)
 
 
-async def flush_in_lottery_live_rooms():
-    monitor_live_rooms = await MonitorLiveRooms.get()
-    in_lottery = await InLotteryLiveRooms.get_all()
-    target_monitor_live_rooms = monitor_live_rooms | in_lottery
-
-    if target_monitor_live_rooms != monitor_live_rooms:
-        await MonitorLiveRooms.set(target_monitor_live_rooms)
-    # logging.info(
-    #     f"In lottery live room update! "
-    #     f"count: {len(monitor_live_rooms)}, total: {len(target_monitor_live_rooms)}."
-    # )
-
-
 async def main():
     logging.info("LT flush monitor live room proc starting ...")
 

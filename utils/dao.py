@@ -373,7 +373,7 @@ class InLotteryLiveRooms(object):
         return await redis_cache.set(cls._key, old)
 
     @classmethod
-    async def get_all(cls):
+    async def get_all(cls) -> set:
         room_dict = await redis_cache.get(cls._key)
         if not isinstance(room_dict, dict):
             return set()
@@ -394,50 +394,22 @@ class InLotteryLiveRooms(object):
 
 
 class MonitorLiveRooms(object):
-    """
-
-    返回值是set 类型！
-
-    """
     _key = "MonitorLiveRooms_KEY"
-    _version_key = "MonitorLiveRooms_VERSION"
-    __version_of_last_get = None
-    __data_of_last_get = None
-
-    _go_redis_client = None
 
     @classmethod
-    async def get(cls):
-        version = await redis_cache.get(cls._version_key)
-        if version == cls.__version_of_last_get:
-            return cls.__data_of_last_get
-
+    async def get(cls) -> set:
         r = await redis_cache.get(cls._key)
         if not r or not isinstance(r, set):
             return set()
-
-        cls.__version_of_last_get = version
-        cls.__data_of_last_get = r
-
         return r
 
     @classmethod
-    async def set(cls, live_room_id_set):
+    async def set(cls, live_room_id_set: set):
         live_room_id_set = {
             int(room_id) for room_id in live_room_id_set
             if room_id not in (0, "0", None, "")
         }
-
-        if cls._go_redis_client is None:
-            cls._go_redis_client = RedisCache(**REDIS_CONFIG_FOR_GO)
-
-        go_value = "$".join([str(_) for _ in sorted(live_room_id_set)])
-        key = "LT_MONITOR_LIVE_ROOMS"
-        await cls._go_redis_client.set(key=key, value=go_value, _un_pickle=True)
-
-        r = await redis_cache.set(cls._key, live_room_id_set)
-        r2 = await redis_cache.set(cls._version_key, str(time.time()))
-        return r, r2
+        return await redis_cache.set(cls._key, live_room_id_set)
 
 
 class LtUserLoginPeriodOfValidity(object):

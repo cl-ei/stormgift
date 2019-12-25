@@ -1,18 +1,19 @@
 import asyncio
 import traceback
 from utils.ws import RCWebSocketClient
-from utils.dao import MonitorLiveRooms
+from utils.dao import MonitorLiveRooms, ValuableLiveRoom, InLotteryLiveRooms
 from utils.mq import mq_source_to_raffle
 from utils.biliapi import WsApi
 from config.log4 import lt_ws_source_logger as logging
 from utils.model import objects, MonitorWsClient
+
+MONITOR_COUNT = 20000
 
 
 class WsManager(object):
 
     def __init__(self):
         self._clients = {}
-        self.monitor_live_rooms = {}
 
         self.msg_count = 0
         self._broken_live_rooms = []
@@ -84,13 +85,16 @@ class WsManager(object):
             del self._clients[room_id]
 
     async def update_connections(self):
-
         expected = await MonitorLiveRooms.get()
-        if not expected:
-            logging.error(f"Cannot load monitor live rooms from redis! keep current: {len(self.monitor_live_rooms)}")
-            return
+        in_lottery = await InLotteryLiveRooms.get_all()
+        expected |= in_lottery
 
-        self.monitor_live_rooms = expected
+        valuable = await ValuableLiveRoom.get_all()
+        for room_id in valuable:
+            if len(expected) >= MONITOR_COUNT:
+                break
+            expected.add(room_id)
+
         existed = set(self._clients.keys())
 
         need_add = expected - existed
@@ -116,7 +120,6 @@ class WsManager(object):
         msg_count_of_last_second = 0
         msg_speed_peak = 0
         while True:
-
             msg_speed_peak = max(self.msg_count - msg_count_of_last_second, msg_speed_peak)
             msg_count_of_last_second = self.msg_count
 
@@ -171,10 +174,10 @@ class WsManager(object):
 
     async def run_forever(self):
         try:
-            await asyncio.gather(*[
+            await asyncio.gather(
                 self.task_print_info(),
                 self.task_update_connections(),
-            ])
+            )
         except Exception as e:
             logging.error(f"Error happened in self_ws_source: {e} {traceback.format_exc()}")
 
