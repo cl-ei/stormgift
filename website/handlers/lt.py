@@ -248,13 +248,14 @@ async def query_gifts(request):
         })
     records.sort(key=lambda x: (get_price(x["gift_name"]), x["real_room_id"]), reverse=True)
     db_query_time = time.time() - start_time
-
+    update_time = await redis_cache.get(key="LT_RAFFLE_DB_UPDATE_TIME")
+    e_tag = f"{hash(update_time):0x}"
     if json_req:
-        response = json.dumps({"code": 0, "e_tag": f"{hash(start_time):0x}", "list": records})
+        response = json.dumps({"code": 0, "e_tag": e_tag, "list": records})
         return web.Response(text=response, content_type="application/json")
 
     context = {
-        "e_tag": f"{hash(start_time):0x}",
+        "e_tag": e_tag,
         "records": records,
         "proc_time": f"{(time.time() - start_time):.3f}",
         "db_query_time": f"{db_query_time:.3f}",

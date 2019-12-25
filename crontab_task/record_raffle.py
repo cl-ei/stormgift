@@ -156,6 +156,7 @@ async def main():
     await objects.close()
 
     await redis_cache.delete(lock_key)
+    await redis_cache.set(key="LT_RAFFLE_DB_UPDATE_TIME", value=time.time())
     await redis_cache.close()
     logging.info(f"RECORD_RAFFLE done! cost: {time.time() - start_time:.3f}.")
 
