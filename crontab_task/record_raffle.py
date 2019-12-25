@@ -2,10 +2,36 @@ import time
 import asyncio
 import datetime
 import traceback
+from config import g
+from config import config
+from utils.cq import async_zy
+from utils.cq import CQClient
 from utils.biliapi import BiliApi
-from utils.reconstruction_model import objects, Guard, Raffle, BiliUser
+from utils.dao import RaffleToCQPushList
 from config.log4 import crontab_task_logger as logging
+from utils.reconstruction_model import objects, Guard, Raffle, BiliUser
 from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, gen_x_node_redis
+
+api_root = config["ml_bot"]["api_root"]
+access_token = config["ml_bot"]["access_token"]
+ml_qq = CQClient(api_root=api_root, access_token=access_token)
+
+
+async def notice_qq(room_id, winner_uid, winner_name, prize_gift_name, sender_name):
+
+    qq_1 = await RaffleToCQPushList.get(bili_uid=winner_uid)
+    if qq_1:
+        message = f"恭喜{winner_name}[{winner_uid}]中了{prize_gift_name}！\n[CQ:at,qq={qq_1}]"
+        r = await ml_qq.send_group_msg(group_id=981983464, message=message)
+        logging.info(f"__ML NOTICE__ r: {r}")
+
+    if winner_uid in (g.BILI_UID_DD, g.BILI_UID_TZ, g.BILI_UID_CZ):
+        message = (
+            f"恭喜{winner_name}({winner_uid})[CQ:at,qq={g.QQ_NUMBER_DD}]"
+            f"获得了{sender_name}提供的{prize_gift_name}!\n"
+            f"https://live.bilibili.com/{room_id}"
+        )
+        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
 
 
 async def sync_guard(redis):
@@ -23,6 +49,16 @@ async def sync_raffle(redis):
         raffle_id = raffle["raffle_id"]
         if "winner_uid" in raffle and "winner_name" in raffle:
             r = await Raffle.create(**raffle)
+
+            # notice
+            await notice_qq(
+                room_id=raffle["room_id"],
+                winner_uid=raffle["winner_uid"],
+                winner_name=raffle["winner_name"],
+                prize_gift_name=raffle["prize_gift_name"],
+                sender_name=raffle["sender_name"]
+            )
+
         else:
             r = await Raffle.record_raffle_before_result(**raffle)
         logging.info(f"Saved: T:{raffle['raffle_id']} {r.id}")
@@ -83,6 +119,15 @@ async def sync_anchor(redis):
                 expire_time=datetime.datetime.now()
             )
             logging.info(f"Saved: Anchor:{raffle_id} {r.id}")
+
+            # notice
+            await notice_qq(
+                room_id=room_id,
+                winner_uid=winner_uid,
+                winner_name=winner_name,
+                prize_gift_name=prize_gift_name,
+                sender_name=sender_name,
+            )
 
         await RedisAnchor.delete(raffle_id, redis=redis)
 
