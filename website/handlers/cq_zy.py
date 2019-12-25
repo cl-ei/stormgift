@@ -277,7 +277,7 @@ class BotUtils:
                 date_time_str = f"{int(interval / (3600 * 24))}天前"
             msg_list.append(f"{date_time_str}在{room_id}直播间获得{gift_name}")
         message = (
-            f"「{query_user_name}」在7天内中奖{count}次，详细如下：\n\n" +
+            f"{query_user_name}(uid: {uid})在7天内中奖{count}次，详细如下：\n\n" +
             f"{'-'*20}\n" +
             f"\n{'-'*20}\n".join(msg_list) +
             f"\n{'-' * 20}"
