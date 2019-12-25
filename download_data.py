@@ -124,7 +124,7 @@ async def sync_raffle():
     records = await XNodeMySql.execute(
         (
             f"select * from raffle "
-            f"where id not in %s and created_time < %s and winner_obj_id is not null "
+            f"where id in %s and winner_obj_id is not null "
             f"order by id asc limit 100000"
         ),
         (id_list, datetime.datetime.now() - datetime.timedelta(hours=1), )
