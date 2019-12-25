@@ -84,9 +84,11 @@ async def sync_guard():
     existed_ids = {row[0] for row in existed_records}
     new_id_list = sorted([r[0] for r in records if r[0] not in existed_ids])
     print(f"Need Sync {len(new_id_list)}")
+    if len(new_id_list) == 0:
+        print(F"Guard done!")
+        return True
 
-    this_time = new_id_list[:50000]
-
+    this_time = new_id_list[:10000]
     records = await XNodeMySql.execute("select * from guard where id in %s;", (this_time, ))
     user_objs_ids = [row[3] for row in records]
     users = await XNodeMySql.execute(f"select id, uid, name, face from biliuser where id in %s;", (user_objs_ids, ))
@@ -161,8 +163,10 @@ async def sync_raffle():
 
 async def main():
     # await sync_raffle()
-    await sync_guard()
-
+    while True:
+        r = await sync_guard()
+        if r is True:
+            break
     logging.info("ALL Done!")
 
 loop.run_until_complete(main())
