@@ -79,16 +79,15 @@ class SyncTool(object):
 
 
 async def sync_guard():
-    existed_ids = await AsyncMySQL.execute("select distinct id from guard;")
-    id_list = [row[0] for row in existed_ids]
-    records = await XNodeMySql.execute(
-        f"select * from guard where id not in %s order by id asc limit 100000",
-        (id_list, )
-    )
-    if not records:
-        logging.info("Done!")
-        return True
+    records = await XNodeMySql.execute("select id from guard;")
+    existed_records = await AsyncMySQL.execute("select id from guard;")
+    existed_ids = {row[0] for row in existed_records}
+    new_id_list = sorted([r[0] for r in records if r[0] not in existed_ids])
+    print(f"Need Sync {len(new_id_list)}")
 
+    this_time = new_id_list[:50000]
+
+    records = await XNodeMySql.execute("select * from guard where id in %s;", (this_time, ))
     user_objs_ids = [row[3] for row in records]
     users = await XNodeMySql.execute(f"select id, uid, name, face from biliuser where id in %s;", (user_objs_ids, ))
     user_dict = {row[0]: (row[1], row[2], row[3]) for row in users}
@@ -161,7 +160,7 @@ async def sync_raffle():
 
 
 async def main():
-    await sync_raffle()
+    # await sync_raffle()
     await sync_guard()
 
     logging.info("ALL Done!")
