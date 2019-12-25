@@ -68,7 +68,7 @@ class ReqFreLimitApi(object):
     @classmethod
     async def get_raffle_record(cls, uid):
         raffles = await AsyncMySQL.execute(
-            "select r.winner_name, r.room_id, r.prize_gift_name, r.expire_time "
+            "select u.name, r.room_id, r.prize_gift_name, r.expire_time "
             "from raffle r, biliuser u "
             "where r.winner_obj_id = u.id and u.uid = %s and r.expire_time >= %s "
             "order by r.expire_time desc;",
