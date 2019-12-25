@@ -61,8 +61,11 @@ class RedisCache(object):
     async def ttl(self, key):
         return await self.execute("ttl", key)
 
-    async def get(self, key):
+    async def get(self, key, _un_pickle=False):
         r = await self.execute("get", key)
+        if _un_pickle:
+            return r
+
         try:
             return pickle.loads(r)
         except (TypeError, pickle.UnpicklingError):
@@ -318,20 +321,20 @@ class ValuableLiveRoom(object):
     _key = "VALUABLE_LIVE_ROOM_LIST"
 
     @classmethod
-    async def set(cls, *room_ids):
-        if not room_ids:
+    async def set(cls, room_id_list):
+        if not room_id_list:
             return False
-        value = "_".join([str(room_id) for room_id in room_ids])
+        value = "_".join([str(room_id) for room_id in room_id_list])
 
         async with XNodeRedis() as redis:
-            r = await redis.set(cls._key, value=value)
+            r = await redis.set(cls._key, value=value, _un_pickle=True)
         if not r:
             return False
-        return await redis_cache.set(cls._key, value=value)
+        return await redis_cache.set(cls._key, value=value, _un_pickle=True)
 
     @classmethod
     async def get_all(cls):
-        value = await redis_cache.get(cls._key)
+        value = await redis_cache.get(cls._key, _un_pickle=True)
         if not value or not isinstance(value, str):
             return []
 
