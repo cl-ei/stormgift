@@ -182,7 +182,7 @@ class SyncTool(object):
         execute_key = "LT_SYNC_DATABASE_TASK_RUNNING"
         finished = await redis_cache.set_if_not_exists(execute_key, 1, timeout=60*55)
         if not finished:
-            logging.error(f"DataBase syncing! Now exit...")
+            logging.error(f"FIX DATA running! Now exit...")
             return
 
         await objects.connect()
