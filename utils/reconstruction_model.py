@@ -279,7 +279,7 @@ class Raffle(peewee.Model):
                 old_rec.room_id = room_id
                 old_rec.prize_gift_name = prize_gift_name
                 old_rec.prize_count = prize_count
-                old_rec.sender_obj_id = sender.id,
+                old_rec.sender_obj_id = sender.id
                 old_rec.winner_obj_id = winner.id
 
                 await objects.update(
