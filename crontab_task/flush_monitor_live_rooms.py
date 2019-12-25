@@ -9,14 +9,14 @@ from utils.ws import get_ws_established_and_time_wait
 MONITOR_COUNT = 20000
 
 
-async def batch_get_live_room_ids(count):
+async def batch_get_live_room_ids(count) -> set:
     pages = (count + 500) // 500
     result = [[] for _ in range(pages)]
 
     async def get_one_page(page_no):
         for _try_times in range(3):
             if _try_times != 0:
-                logging.info(f"get one page Failed: page no {page_no}")
+                logging.info(f"get one page Failed: page no {page_no}, failed times: {_try_times}")
 
             flag, data = await BiliApi.get_lived_room_id_by_page(page=page_no, timeout=30)
             if not flag:
@@ -47,11 +47,13 @@ async def get_live_rooms_from_api():
         logging.error(f"Cannot get lived room count! msg: {total}")
         return
 
-    flag, living_room_id_list = await batch_get_live_room_ids(count=min(total, MONITOR_COUNT))
-    if not flag:
-        logging.error(f"Cannot get lived rooms. msg: {living_room_id_list}")
-        return
+    target_count = min(total, MONITOR_COUNT)
+    living_room_id_list = await batch_get_live_room_ids(count=target_count)
     api_cost = time.time() - start
+
+    if abs(target_count - len(living_room_id_list)) > 1001:
+        logging.error("从api获取的直播间数与目标差异过大，不予更新。")
+
     start = time.time()
     r = await MonitorLiveRooms.set(living_room_id_list)
     redis_cost = time.time() - start
