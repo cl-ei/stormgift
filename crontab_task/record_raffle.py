@@ -88,9 +88,11 @@ async def sync_anchor(redis):
 
 
 async def main():
+    start_time = time.time()
+
     lock_key = "EXE_RECORD_RAFFLE"
     if not await redis_cache.set_if_not_exists(lock_key, value=1, timeout=60*3):
-        logging.info("RECORD_RAFFLE Another proc is Running.")
+        logging.info("RECORD_RAFFLE Another proc is Running. Now exit.")
         await redis_cache.close()
         return
 
@@ -107,6 +109,10 @@ async def main():
     # tears down.
     await x_node_redis.close()
     await objects.close()
+
+    await redis_cache.delete(lock_key)
+    await redis_cache.close()
+    logging.info(f"RECORD_RAFFLE done! cost: {time.time() - start_time:.3f}.")
 
 
 loop = asyncio.get_event_loop()
