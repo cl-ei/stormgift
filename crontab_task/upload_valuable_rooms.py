@@ -13,7 +13,7 @@ async def main():
     forever_monitor_rooms = [r[0] for r in query]
 
     query = await AsyncMySQL.execute(
-        "select distinct real_room_id from biliuser "
+        "select real_room_id from biliuser "
         "where guard_count > 0 or attention > 10000 "
         "order by guard_count desc, attention desc ;"
     )
