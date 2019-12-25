@@ -155,6 +155,10 @@ async def sync_raffle():
 async def main():
     while (await sync_guard()) is not True:
         pass
-    logging.info("Done!")
+
+    while (await sync_raffle()) is not True:
+        pass
+
+    logging.info("ALL Done!")
 
 loop.run_until_complete(main())
