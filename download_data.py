@@ -179,7 +179,9 @@ async def sync_user():
 
     offset = 0
     limit = 5000
+
     while offset < len(all_user_obj_ids):
+        print(f"Total: {offset}/{len(all_user_obj_ids)}")
         users = all_user_obj_ids[offset: offset+limit]
         offset += limit
 
@@ -195,10 +197,14 @@ async def sync_user():
         for row in users:
             id_, uid, name, face = row
             if uid not in existed_user:
-                create_args.append((uid, name, face))
+                create_args.append({
+                    "uid": uid,
+                    "name": name,
+                    "face": face,
+                })
 
         if create_args:
-            r = await objects.execute(BiliUser.insert_many(create_args, ["uid", "name", "face"]))
+            r = await objects.execute(BiliUser.insert_many(create_args))
             print(f"insert_many: {r}")
 
 
