@@ -120,7 +120,7 @@ async def sync_raffle():
     if len(need_sync) == 0:
         return True
 
-    id_list = need_sync[:10000]
+    id_list = need_sync[:30000]
     records = await XNodeMySql.execute(
         (
             f"select * from raffle "
@@ -159,7 +159,11 @@ async def sync_raffle():
             "expire_time": r[11],
             "raffle_result_danmaku": None,
         })
+
     print(f"len(create_args): {len(create_args)}\n{create_args[0]}")
+    if create_args:
+        r = await objects.execute(Raffle.insert_many(create_args))
+        print(f"insert_many: {r}")
 
 
 async def sync_user():
