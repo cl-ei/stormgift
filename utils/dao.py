@@ -335,10 +335,11 @@ class ValuableLiveRoom(object):
     @classmethod
     async def get_all(cls):
         value = await redis_cache.get(cls._key, _un_pickle=True)
-        if not value or not isinstance(value, str):
-            return []
+        if isinstance(value, bytes):
+            value = value.decode()
 
-        print(f"  valur: {len(value)}")
+        if not isinstance(value, str):
+            return []
 
         de_dup = set()
         result = []
