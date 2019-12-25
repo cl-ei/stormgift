@@ -138,13 +138,6 @@ silver_box_logger.addHandler(console)
 silver_box_logger.addHandler(silver_box_fh)
 
 
-anchor_fh = logging.FileHandler(os.path.join(LOG_PATH, "anchor.log"))
-anchor_fh.setFormatter(logging.Formatter("%(asctime)s^%(message)s"))
-anchor_logger = logging.getLogger("anchor")
-anchor_logger.setLevel(logging.DEBUG)
-anchor_logger.addHandler(anchor_fh)
-
-
 def config_logger(file_name):
     file_name = file_name.lower()
     if not file_name.endswith(".log"):
@@ -175,5 +168,4 @@ __all__ = (
     "model_operation_logger",
     "silver_box_logger",
     "config_logger",
-    "anchor_logger",
 )
