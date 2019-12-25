@@ -86,7 +86,7 @@ async def sync_guard():
     )
     if not records:
         logging.info("Done!")
-        return
+        return True
 
     user_objs_ids = [row[3] for row in records]
     users = await XNodeMySql.execute(f"select id, uid, name, face from biliuser where id in %s;", (user_objs_ids, ))
@@ -110,7 +110,8 @@ async def sync_guard():
 
 
 async def main():
-    await sync_guard()
-
+    while (await sync_guard()) is not True:
+        pass
+    logging.info("Done!")
 
 loop.run_until_complete(main())
