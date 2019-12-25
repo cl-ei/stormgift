@@ -6,7 +6,7 @@ import datetime
 from utils.biliapi import BiliApi
 from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import ReqFreLimitApi
-from utils.dao import ValuableLiveRoom, redis_cache
+from utils.dao import redis_cache
 from config.log4 import lt_db_sync_logger as logging
 from utils.reconstruction_model import objects, BiliUser, Raffle, Guard
 
@@ -14,24 +14,6 @@ loop = asyncio.get_event_loop()
 
 
 class SyncTool(object):
-
-    @classmethod
-    async def sync_valuable_live_room(cls):
-        query = await AsyncMySQL.execute(
-            "select real_room_id from biliuser "
-            "where guard_count > 0 or attention > 10000 or real_room_id != short_room_id "
-            "order by guard_count desc, attention desc ;"
-        )
-        room_id = {row[0] for row in query}
-
-        logging.info(F"Valuable live rooms get from db success, count: {len(room_id)}")
-        existed = set(await ValuableLiveRoom.get_all())
-        need_add = room_id - existed
-        need_del = existed - room_id
-
-        r = await ValuableLiveRoom.add(*need_add)
-        r2 = await ValuableLiveRoom.delete(*need_del)
-        logging.info(f"Save to redis result: add: {r}, del: {r2}")
 
     @staticmethod
     async def fix_user_record_missed_uid():
@@ -205,13 +187,14 @@ class SyncTool(object):
 
         await objects.connect()
         await asyncio.gather(
-            cls.sync_valuable_live_room(),
+            # cls.sync_valuable_live_room(),
             cls.fix_user_record_missed_uid(),
             cls.update_live_room_info(),
         )
         await objects.close()
-        await redis_cache.delete(execute_key)
 
+        await redis_cache.delete(execute_key)
+        await redis_cache.close()
         cost = time.time() - start_time
         logging.info(f"Execute finished, cost: {cost/60:.3f} min.\n\n")
 
