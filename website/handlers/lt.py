@@ -200,19 +200,13 @@ async def post_settings(request):
 async def query_gifts(request):
     json_req = request.query.get("json")
     start_time = time.time()
-    raffle_records = await AsyncMySQL.execute(
-        (
-            "select id, room_id, gift_name, sender_name, expire_time "
-            "from raffle where expire_time > %s order by id desc;"
-        ), (datetime.datetime.now(), )
-    )
     guard_records = await AsyncMySQL.execute(
         (
             "select id, room_id, gift_name, sender_name, expire_time "
             "from guard where expire_time > %s;"
         ), (datetime.datetime.now(),)
     )
-    room_id_list = [row[1] for row in guard_records + raffle_records]
+    room_id_list = [row[1] for row in guard_records]
     room_info = await AsyncMySQL.execute(
         (
             "select name, short_room_id, real_room_id "
@@ -237,7 +231,7 @@ async def query_gifts(request):
         return price_map.get(g, 0)
 
     records = []
-    for row in raffle_records + guard_records:
+    for row in guard_records:
         raffle_id, room_id, gift_name, sender_name, expire_time = row
         master_name, short_room_id = room_dict.get(room_id, (None, None))
         if short_room_id == room_id:
@@ -256,22 +250,8 @@ async def query_gifts(request):
     db_query_time = time.time() - start_time
 
     if json_req:
-        json_result = [
-            {
-                k: str(v) if isinstance(v, datetime.datetime) else v
-                for k, v in r.items()
-                if k in ("gift_name", "real_room_id", "raffle_id", "expire_time")
-            }
-            for r in records
-        ]
-        return web.Response(
-            text=json.dumps(
-                {"code": 0, "e_tag": f"{hash(start_time):0x}", "list": json_result},
-                indent=2,
-                ensure_ascii=False,
-            ),
-            content_type="application/json"
-        )
+        response = json.dumps({"code": 0, "e_tag": f"{hash(start_time):0x}", "list": records})
+        return web.Response(text=response, content_type="application/json")
 
     context = {
         "e_tag": f"{hash(start_time):0x}",
