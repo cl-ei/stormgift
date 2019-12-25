@@ -169,8 +169,10 @@ async def sync_user():
     all_user_obj_ids = set()
     records = await XNodeMySql.execute("select sender_obj_id, winner_obj_id from raffle;")
     for r in records:
-        all_user_obj_ids.add(r[0])
-        all_user_obj_ids.add(r[1])
+        if r[0]:
+            all_user_obj_ids.add(r[0])
+        if r[1]:
+            all_user_obj_ids.add(r[1])
     records = await XNodeMySql.execute("select sender_obj_id from raffle;")
     all_user_obj_ids |= {r[0] for r in records}
     all_user_obj_ids = sorted(all_user_obj_ids)
