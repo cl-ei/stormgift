@@ -2,14 +2,15 @@ import asyncio
 import aiomysql
 from config import MYSQL_CONFIG
 
+db_pool = None
+
 
 class AsyncMySQL:
-    __conn = None
-
     @classmethod
     async def execute(cls, *args, _commit=False, **kwargs):
-        if cls.__conn is None:
-            cls.__conn = await aiomysql.connect(
+        global db_pool
+        if db_pool is None:
+            db_pool = await aiomysql.create_pool(
                 host=MYSQL_CONFIG["host"],
                 port=MYSQL_CONFIG["port"],
                 user=MYSQL_CONFIG["user"],
@@ -17,11 +18,17 @@ class AsyncMySQL:
                 db=MYSQL_CONFIG["database"],
                 loop=asyncio.get_event_loop()
             )
-        cursor = await cls.__conn.cursor()
-        await cursor.execute(*args, **kwargs)
-        if _commit:
-            await cls.__conn.commit()
-        r = await cursor.fetchall()
-        await cursor.close()
-        # conn.close()
-        return r
+
+        async with db_pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(*args, **kwargs)
+                if _commit:
+                    await conn.commit()
+                return await cursor.fetchall()
+
+    @classmethod
+    async def close(cls):
+        global db_pool
+        db_pool.close()
+        await db_pool.wait_closed()
+        db_pool = None
