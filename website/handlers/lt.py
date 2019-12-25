@@ -241,7 +241,7 @@ async def query_gifts(request):
     records.sort(key=lambda x: (get_price(x["gift_name"]), x["real_room_id"]), reverse=True)
     db_query_time = time.time() - start_time
     update_time = await redis_cache.get(key="LT_RAFFLE_DB_UPDATE_TIME")
-    update_datetime_str = datetime.datetime.fromtimestamp(update_time)
+    update_datetime_str = f"{datetime.datetime.fromtimestamp(update_time)}"
     hash_str = f"{hash(update_datetime_str):0x}"[:8]
     e_tag = f"{update_datetime_str[:19]}-{hash_str}"
     if json_req:
@@ -260,7 +260,7 @@ async def query_gifts(request):
 async def query_raffles(request):
     json_req = request.query.get("json")
     update_time = await redis_cache.get(key="LT_RAFFLE_DB_UPDATE_TIME")
-    update_datetime_str = datetime.datetime.fromtimestamp(update_time)
+    update_datetime_str = f"{datetime.datetime.fromtimestamp(update_time)}"
     hash_str = f"{hash(update_datetime_str):0x}"[:8]
     e_tag = f"{update_datetime_str[:19]}-{hash_str}"
 
