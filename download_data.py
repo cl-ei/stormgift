@@ -80,12 +80,19 @@ class SyncTool(object):
 async def sync_guard():
     existed_ids = await AsyncMySQL.execute("select distinct id from guard;")
     id_list = [row[0] for row in existed_ids]
-    records = await XNodeMySql.execute(f"select * from guard where id not in %s order by id asc limit 10", (id_list, ))
+    records = await XNodeMySql.execute(
+        f"select * from guard where id not in %s order by id asc limit 10000",
+        (id_list, )
+    )
+    if not records:
+        logging.info("Done!")
+        return
+
     user_objs_ids = [row[3] for row in records]
     users = await XNodeMySql.execute(f"select id, uid, name, face from biliuser where id in %s;", (user_objs_ids, ))
     user_dict = {row[0]: (row[1], row[2], row[3]) for row in users}
 
-    for r in records:
+    for i, r in enumerate(records):
         user_obj_id = r[3]
         sender_uid, sender_name, sender_face = user_dict[user_obj_id]
         guard_obj = await Guard.create(
@@ -98,7 +105,8 @@ async def sync_guard():
             created_time=r[5],
             expire_time=r[6],
         )
-        logging.info(f"guard_obj created: {guard_obj.id}, {guard_obj.sender_name}")
+        if i % 1000 == 0:
+            logging.info(f"{i} guard_obj created: {guard_obj.id}, {guard_obj.sender_name}")
 
 
 async def main():
