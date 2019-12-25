@@ -7,7 +7,7 @@ import datetime
 import configparser
 from utils.db_raw_query import AsyncMySQL
 from config.log4 import lt_db_sync_logger as logging
-from utils.reconstruction_model import Guard, Raffle
+from utils.reconstruction_model import Guard, Raffle, BiliUser, objects
 
 
 loop = asyncio.get_event_loop()
@@ -165,7 +165,38 @@ async def sync_raffle():
             logging.info(f"{i} raffle_obj created: {raffle_obj.id}, {raffle_obj.sender_name}")
 
 
+async def sync_user():
+    all_user_obj_ids = set()
+    records = await XNodeMySql.execute("select sender_obj_id, winner_obj_id from raffle;")
+    for r in records:
+        all_user_obj_ids.add(r[0])
+        all_user_obj_ids.add(r[1])
+    records = await XNodeMySql.execute("select sender_obj_id from raffle;")
+    all_user_obj_ids |= {r[0] for r in records}
+    all_user_obj_ids = sorted(all_user_obj_ids)
+
+    offset = 0
+    limit = 5000
+    while offset < len(all_user_obj_ids):
+        users = all_user_obj_ids[offset: offset+limit]
+        offset += limit
+
+        users = await XNodeMySql.execute(
+            f"select id, uid, name, face "
+            f"from biliuser "
+            f"where id in %s and uid is not null;",
+            (users, )
+        )
+        for row in users:
+            id_, uid, name, face = row
+            await objects.create(BiliUser, uid=uid, name=name, face=face)
+
+
 async def main():
+    await objects.connect()
+    await sync_user()
+
+    return
     r1 = await sync_raffle()
     r2 = await sync_guard()
     if r1 is True and r2 is True:
