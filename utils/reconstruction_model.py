@@ -276,13 +276,15 @@ class Raffle(peewee.Model):
         except peewee.IntegrityError as e:
             if "Duplicate entry" in f"{e}":
                 old_rec = await objects.get(Raffle, id=raffle_id)
+                old_rec.room_id = room_id
                 old_rec.prize_gift_name = prize_gift_name
                 old_rec.prize_count = prize_count
+                old_rec.sender_obj_id = sender.id,
                 old_rec.winner_obj_id = winner.id
 
                 await objects.update(
                     obj=old_rec,
-                    only=("prize_gift_name", "prize_count", "winner_obj_id")
+                    only=("room_id", "prize_gift_name", "prize_count", "sender_obj_id", "winner_obj_id")
                 )
 
                 return old_rec
