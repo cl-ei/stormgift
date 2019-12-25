@@ -3,7 +3,7 @@ import asyncio
 from utils.biliapi import BiliApi
 from utils.dao import MonitorLiveRooms
 from utils.model import MonitorWsClient
-from config.log4 import lt_source_logger as logging
+from config.log4 import crontab_task_logger as logging
 from utils.ws import get_ws_established_and_time_wait
 
 MONITOR_COUNT = 20000
