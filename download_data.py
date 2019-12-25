@@ -151,7 +151,7 @@ async def sync_raffle():
             "gift_type": r[3],
             "sender_obj_id": my_sender_obj_id,
             "sender_name": r[5],
-            "winner_obj_id": r[6],
+            "winner_obj_id": my_winner_obj_id,
             "winner_name": r[7],
             "prize_gift_name": r[8],
             "prize_count": r[9],
