@@ -14,7 +14,7 @@ async def main():
 
     query = await AsyncMySQL.execute(
         "select real_room_id from biliuser "
-        "where guard_count > 0 or attention > 10000 "
+        "where guard_count > 5 or attention > 10000 "
         "order by guard_count desc, attention desc ;"
     )
     recommend_room_id = [row[0] for row in query]
