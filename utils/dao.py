@@ -335,6 +335,8 @@ class ValuableLiveRoom(object):
         if not value or not isinstance(value, str):
             return []
 
+        print(f"  valur: {len(value)}")
+
         de_dup = set()
         result = []
         for room_id in value.split("_"):
