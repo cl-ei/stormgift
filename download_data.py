@@ -127,7 +127,7 @@ async def sync_raffle():
             f"where id in %s and winner_obj_id is not null "
             f"order by id asc limit 100000"
         ),
-        (id_list, datetime.datetime.now() - datetime.timedelta(hours=1), )
+        (id_list, )
     )
     sender_obj_ids = [row[4] for row in records]
     winner_obj_ids = [row[6] for row in records]
