@@ -244,7 +244,7 @@ async def query_gifts(request):
             "master_name": master_name,
             "sender_name": sender_name,
             "raffle_id": raffle_id,
-            "expire_time": expire_time,
+            "expire_time": str(expire_time),
         })
     records.sort(key=lambda x: (get_price(x["gift_name"]), x["real_room_id"]), reverse=True)
     db_query_time = time.time() - start_time
