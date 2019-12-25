@@ -115,7 +115,7 @@ async def sync_raffle():
     id_list = [row[0] for row in existed_ids]
     records = await XNodeMySql.execute(
         f"select * from raffle where id not in %s and created_time < %s order by id asc limit 10000",
-        (datetime.datetime.now() - datetime.timedelta(hours=1), id_list, )
+        (id_list, datetime.datetime.now() - datetime.timedelta(hours=1), )
     )
     if not records:
         logging.info("Raffle Done!")
@@ -153,8 +153,8 @@ async def sync_raffle():
 
 
 async def main():
-    await sync_guard()
     await sync_raffle()
+    await sync_guard()
 
     logging.info("ALL Done!")
 
