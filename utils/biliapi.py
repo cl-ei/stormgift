@@ -502,6 +502,7 @@ class BiliApi:
         if raffle_id_list:
             return True, raffle_id_list
         else:
+            logging.error(f"Empty raffle_id_list in response: r: {r}")
             return False, f"Empty raffle_id_list in response."
 
     @classmethod
@@ -516,6 +517,7 @@ class BiliApi:
         if raffle_id_list:
             return True, raffle_id_list
         else:
+            logging.error(f"Empty raffle_id_list in response: r: {r}")
             return False, f"Empty raffle_id_list in response."
 
     @classmethod
