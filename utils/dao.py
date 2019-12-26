@@ -673,15 +673,14 @@ class LTUserSettings:
 
         medals = settings.get("medals", [])
         for i in [1, 2, 3]:
-            key = f"medal_{i}"
-            if key in settings:
-                medals.append(settings[key])
-        medals = list(set(medals))
+            old_medal = settings.get(f"medal_{i}")
+            if old_medal and old_medal not in medals:
+                medals.append(old_medal)
+
         while True:
             if len(medals) >= 8:
                 break
             medals.append("")
-        medals.sort(reverse=True)
         settings["medals"] = medals
         return settings
 
@@ -706,9 +705,11 @@ class LTUserSettings:
         settings["pk_percent"] = pk_percent
         settings["storm_percent"] = storm_percent
         settings["anchor_percent"] = anchor_percent
-        if not isinstance(medals, (list, tuple, set)):
-            medals = []
-        settings["medals"] = list(set(medals))
+        valid_medals = []
+        for m in medals:
+            if m not in valid_medals:
+                valid_medals.append(m)
+        settings["medals"] = valid_medals
         await redis_cache.set(key=key, value=settings)
         return True
 
