@@ -649,7 +649,7 @@ class LTUserSettings:
 
             medals = setting.get("medals", [])
             for _ in [1, 2, 3]:
-                old_medal = setting.get(f"medal_{i}")
+                old_medal = setting.get(f"medal_{_}")
                 if old_medal and old_medal not in medals:
                     medals.append(old_medal)
             setting["medals"] = medals
