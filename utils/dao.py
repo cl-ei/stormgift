@@ -707,11 +707,11 @@ class LTUserSettings:
         settings["pk_percent"] = pk_percent
         settings["storm_percent"] = storm_percent
         settings["anchor_percent"] = anchor_percent
-        valid_medals = []
-        for m in medals:
-            if m not in valid_medals:
-                valid_medals.append(m)
-        settings["medals"] = valid_medals
+        settings["medals"] = []
+        if isinstance(medals, list):
+            for m in medals:
+                if m not in settings["medals"]:
+                    settings["medals"].append(m)
         await redis_cache.set(key=key, value=settings)
         return True
 

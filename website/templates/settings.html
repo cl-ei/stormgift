@@ -97,7 +97,7 @@
     <label>⑥ 大乱斗PK获胜参与率
         <input class="input-number" type="number" name="pk-percent" value="{{ settings.pk_percent }}">%
     </label>
-    <label class="auto-intimacy">* 自动送辣条1（填勋章名）
+    <label class="auto-intimacy">* 自动送辣条（填勋章名）
         {% for medal in settings.medals %}
             <input class="input-number" type="text" value="{{ medal }}">
             {% if not loop.last %}，{% endif %}
