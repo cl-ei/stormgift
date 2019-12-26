@@ -681,7 +681,7 @@ class LTUserSettings:
             if len(medals) >= 8:
                 break
             medals.append("")
-        settings["medals"] = medals
+        settings["medals"] = sorted(medals)
         return settings
 
     @classmethod
