@@ -10,7 +10,8 @@ MONITOR_COUNT = 20000
 
 
 async def batch_get_live_room_ids(count) -> set:
-    pages = (count + 500) // 500
+    page_size = 1000
+    pages = (count + page_size) // page_size
     result = [[] for _ in range(pages)]
 
     async def get_one_page(page_no):
@@ -18,7 +19,7 @@ async def batch_get_live_room_ids(count) -> set:
             if _try_times != 0:
                 logging.info(f"get one page Failed: page no {page_no}, failed times: {_try_times}")
 
-            flag, data = await BiliApi.get_lived_room_id_by_page(page=page_no, timeout=30)
+            flag, data = await BiliApi.get_lived_room_id_by_page(page=page_no, page_size=page_size, timeout=30)
             if not flag:
                 await asyncio.sleep(1)
                 continue

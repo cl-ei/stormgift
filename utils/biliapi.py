@@ -349,25 +349,18 @@ class BiliApi:
     async def _request_async(cls, method, url, headers, data, timeout):
         if url in (
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
-            "https://api.live.bilibili.com/gift/v3/smalltv/check",
             "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check",
-            "https://api.live.bilibili.com/lottery/v1/Storm/check",
-            "https://api.live.bilibili.com/activity/v1/s9/sign",
-            "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",
-            "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send",
+            # "https://api.live.bilibili.com/lottery/v1/Storm/check",  # 不再使用
+            # "https://api.live.bilibili.com/activity/v1/s9/sign",  # 不再使用
+            # "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",  # 不再使用
+            # "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send",  # 不再使用
             "https://api.live.bilibili.com/gift/v2/live/receive_daily_bag",
-            "https://api.live.bilibili.com/gift/v2/gift/bag_list",
-            "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list?",
             "https://api.bilibili.com/x/space/acc/info",
             "https://api.live.bilibili.com/room/v1/Room/room_init",
             "https://api.live.bilibili.com/room/v1/Area/getListByAreaID",
             "https://api.live.bilibili.com/room/v1/Room/get_info",
-            "https://api.live.bilibili.com/guard/topList",
             "https://api.live.bilibili.com/msg/send",
-            "https://api.bilibili.com/x/relation/modify",
-            "https://api.live.bilibili.com/lottery/v1/SilverBox/getCurrentTask",
             "https://api.live.bilibili.com/room/v1/Area/getLiveRoomCountByAreaID",
-            "https://api.live.bilibili.com/activity/v1/task/receive_award",
         ):
             req_json = {
                 "method": method,
@@ -465,6 +458,18 @@ class BiliApi:
             return True, room_id
         else:
             return False, f"Response data error: {r}"
+
+    @classmethod
+    async def get_living_rooms_by_area(cls, area_id, timeout=30):
+        req_url = (
+                "https://api.live.bilibili.com/room/v3/area/getRoomList"
+                "?platform=web&page=1&page_size=10"
+                "&parent_area_id=%s" % area_id
+        )
+        flag, result = await cls.get(req_url, timeout=timeout, check_response_json=True, check_error_code=True)
+        if not flag:
+            return False, result
+        return True, [r["roomid"] for r in result.get("data", {}).get("list", [])]
 
     @classmethod
     async def check_live_status(cls, room_id, area=None, timeout=20):
@@ -939,7 +944,6 @@ class BiliApi:
 
     @classmethod
     async def get_bag_list(cls, cookie, timeout=10):
-        # req_url = "https://api.live.bilibili.com/gift/v2/gift/bag_list"
         req_url = "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list"
         data = {"t": int(time.time()*1000)}
         flag, r = await cls.get(req_url, headers={"Cookie": cookie}, data=data, timeout=timeout, check_error_code=True)
@@ -1220,12 +1224,12 @@ class BiliApi:
         return num > 0, num
 
     @classmethod
-    async def get_lived_room_id_by_page(cls, page=0, timeout=10):
+    async def get_lived_room_id_by_page(cls, page=0, page_size=1000, timeout=10):
         req_url = "https://api.live.bilibili.com/room/v1/Area/getListByAreaID"
         data = {
             "areaId": 0,
             "sort": "online",
-            "pageSize": 500,
+            "pageSize": page_size,
             "page": page,
         }
         r, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
@@ -1233,20 +1237,6 @@ class BiliApi:
             return False, data
         room_list = data.get("data", []) or []
         return True, [r["roomid"] for r in room_list]
-
-    @classmethod
-    async def get_lived_room_id_list(cls, count=500, timeout=50):
-        live_room_is_list = []
-        for _ in range((count + 500) // 500):
-            flag, data = await cls.get_lived_room_id_by_page(page=_, timeout=timeout)
-            if not flag:
-                return False, data
-            live_room_is_list.extend(data)
-            live_room_is_list = list(set(live_room_is_list))
-            if len(live_room_is_list) >= count:
-                return True, live_room_is_list[:count]
-
-        return True, live_room_is_list[:count]
 
     @classmethod
     async def update_brief_intro(cls, cookie, description, room_id=None, timeout=50):
