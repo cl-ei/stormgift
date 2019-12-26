@@ -29,7 +29,7 @@ async def push_prize_message():
         guard = set()
         while True:
             try:
-                area_id, real_room_id, raffle_type, extra = prize_room_q.get_nowait()
+                area_id, real_room_id, raffle_type = prize_room_q.get_nowait()
                 if raffle_type == "T":
                     tv.add(real_room_id)
                 elif raffle_type == "G":
