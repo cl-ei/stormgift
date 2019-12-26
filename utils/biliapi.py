@@ -348,19 +348,13 @@ class BiliApi:
     @classmethod
     async def _request_async(cls, method, url, headers, data, timeout):
         if url in (
+            # "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check",  # 仍在使用，但使用本机ip
+
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
-            "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check",
-            # "https://api.live.bilibili.com/lottery/v1/Storm/check",  # 不再使用
-            # "https://api.live.bilibili.com/activity/v1/s9/sign",  # 不再使用
-            # "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id",  # 不再使用
-            # "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send",  # 不再使用
-            "https://api.live.bilibili.com/gift/v2/live/receive_daily_bag",
-            "https://api.bilibili.com/x/space/acc/info",
             "https://api.live.bilibili.com/room/v1/Room/room_init",
             "https://api.live.bilibili.com/room/v1/Area/getListByAreaID",
-            "https://api.live.bilibili.com/room/v1/Room/get_info",
-            "https://api.live.bilibili.com/msg/send",
             "https://api.live.bilibili.com/room/v1/Area/getLiveRoomCountByAreaID",
+            "https://api.live.bilibili.com/msg/send",
         ):
             req_json = {
                 "method": method,
