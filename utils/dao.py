@@ -676,6 +676,7 @@ class LTUserSettings:
             key = f"medal_{i}"
             if key in settings:
                 medals.append(settings[key])
+        medals = list(set(medals))
         while True:
             if len(medals) >= 8:
                 break
@@ -704,9 +705,9 @@ class LTUserSettings:
         settings["pk_percent"] = pk_percent
         settings["storm_percent"] = storm_percent
         settings["anchor_percent"] = anchor_percent
-        if not isinstance(medals, (list, tuple)):
+        if not isinstance(medals, (list, tuple, set)):
             medals = []
-        settings["medals"] = medals
+        settings["medals"] = list(set(medals))
         await redis_cache.set(key=key, value=settings)
         return True
 
