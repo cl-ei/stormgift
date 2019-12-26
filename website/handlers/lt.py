@@ -158,13 +158,8 @@ async def post_settings(request):
         pk_percent = int(data["pk_percent"])
         storm_percent = int(data["storm_percent"])
         anchor_percent = int(data["anchor_percent"])
-        md = {}
+        medals = data["medals"]
 
-        for i in [1, 2, 3]:
-            key = f"medal_{i}"
-            value = (data.get(key) or "").strip()
-            if 0 < len(value) <= 6:
-                md[key] = value
     except (KeyError, TypeError, ValueError):
         return json_response({"code": 403, "err_msg": "你提交了不正确的参数 ！"})
 
@@ -177,6 +172,10 @@ async def post_settings(request):
     ):
         return json_response({"code": 403, "err_msg": "范围错误！请设置0~100 ！"})
 
+    for m in medals:
+        if not isinstance(m, str) or not 0 < len(m) <= 6:
+            return json_response({"code": 403, "err_msg": f"错误的勋章：{m}"})
+
     await LTUserSettings.set(
         uid=bili_uid,
         tv_percent=tv_percent,
@@ -184,7 +183,7 @@ async def post_settings(request):
         pk_percent=pk_percent,
         storm_percent=storm_percent,
         anchor_percent=anchor_percent,
-        **md
+        medals=medals,
     )
     return json_response({"code": 0})
 

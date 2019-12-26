@@ -97,10 +97,10 @@
     <label>⑥ 大乱斗PK获胜参与率
         <input class="input-number" type="number" name="pk-percent" value="{{ settings.pk_percent }}">%
     </label>
-    <label>* 自动送辣条1（填勋章名）
-        {% for i in range(settings.medals|length) %}
-            <input class="input-number" type="text" name="medal_{{ i }}" value="{{ settings.medals[i] }}">
-            {% if (i + 1)  < settings.medals|length %}，{% endif %}
+    <label class="auto-intimacy">* 自动送辣条1（填勋章名）
+        {% for medal in settings.medals %}
+            <input class="input-number" type="text" value="{{ medal }}">
+            {% if not loop.last %}，{% endif %}
         {% endfor %}
     </label>
     <button class="button center" id="submit-settings">保存设置</button>
@@ -154,11 +154,11 @@ $(function () {
         }
         let anchor_percent = 0;
 
-        let models = [];
-        for (let i = 1; i <= 8; i++){
-            let dom_name = "input[name=medal_" + i + "]";
-            let medal_name = $(dom_name).val() || "";
-            if (medal_name !== ""){models.push(medal_name)};
+        let medals = [];
+        let medalsDom = $(".auto-intimacy input");
+        for (let i = 0; i < medalsDom.length; i++){
+            let medal_name = medalsDom.eq(i).val() || "";
+            if (medal_name !== ""){medals.push(medal_name)}
         }
         $("#submit-settings").off("click");
         $.ajax({
@@ -170,7 +170,7 @@ $(function () {
                 pk_percent: pk_percent,
                 storm_percent: storm_percent,
                 anchor_percent: anchor_percent,
-                medals: models,
+                medals: medals,
             },
             success: function (r){
                 if (r.code !== 0){

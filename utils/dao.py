@@ -671,12 +671,16 @@ class LTUserSettings:
         if "anchor_percent" not in settings:
             settings["anchor_percent"] = 0
 
-        modals = []
+        medals = settings.get("medals", [])
         for i in [1, 2, 3]:
             key = f"medal_{i}"
             if key in settings:
-                modals.append(settings[key])
-
+                medals.append(settings[key])
+        while True:
+            if len(medals) >= 8:
+                break
+            medals.append("")
+        settings["medals"] = medals
         return settings
 
     @classmethod
@@ -688,9 +692,7 @@ class LTUserSettings:
         pk_percent=100,
         storm_percent=0,
         anchor_percent=0,
-        medal_1="",
-        medal_2="",
-        medal_3="",
+        medals=None,
     ):
 
         key = f"{cls.key}_{uid}"
@@ -702,9 +704,9 @@ class LTUserSettings:
         settings["pk_percent"] = pk_percent
         settings["storm_percent"] = storm_percent
         settings["anchor_percent"] = anchor_percent
-        settings["medal_1"] = medal_1
-        settings["medal_2"] = medal_2
-        settings["medal_3"] = medal_3
+        if not isinstance(medals, (list, tuple)):
+            medals = []
+        settings["medals"] = medals
         await redis_cache.set(key=key, value=settings)
         return True
 
