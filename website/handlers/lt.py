@@ -152,7 +152,7 @@ async def post_settings(request):
         return json_response({"code": 403, "err_msg": "你无权访问。"})
 
     data = await request.post()
-    print(f"medals: {data}")
+    print(f"medals: {data['medals[]']}")
     try:
         tv_percent = int(data["tv_percent"])
         guard_percent = int(data["guard_percent"])
