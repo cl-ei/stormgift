@@ -101,11 +101,8 @@ async def main():
         obj = await DBCookieOperator.get_by_uid(user_id=user_id, available=True)
         if not obj:
             continue
+
         medals = setting["medals"]
-        print(f"{obj.name}({obj.user_id}): {medals}")
-
-        continue
-
         for medal in medals:
             await send_gift(cookie=obj.cookie, medal=medal, user_name=obj.name)
 
