@@ -159,7 +159,7 @@ async def post_settings(request):
         storm_percent = int(data["storm_percent"])
         anchor_percent = int(data["anchor_percent"])
         medals = [m.strip() for m in data["medals"].split("\r\n")]
-        medals = [m for m in medals]
+        medals = [m for m in medals if m]
     except (KeyError, TypeError, ValueError) as e:
         return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}\n{traceback.format_exc()}"})
 
