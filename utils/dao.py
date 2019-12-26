@@ -708,6 +708,10 @@ class LTUserSettings:
         settings["storm_percent"] = storm_percent
         settings["anchor_percent"] = anchor_percent
         settings["medals"] = []
+
+        for _ in [1, 2, 3]:
+            if f"medal_{_}" in settings:
+                settings.pop(f"medal_{_}")
         if isinstance(medals, list):
             for m in medals:
                 if m not in settings["medals"]:
