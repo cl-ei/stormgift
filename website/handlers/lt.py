@@ -152,14 +152,13 @@ async def post_settings(request):
         return json_response({"code": 403, "err_msg": "你无权访问。"})
 
     data = await request.post()
-    print(f"medals: {data['medals[]']}")
     try:
         tv_percent = int(data["tv_percent"])
         guard_percent = int(data["guard_percent"])
         pk_percent = int(data["pk_percent"])
         storm_percent = int(data["storm_percent"])
         anchor_percent = int(data["anchor_percent"])
-        medals = data["medals"]
+        medals = data["medals"].split("\r\n")
 
     except (KeyError, TypeError, ValueError) as e:
         return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}\n{traceback.format_exc()}"})

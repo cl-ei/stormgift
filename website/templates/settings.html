@@ -170,7 +170,7 @@ $(function () {
                 pk_percent: pk_percent,
                 storm_percent: storm_percent,
                 anchor_percent: anchor_percent,
-                medals: medals,
+                medals: medals.join('\r\n'),
             },
             success: function (r){
                 if (r.code !== 0){
