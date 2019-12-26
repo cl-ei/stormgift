@@ -113,11 +113,11 @@ class DanmakuProcessor:
                 continue
 
             flag, msg = await BiliApi.send_danmaku(message=dmk, room_id=self.room_id, cookie=cookie)
-            logging.info(f"DMK r: {flag}. {self.short_room_id}-{self.name} -> {dmk}\n\t{msg}")
             if flag:
                 await asyncio.sleep(1)
                 continue
 
+            logging.error(f"DMK send failed. {self.short_room_id}-{self.name} -> {dmk}\n\t{msg}")
             if "412" in msg:
                 self.msg_block_until = now + 60 * 5
 
