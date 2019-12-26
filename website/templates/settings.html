@@ -97,17 +97,11 @@
     <label>⑥ 大乱斗PK获胜参与率
         <input class="input-number" type="number" name="pk-percent" value="{{ settings.pk_percent }}">%
     </label>
-{#    <label>⑦ 天选时刻参与率#}
-{#        <input class="input-number" type="number" name="anchor-percent" value="{{ settings.anchor_percent }}">%#}
-{#    </label>#}
     <label>* 自动送辣条1（填勋章名）
-        <input class="input-number" type="text" name="medal_1" value="{{ settings.medal_1 }}">
-    </label>
-    <label>* 自动送辣条2
-        <input class="input-number" type="text" name="medal_2" value="{{ settings.medal_2 }}">
-    </label>
-    <label>* 自动送辣条3
-        <input class="input-number" type="text" name="medal_3" value="{{ settings.medal_3 }}">
+        {% for i in range(settings.medals|length) %}
+            <input class="input-number" type="text" name="medal_{{ i }}" value="{{ settings.medals[i] }}">
+            {% if (i + 1)  < settings.medals|length %}，{% endif %}
+        {% endfor %}
     </label>
     <button class="button center" id="submit-settings">保存设置</button>
 
@@ -159,16 +153,13 @@ $(function () {
             return;
         }
         let anchor_percent = 0;
-        {#let anchor_percent = parseInt($("input[name=anchor-percent]").val()) || 0;#}
-        {#if (anchor_percent < 0 || anchor_percent > 100){#}
-        {#    warning("节奏风暴参与率超过范围，请设置： 0~100 !");#}
-        {#    return;#}
-        {#}#}
 
-        let medal_1 = $("input[name=medal_1]").val() || "";
-        let medal_2 = $("input[name=medal_2]").val() || "";
-        let medal_3 = $("input[name=medal_3]").val() || "";
-
+        let models = [];
+        for (let i = 1; i <= 8; i++){
+            let dom_name = "input[name=medal_" + i + "]";
+            let medal_name = $(dom_name).val() || "";
+            if (medal_name !== ""){models.push(medal_name)};
+        }
         $("#submit-settings").off("click");
         $.ajax({
             url: "/lt/post_settings",
@@ -179,9 +170,7 @@ $(function () {
                 pk_percent: pk_percent,
                 storm_percent: storm_percent,
                 anchor_percent: anchor_percent,
-                medal_1: medal_1,
-                medal_2: medal_2,
-                medal_3: medal_3
+                medals: models,
             },
             success: function (r){
                 if (r.code !== 0){

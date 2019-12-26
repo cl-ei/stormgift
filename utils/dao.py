@@ -671,10 +671,11 @@ class LTUserSettings:
         if "anchor_percent" not in settings:
             settings["anchor_percent"] = 0
 
+        modals = []
         for i in [1, 2, 3]:
             key = f"medal_{i}"
-            if key not in settings:
-                settings[key] = ""
+            if key in settings:
+                modals.append(settings[key])
 
         return settings
 
