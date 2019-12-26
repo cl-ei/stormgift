@@ -160,8 +160,8 @@ async def post_settings(request):
         anchor_percent = int(data["anchor_percent"])
         medals = data["medals"]
 
-    except (KeyError, TypeError, ValueError):
-        return json_response({"code": 403, "err_msg": "你提交了不正确的参数 ！"})
+    except (KeyError, TypeError, ValueError) as e:
+        return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}"})
 
     if (
         not 0 <= tv_percent <= 100
