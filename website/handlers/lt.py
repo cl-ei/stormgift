@@ -161,7 +161,7 @@ async def post_settings(request):
         medals = data["medals"]
 
     except (KeyError, TypeError, ValueError) as e:
-        return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}"})
+        return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}\n{traceback.format_exc()}"})
 
     if (
         not 0 <= tv_percent <= 100
