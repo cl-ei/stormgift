@@ -16,20 +16,24 @@ async def fix_missed_uid(execute):
     logging.info(f"non_uid_users count: {len(non_uid_users)}")
 
     # 过滤
-    keys = [f"FIX_MISSED_USER_{name}" for name in non_uid_users]
+    block_key_prefix = "FIX_MISSED_USER_"
+    keys = [f"{block_key_prefix}{name}" for name in non_uid_users]
     result = await redis_cache.mget(*keys)
-    failed_users = [r for r in result if r]
-    logging.info(f"Failed users: {len(failed_users)}.")
+    non_blocked = {}
+    blocked = []
+    for i, key in enumerate(keys):
+        name = key[len(block_key_prefix):]
+        if result[i]:
+            blocked.append(name)
+        else:
+            non_blocked[name] = non_uid_users[name]
+    logging.info(f"Failed users: {len(blocked)}, {blocked[:6]}...")
 
-    for current_name, non_uid_obj_id in non_uid_users.items():
-        if current_name in failed_users:
-            logging.info(f"Found failed key: {current_name}, now skip.")
-            continue
-
+    for current_name, non_uid_obj_id in non_blocked.items():
         uid = await ReqFreLimitApi.get_uid_by_name(current_name)
         if not uid:
-            await redis_cache.set(
-                key=f"FIX_MISSED_USER_{current_name}",
+            await redis_cache.get(
+                key=f"{block_key_prefix}{current_name}",
                 value="f",
                 timeout=3600*24*random.randint(4, 7)
             )
