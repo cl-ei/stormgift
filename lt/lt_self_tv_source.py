@@ -100,7 +100,7 @@ async def monitor(index):
                 if is_preparing is True:
                     break
 
-        CLIENTS_MAP[area_id].pop(ws)
+        CLIENTS_MAP[area_id].remove(ws)
         logging.info(f"Client closed. {area_id} -> {room_id}, By danmaku preparing: {is_preparing}")
 
     async def get_living_room_id(area_id):
