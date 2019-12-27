@@ -275,15 +275,15 @@ async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target:
             key_type, room_id, *_ = msg
             if key_type in ("R", "D", "P", "S", "A"):
                 executor = Executor(start_time=start_time, br=broadcast_target)
-                target = getattr(executor, key_type.lower(), None)
-                if target:
-                    task_q.put_nowait(target(*msg))
+                task_q.put_nowait(getattr(executor, key_type.lower())(*msg))
+                logging.info(f"Assign task: {key_type} room_id: {room_id}")
 
             elif key_type in ("G", "T", "Z"):
                 if room_id not in de_dup:
                     de_dup.add(room_id)
                     executor = Executor(start_time=start_time, br=broadcast_target)
                     task_q.put_nowait(executor.lottery_or_guard(*msg))
+                    logging.info(f"Assign task: {key_type} room_id: {room_id}")
 
         cost = time.time() - start_time
         if cost < 1:
