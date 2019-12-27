@@ -161,7 +161,7 @@ class Executor:
             if not await redis_cache.set_if_not_exists(key, "de-duplication"):
                 continue
 
-            privilege_type = raffle_id["privilege_type"]
+            privilege_type = info["privilege_type"]
             if privilege_type == 3:
                 gift_name = "舰长"
             elif privilege_type == 2:
