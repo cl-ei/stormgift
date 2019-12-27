@@ -222,7 +222,7 @@ class Executor:
             sender_name = info["from_user"]["uname"]
             sender_face = info["from_user"]["face"]
             created_time = datetime.datetime.fromtimestamp(self._start_time)
-            logging.info(f"Lottery found: room_id: {room_id} $ {raffle_id} ({gift_name}) <- {sender['uname']}")
+            logging.info(f"Lottery found: room_id: {room_id} $ {raffle_id} ({gift_name}) <- {sender_name}")
 
             create_param = {
                 "raffle_id": raffle_id,
