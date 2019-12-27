@@ -32,7 +32,7 @@ async def fix_missed_uid(execute):
     for current_name, non_uid_obj_id in non_blocked.items():
         uid = await ReqFreLimitApi.get_uid_by_name(current_name)
         if not uid:
-            await redis_cache.get(
+            await redis_cache.set(
                 key=f"{block_key_prefix}{current_name}",
                 value="f",
                 timeout=3600*24*random.randint(4, 7)
