@@ -299,6 +299,7 @@ class Worker(object):
                 }, ensure_ascii=False))
 
     async def run_forever(self):
+        await mq_source_to_raffle.start_listen()
         while True:
             msg = await mq_source_to_raffle.get()
 

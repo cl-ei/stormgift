@@ -17,6 +17,9 @@ class UdpServer:
         self._data_receive_q = asyncio.Queue()
 
     async def start_server(self):
+        if self.transport is not None:
+            return
+
         class ServerProtocol(asyncio.Protocol):
             def __init__(self, q: asyncio.Queue):
                 self.transport = None
