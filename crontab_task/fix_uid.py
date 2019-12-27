@@ -43,7 +43,7 @@ async def fix_missed_uid(execute):
         # 检查该uid是否在表里已存在, 如果不存在，则直接写入
         duplicated = await execute("select id, uid, name, face from biliuser where uid = %s;", uid)
         if not duplicated:
-            r = await execute("update biliuser set uid=%s where id=%s;", non_uid_obj_id, _commit=True)
+            r = await execute("update biliuser set uid=%s where id=%s;", (uid, non_uid_obj_id), _commit=True)
             logging.info(f"User obj updated! {current_name} -> {uid}, obj id: {non_uid_obj_id}, r: {r}")
             continue
 
@@ -101,7 +101,10 @@ async def main():
             await cursor.execute(*args, **kwargs)
             if _commit:
                 await conn.commit()
-            return await cursor.fetchall()
+            sql = args[0]
+            if sql.startswith("select"):
+                return await cursor.fetchall()
+            return cursor.rowcount
 
     try:
         await fix_missed_uid(execute)
