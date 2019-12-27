@@ -102,12 +102,12 @@ class UDPSourceToRaffleMQ:
         await self.udp_server.start_server()
 
     def get_nowait(self):
-        r = self.udp_server.received_data_nowait()
-        return pickle.loads(r)
+        data, addr = self.udp_server.received_data_nowait()
+        return pickle.loads(data)
 
     async def get(self):
-        r = await self.udp_server.received_data()
-        return pickle.loads(r)
+        data, addr = await self.udp_server.received_data()
+        return pickle.loads(data)
 
 
 mq_source_to_raffle = UDPSourceToRaffleMQ()
