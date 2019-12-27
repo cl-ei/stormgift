@@ -58,11 +58,12 @@ async def sync_raffle(redis):
                 prize_gift_name=raffle["prize_gift_name"],
                 sender_name=raffle["sender_name"]
             )
+            await RedisRaffle.delete(raffle_id, redis=redis)
+            logging.info(f"Saved: T:{raffle['raffle_id']} {r.id} Raffle Full.")
 
         else:
             r = await Raffle.record_raffle_before_result(**raffle)
-        logging.info(f"Saved: T:{raffle['raffle_id']} {r.id}")
-        await RedisRaffle.delete(raffle_id, redis=redis)
+            logging.info(f"Saved: T:{raffle['raffle_id']} {r.id} Raffle Pre.")
 
 
 async def sync_anchor(redis):
