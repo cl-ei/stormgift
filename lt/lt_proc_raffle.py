@@ -8,7 +8,7 @@ from aiohttp import web
 from config import config
 from random import random
 from utils.biliapi import BiliApi
-from utils.mq import mq_source_to_raffle
+from utils.udp import mq_source_to_raffle
 from utils.cq import CQClient, async_zy
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging

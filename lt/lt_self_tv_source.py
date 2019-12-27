@@ -1,7 +1,7 @@
 import time
 import asyncio
 import aiohttp
-from utils.mq import mq_source_to_raffle
+from utils.udp import mq_source_to_raffle
 from utils.dao import InLotteryLiveRooms
 from utils.biliapi import WsApi, BiliApi
 from config.log4 import lt_source_logger as logging
