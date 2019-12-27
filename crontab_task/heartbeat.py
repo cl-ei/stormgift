@@ -1,13 +1,11 @@
 import asyncio
+from utils.biliapi import BiliApi
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import crontab_task_logger as logging
 
 
-async def post_heartbeat(lt_user_obj):
+async def post_heartbeat(index, total, lt_user_obj):
     cookie = lt_user_obj.cookie
-    logging.info(f"Post heartbeat for {lt_user_obj.name}(uid: {lt_user_obj.DedeUserID}).")
-
-    from utils.biliapi import BiliApi
     r, data = await BiliApi.post_heartbeat_5m(cookie)
     if not r:
         logging.error(f"Post heartbeat failed! msg: {data}")
@@ -22,15 +20,15 @@ async def post_heartbeat(lt_user_obj):
     if not r:
         logging.error(f"Cannot post last time st! msg: {data}")
         return
-    logging.info(f"Post heartbeat success!")
+    logging.info(f"({index + 1}/{total}) Post heartbeat for {lt_user_obj.name}(uid: {lt_user_obj.DedeUserID}) done.")
 
 
 async def main():
     objs = await DBCookieOperator.get_objs(available=True, is_vip=True)
-    for obj in objs:
-        await post_heartbeat(obj)
+    for i, obj in enumerate(objs):
+        await post_heartbeat(i, len(objs), obj)
         await asyncio.sleep(5)
-    logging.info("Post heart beat task done.\n\n")
+    logging.info(f"Post heart beat task done({len(objs)}).\n\n")
 
 
 loop = asyncio.get_event_loop()
