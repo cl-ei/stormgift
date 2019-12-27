@@ -1,5 +1,3 @@
-import os
-import sys
 import time
 import random
 import logging
@@ -10,15 +8,6 @@ from config import MYSQL_CONFIG
 from utils.dao import redis_cache
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_db_sync_logger as logging
-
-if sys.platform == "linux":
-    task_name = "crontab_task.fix_uid"
-
-    process = os.popen(f"ps -ef | grep '{task_name}'").read().split("\n")
-    for p_name in process:
-        if task_name in p_name and " grep " not in p_name:
-            logging.info(f"Another{task_name} running, now exit.\n\t{p_name}")
-            sys.exit(0)
 
 
 async def fix_missed_uid(execute):

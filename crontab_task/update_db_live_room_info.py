@@ -1,5 +1,3 @@
-import os
-import sys
 import time
 import logging
 import asyncio
@@ -9,16 +7,6 @@ from utils.biliapi import BiliApi
 from utils.db_raw_query import AsyncMySQL
 from config.log4 import lt_db_sync_logger as logging
 from utils.reconstruction_model import objects, BiliUser
-
-
-if sys.platform == "linux":
-    my_task_name = "crontab_task.update_db_live_room_info"
-
-    process = os.popen(f"ps -ef | grep '{my_task_name}'").read().split("\n")
-    for p_name in process:
-        if my_task_name in p_name and " grep " not in p_name:
-            logging.info(f"Another {my_task_name}, now exit.\n\t{p_name}")
-            sys.exit(0)
 
 
 async def update_live_room_info():
