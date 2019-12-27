@@ -193,7 +193,7 @@ class Executor:
                 "expire_time": expire_time,
             }
             await RedisGuard.add(raffle_id=raffle_id, value=create_param)
-            logging.info(f"Guard found: room_id: {room_id} $ {raffle_id}, {sender['uname']} -> {gift_name}")
+            logging.info(f"Guard found: room_id: {room_id} $ {raffle_id} ({gift_name}) <- {sender['uname']}")
 
     async def _handle_tv(self, room_id, gift_list):
         await InLotteryLiveRooms.add(room_id=room_id)
@@ -222,7 +222,7 @@ class Executor:
             sender_name = info["from_user"]["uname"]
             sender_face = info["from_user"]["face"]
             created_time = datetime.datetime.fromtimestamp(self._start_time)
-            logging.info(f"Guard found: room_id: {room_id} $ {raffle_id}, {sender_name} -> {gift_name}")
+            logging.info(f"Lottery found: room_id: {room_id} $ {raffle_id} ({gift_name}) <- {sender['uname']}")
 
             create_param = {
                 "raffle_id": raffle_id,
@@ -319,7 +319,6 @@ async def main():
     print("Site started.")
 
     async def broadcast_target(message):
-        logging.info(f"broadcast: {message}")
         for ws in set(app['ws']):
             await ws.send_str(f"{message}\n")
 
