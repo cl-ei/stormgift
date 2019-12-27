@@ -14,16 +14,172 @@ from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor
 
+# await InLotteryLiveRooms.add(room_id=room_id)
 
-api_root = config["ml_bot"]["api_root"]
-access_token = config["ml_bot"]["access_token"]
-ml_qq = CQClient(api_root=api_root, access_token=access_token)
+ml_qq = CQClient(
+    api_root=config["ml_bot"]["api_root"],
+    access_token=config["ml_bot"]["access_token"]
+)
+
+
+class Executor:
+    def __init__(self, start_time, br):
+        self._start_time = start_time
+        self.br = br
+
+    async def r(*args):
+        """ record_raffle """
+        pass
+
+    async def d(*args):
+        """ danmaku to qq """
+        pass
+
+    async def p(self, *args):
+        """ pk """
+        pass
+
+    async def s(self, *args):
+        """ storm """
+        pass
+
+    async def a(self, *args):
+        """ anchor """
+        pass
+
+    async def lottery_or_guard(*args):
+        pass
+
+
+async def worker_task__record_raffle_info(room_id, start_time, danmaku):
+    pass
+
+
+async def worker_task__danmaku_to_qq(room_id, start_time, danmaku):
+    info = danmaku.get("info", {})
+    msg = str(info[1])
+    uid = info[2][0]
+    user_name = info[2][1]
+    is_admin = info[2][2]
+    ul = info[4][0]
+    d = info[3]
+    dl = d[0] if d else "-"
+    deco = d[1] if d else "undefined"
+    message = f"{room_id} ->\n\n{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
+    logging.info(message)
+    await async_zy.send_private_msg(user_id=80873436, message=message)
+
+
+async def worker_task__lottery_and_guard(room_id, start_time, key_type):
+    pass
+
+
+async def worker_task__join_pk(room_id, start_time, danmaku):
+    raffle_id = danmaku["data"]["id"]
+    """
+    key = f"P${room_id}${raffle_id}"
+    if await redis_cache.set_if_not_exists(key, "de-duplication"):
+        await self.broadcast(json.dumps({
+            "raffle_type": "pk",
+            "ts": int(now_ts),
+            "real_room_id": room_id,
+            "raffle_id": raffle_id,
+            "gift_name": "PK",
+        }, ensure_ascii=False))
+    """
+
+
+async def worker_task__storm(room_id, start_time, danmaku):
+    pass
+
+
+async def worker_task__anchor():
+    # require_type = data["require_type"]
+    # 0: 无限制; 1: 关注主播; 2: 粉丝勋章; 3大航海； 4用户等级；5主站等级
+    danmaku = danmakus[0]
+
+    data = danmaku["data"]
+    raffle_id = data["id"]
+    room_id = data["room_id"]
+    award_name = data["award_name"]
+    award_num = data["award_num"]
+    cur_gift_num = data["cur_gift_num"]
+    gift_name = data["gift_name"]
+    gift_num = data["gift_num"]
+    gift_price = data["gift_price"]
+    join_type = data["join_type"]
+    require_type = data["require_type"]
+    require_value = data["require_value"]
+    require_text = data["require_text"]
+    danmu = data["danmu"]
+
+    key = f"A${room_id}${raffle_id}"
+    if await redis_cache.set_if_not_exists(key, "de-duplication"):
+        # join_type = data["join_type"]
+        # if join_type == 0:  # 免费参与
+        #
+        #     in_black_list = False
+        #     for value in (award_name, room_id, danmu):
+        #         if await AnchorBlackList.is_include(str(value)):
+        #             in_black_list = True
+        #             break
+        #
+        #     if in_black_list:
+        #         logging.info(f"Anchor in black list! room_id: {room_id}, award: {award_name}, danmu: {danmu}")
+        #     do: join
+
+        await self.broadcast(json.dumps({
+            "raffle_type": "anchor",
+            "ts": int(now_ts),
+            "real_room_id": room_id,
+            "raffle_id": raffle_id,
+            "gift_name": "天选时刻",
+            "join_type": join_type,
+            "require": f"{require_type}-{require_value}:{require_text}",
+            "gift": f"{gift_num}*{gift_name or 'null'}({gift_price})",
+            "award": f"{award_num}*{award_name}",
+        }, ensure_ascii=False))
+
+
+async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target: asyncio.coroutines):
+    await mq_source_to_raffle.start_listen()
+
+    while True:
+        start_time = time.time()
+
+        sources = []
+        try:
+            while True:
+                sources.append(mq_source_to_raffle.get_nowait())
+        except asyncio.queues.QueueEmpty:
+            pass
+
+        de_dup = set()
+
+        for msg in sources:
+            key_type, room_id, *_ = msg
+            if key_type in ("R", "D", "P", "S", "A"):
+                executor = Executor(start_time=start_time, br=broadcast_target)
+                target = getattr(executor, key_type.lower(), None)
+                if target:
+                    task_q.put_nowait(target(*msg))
+
+            elif key_type in ("G", "T", "Z"):
+                if room_id not in de_dup:
+                    de_dup.add(room_id)
+                    executor = Executor(start_time=start_time, br=broadcast_target)
+                    task_q.put_nowait(executor.lottery_or_guard(*msg))
+
+        cost = time.time() - start_time
+        if cost < 1:
+            await asyncio.sleep(1 - cost)
 
 
 class Worker(object):
-    def __init__(self, index, broadcast_target):
+    def __init__(self, index, q, broadcast_target):
         self.index = index
         self.broadcast = broadcast_target
+        self.q = q
 
     @staticmethod
     async def record_raffle_info(danmaku, created_time, msg_from_room_id):
@@ -299,7 +455,7 @@ class Worker(object):
                 }, ensure_ascii=False))
 
     async def run_forever(self):
-        await mq_source_to_raffle.start_listen()
+
         while True:
             msg = await mq_source_to_raffle.get()
 
@@ -350,10 +506,22 @@ async def main():
         for ws in set(app['ws']):
             await ws.send_str(f"{message}\n")
 
-    await asyncio.gather(*[
-        asyncio.create_task(Worker(index, broadcast_target).run_forever())
-        for index in range(8)
-    ])
+    task_q = asyncio.Queue()
+    receiver_task = asyncio.create_task(receive_prize_from_udp_server(task_q, broadcast_target))
+
+    async def worker(index):
+        while True:
+            c = await task_q.get()
+            start_time = time.time()
+            try:
+                await c
+            except Exception as e:
+                logging.error(f"RAFFLE worker[{index}] error: {e}\n{traceback.format_exc()}")
+            cost_time = time.time() - start_time
+            if cost_time > 5:
+                logging.warning(f"RAFFLE worker[{index}] exec long time: {cost_time:.3f}")
+
+    await asyncio.gather(receiver_task, *[asyncio.create_task(worker(_)) for _ in range(8)])
 
 
 loop = asyncio.get_event_loop()
