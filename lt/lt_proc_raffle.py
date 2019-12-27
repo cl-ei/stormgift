@@ -9,7 +9,6 @@ from aiohttp import web
 from utils.cq import async_zy
 from utils.biliapi import BiliApi
 from utils.udp import mq_source_to_raffle
-from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
 from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, InLotteryLiveRooms
 
@@ -34,7 +33,7 @@ class Executor:
         elif cmd in ("RAFFLE_END", "TV_END"):
             data = danmaku["data"]
             winner_name = data["uname"]
-            winner_uid = await ReqFreLimitApi.get_uid_by_name(winner_name)
+            winner_uid = None
             winner_face = data["win"]["face"]
             raffle_id = int(data["raffleId"])
             gift_type = data["type"]
@@ -45,7 +44,6 @@ class Executor:
 
             raffle = await RedisRaffle.get(raffle_id=raffle_id)
             if not raffle:
-                sender_uid = await ReqFreLimitApi.get_uid_by_name(sender_name)
                 created_time = datetime.datetime.fromtimestamp(self._start_time)
                 gift_gen_time = created_time - datetime.timedelta(seconds=180)
                 gift_name = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
@@ -55,7 +53,7 @@ class Executor:
                     "room_id": room_id,
                     "gift_name": gift_name,
                     "gift_type": gift_type,
-                    "sender_uid": sender_uid,
+                    "sender_uid": None,
                     "sender_name": sender_name,
                     "sender_face": sender_face,
                     "created_time": gift_gen_time,
@@ -199,7 +197,6 @@ class Executor:
 
     async def _handle_tv(self, room_id, gift_list):
         await InLotteryLiveRooms.add(room_id=room_id)
-        result = {}
         gift_type_to_name_map = {}
 
         for info in gift_list:
@@ -232,18 +229,13 @@ class Executor:
                 "room_id": room_id,
                 "gift_name": gift_name,
                 "gift_type": gift_type,
+                "sender_uid": None,
                 "sender_name": sender_name,
                 "sender_face": sender_face,
                 "created_time": created_time,
                 "expire_time": created_time + datetime.timedelta(seconds=info["time"])
             }
-            result.setdefault(sender_name, []).append(create_param)
-
-        for user_name, info_list in result.items():
-            uid = await ReqFreLimitApi.get_uid_by_name(user_name)
-            for create_param in info_list:
-                create_param["sender_uid"] = uid
-                await RedisRaffle.add(raffle_id=create_param["raffle_id"], value=create_param)
+            await RedisRaffle.add(raffle_id=raffle_id, value=create_param)
 
         for gift_type, gift_name in gift_type_to_name_map.items():
             await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)
@@ -252,6 +244,7 @@ class Executor:
         key_type, room_id, *_ = args
         flag, result = await BiliApi.lottery_check(room_id=room_id)
         if not flag and "Empty raffle_id_list" in result:
+            await asyncio.sleep(1)
             flag, result = await BiliApi.lottery_check(room_id=room_id)
 
         if not flag:
