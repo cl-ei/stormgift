@@ -1066,35 +1066,7 @@ class BiliApi:
         url = f'https://api.live.bilibili.com/mobile/userOnlineHeart?{temp_params}&sign={sign}'
         headers = {"cookie": cookie}
         headers.update(CookieFetcher.app_headers)
-        req_json = {
-            "method": "get",
-            "url": url,
-            "headers": headers,
-            "data": {},
-            "params": {},
-            "timeout": timeout
-        }
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-                async with session.post(cloud_function_url, json=req_json) as resp:
-                    status_code = resp.status
-                    content = await resp.text(encoding="utf-8", errors="ignore")
-        except Exception as e:
-            return False, f"Error happened when post heartbeat app: {e}"
-
-        if status_code != 200:
-            return False, f"status_code NOT 200: {status_code}, content: {content}"
-
-        if "由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝" in content:
-            return False, "412"
-
-        try:
-            r = json.loads(content)
-        except json.JSONDecodeError:
-            return False, f"json.JSONDecodeError: {content}"
-
-        code = r["code"]
-        return code == 0, r.get("message") or r.get("msg") or "no response msg."
+        return await cls.get(url, headers=headers, timeout=timeout, check_error_code=True)
 
     @classmethod
     async def do_sign(cls, cookie, timeout=10):
