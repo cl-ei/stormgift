@@ -58,12 +58,16 @@ class ReqFreLimitApi(object):
 
         try:
             r = json.loads(content)
-            assert r[0] is True
+            assert len(r) == 2
         except (json.JSONDecodeError, AssertionError) as e:
             logging.error(f"Error happened when get_uid_by_name({user_name}), e: {e}, content: {content}")
             return None
 
-        return r[1]
+        flag, result = r
+        if not flag:
+            logging.error(f"Cannot get_uid_by_name by cloud_func, name: {user_name}, reason: {result}")
+            return None
+        return result
 
     @classmethod
     async def get_raffle_record(cls, uid):

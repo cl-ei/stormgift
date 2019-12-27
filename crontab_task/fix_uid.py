@@ -19,7 +19,7 @@ async def fix_missed_uid(execute):
     keys = [f"FIX_MISSED_USER_{name}" for name in non_uid_users]
     result = await redis_cache.mget(*keys)
     failed_users = [r for r in result if r]
-    logging.info(f"Failed users: {len(failed_users)}. {failed_users[:4]}...")
+    logging.info(f"Failed users: {len(failed_users)}.")
 
     for current_name, non_uid_obj_id in non_uid_users.items():
         if current_name in failed_users:
