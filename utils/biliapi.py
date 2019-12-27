@@ -521,6 +521,21 @@ class BiliApi:
             return False, f"Empty raffle_id_list in response."
 
     @classmethod
+    async def lottery_check(cls, room_id, timeout=30):
+        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check"
+        data = {"roomid": room_id}
+        flag, r = await cls.get(url=req_url, data=data, timeout=timeout, check_error_code=True)
+        if not flag:
+            return flag, r
+        data = r["data"]
+        guard = data["guard"]
+        gift = data["gift"]
+        if guard or gift:
+            return True, (guard, gift)
+
+        return False, "Empty raffle_id_list in response."
+
+    @classmethod
     async def get_guard_room_list(cls, timeout=5):
         req_url = "https://bilipage.expublicsite.com:23333/Governors/SimpleView"
         flag, r = await cls.get(req_url, timeout=timeout)

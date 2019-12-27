@@ -4,141 +4,263 @@ import weakref
 import asyncio
 import datetime
 import traceback
+from config import g
 from aiohttp import web
-from config import config
-from random import random
+from utils.cq import async_zy
 from utils.biliapi import BiliApi
 from utils.udp import mq_source_to_raffle
-from utils.cq import CQClient, async_zy
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_raffle_id_getter_logger as logging
-from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor
-
-# await InLotteryLiveRooms.add(room_id=room_id)
-
-ml_qq = CQClient(
-    api_root=config["ml_bot"]["api_root"],
-    access_token=config["ml_bot"]["access_token"]
-)
+from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, InLotteryLiveRooms
 
 
 class Executor:
     def __init__(self, start_time, br):
         self._start_time = start_time
-        self.br = br
+        self.broadcast = br
 
-    async def r(*args):
+    async def r(self, *args):
         """ record_raffle """
-        pass
 
-    async def d(*args):
+        key_type, room_id, danmaku, *_ = args
+        cmd = danmaku["cmd"]
+
+        if cmd == "ANCHOR_LOT_AWARD":
+            data = danmaku["data"]
+            raffle_id = data["id"]
+            data["room_id"] = room_id
+            await RedisAnchor.add(raffle_id=raffle_id, value=data)
+
+        elif cmd in ("RAFFLE_END", "TV_END"):
+            data = danmaku["data"]
+            winner_name = data["uname"]
+            winner_uid = await ReqFreLimitApi.get_uid_by_name(winner_name)
+            winner_face = data["win"]["face"]
+            raffle_id = int(data["raffleId"])
+            gift_type = data["type"]
+            sender_name = data["from"]
+            sender_face = data["fromFace"]
+            prize_gift_name = data["giftName"]
+            prize_count = int(data["win"]["giftNum"])
+
+            raffle = await RedisRaffle.get(raffle_id=raffle_id)
+            if not raffle:
+                sender_uid = await ReqFreLimitApi.get_uid_by_name(sender_name)
+                created_time = datetime.datetime.fromtimestamp(self._start_time)
+                gift_gen_time = created_time - datetime.timedelta(seconds=180)
+                gift_name = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
+
+                raffle = {
+                    "raffle_id": raffle_id,
+                    "room_id": room_id,
+                    "gift_name": gift_name,
+                    "gift_type": gift_type,
+                    "sender_uid": sender_uid,
+                    "sender_name": sender_name,
+                    "sender_face": sender_face,
+                    "created_time": gift_gen_time,
+                    "expire_time": created_time,
+                }
+
+            update_param = {
+                "prize_gift_name": prize_gift_name,
+                "prize_count": prize_count,
+                "winner_uid": winner_uid,
+                "winner_name": winner_name,
+                "winner_face": winner_face,
+                "danmaku_json_str": json.dumps(danmaku),
+            }
+            raffle.update(update_param)
+            await RedisRaffle.add(raffle_id=raffle_id, value=raffle)
+
+    async def d(self, *args):
         """ danmaku to qq """
-        pass
+        key_type, room_id, danmaku, *_ = args
+        info = danmaku.get("info", {})
+        msg = str(info[1])
+        uid = info[2][0]
+        user_name = info[2][1]
+        is_admin = info[2][2]
+        ul = info[4][0]
+        d = info[3]
+        dl = d[0] if d else "-"
+        deco = d[1] if d else "undefined"
+        message = (
+            f"{room_id} ({datetime.datetime.fromtimestamp(self._start_time)}) ->\n\n",
+            f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
+        )
+        logging.info(message)
+        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
 
     async def p(self, *args):
         """ pk """
-        pass
+
+        key_type, room_id, danmaku, *_ = args
+        raffle_id = danmaku["data"]["id"]
+        key = f"P${room_id}${raffle_id}"
+        if await redis_cache.set_if_not_exists(key, "de-duplication"):
+            await self.broadcast(json.dumps({
+                "raffle_type": "pk",
+                "ts": int(self._start_time),
+                "real_room_id": room_id,
+                "raffle_id": raffle_id,
+                "gift_name": "PK",
+            }, ensure_ascii=False))
 
     async def s(self, *args):
         """ storm """
-        pass
+
+        key_type, room_id, *_ = args
+        await self.broadcast(json.dumps({
+            "raffle_type": "storm",
+            "ts": int(self._start_time),
+            "real_room_id": room_id,
+            "raffle_id": None,
+            "gift_name": "节奏风暴",
+        }, ensure_ascii=False))
 
     async def a(self, *args):
-        """ anchor """
-        pass
+        """
+        anchor
 
-    async def lottery_or_guard(*args):
-        pass
+        require_type = data["require_type"]
+        0: 无限制; 1: 关注主播; 2: 粉丝勋章; 3大航海； 4用户等级；5主站等级
+        """
+        key_type, room_id, danmaku, *_ = args
+        data = danmaku["data"]
+        raffle_id = data["id"]
+        room_id = data["room_id"]
+        award_name = data["award_name"]
+        award_num = data["award_num"]
+        cur_gift_num = data["cur_gift_num"]
+        gift_name = data["gift_name"]
+        gift_num = data["gift_num"]
+        gift_price = data["gift_price"]
+        join_type = data["join_type"]
+        require_type = data["require_type"]
+        require_value = data["require_value"]
+        require_text = data["require_text"]
+        danmu = data["danmu"]
 
+        key = f"A${room_id}${raffle_id}"
+        if await redis_cache.set_if_not_exists(key, "de-duplication"):
+            await self.broadcast(json.dumps({
+                "raffle_type": "anchor",
+                "ts": int(self._start_time),
+                "real_room_id": room_id,
+                "raffle_id": raffle_id,
+                "gift_name": "天选时刻",
+                "join_type": join_type,
+                "require": f"{require_type}-{require_value}:{require_text}",
+                "gift": f"{gift_num}*{gift_name or 'null'}({gift_price})",
+                "award": f"{award_num}*{award_name}",
+            }, ensure_ascii=False))
 
-async def worker_task__record_raffle_info(room_id, start_time, danmaku):
-    pass
+    async def _handle_guard(self, room_id, guard_list):
+        for info in guard_list:
+            raffle_id = info['id']
+            key = F"G${room_id}${raffle_id}"
+            if not await redis_cache.set_if_not_exists(key, "de-duplication"):
+                continue
 
+            privilege_type = raffle_id["privilege_type"]
+            if privilege_type == 3:
+                gift_name = "舰长"
+            elif privilege_type == 2:
+                gift_name = "提督"
+            elif privilege_type == 1:
+                gift_name = "总督"
+            else:
+                gift_name = f"guard_{privilege_type}"
 
-async def worker_task__danmaku_to_qq(room_id, start_time, danmaku):
-    info = danmaku.get("info", {})
-    msg = str(info[1])
-    uid = info[2][0]
-    user_name = info[2][1]
-    is_admin = info[2][2]
-    ul = info[4][0]
-    d = info[3]
-    dl = d[0] if d else "-"
-    deco = d[1] if d else "undefined"
-    message = f"{room_id} ->\n\n{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
-    logging.info(message)
-    await async_zy.send_private_msg(user_id=80873436, message=message)
+            await self.broadcast(json.dumps({
+                "raffle_type": "guard",
+                "ts": int(time.time()),
+                "real_room_id": room_id,
+                "raffle_id": raffle_id,
+                "gift_name": gift_name,
+            }, ensure_ascii=False))
 
+            created_time = datetime.datetime.fromtimestamp(self._start_time)
+            expire_time = created_time + datetime.timedelta(seconds=info["time"])
+            sender = info["sender"]
+            create_param = {
+                "gift_id": raffle_id,
+                "room_id": room_id,
+                "gift_name": gift_name,
+                "sender_uid": sender["uid"],
+                "sender_name": sender["uname"],
+                "sender_face": sender["face"],
+                "created_time": created_time,
+                "expire_time": expire_time,
+            }
+            await RedisGuard.add(raffle_id=raffle_id, value=create_param)
+            logging.info(f"Guard found: room_id: {room_id} $ {raffle_id}, {sender['uname']} -> {gift_name}")
 
-async def worker_task__lottery_and_guard(room_id, start_time, key_type):
-    pass
+    async def _handle_tv(self, room_id, gift_list):
+        await InLotteryLiveRooms.add(room_id=room_id)
+        result = {}
+        gift_type_to_name_map = {}
 
+        for info in gift_list:
+            raffle_id = info["raffleId"]
+            key = f"T${room_id}${raffle_id}"
+            if not await redis_cache.set_if_not_exists(key, "de-duplication"):
+                continue
 
-async def worker_task__join_pk(room_id, start_time, danmaku):
-    raffle_id = danmaku["data"]["id"]
-    """
-    key = f"P${room_id}${raffle_id}"
-    if await redis_cache.set_if_not_exists(key, "de-duplication"):
-        await self.broadcast(json.dumps({
-            "raffle_type": "pk",
-            "ts": int(now_ts),
-            "real_room_id": room_id,
-            "raffle_id": raffle_id,
-            "gift_name": "PK",
-        }, ensure_ascii=False))
-    """
+            gift_type = info["type"]
+            gift_name = info.get("thank_text", "").split("赠送的", 1)[-1]
+            gift_type_to_name_map[gift_type] = gift_name
+            await self.broadcast(json.dumps({
+                "raffle_type": "tv",
+                "ts": int(self._start_time),
+                "real_room_id": room_id,
+                "raffle_id": raffle_id,
+                "gift_name": gift_name,
+                "gift_type": gift_type,
+                "time_wait": info["time_wait"],
+                "max_time": info["max_time"],
+            }, ensure_ascii=False))
 
+            sender_name = info["from_user"]["uname"]
+            sender_face = info["from_user"]["face"]
+            created_time = datetime.datetime.fromtimestamp(self._start_time)
+            logging.info(f"Guard found: room_id: {room_id} $ {raffle_id}, {sender_name} -> {gift_name}")
 
-async def worker_task__storm(room_id, start_time, danmaku):
-    pass
+            create_param = {
+                "raffle_id": raffle_id,
+                "room_id": room_id,
+                "gift_name": gift_name,
+                "gift_type": gift_type,
+                "sender_name": sender_name,
+                "sender_face": sender_face,
+                "created_time": created_time,
+                "expire_time": created_time + datetime.timedelta(seconds=info["time"])
+            }
+            result.setdefault(sender_name, []).append(create_param)
 
+        for user_name, info_list in result.items():
+            uid = await ReqFreLimitApi.get_uid_by_name(user_name)
+            for create_param in info_list:
+                create_param["sender_uid"] = uid
+                await RedisRaffle.add(raffle_id=create_param["raffle_id"], value=create_param)
 
-async def worker_task__anchor():
-    # require_type = data["require_type"]
-    # 0: 无限制; 1: 关注主播; 2: 粉丝勋章; 3大航海； 4用户等级；5主站等级
-    danmaku = danmakus[0]
+        for gift_type, gift_name in gift_type_to_name_map.items():
+            await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)
 
-    data = danmaku["data"]
-    raffle_id = data["id"]
-    room_id = data["room_id"]
-    award_name = data["award_name"]
-    award_num = data["award_num"]
-    cur_gift_num = data["cur_gift_num"]
-    gift_name = data["gift_name"]
-    gift_num = data["gift_num"]
-    gift_price = data["gift_price"]
-    join_type = data["join_type"]
-    require_type = data["require_type"]
-    require_value = data["require_value"]
-    require_text = data["require_text"]
-    danmu = data["danmu"]
+    async def lottery_or_guard(self, *args):
+        key_type, room_id, *_ = args
+        flag, result = await BiliApi.lottery_check(room_id=room_id)
+        if not flag and "Empty raffle_id_list" in result:
+            flag, result = await BiliApi.lottery_check(room_id=room_id)
 
-    key = f"A${room_id}${raffle_id}"
-    if await redis_cache.set_if_not_exists(key, "de-duplication"):
-        # join_type = data["join_type"]
-        # if join_type == 0:  # 免费参与
-        #
-        #     in_black_list = False
-        #     for value in (award_name, room_id, danmu):
-        #         if await AnchorBlackList.is_include(str(value)):
-        #             in_black_list = True
-        #             break
-        #
-        #     if in_black_list:
-        #         logging.info(f"Anchor in black list! room_id: {room_id}, award: {award_name}, danmu: {danmu}")
-        #     do: join
+        if not flag:
+            logging.error(f"Cannot get lottery({key_type}) from room: {room_id}. reason: {result}")
+            return
 
-        await self.broadcast(json.dumps({
-            "raffle_type": "anchor",
-            "ts": int(now_ts),
-            "real_room_id": room_id,
-            "raffle_id": raffle_id,
-            "gift_name": "天选时刻",
-            "join_type": join_type,
-            "require": f"{require_type}-{require_value}:{require_text}",
-            "gift": f"{gift_num}*{gift_name or 'null'}({gift_price})",
-            "award": f"{award_num}*{award_name}",
-        }, ensure_ascii=False))
+        guards, gifts = result
+        await self._handle_guard(room_id, guards)
+        await self._handle_tv(room_id, gifts)
 
 
 async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target: asyncio.coroutines):
@@ -173,304 +295,6 @@ async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target:
         cost = time.time() - start_time
         if cost < 1:
             await asyncio.sleep(1 - cost)
-
-
-class Worker(object):
-    def __init__(self, index, q, broadcast_target):
-        self.index = index
-        self.broadcast = broadcast_target
-        self.q = q
-
-    @staticmethod
-    async def record_raffle_info(danmaku, created_time, msg_from_room_id):
-        created_time = datetime.datetime.now() - datetime.timedelta(seconds=(time.time() - created_time))
-
-        cmd = danmaku["cmd"]
-        if cmd in ("RAFFLE_END", "TV_END"):
-            data = danmaku["data"]
-            winner_name = data["uname"]
-            winner_uid = await ReqFreLimitApi.get_uid_by_name(winner_name)
-            winner_face = data["win"]["face"]
-            raffle_id = int(data["raffleId"])
-            gift_type = data["type"]
-            sender_name = data["from"]
-            sender_face = data["fromFace"]
-            prize_gift_name = data["giftName"]
-            prize_count = int(data["win"]["giftNum"])
-
-            raffle = await RedisRaffle.get(raffle_id=raffle_id)
-            if not raffle:
-                sender_uid = await ReqFreLimitApi.get_uid_by_name(sender_name)
-                gift_gen_time = created_time - datetime.timedelta(seconds=180)
-                gift_name = await redis_cache.get(key=f"GIFT_TYPE_{gift_type}")
-
-                raffle = {
-                    "raffle_id": raffle_id,
-                    "room_id": msg_from_room_id,
-                    "gift_name": gift_name,
-                    "gift_type": gift_type,
-                    "sender_uid": sender_uid,
-                    "sender_name": sender_name,
-                    "sender_face": sender_face,
-                    "created_time": gift_gen_time,
-                    "expire_time": created_time,
-                }
-
-            update_param = {
-                "prize_gift_name": prize_gift_name,
-                "prize_count": prize_count,
-                "winner_uid": winner_uid,
-                "winner_name": winner_name,
-                "winner_face": winner_face,
-                "danmaku_json_str": json.dumps(danmaku),
-            }
-            raffle.update(update_param)
-            await RedisRaffle.add(raffle_id=raffle_id, value=raffle)
-
-        elif cmd == "ANCHOR_LOT_AWARD":
-            data = danmaku["data"]
-            raffle_id = data["id"]
-            data["room_id"] = msg_from_room_id
-            await RedisAnchor.add(raffle_id=raffle_id, value=data)
-
-        else:
-            return f"RAFFLE_RECORD received error cmd `{danmaku['cmd']}`!"
-
-    async def proc_single_gift_of_guard(self, room_id, gift_info):
-        gift_id = gift_info.get('id', 0)
-        key = F"G${room_id}${gift_id}"
-
-        if not await redis_cache.set_if_not_exists(key, "de-duplication"):
-            return
-
-        privilege_type = gift_info["privilege_type"]
-        if privilege_type == 3:
-            gift_name = "舰长"
-        elif privilege_type == 2:
-            gift_name = "提督"
-        elif privilege_type == 1:
-            gift_name = "总督"
-        else:
-            gift_name = "guard_%s" % privilege_type
-
-        await self.broadcast(json.dumps({
-            "raffle_type": "guard",
-            "ts": int(time.time()),
-            "real_room_id": room_id,
-            "raffle_id": gift_id,
-            "gift_name": gift_name,
-        }, ensure_ascii=False))
-
-        expire_time = gift_info["created_time"] + datetime.timedelta(seconds=gift_info["time"])
-        sender = gift_info["sender"]
-        create_param = {
-            "gift_id": gift_id,
-            "room_id": room_id,
-            "gift_name": gift_name,
-            "sender_uid": sender["uid"],
-            "sender_name": sender["uname"],
-            "sender_face": sender["face"],
-            "created_time": gift_info["created_time"],
-            "expire_time": expire_time,
-        }
-        await RedisGuard.add(raffle_id=gift_id, value=create_param)
-
-    @staticmethod
-    async def proc_tv_gifts_by_single_user(user_name, gift_list):
-        uid = await ReqFreLimitApi.get_uid_by_name(user_name, wait_time=1)
-
-        for info in gift_list:
-            info["uid"] = uid
-
-            create_param = {
-                "raffle_id": info["gift_id"],
-                "room_id": info["room_id"],
-                "gift_name": info["gift_name"],
-                "gift_type": info["gift_type"],
-                "sender_uid": uid,
-                "sender_name": info["name"],
-                "sender_face": info["face"],
-                "created_time": info["created_time"],
-                "expire_time": info["created_time"] + datetime.timedelta(seconds=info["time"])
-            }
-            await RedisRaffle.add(raffle_id=info["gift_id"], value=create_param)
-
-    async def proc_single_msg(self, msg):
-        created_time = datetime.datetime.now()
-        now_ts = time.time()
-        key_type, room_id, *danmakus = msg
-
-        if key_type == "R" and danmakus:
-            danmaku = danmakus[0]
-            created_time = time.time()
-            return await self.record_raffle_info(danmaku, created_time, room_id)
-
-        elif key_type == "D":  # 弹幕追踪
-            danmaku = danmakus[0]
-            info = danmaku.get("info", {})
-            msg = str(info[1])
-            uid = info[2][0]
-            user_name = info[2][1]
-            is_admin = info[2][2]
-            ul = info[4][0]
-            d = info[3]
-            dl = d[0] if d else "-"
-            deco = d[1] if d else "undefined"
-            message = f"{room_id} ->\n\n{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
-            logging.info(message)
-            await async_zy.send_private_msg(user_id=80873436, message=message)
-
-        elif key_type == "G":
-            flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
-            if not flag:
-                if "Empty raffle_id_list" in gift_info_list:
-                    await asyncio.sleep(1)
-                    flag, gift_info_list = await BiliApi.get_guard_raffle_id(room_id)
-
-            if not flag:
-                logging.error(f"Guard proc_single_room, room_id: {room_id}, e: {gift_info_list}")
-                return
-
-            for gift_info in gift_info_list:
-                gift_info["created_time"] = created_time
-                await self.proc_single_gift_of_guard(room_id, gift_info=gift_info)
-
-        elif key_type == "T":
-            flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
-            if not flag:
-                if "Empty raffle_id_list" in gift_info_list:
-                    await asyncio.sleep(1)
-                    flag, gift_info_list = await BiliApi.get_tv_raffle_id(room_id)
-
-            if not flag:
-                logging.error(f"TV proc_single_room, room_id: {room_id}, e: {gift_info_list}")
-                return
-
-            result = {}
-            for info in gift_info_list:
-                user_name = info.get("from_user").get("uname")
-                gift_id = info.get("raffleId", 0)
-                gift_type = info.get("type")
-                gift_name = info.get("thank_text", "").split("赠送的", 1)[-1]
-                await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)
-
-                i = {
-                    "name": user_name,
-                    "face": info.get("from_user").get("face"),
-                    "room_id": room_id,
-                    "gift_id": gift_id,
-                    "gift_name": gift_name,
-                    "gift_type": gift_type,
-                    "sender_type": info.get("sender_type"),
-                    "created_time": created_time,
-                    "status": info.get("status"),
-                    "time": info.get("time"),
-                }
-                result.setdefault(user_name, []).append(i)
-                key = f"T${room_id}${gift_id}"
-                if not await redis_cache.set_if_not_exists(key, "de-duplication"):
-                    continue
-
-                await self.broadcast(json.dumps({
-                    "raffle_type": "tv",
-                    "ts": int(now_ts),
-                    "real_room_id": room_id,
-                    "raffle_id": gift_id,
-                    "gift_name": gift_name,
-                    "gift_type": gift_type,
-                    "time_wait": info["time_wait"],
-                    "max_time": info["max_time"],
-                }, ensure_ascii=False))
-
-            for user_name, gift_list in result.items():
-                await self.proc_tv_gifts_by_single_user(user_name, gift_list)
-
-        elif key_type == "P" and danmakus:
-            danmaku = danmakus[0]
-            raffle_id = danmaku["data"]["id"]
-            key = f"P${room_id}${raffle_id}"
-            if await redis_cache.set_if_not_exists(key, "de-duplication"):
-                await self.broadcast(json.dumps({
-                    "raffle_type": "pk",
-                    "ts": int(now_ts),
-                    "real_room_id": room_id,
-                    "raffle_id": raffle_id,
-                    "gift_name": "PK",
-                }, ensure_ascii=False))
-
-        elif key_type == "S":
-            await self.broadcast(json.dumps({
-                "raffle_type": "storm",
-                "ts": int(now_ts),
-                "real_room_id": room_id,
-                "raffle_id": None,
-                "gift_name": "节奏风暴",
-            }, ensure_ascii=False))
-
-        elif key_type == "A":
-            # require_type = data["require_type"]
-            # 0: 无限制; 1: 关注主播; 2: 粉丝勋章; 3大航海； 4用户等级；5主站等级
-            danmaku = danmakus[0]
-
-            data = danmaku["data"]
-            raffle_id = data["id"]
-            room_id = data["room_id"]
-            award_name = data["award_name"]
-            award_num = data["award_num"]
-            cur_gift_num = data["cur_gift_num"]
-            gift_name = data["gift_name"]
-            gift_num = data["gift_num"]
-            gift_price = data["gift_price"]
-            join_type = data["join_type"]
-            require_type = data["require_type"]
-            require_value = data["require_value"]
-            require_text = data["require_text"]
-            danmu = data["danmu"]
-
-            key = f"A${room_id}${raffle_id}"
-            if await redis_cache.set_if_not_exists(key, "de-duplication"):
-                # join_type = data["join_type"]
-                # if join_type == 0:  # 免费参与
-                #
-                #     in_black_list = False
-                #     for value in (award_name, room_id, danmu):
-                #         if await AnchorBlackList.is_include(str(value)):
-                #             in_black_list = True
-                #             break
-                #
-                #     if in_black_list:
-                #         logging.info(f"Anchor in black list! room_id: {room_id}, award: {award_name}, danmu: {danmu}")
-                #     do: join
-
-                await self.broadcast(json.dumps({
-                    "raffle_type": "anchor",
-                    "ts": int(now_ts),
-                    "real_room_id": room_id,
-                    "raffle_id": raffle_id,
-                    "gift_name": "天选时刻",
-                    "join_type": join_type,
-                    "require": f"{require_type}-{require_value}:{require_text}",
-                    "gift": f"{gift_num}*{gift_name or 'null'}({gift_price})",
-                    "award": f"{award_num}*{award_name}",
-                }, ensure_ascii=False))
-
-    async def run_forever(self):
-
-        while True:
-            msg = await mq_source_to_raffle.get()
-
-            start_time = time.time()
-            task_id = f"{int(str(random())[2:]):x}"
-
-            try:
-                r = await self.proc_single_msg(msg)
-            except Exception as e:
-                logging.error(f"RAFFLE Task {self.index}-[{task_id}] error: {e}, {traceback.format_exc()}")
-                continue
-
-            cost_time = time.time() - start_time
-            if cost_time > 5:
-                logging.info(f"RAFFLE Task {self.index}-[{task_id}] success, r: {r}, cost time: {cost_time:.3f}")
 
 
 async def main():

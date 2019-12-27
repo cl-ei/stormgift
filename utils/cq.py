@@ -1,7 +1,6 @@
 import aiohttp
-from config import CQBOT, CQBOT_ZY
 from cqhttp import CQHttp
-
+from config import CQBOT, CQBOT_ZY, config
 
 class CQClient:
     def __init__(self, api_root, access_token=None, timeout=5):
@@ -44,3 +43,5 @@ qq_zy = CQClient(api_root=CQBOT_ZY["api_root"], access_token=CQBOT_ZY["access_to
 
 async_qq = CQClient(api_root=CQBOT["api_root"], access_token=CQBOT["access_token"])
 async_zy = CQClient(api_root=CQBOT_ZY["api_root"], access_token=CQBOT_ZY["access_token"])
+
+ml_qq = CQClient(api_root=config["ml_bot"]["api_root"], access_token=config["ml_bot"]["access_token"])
