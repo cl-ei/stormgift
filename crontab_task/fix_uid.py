@@ -1,0 +1,113 @@
+import time
+import random
+import logging
+import asyncio
+import aiomysql
+import traceback
+from config import MYSQL_CONFIG
+from utils.dao import redis_cache
+from utils.highlevel_api import ReqFreLimitApi
+from config.log4 import lt_db_sync_logger as logging
+
+
+async def fix_missed_uid(execute):
+    query = await execute("select name, id from biliuser where uid is null;")
+    non_uid_users = {r[0]: r[1] for r in query}
+    logging.info(f"non_uid_users count: {len(non_uid_users)}")
+
+    # 过滤
+    keys = [f"FIX_MISSED_USER_{name}" for name in non_uid_users]
+    result = await redis_cache.mget(*keys)
+    failed_users = [r for r in result if r]
+    logging.info(f"Failed users: {len(failed_users)}. {failed_users[:4]}...")
+
+    for current_name, non_uid_obj_id in non_uid_users.items():
+        if current_name in failed_users:
+            logging.info(f"Found failed key: {current_name}, now skip.")
+            continue
+
+        uid = await ReqFreLimitApi.get_uid_by_name(current_name)
+        if not uid:
+            await redis_cache.set(
+                key=f"FIX_MISSED_USER_{current_name}",
+                value="f",
+                timeout=3600*24*random.randint(4, 7)
+            )
+            logging.warning(f"Cannot get uid by name: `{current_name}`")
+            continue
+
+        # 检查该uid是否在表里已存在, 如果不存在，则直接写入
+        duplicated = await execute("select id, uid, name, face from biliuser where uid = %s;", uid)
+        if not duplicated:
+            r = await execute("update biliuser set uid=%s where id=%s;", non_uid_obj_id, _commit=True)
+            logging.info(f"User obj updated! {current_name} -> {uid}, obj id: {non_uid_obj_id}, r: {r}")
+            continue
+
+        logging.info(f"User {current_name}({uid}) duplicated, now fix it. ")
+        has_uid_user_obj_id, uid, name, face = duplicated[0]
+
+        # 有两个user_obj
+        # 1.先把旧的existed_user_obj的name更新
+        await execute("update biliuser set name=%s where id=%s", (current_name, has_uid_user_obj_id), _commit=True)
+
+        # 2.迁移所有的raffle记录
+        r = await execute(
+            "update raffle set sender_obj_id=%s where sender_obj_id=%s;",
+            (has_uid_user_obj_id, non_uid_obj_id),
+            _commit=True
+        )
+        r2 = await execute(
+            "update raffle set winner_obj_id=%s where winner_obj_id=%s;",
+            (has_uid_user_obj_id, non_uid_obj_id),
+            _commit=True
+        )
+        # 3.迁移guard
+        r3 = await execute(
+            "update guard set sender_obj_id=%s where sender_obj_id=%s;",
+            (has_uid_user_obj_id, non_uid_obj_id),
+            _commit=True
+        )
+        # 4.删除空的user_obj
+        r4 = await execute(
+            "delete from biliuser where id=%s;",
+            (non_uid_obj_id, ),
+            _commit=True
+        )
+        logging.info(
+            f"Update {current_name}({uid}) done! \n"
+            f"\tsender_obj_id {r}\n"
+            f"\twinner_obj_id: {r2}\n"
+            f"\tguard: {r3}\n"
+            f"\tdel non_uid_obj: {r4}\n"
+        )
+
+
+async def main():
+    start_time = time.time()
+    conn = await aiomysql.connect(
+        host=MYSQL_CONFIG["host"],
+        port=MYSQL_CONFIG["port"],
+        user=MYSQL_CONFIG["user"],
+        password=MYSQL_CONFIG["password"],
+        db=MYSQL_CONFIG["database"]
+    )
+
+    async def execute(*args, _commit=False, **kwargs):
+        async with conn.cursor() as cursor:
+            await cursor.execute(*args, **kwargs)
+            if _commit:
+                await conn.commit()
+            return await cursor.fetchall()
+
+    try:
+        await fix_missed_uid(execute)
+    except Exception as e:
+        logging.info(f"FIX_DATA Error: {e}\n{traceback.format_exc()}")
+
+    conn.close()
+    cost = time.time() - start_time
+    logging.info(f"Execute finished, cost: {cost/60:.3f} min.\n\n")
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
