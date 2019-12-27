@@ -1,15 +1,24 @@
+import os
+import sys
 import time
 import logging
 import asyncio
 import datetime
 import traceback
-from utils.dao import redis_cache
 from utils.biliapi import BiliApi
 from utils.db_raw_query import AsyncMySQL
 from config.log4 import lt_db_sync_logger as logging
 from utils.reconstruction_model import objects, BiliUser
 
-loop = asyncio.get_event_loop()
+
+if sys.platform == "linux":
+    my_task_name = "crontab_task.update_db_live_room_info"
+
+    process = os.popen(f"ps -ef | grep '{my_task_name}'").read().split("\n")
+    for p_name in process:
+        if my_task_name in p_name and " grep " not in p_name:
+            logging.info(f"Another {my_task_name}, now exit.\n\t{p_name}")
+            sys.exit(0)
 
 
 async def update_live_room_info():
@@ -112,12 +121,6 @@ async def main():
     start_time = time.time()
     logging.info("Now updating live room info in database.")
 
-    execute_key = "CRON_UPDATE_LIVE_ROOM_INFO"
-    finished = await redis_cache.set_if_not_exists(execute_key, 1, timeout=60*55)
-    if not finished:
-        logging.error(f"FIX_DATA running! Now exit...")
-        return
-
     await objects.connect()
     try:
         await update_live_room_info()
@@ -125,11 +128,9 @@ async def main():
         logging.info(f"FIX_DATA Error: {e}\n{traceback.format_exc()}")
 
     await objects.close()
-    await redis_cache.delete(execute_key)
-    await redis_cache.close()
-
     cost = time.time() - start_time
     logging.info(f"Update live room info execute finished, cost: {cost/60:.3f} min.\n\n")
 
 
+loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

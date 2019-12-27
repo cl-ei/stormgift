@@ -1,3 +1,5 @@
+import os
+import sys
 import time
 import random
 import logging
@@ -8,6 +10,15 @@ from config import MYSQL_CONFIG
 from utils.dao import redis_cache
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import lt_db_sync_logger as logging
+
+if sys.platform == "linux":
+    task_name = "crontab_task.fix_uid"
+
+    process = os.popen(f"ps -ef | grep '{task_name}'").read().split("\n")
+    for p_name in process:
+        if task_name in p_name and " grep " not in p_name:
+            logging.info(f"Another{task_name} running, now exit.\n\t{p_name}")
+            sys.exit(0)
 
 
 async def fix_missed_uid(execute):
@@ -44,7 +55,7 @@ async def fix_missed_uid(execute):
         duplicated = await execute("select id, uid, name, face from biliuser where uid = %s;", uid)
         if not duplicated:
             r = await execute("update biliuser set uid=%s where id=%s;", (uid, non_uid_obj_id), _commit=True)
-            logging.info(f"User obj updated! {current_name} -> {uid}, obj id: {non_uid_obj_id}, r: {r}")
+            logging.info(f"User obj updated! {current_name}({uid}), obj_id: {non_uid_obj_id}, r: {r}")
             continue
 
         logging.info(f"User {current_name}({uid}) duplicated, now fix it. ")
@@ -77,13 +88,7 @@ async def fix_missed_uid(execute):
             (non_uid_obj_id, ),
             _commit=True
         )
-        logging.info(
-            f"Update {current_name}({uid}) done! \n"
-            f"\tsender_obj_id {r}\n"
-            f"\twinner_obj_id: {r2}\n"
-            f"\tguard: {r3}\n"
-            f"\tdel non_uid_obj: {r4}\n"
-        )
+        logging.info(f"Update {current_name}({uid}) done! sender: {r}, winner: {r2}, guard: {r3}, del: {r4}")
 
 
 async def main():
