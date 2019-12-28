@@ -57,8 +57,6 @@ class Worker(object):
         return self._cookie_objs
 
     async def proc_single(self, data):
-        await redis_cache.set("LT_LAST_ACTIVE_TIME", value=int(time.time()))
-
         raffle_type = data.get("raffle_type")
         room_id = data.get("real_room_id")
         gift_id = data.get("raffle_id")
@@ -207,6 +205,7 @@ async def main():
             recommended_implementation_time = now
 
         print(f"received. delay: {recommended_implementation_time - ts:.0f} -> {data}.")
+        await redis_cache.set("LT_LAST_ACTIVE_TIME", value=int(time.time()))
         await DelayAcceptGiftsQueue.put(data, recommended_implementation_time)
 
     new_client = RCWebSocketClient(

@@ -613,7 +613,7 @@ class BotUtils:
         last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
         if not isinstance(last_active_time, int):
             last_active_time = 0
-        i = int(time.time()) - last_active_time
+        last_active_time = int(time.time()) - last_active_time
 
         def gen_time_prompt(interval):
             if interval > 3600 * 24 * 365:
@@ -635,7 +635,7 @@ class BotUtils:
             else:
                 score.append(gift)
 
-        message = f"辣🐔最后活跃时间: {gen_time_prompt(i)}，队列中有{len(gifts)}个未收大宝贝：\n\n{'-'*20}\n"
+        message = f"辣🐔最后活跃时间: {gen_time_prompt(last_active_time)}，队列中有{len(gifts)}个未收大宝贝：\n\n{'-'*20}\n"
 
         room_id_q = await AsyncMySQL.execute(
             "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
