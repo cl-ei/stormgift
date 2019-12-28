@@ -8,6 +8,7 @@ from config import LOG_PATH
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
 console.setFormatter(log_format)
+
 stormgift_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "stormgift.log"))
 stormgift_file_handler.setFormatter(log_format)
 
@@ -15,6 +16,13 @@ stormgift_file_handler.setFormatter(log_format)
 console_logger = logging.getLogger("console")
 console_logger.setLevel(logging.DEBUG)
 console_logger.addHandler(console)
+
+_lt_server_fh = logging.FileHandler(os.path.join(LOG_PATH, "lt_server.log"))
+_lt_server_fh.setFormatter(log_format)
+lt_server_logger = logging.getLogger("lt_server")
+lt_server_logger.setLevel(logging.DEBUG)
+lt_server_logger.addHandler(console)
+lt_server_logger.addHandler(_lt_server_fh)
 
 
 acceptor_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "acceptor_stormgift.log"))
@@ -46,33 +54,6 @@ website_logger = logging.getLogger("website")
 website_logger.setLevel(logging.DEBUG)
 website_logger.addHandler(console)
 website_logger.addHandler(file_handler)
-
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_raffle_id_getter.log"))
-file_handler.setFormatter(log_format)
-lt_raffle_id_getter_logger = logging.getLogger("lt_raffle_id_getter")
-lt_raffle_id_getter_logger.setLevel(logging.DEBUG)
-lt_raffle_id_getter_logger.addHandler(console)
-lt_raffle_id_getter_logger.addHandler(file_handler)
-lt_raffle_id_getter_logger.addHandler(stormgift_file_handler)
-
-
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_source.log"))
-file_handler.setFormatter(log_format)
-lt_source_logger = logging.getLogger("lt_source")
-lt_source_logger.setLevel(logging.DEBUG)
-lt_source_logger.addHandler(console)
-lt_source_logger.addHandler(file_handler)
-lt_source_logger.addHandler(stormgift_file_handler)
-
-
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_ws_source.log"))
-file_handler.setFormatter(log_format)
-lt_ws_source_logger = logging.getLogger("lt_ws_source")
-lt_ws_source_logger.setLevel(logging.DEBUG)
-lt_ws_source_logger.addHandler(console)
-lt_ws_source_logger.addHandler(file_handler)
-lt_ws_source_logger.addHandler(stormgift_file_handler)
-
 
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_db_sync.log"))
 file_handler.setFormatter(log_format)
@@ -122,14 +103,6 @@ bili_api_logger.addHandler(file_handler)
 bili_api_logger.addHandler(stormgift_file_handler)
 
 
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "model_operation.log"))
-file_handler.setFormatter(log_format)
-model_operation_logger = logging.getLogger("model_operation")
-model_operation_logger.setLevel(logging.DEBUG)
-model_operation_logger.addHandler(console)
-model_operation_logger.addHandler(file_handler)
-model_operation_logger.addHandler(stormgift_file_handler)
-
 silver_box_fh = logging.FileHandler(os.path.join(LOG_PATH, "silver_box.log"))
 silver_box_fh.setFormatter(log_format)
 silver_box_logger = logging.getLogger("silver_box")
@@ -152,20 +125,18 @@ def config_logger(file_name):
 __all__ = (
     "log_format",
     "console_logger",
+    "lt_server_logger",
+
     "acceptor_logger",
     "crontab_task_logger",
     "cqbot_logger",
     "website_logger",
-    "lt_source_logger",
-    "lt_ws_source_logger",
-    "lt_raffle_id_getter_logger",
     "lt_db_sync_logger",
     "dxj_hansy_logger",
     "dxj_xiaoke_logger",
     "dxj_dd_logger",
     "super_dxj_logger",
     "bili_api_logger",
-    "model_operation_logger",
     "silver_box_logger",
     "config_logger",
 )

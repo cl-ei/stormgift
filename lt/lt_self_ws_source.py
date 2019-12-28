@@ -4,7 +4,7 @@ from utils.ws import RCWebSocketClient
 from utils.dao import MonitorLiveRooms, ValuableLiveRoom, InLotteryLiveRooms
 from utils.udp import mq_source_to_raffle
 from utils.biliapi import WsApi
-from config.log4 import lt_ws_source_logger as logging
+from config.log4 import lt_server_logger as logging
 from utils.model import objects, MonitorWsClient
 
 MONITOR_COUNT = 20000

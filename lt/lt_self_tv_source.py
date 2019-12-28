@@ -2,7 +2,7 @@ import asyncio
 import aiohttp
 from utils.udp import mq_source_to_raffle
 from utils.biliapi import WsApi, BiliApi
-from config.log4 import lt_source_logger as logging
+from config.log4 import lt_server_logger as logging
 
 prize_room_q = asyncio.Queue()
 

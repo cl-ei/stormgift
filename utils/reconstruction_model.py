@@ -2,8 +2,6 @@ import peewee
 import datetime
 import traceback
 from random import randint
-from config.log4 import model_operation_logger as logging
-
 from utils.model import mysql_db, objects
 
 
@@ -169,7 +167,6 @@ class Guard(peewee.Model):
 
                 await objects.update(old_rec)
                 return old_rec
-            logging.error(f"Error happened when create guard rec: {e}, {traceback.format_exc()}")
             return None
 
 
@@ -233,7 +230,6 @@ class Raffle(peewee.Model):
 
                 await objects.update(old_rec)
                 return old_rec
-            logging.error(f"Error happened when create Raffle rec: {e}, {traceback.format_exc()}")
             return None
 
     @classmethod
@@ -288,7 +284,6 @@ class Raffle(peewee.Model):
                 )
 
                 return old_rec
-            logging.error(f"Error happened when create Raffle rec: {e}, {traceback.format_exc()}")
             return None
 
     @classmethod
