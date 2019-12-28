@@ -639,12 +639,12 @@ class BotUtils:
 
         room_id_q = await AsyncMySQL.execute(
             "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
-            ({int(d["real_room_id"]) for d in gifts},)
+            ({int(d["room_id"]) for d in gifts},)
         )
         room_id_map = {r[0]: r[1] for r in room_id_q if r[1]}
         prompt_gift_list = []
         for i, gift in enumerate(gifts):
-            room_id = gift["real_room_id"]
+            room_id = gift["room_id"]
             gift_name = gift["gift_name"]
 
             room_id = int(room_id)
