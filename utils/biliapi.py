@@ -338,7 +338,7 @@ class BiliApi:
     }
 
     @classmethod
-    async def _request_async(cls, method, url, headers, data, timeout):
+    async def _request_async(cls, method, url, headers, params, data, timeout):
         if url in (
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
             "https://api.live.bilibili.com/room/v1/Room/room_init",
@@ -348,8 +348,8 @@ class BiliApi:
                 "method": method,
                 "url": url,
                 "headers": headers,
-                "data": data if method.lower() == "post" else {},
-                "params": data if method.lower() != "post" else {},
+                "data": data,
+                "params": params,
                 "timeout": timeout
             }
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
@@ -359,33 +359,38 @@ class BiliApi:
                     return status_code, content
 
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
-            if method == "get":
-                async with session.get(url, params=data, headers=headers) as resp:
-                    status_code = resp.status
-                    content = await resp.text(encoding="utf-8", errors="ignore")
-                    return status_code, content
-
-            else:
-                async with session.post(url, data=data, headers=headers) as resp:
-                    status_code = resp.status
-                    content = await resp.text()
-                    return status_code, content
+            async with session.request(method=method, url=url, params=params, data=data, headers=headers) as resp:
+                status_code = resp.status
+                content = await resp.text(encoding="utf-8", errors="ignore")
+                return status_code, content
 
     @classmethod
     async def _request(cls, method, url, headers, data, timeout, check_response_json, check_error_code):
+        if check_error_code:
+            check_response_json = True
+
+        if method.lower() == "post":
+            params = {}
+        else:
+            params = data
+            data = {}
+
         if headers:
             headers.update(cls.headers)
         else:
             headers = cls.headers
 
         try:
-            status_code, content = await cls._request_async(method, url, headers, data, timeout)
+            status_code, content = await cls._request_async(method, url, headers, params, data, timeout)
         except asyncio.TimeoutError:
             return False, "Bili api HTTP request timeout!"
         except Exception as e:
-            error_message = f"Bili api _request Error: {e}\nurl: {url}\n {traceback.format_exc()}"
+            error_message = f"Bili api HTTP Connection Error: {e}\nurl: {url}"
             logging.error(error_message)
             return False, error_message
+
+        if status_code != 200:
+            return False, f"{status_code}"
 
         if "由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝" in content:
             return False, "412"
@@ -408,14 +413,10 @@ class BiliApi:
 
     @classmethod
     async def get(cls, url, headers=None, data=None, timeout=5, check_response_json=False, check_error_code=False):
-        if check_error_code:
-            check_response_json = True
         return await cls._request("get", url, headers, data, timeout, check_response_json, check_error_code)
 
     @classmethod
     async def post(cls, url, headers=None, data=None, timeout=5, check_response_json=False, check_error_code=False):
-        if check_error_code:
-            check_response_json = True
         return await cls._request("post", url, headers, data, timeout, check_response_json, check_error_code)
 
     @classmethod
@@ -425,7 +426,7 @@ class BiliApi:
                 "?platform=web&page=1&page_size=10"
                 "&parent_area_id=%s" % area_id
         )
-        flag, result = await cls.get(req_url, timeout=timeout, check_response_json=True, check_error_code=True)
+        flag, result = await cls.get(req_url, timeout=timeout, check_error_code=True)
         if not flag:
             return False, result
         return True, [r["roomid"] for r in result.get("data", {}).get("list", [])]
@@ -436,13 +437,7 @@ class BiliApi:
             return True, False
 
         req_url = f"https://api.live.bilibili.com/room/v1/Room/get_info"
-        flag, response = await cls.get(
-            url=req_url,
-            timeout=timeout,
-            data={"room_id": room_id},
-            check_response_json=True,
-            check_error_code=True
-        )
+        flag, response = await cls.get(url=req_url, timeout=timeout, data={"room_id": room_id}, check_error_code=True)
         if not flag:
             return False, response
 
