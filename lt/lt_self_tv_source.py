@@ -8,6 +8,7 @@ prize_room_q = asyncio.Queue()
 
 DANMAKU_WS_URL = "ws://broadcastlv.chat.bilibili.com:2244/sub"
 ALL_WS_CLIENTS = set()
+MONITOR_LIVE_ROOM_IDS = set()
 
 
 async def heart_beat():
@@ -67,10 +68,12 @@ async def monitor(index):
         while True:
             flag, result = await BiliApi.get_living_rooms_by_area(area_id=area_id)
             if flag:
-                existed_rooms = [ws.monitor_room_id for ws in ALL_WS_CLIENTS]
                 for room_id in result:
-                    if room_id not in existed_rooms and room_id != old_room_id:
-                        logging.info(f"Get live rooms from Biliapi, {index}-{area_id} -> {room_id}")
+                    if room_id not in MONITOR_LIVE_ROOM_IDS:
+                        MONITOR_LIVE_ROOM_IDS.add(room_id)
+                        MONITOR_LIVE_ROOM_IDS.discard(old_room_id)
+
+                        logging.info(f"Get live rooms from Biliapi, {index}-{area_id}, old {old_room_id} -> {room_id}")
                         return room_id
             else:
                 logging.error(f"Cannot get live rooms from Biliapi. {index}-{area_id} -> {result}")
