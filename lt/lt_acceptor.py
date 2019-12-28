@@ -231,7 +231,7 @@ async def main():
     tasks = [asyncio.create_task(select_task())]
     tasks += [
         asyncio.create_task(Worker(100 + index, monitor_q).accept_delayed())
-        for index in range(32)
+        for index in range(128)
     ]
     await asyncio.gather(*tasks)
 
