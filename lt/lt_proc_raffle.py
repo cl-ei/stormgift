@@ -235,7 +235,7 @@ class Executor:
                 "created_time": created_time,
                 "expire_time": created_time + datetime.timedelta(seconds=info["time"])
             }
-            await RedisRaffle.add(raffle_id=raffle_id, value=create_param)
+            await RedisRaffle.add(raffle_id=raffle_id, value=create_param, _pre=True)
 
         for gift_type, gift_name in gift_type_to_name_map.items():
             await redis_cache.set(key=f"GIFT_TYPE_{gift_type}", value=gift_name)

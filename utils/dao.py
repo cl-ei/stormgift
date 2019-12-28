@@ -1042,13 +1042,17 @@ class RedisRaffle:
     key = "LT_RAFFLE"
 
     @classmethod
-    async def add(cls, raffle_id, value):
+    async def add(cls, raffle_id, value, _pre=False):
         key = f"{cls.key}_{raffle_id}"
         await redis_cache.set(key, value, timeout=24*3600*7)
 
+        if _pre:
+            key = f"LT_PRE_RAFFLE_{raffle_id}"
+            await redis_cache.set(key, value, timeout=60*20)
+
     @classmethod
     async def get(cls, raffle_id):
-        key = f"{cls.key}_{raffle_id}"
+        key = f"LT_PRE_RAFFLE_{raffle_id}"
         return await redis_cache.get(key)
 
     @classmethod
