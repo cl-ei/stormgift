@@ -142,6 +142,7 @@ async def main(act, room_id, gift_id, cookies, gift_type=""):
 
 
 def handler(environ, start_response):
+    """ for aliyun. """
     start_response('200 OK', [('Content-type', 'application/json')])
     request_body = environ['wsgi.input'].read(int(environ['CONTENT_LENGTH']))
     request_params = json.loads(request_body)
@@ -149,4 +150,18 @@ def handler(environ, start_response):
     loop = asyncio.get_event_loop()
     r = loop.run_until_complete(main(**request_params))
 
-    return [json.dumps(r).encode()]
+    return [json.dumps(r, ensure_ascii=False).encode()]
+
+
+def main_handler(event, context):
+    """ for tencent. """
+    request_params = json.loads(event["body"])
+
+    loop = asyncio.get_event_loop()
+    r = loop.run_until_complete(main(**request_params))
+
+    return {
+        "headers": {"Content-Type": "application/json"},
+        "statusCode": 200,
+        "body": json.dumps(r, ensure_ascii=False)
+    }
