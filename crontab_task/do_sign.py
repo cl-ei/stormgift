@@ -1,5 +1,6 @@
 import time
 import asyncio
+from config import g
 from utils.biliapi import BiliApi
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import crontab_task_logger as logging
@@ -48,12 +49,11 @@ async def main():
 
         await BiliApi.do_sign_double_watch(cookie)
 
-        if obj.DedeUserID == 20932326:
+        if obj.DedeUserID == g.BILI_UID_DD:
+            # 触发领取今日辣条
             await BiliApi.silver_to_coin(cookie)
-
-        # 触发领取今日辣条
-        await BiliApi.get_bag_list(cookie=cookie)
-        await BiliApi.receive_daily_bag(cookie=cookie)
+            await BiliApi.get_bag_list(cookie=cookie)
+            await BiliApi.receive_daily_bag(cookie=cookie)
         logging_msg_list.append("\tSuccess !\n")
 
     logging_msg_list.append(f"\nDo sign task done. cost: {int((time.time() - start_time) *1000)} ms.\n")

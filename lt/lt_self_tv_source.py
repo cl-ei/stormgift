@@ -88,8 +88,8 @@ async def monitor(index):
         # print status
         messages = []
         for ws in ALL_WS_CLIENTS:
-            messages.append(f"\rarea: {ws.area_id}, room_id: {ws.monitor_room_id}, closed ? {ws.closed}")
-        message = "\n".join(messages)
+            messages.append(f"\t({index})area: {ws.area_id}, room_id: {ws.monitor_room_id}, closed ? {ws.closed}")
+        message = "\n".join(sorted(messages))
         logging.info(f"TV SOURCE CLIENTS STATUS (before updated.): \n{message}\n")
 
 
