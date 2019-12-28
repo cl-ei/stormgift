@@ -33,7 +33,6 @@ async def monitor(index):
                     msg_type = danmaku.get("msg_type")
                     if msg_type in (2, 8):
                         real_room_id = danmaku['real_roomid']
-                        logging.info(f"\tNOTICE_MSG danmaku: {danmaku}")
                         await mq_source_to_raffle.put(("T", real_room_id))
 
                 elif cmd == "GUARD_MSG" and danmaku["buy_type"] == 1:  # and area_id == 1:
