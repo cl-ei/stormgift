@@ -193,7 +193,7 @@ class Executor:
                 "expire_time": expire_time,
             }
             await RedisGuard.add(raffle_id=raffle_id, value=create_param)
-            logging.info(f"Guard found: room_id: {room_id} $ {raffle_id} ({gift_name}) <- {sender['uname']}")
+            logging.info(f"\tGuard found: room_id: {room_id} $ {raffle_id} ({gift_name}) <- {sender['uname']}")
 
     async def _handle_tv(self, room_id, gift_list):
         await InLotteryLiveRooms.add(room_id=room_id)
@@ -222,7 +222,7 @@ class Executor:
             sender_name = info["from_user"]["uname"]
             sender_face = info["from_user"]["face"]
             created_time = datetime.datetime.fromtimestamp(self._start_time)
-            logging.info(f"Lottery found: room_id: {room_id} $ {raffle_id} ({gift_name}) <- {sender_name}")
+            logging.info(f"\tLottery found: room_id: {room_id} $ {raffle_id} ({gift_name}) <- {sender_name}")
 
             create_param = {
                 "raffle_id": raffle_id,
@@ -276,7 +276,7 @@ async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target:
             if key_type in ("R", "D", "P", "S", "A"):
                 executor = Executor(start_time=start_time, br=broadcast_target)
                 task_q.put_nowait(getattr(executor, key_type.lower())(*msg))
-                logging.info(f"Assign task: {key_type} room_id: {room_id}")
+                # logging.info(f"Assign task: {key_type} room_id: {room_id}")
 
             elif key_type in ("G", "T", "Z"):
                 if room_id not in de_dup:
