@@ -67,13 +67,13 @@ async def monitor(index):
         CLIENTS_MAP[area_id].remove(ws)
         logging.info(f"Client closed. {area_id} -> {room_id}, By danmaku preparing: {is_preparing}")
 
-    async def get_living_room_id(area_id):
+    async def get_living_room_id(area_id, old_room_id):
         while True:
             flag, result = await BiliApi.get_living_rooms_by_area(area_id=area_id)
             if flag:
                 existed_rooms = [ws.monitor_room_id for ws in CLIENTS_MAP.get(area_id, [])]
                 for room_id in result:
-                    if room_id not in existed_rooms:
+                    if room_id not in existed_rooms and room_id != old_room_id:
                         logging.info(f"Get live rooms from Biliapi, {index}-{area_id} -> {result}")
                         return room_id
             else:
@@ -82,8 +82,9 @@ async def monitor(index):
             await asyncio.sleep(30)
 
     my_area_id = index % 6 + 1
+    my_room_id = None
     while True:
-        my_room_id = await get_living_room_id(my_area_id)
+        my_room_id = await get_living_room_id(my_area_id, my_room_id)
         await listen_ws(area_id=my_area_id, room_id=my_room_id)
 
 
