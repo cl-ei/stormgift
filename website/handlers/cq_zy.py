@@ -935,7 +935,14 @@ class BotHandler:
             return await cls.handle_group_message(context)
 
         elif context["message_type"] == "private":
-            return await cls.handle_private_message(context)
+            user_id = context["sender"]["user_id"]
+            msg = context["raw_message"]
+            try:
+                return await cls.handle_private_message(context)
+            except Exception as e:
+                message = f"在处理命令[{msg}]时发生了不可处理的错误，请稍后再试。\n\n{e}"
+                await async_zy.send_private_msg(user_id=user_id, message=message)
+                return None
 
     @classmethod
     async def handle_request(cls, context):
@@ -972,15 +979,7 @@ async def handler(request):
     context = await request.json()
 
     if context["post_type"] == "message":
-        try:
-            response = await BotHandler.handle_message(context)
-        except Exception as e:
-            message = f"一个异常引发了不可处理的错误，请稍后再试。\n\n{e}\n{traceback.format_exc()}"
-            print(message)
-
-            await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
-            response = None
-
+        response = await BotHandler.handle_message(context)
     elif context["post_type"] == "request":
         response = await BotHandler.handle_request(context)
     else:
