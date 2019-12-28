@@ -23,13 +23,23 @@ NON_SKIP_USER_ID = [
     39748080,  # LP
 ]
 delay_accept_q = asyncio.Queue()
+URLS_AND_412_TIME = {url: 0 for url in cloud_acceptors}
 
 
-async def cloud_accept(act, room_id, gift_id, cookies, gift_type, url):
+async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
     """
 
-    RETURN: flag -> bool, result -> list
+    RETURN: (flag, result, cloud_url)
+        flag -> bool, result -> list
     """
+    cloud_url = None
+    for url, time_412 in URLS_AND_412_TIME.items():
+        if time.time() - time_412 > 20*60:
+            cloud_url = url
+            break
+    if cloud_url is None:
+        return False, "No usable url!", None
+
     req_json = {
         "act": act,
         "room_id": room_id,
@@ -40,14 +50,23 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type, url):
     client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
     try:
         async with client_session as session:
-            async with session.post(url, json=req_json) as resp:
+            async with session.post(cloud_url, json=req_json) as resp:
                 status_code = resp.status
                 if status_code != 200:
-                    return False, "Cloud Function Error!"
-                content = await resp.text()
-                return True, json.loads(content)
+                    return False, "Cloud Function Error!", cloud_url
+
+                return_data = json.loads(await resp.text())
     except Exception as e:
-        return False, f"Cloud Function Connection Error: {e}"
+        return False, f"Cloud Function Connection Error: {e}", cloud_url
+
+    count_412 = 0
+    for flag, message in return_data:
+        if not flag and "412" in message:
+            count_412 += 1
+            if count_412 > 3:
+                URLS_AND_412_TIME[cloud_url] = time.time()
+                return False, "412", cloud_url
+    return True, return_data, cloud_url
 
 
 async def accept(index, act, room_id, gift_id, gift_type, gift_name):
@@ -65,17 +84,20 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
     if not user_cookie_objs:
         return
 
-    cloud_acceptor_url = random.choice(cloud_acceptors)
-    flag, result = await cloud_accept(
-        act=act,
-        room_id=room_id,
-        gift_id=gift_id,
-        cookies=[c.cookie for c in user_cookie_objs],
-        gift_type=gift_type,
-        url=cloud_acceptor_url,
-    )
+    run_params = {
+        "act": act,
+        "room_id": room_id,
+        "gift_id": gift_id,
+        "cookies": [c.cookie for c in user_cookie_objs],
+        "gift_type": gift_type
+    }
+    flag, result, cloud_acceptor_url = await cloud_accept(**run_params)
+    if not flag and result == "412":
+        flag, result, cloud_acceptor_url = await cloud_accept(**run_params)
+
     if not flag:
-        return logging.error(f"Accept Failed! e: {result}")
+        logging.error(f"Accept Failed! e: {result}")
+        return
 
     success = []
     success_uid_list = []
