@@ -34,7 +34,7 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type, url):
         "act": act,
         "room_id": room_id,
         "gift_id": gift_id,
-        "cookies": [c.cookie for c in cookies],
+        "cookies": cookies,
         "gift_type": gift_type,
     }
     client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
