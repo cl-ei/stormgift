@@ -163,16 +163,15 @@ class Worker(object):
         while True:
             data = await self.q.get()
             start_time = time.time()
-            task_id = f"{int(str(random.random())[2:]):x}"
             try:
                 r = await self.proc_single(data)
             except Exception as e:
-                logging.error(f"DELAY Acceptor {self.worker_index}-[{task_id}] error: {e}, {traceback.format_exc()}")
+                logging.error(f"DELAY Acceptor {self.worker_index}. error: {e}, {traceback.format_exc()}")
                 continue
 
             cost_time = time.time() - start_time
             if cost_time > 5:
-                logging.info(f"DELAY Acceptor {self.worker_index}-[{task_id}] success, r: {r}, cost: {cost_time:.3f}")
+                logging.info(f"DELAY Acceptor {self.worker_index} success, r: {r}, cost: {cost_time:.3f}")
 
 
 async def main():
