@@ -27,6 +27,14 @@ class BiliUser(peewee.Model):
         database = mysql_db
 
     @classmethod
+    async def get_uid_by_name(cls, name):
+        try:
+            user = await objects.get(cls, name=name)
+            return user.uid
+        except peewee.DoesNotExist:
+            return None
+
+    @classmethod
     async def get_or_update(cls, uid, name, face=""):
         if uid is None:
             try:

@@ -8,6 +8,7 @@ from utils.cq import async_zy
 from utils.cq import CQClient
 from utils.biliapi import BiliApi
 from utils.dao import RaffleToCQPushList
+from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import crontab_task_logger as logging
 from utils.reconstruction_model import objects, Guard, Raffle, BiliUser
 from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, gen_x_node_redis
@@ -47,20 +48,33 @@ async def sync_raffle(redis):
     raffles = await RedisRaffle.get_all(redis=redis)
     for raffle in raffles:
         raffle_id = raffle["raffle_id"]
+        cloud_get_uid = False
         if "winner_uid" in raffle and "winner_name" in raffle:
+            uid = raffle["winner_uid"]
+            name = raffle["winner_name"]
+            if not uid:
+                uid = await BiliUser.get_uid_by_name(name=name)
+            if not uid:
+                cloud_get_uid = True
+                uid = await ReqFreLimitApi.get_uid_by_name(user_name=name)
+
+            raffle["winner_uid"] = uid
             r = await Raffle.create(**raffle)
-            # notice
-            await notice_qq(
-                room_id=raffle["room_id"],
-                winner_uid=raffle["winner_uid"],
-                winner_name=raffle["winner_name"],
-                prize_gift_name=raffle["prize_gift_name"],
-                sender_name=raffle["sender_name"]
-            )
-            logging.info(f"Saved: T:{raffle['raffle_id']} {r.id} Raffle Full.")
+            if uid:
+                # notice
+                await notice_qq(
+                    room_id=raffle["room_id"],
+                    winner_uid=uid,
+                    winner_name=name,
+                    prize_gift_name=raffle["prize_gift_name"],
+                    sender_name=raffle["sender_name"]
+                )
+            logging.info(f"Saved: T:{raffle['raffle_id']} {r.id} Raffle Full. cloud_get_uid: {cloud_get_uid}")
+
         else:
             r = await Raffle.record_raffle_before_result(**raffle)
             logging.info(f"Saved: T:{raffle['raffle_id']} {r.id} Raffle Pre.")
+
         await RedisRaffle.delete(raffle_id, redis=redis)
 
 
