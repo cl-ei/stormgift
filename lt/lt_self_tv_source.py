@@ -74,7 +74,7 @@ async def monitor(index):
                 existed_rooms = [ws.monitor_room_id for ws in CLIENTS_MAP.get(area_id, [])]
                 for room_id in result:
                     if room_id not in existed_rooms and room_id != old_room_id:
-                        logging.info(f"Get live rooms from Biliapi, {index}-{area_id} -> {result}")
+                        logging.info(f"Get live rooms from Biliapi, {index}-{area_id} -> {room_id}")
                         return room_id
             else:
                 logging.error(f"Cannot get live rooms from Biliapi. {index}-{area_id} -> {result}")
