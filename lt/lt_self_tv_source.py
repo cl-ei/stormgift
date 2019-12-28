@@ -7,21 +7,16 @@ from config.log4 import lt_server_logger as logging
 prize_room_q = asyncio.Queue()
 
 DANMAKU_WS_URL = "ws://broadcastlv.chat.bilibili.com:2244/sub"
-CLIENTS_MAP = {
-    # 1: {ws, ws, ws}
-    # 2: {ws, ws, ws}
-    # ...
-}
+ALL_WS_CLIENTS = set()
 
 
 async def heart_beat():
     heart_beat_package = WsApi.gen_heart_beat_pkg()
     while True:
         await asyncio.sleep(30)
-        for clients in CLIENTS_MAP.values():
-            for ws in clients:
-                if not ws.closed:
-                    await ws.send_bytes(heart_beat_package)
+        for ws in ALL_WS_CLIENTS:
+            if not ws.closed:
+                await ws.send_bytes(heart_beat_package)
 
 
 async def monitor(index):
@@ -54,7 +49,8 @@ async def monitor(index):
             await ws.send_bytes(WsApi.gen_join_room_pkg(room_id=room_id))
 
             ws.monitor_room_id = room_id
-            CLIENTS_MAP.setdefault(area_id, set()).add(ws)
+            ws.area_id = area_id
+            ALL_WS_CLIENTS.add(ws)
 
             async for msg in ws:
                 if msg.type == aiohttp.WSMsgType.ERROR:
@@ -64,14 +60,14 @@ async def monitor(index):
                 if is_preparing is True:
                     break
 
-        CLIENTS_MAP[area_id].remove(ws)
-        logging.info(f"Client closed. {area_id} -> {room_id}, By danmaku preparing: {is_preparing}")
+        ALL_WS_CLIENTS.remove(ws)
+        logging.info(f"Client closed. {index}-{area_id} -> {room_id}, By danmaku preparing: {is_preparing}")
 
     async def get_living_room_id(area_id, old_room_id):
         while True:
             flag, result = await BiliApi.get_living_rooms_by_area(area_id=area_id)
             if flag:
-                existed_rooms = [ws.monitor_room_id for ws in CLIENTS_MAP.get(area_id, [])]
+                existed_rooms = [ws.monitor_room_id for ws in ALL_WS_CLIENTS]
                 for room_id in result:
                     if room_id not in existed_rooms and room_id != old_room_id:
                         logging.info(f"Get live rooms from Biliapi, {index}-{area_id} -> {room_id}")
@@ -86,6 +82,13 @@ async def monitor(index):
     while True:
         my_room_id = await get_living_room_id(my_area_id, my_room_id)
         await listen_ws(area_id=my_area_id, room_id=my_room_id)
+
+        # print status
+        messages = []
+        for ws in ALL_WS_CLIENTS:
+            messages.append(f"\rarea: {ws.area_id}, room_id: {ws.monitor_room_id}, closed ? {ws.closed}")
+        message = "\n".join(messages)
+        logging.info(f"TV SOURCE CLIENTS STATUS (before updated.): \n{message}\n")
 
 
 loop = asyncio.get_event_loop()
