@@ -23,11 +23,6 @@ class CookieFetcher:
     mobi_app = "android"
     platform = "android"
     app_secret = "560c52ccd288fed045859ed18bffd973"
-    refresh_token = ""
-    access_key = ""
-    cookie = ""
-    csrf = ""
-    uid = ""
 
     pc_headers = {
         "Accept-Language": "zh-CN,zh;q=0.9",
@@ -251,7 +246,6 @@ class CookieFetcher:
 
         url = f'https://passport.bilibili.com/api/v2/oauth2/refresh_token'
         headers = {"cookie": cookie}
-        print(cookie)
         headers.update(cls.app_headers)
         status_code, content = await cls._request("post", url=url, headers=headers, params=payload)
         if status_code != 200:
@@ -264,8 +258,6 @@ class CookieFetcher:
 
         if json_rsp["code"] != 0:
             return False, json_rsp["message"]
-
-        print(f"json_rsp: {json_rsp}")
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}
         result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
@@ -348,12 +340,8 @@ class BiliApi:
     @classmethod
     async def _request_async(cls, method, url, headers, data, timeout):
         if url in (
-            # "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check",  # 仍在使用，但使用本机ip
-
             "https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp",
             "https://api.live.bilibili.com/room/v1/Room/room_init",
-            "https://api.live.bilibili.com/room/v1/Area/getListByAreaID",
-            "https://api.live.bilibili.com/room/v1/Area/getLiveRoomCountByAreaID",
             "https://api.live.bilibili.com/msg/send",
         ):
             req_json = {
@@ -395,8 +383,7 @@ class BiliApi:
         except asyncio.TimeoutError:
             return False, "Bili api HTTP request timeout!"
         except Exception as e:
-            from config.log4 import bili_api_logger as logging
-            error_message = f"Async _request Error: {e}, {traceback.format_exc()}"
+            error_message = f"Bili api _request Error: {e}\nurl: {url}\n {traceback.format_exc()}"
             logging.error(error_message)
             return False, error_message
 
@@ -430,28 +417,6 @@ class BiliApi:
         if check_error_code:
             check_response_json = True
         return await cls._request("post", url, headers, data, timeout, check_response_json, check_error_code)
-
-    @classmethod
-    async def search_live_room(cls, area, old_room_id=None, timeout=5):
-        req_url = (
-            "https://api.live.bilibili.com/room/v3/area/getRoomList"
-            "?platform=web&page=1&page_size=10"
-            "&parent_area_id=%s" % area
-        )
-        flag, r = await cls.get(req_url, timeout=timeout, check_response_json=True, check_error_code=True)
-        if not flag:
-            return False, r
-
-        room_id = 0
-        room_info_list = r.get("data", {}).get("list", [])
-        for info in room_info_list:
-            room_id = int(info.get("roomid", 0))
-            if room_id and room_id != old_room_id:
-                break
-        if room_id:
-            return True, room_id
-        else:
-            return False, f"Response data error: {r}"
 
     @classmethod
     async def get_living_rooms_by_area(cls, area_id, timeout=30):
@@ -492,35 +457,6 @@ class BiliApi:
         return True, live_area == area
 
     @classmethod
-    async def get_tv_raffle_id(cls, room_id, timeout=5):
-        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check"
-        data = {"roomid": room_id}
-        flag, r = await cls.get(url=req_url, data=data, timeout=timeout, check_error_code=True)
-        if not flag:
-            return False, r
-        raffle_id_list = r.get("data", {}).get("gift", [])
-        if raffle_id_list:
-            return True, raffle_id_list
-        else:
-            logging.error(f"Empty raffle_id_list in response: r: {r}")
-            return False, f"Empty raffle_id_list in response."
-
-    @classmethod
-    async def get_guard_raffle_id(cls, room_id, timeout=5):
-        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check"
-        data = {"roomid": room_id}
-        flag, r = await cls.get(url=req_url, data=data, timeout=timeout, check_error_code=True)
-        if not flag:
-            return flag, r
-
-        raffle_id_list = r.get("data", {}).get("guard", []) or []
-        if raffle_id_list:
-            return True, raffle_id_list
-        else:
-            logging.error(f"Empty raffle_id_list in response: r: {r}")
-            return False, f"Empty raffle_id_list in response."
-
-    @classmethod
     async def lottery_check(cls, room_id, timeout=30):
         req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/Check"
         data = {"roomid": room_id}
@@ -536,26 +472,6 @@ class BiliApi:
         return False, "Empty raffle_id_list in response."
 
     @classmethod
-    async def get_guard_room_list(cls, timeout=5):
-        req_url = "https://bilipage.expublicsite.com:23333/Governors/SimpleView"
-        flag, r = await cls.get(req_url, timeout=timeout)
-        if not flag:
-            return False, r
-
-        room_list = re.findall(r"https://live.bilibili.com/(\d+)", r)
-        result = set()
-        for room_id in room_list:
-            try:
-                result.add(int(room_id))
-            except (ValueError, TypeError):
-                pass
-
-        if not result:
-            return False, f"Empty list in response."
-        else:
-            return True, result
-
-    @classmethod
     async def get_master_guard_count(cls, room_id, uid, timeout=5):
         req_url = f"https://api.live.bilibili.com/guard/topList"
         data = {"roomid": room_id, "ruid": uid, "page": 1}
@@ -565,195 +481,6 @@ class BiliApi:
 
         guard_count = data["data"]["info"]["num"]
         return True, guard_count
-
-    @classmethod
-    async def get_user_id_by_search_way(cls, name, timeout=5):
-        req_url = "https://api.bilibili.com/x/web-interface/search/type?search_type=bili_user&keyword=%s" % name
-        flag, r = await cls.get(req_url, timeout=timeout, check_response_json=True, check_error_code=True)
-        if not flag:
-            return False, r
-
-        result_list = r.get("data", {}).get("result", []) or []
-        if not result_list:
-            return False, "No result."
-
-        for r in result_list:
-            if r.get("uname") == name:
-                return True, int(r.get("mid", 0)) or None
-        return False, f"Cannot find uid from response. r: {r}"
-
-    @classmethod
-    async def add_admin(cls, name, cookie, timeout=5):
-        try:
-            anchor_id = re.findall(r"DedeUserID=(\d+)", cookie)[0]
-            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        except (IndexError, ValueError, TypeError):
-            return False, f"Bad cookie! {cookie}"
-
-        req_url = "https://api.live.bilibili.com/live_user/v1/RoomAdmin/add"
-        headers = {"Cookie": cookie}
-        data = {
-            "admin": name,
-            "anchor_id": anchor_id,
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": ""
-        }
-        flag, r = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
-        if not flag:
-            return False, r
-        if r.get("code") == 0:
-            return True, None
-        else:
-            return False, r.get("msg", "") or "Known error."
-
-    @classmethod
-    async def get_admin_list(cls, cookie, timeout=5):
-        req_url = "https://api.live.bilibili.com/xlive/app-ucenter/v1/roomAdmin/get_by_anchor?page=1"
-        headers = {"Cookie": cookie}
-        flag, r = await cls.get(req_url, headers=headers, timeout=timeout,
-                                check_response_json=True, check_error_code=True)
-        if not flag:
-            return False, r
-
-        result = r.get("data", {}).get("data", []) or []
-        return bool(result), result or "Empty admin list."
-
-    @classmethod
-    async def remove_admin(cls, uid, cookie, timeout=5):
-        try:
-            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        except (IndexError, ValueError, TypeError):
-            return False
-
-        req_url = "https://api.live.bilibili.com/xlive/app-ucenter/v1/roomAdmin/dismiss"
-        headers = {"Cookie": cookie}
-        data = {
-            "uid": uid,
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": ""
-        }
-        flag, r = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
-        if not flag:
-            return False, r
-        if r.get("code") == 0:
-            return True, None
-        else:
-            return False, r.get("message", "") or "Known error."
-
-    @classmethod
-    async def join_tv(cls, room_id, gift_id, cookie, timeout=5):
-        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
-        if not csrf_token_list:
-            return False, f"Cannot get csrf_token!"
-
-        csrf_token = csrf_token_list[0]
-        req_url = "https://api.live.bilibili.com/gift/v3/smalltv/join"
-        headers = {"Cookie": cookie}
-        data = {
-            "roomid": room_id,
-            "raffleId": gift_id,
-            "type": "Gift",
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": ""
-        }
-        flag, r = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_response_json=True)
-        if not flag:
-            return flag, r
-
-        result = r.get("code") == 0
-        if result:
-            return True, f"OK gift_type: {r.get('data', {}).get('type')}"
-        else:
-            return False, r.get("msg", "-")
-
-    @classmethod
-    async def join_anchor(cls, raffle_id, cookie, gift_id=None, gift_num=None, timeout=5):
-        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
-        if not csrf_token_list:
-            return False, f"Cannot get csrf_token!"
-
-        csrf_token = csrf_token_list[0]
-        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/Anchor/Join"
-        headers = {"Cookie": cookie}
-        data = {
-            "id": raffle_id,
-            "platform": "pc",
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": "",
-        }
-        flag, r = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_error_code=True)
-        return flag, r
-
-    @classmethod
-    async def join_guard(cls, room_id, gift_id, cookie, timeout=5):
-        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
-        if not csrf_token_list:
-            return False, f"Cannot get csrf_token!"
-
-        csrf_token = csrf_token_list[0]
-        req_url = "https://api.live.bilibili.com/lottery/v2/Lottery/join"
-        headers = {"Cookie": cookie}
-        data = {
-            "roomid": room_id,
-            "id": gift_id,
-            "type": "guard",
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": "",
-        }
-        flag, r = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
-        if not flag:
-            return False, r
-
-        result = r.get("code") == 0
-        if result:
-            data = r.get("data", {})
-            return True, f"{data.get('message')}, from {data.get('from')}"
-        else:
-            return False, r.get("msg", "-")
-
-    @classmethod
-    async def join_storm(cls, room_id, raffle_id, cookie, timeout=5):
-        req_url = "https://api.live.bilibili.com/lottery/v1/Storm/join"
-        csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        headers = {"Cookie": cookie}
-        data = {
-            "id": raffle_id,
-            "color": 16777215,
-            "captcha_token": "",
-            "captcha_phrase": "",
-            "roomid": room_id,
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": "",
-        }
-        flag, data = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_response_json=True)
-        print(flag, data)
-
-    @classmethod
-    async def join_pk(cls, room_id, raffle_id, cookie, timeout=5):
-        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/pk/join"
-        csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        headers = {"Cookie": cookie}
-        data = {
-            "roomid": room_id,
-            "id": raffle_id,
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": ""
-        }
-        flag, data = await cls.post(req_url, timeout=timeout, headers=headers, data=data, check_response_json=True)
-        if not flag:
-            return False, data
-
-        if data.get("code") == 0:
-            return True, data.get("data", {}).get("title", "unknown tittle")
-        else:
-            return False, data.get("message")
 
     @classmethod
     async def send_danmaku(cls, message, room_id, cookie, color=0xffffff, timeout=5):
@@ -784,38 +511,6 @@ class BiliApi:
             return True, r.get("message") or r.get("msg")
         else:
             return False, r.get("message") or r.get("msg")
-
-    @classmethod
-    async def enter_room(cls, room_id, cookie, timeout=5):
-        headers = {"Cookie": cookie}
-
-        req_url = f"https://api.live.bilibili.com/live_user/v1/UserInfo/get_info_in_room?roomid={room_id}"
-        await cls.get(req_url, headers=headers, timeout=timeout, check_response_json=True)
-
-        csrf_token_list = re.findall(r"bili_jct=(\w+)", cookie)
-        if not csrf_token_list:
-            return False, f"Cannot get csrf_token!"
-        csrf_token = csrf_token_list[0]
-        req_url = "https://api.live.bilibili.com/room/v1/Room/room_entry_action"
-        data = {
-            "room_id": room_id,
-            "platform": "pc",
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": "",
-        }
-        r = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
-        return r
-
-    @classmethod
-    async def get_user_face(cls, uid, timeout=10):
-        req_url = f"https://api.bilibili.com/x/space/acc/info"
-        data = {"mid": uid, "jsonp": "jsonp"}
-        flag, data = await cls.get(req_url, data=data, timeout=timeout, check_error_code=True)
-        if not flag:
-            return ""
-        else:
-            return data.get("data", {}).get("face", "") or ""
 
     @classmethod
     async def get_user_name(cls, uid, timeout=10):
@@ -902,50 +597,6 @@ class BiliApi:
         return result
 
     @classmethod
-    async def get_fans_count_by_uid(cls, uid, timeout=10):
-        req_url = f"https://api.bilibili.com/x/relation/followers?pn=1&ps=50&order=desc&jsonp=jsonp"
-        flag, data = await cls.get(req_url, timeout=timeout, data={"vmid": uid}, check_error_code=True)
-        result = 0
-        if not flag:
-            return result
-        count = data.get("data", {}).get("total", 0)
-        return int(count)
-
-    @classmethod
-    async def get_guard_live_room_id_list(cls, cookie, page=1, timeout=10):
-        if page >= 5:
-            return []
-
-        result = []
-        req_url = f"https://api.live.bilibili.com/i/api/guard?page={page}&pageSize=10"
-        flag, r = await cls.get(req_url, headers={"Cookie": cookie}, timeout=timeout, check_error_code=True)
-        if not flag:
-            return result
-
-        data = r.get("data", {})
-        for g in data.get("list", []):
-            if "201" in g.get("expired_date", ""):
-                result.append(int(g.get("ruid")))
-
-        page_info = data.get("pageinfo", {}) or {}
-        total = page_info.get("totalPage", 1)
-        current = page_info.get("curPage", 1)
-        if total <= current:
-            return list(set(result))
-
-        others = await cls.get_guard_live_room_id_list(cookie, page + 1)
-        result.extend(others)
-        return list(set(result))
-
-    @classmethod
-    async def get_live_room_id_by_uid(cls, uid, timeout=10):
-        req_url = f"http://api.live.bilibili.com/room/v1/Room/getRoomInfoOld?mid={uid}"
-        flag, r = await cls.get(req_url, timeout=timeout, check_error_code=True)
-        if flag:
-            return r.get("data", {}).get("roomid", -1) or -1
-        return -1
-
-    @classmethod
     async def get_medal_info_list(cls, cookie, timeout=10):
         req_url = f"https://api.live.bilibili.com/i/api/medal?page=1&pageSize=30"
         flag, r = await cls.get(req_url, headers={"Cookie": cookie}, timeout=timeout, check_error_code=True)
@@ -1006,41 +657,6 @@ class BiliApi:
             data["coin_type"] = coin_type
 
         return await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_response_json=True)
-
-    @classmethod
-    async def get_guard_list(cls, uid, room_id=None, timeout=10):
-        if not room_id:
-            room_id = await cls.get_live_room_id_by_uid(uid)
-            if room_id <= 0:
-                return []
-
-        result = {}
-        page = 1
-        for _ in range(20):
-            req_url = f"https://api.live.bilibili.com/guard/topList?roomid={room_id}&page={page}&ruid={uid}"
-            flag, data = await cls.get(req_url, timeout=timeout, check_error_code=True)
-
-            if not flag:
-                await asyncio.sleep(1)
-                continue
-
-            data = data.get("data", {}) or {}
-            guard_list = data.get("list", []) + data.get("top3", [])
-            for g in guard_list:
-                if g["uid"] in result:
-                    continue
-                result[g["uid"]] = {
-                    "uid": g["uid"],
-                    "name": g["username"],
-                    "level": g["guard_level"]
-                }
-
-            current_page = data.get("info", {}).get("page", 0)
-            if page >= current_page:
-                break
-            else:
-                page += 1
-        return sorted(result.values(), key=lambda x: x["level"])
 
     @classmethod
     async def post_heartbeat_5m(cls, cookie, timeout=10):
@@ -1335,57 +951,6 @@ class BiliApi:
         return await cls.get(url=url, headers=headers, timeout=timeout, check_response_json=True)
 
     @classmethod
-    async def join_s9_sign(cls, cookie, timeout=5):
-        try:
-            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        except Exception as e:
-            return False, f"Bad cookie, cannot get csrf_token: {e}"
-
-        url = "https://api.live.bilibili.com/activity/v1/s9/sign"
-        headers = {"Cookie": cookie}
-        data = {
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": "",
-        }
-        flag, r = await cls.post(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
-        if not flag:
-            return False, r
-
-        if r["code"] == 0:
-            return True, r["msg"]
-        else:
-            return False, f"{r['code']}, msg: {r['msg']}"
-
-    @classmethod
-    async def join_s9_open_capsule(cls, cookie, timeout=5):
-        try:
-            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        except Exception as e:
-            return False, f"Bad cookie, cannot get csrf_token: {e}"
-
-        data = {
-            "id": 28,
-            "count": 1,
-            "platform": "web",
-            "_": int(time.time() * 1000),
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-            "visit_id": ""
-        }
-        url = "https://api.live.bilibili.com/xlive/web-ucenter/v1/capsule/open_capsule_by_id"
-        headers = {"Cookie": cookie}
-        flag, r = await cls.post(url=url, headers=headers, data=data, timeout=timeout, check_response_json=True)
-        if not flag:
-            return False, r
-
-        if r["code"] == 0:
-            awards = ", ".join(r['data']['text'])
-            return True, f"{awards}"
-        else:
-            return False, r["message"]
-
-    @classmethod
     async def send_card(cls, cookie, card_record_id, receive_uid, num, timeout=10):
         url = "https://api.live.bilibili.com/xlive/web-room/v1/userRenewCard/send"
         data = {
@@ -1573,47 +1138,6 @@ class BiliApi:
         if flag:
             return True, ""
         return False, r.get("message") or r.get("msg")
-
-    @classmethod
-    async def get_followings(cls, user_id, timeout=30):
-        url = "https://api.bilibili.com/x/relation/followings"
-        params = {
-            "vmid": user_id,
-            "pn": 1,
-            "order": "desc",
-            "jsonp": "jsonp",
-        }
-        result = []
-        for _ in range(5):
-            flag, r = await cls.get(url=url, data=params, timeout=timeout, check_error_code=True)
-            if not flag:
-                break
-            result.extend([_["mid"] for _ in r["data"]["list"]])
-            total = r["data"]["total"]
-            if len(result) >= total:
-                break
-            params["pn"] += 1
-
-        return True, list(set(result))
-
-    @classmethod
-    async def unfollow(cls, user_id, cookie, timeout=30):
-        try:
-            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        except Exception as e:
-            return False, f"Bad cookie, cannot get csrf_token: {e}"
-
-        url = "https://api.bilibili.com/x/relation/modify"
-        data = {
-            "fid": user_id,
-            "act": 2,
-            "re_src": 11,
-            "jsonp": "jsonp",
-            "csrf": csrf_token
-        }
-        headers = {"Cookie": cookie}
-        flag, r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
-        return flag, r
 
     @classmethod
     async def remove_dynamic(cls, dynamic_id, cookie, timeout=30):
