@@ -25,7 +25,8 @@ def request_frequency_control(time_interval=4):
         async def wrapped(request):
             host = request.headers.get("Host", "governors")
             ua = request.headers.get("User-Agent", "NON_UA")
-            unique_identification = hash((host, ua))
+            remote = request.remote
+            unique_identification = hash((host, ua, remote))
 
             last_req_time = 0
             for _ in user_requests_records:
@@ -34,7 +35,7 @@ def request_frequency_control(time_interval=4):
                     break
 
             if time.time() - last_req_time < time_interval:
-                return web.Response(text=f"拒绝服务：你的请求过于频繁。请{time_interval}秒钟后再试。", content_type="text/html")
+                return web.Response(text=f"你的请求过于频繁。请{time_interval}秒钟后再试。", content_type="text/html")
 
             result = await f(request)
 
