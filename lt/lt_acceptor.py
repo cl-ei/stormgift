@@ -32,14 +32,15 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
     RETURN: (flag, result, cloud_url)
         flag -> bool, result -> list
     """
-    cloud_url = None
+    cloud_urls = []
+
     for url, time_412 in URLS_AND_412_TIME.items():
         if time.time() - time_412 > 20*60:
-            cloud_url = url
-            break
-    if cloud_url is None:
+            cloud_urls.append(url)
+    if cloud_urls is None:
         return False, "No usable url!", None
 
+    cloud_url = random.choice(cloud_urls)
     req_json = {
         "act": act,
         "room_id": room_id,
