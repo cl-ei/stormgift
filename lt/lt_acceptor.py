@@ -204,7 +204,7 @@ async def listen_ws():
     while True:
         session = aiohttp.ClientSession()
         async with session.ws_connect(url="wss://www.madliar.com/raffle_wss") as ws:
-            logging.warning(f"Ws Source Connected!")
+            logging.info(f"Ws Source Connected!")
 
             async for msg in ws:
                 if msg.type == aiohttp.WSMsgType.ERROR:
