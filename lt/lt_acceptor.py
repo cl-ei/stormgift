@@ -5,7 +5,8 @@ import asyncio
 import aiohttp
 import datetime
 import traceback
-from config import cloud_acceptors
+from utils.cq import async_zy
+from config import cloud_acceptors, g
 from utils.highlevel_api import DBCookieOperator
 from utils.dao import DelayAcceptGiftsQueue
 from config.log4 import acceptor_logger as logging
@@ -24,6 +25,59 @@ NON_SKIP_USER_ID = [
 ]
 delay_accept_q = asyncio.Queue()
 URLS_AND_412_TIME = {url: 0 for url in cloud_acceptors}
+
+
+class BatchLotteryNotice:
+    lottery_room_gift_to_count = {
+        # "1008$gift_name": count
+        # ...
+    }
+    room_update_time = {
+        # "1008$gift_name": time.time()
+    }
+    threshold = 10
+
+    @classmethod
+    def add(cls, room_id, gift_name):
+        key = f"{room_id}${gift_name}"
+        if key in cls.lottery_room_gift_to_count:
+            cls.lottery_room_gift_to_count[key] += 1
+        else:
+            cls.lottery_room_gift_to_count[key] = 1
+        cls.room_update_time[key] = time.time()
+
+    @classmethod
+    def get(cls):
+        result = []
+        pop_keys = []
+        for key, update_time in cls.room_update_time.items():
+            delay = time.time() - update_time
+            if delay > 3:
+                count = cls.lottery_room_gift_to_count[key]
+                if count >= cls.threshold:
+                    room_id, gift_name = key.split("$", 1)
+                    result.append((room_id, gift_name, count))
+                pop_keys.append(key)
+
+        for key in pop_keys:
+            cls.room_update_time.pop(key)
+            cls.lottery_room_gift_to_count.pop(key)
+        return result
+
+
+async def notice_qq():
+    while True:
+        result = BatchLotteryNotice.get()
+        for r in result:
+            room_id, gift_name, count = r
+            await async_zy.send_group_msg(
+                group_id=g.QQ_GROUP_井,
+                message=(
+                    f"{room_id}直播间 -> {count}个{gift_name}，快来领取吧~\n\n"
+                    f"https://live.bilibili.com/{room_id}"
+                )
+            )
+        await asyncio.sleep(1)
 
 
 async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
@@ -179,6 +233,7 @@ async def listen_ws():
             accept_end_time = ts + max_time
             wait_time = int((accept_end_time - accept_start_time - 8) * random.random())
             recommended_implementation_time = accept_start_time + wait_time
+            BatchLotteryNotice.add(room_id=room_id, gift_name=gift_name)
         elif raffle_type == "guard":
             act = "join_guard"
             recommended_implementation_time = ts + random.randint(60, 600)
@@ -252,6 +307,7 @@ async def main():
                 logging.warning(f"ACCEPTOR worker[{index}] exec long time: {cost_time:.3f}")
 
     await asyncio.gather(
+        notice_qq(),
         listen_ws(),
         interval_assign_task(task_q),
         *[worker(index) for index in range(128)]
