@@ -3,16 +3,49 @@ import time
 import asyncio
 import aiohttp
 from utils.biliapi import WsApi
+from utils.udp import mq_source_to_raffle
 from config.log4 import lt_server_logger as logging
 from utils.dao import MonitorLiveRooms, InLotteryLiveRooms, ValuableLiveRoom
-# from utils.model import MonitorWsClient
+from utils.model import MonitorWsClient
 
-MONITOR_COUNT = 1000
+MONITOR_COUNT = 20000
 DEBUG = True
+
 
 if sys.argv[-1].lower() == "--product":
     logging.setLevel("INFO")
     DEBUG = False
+
+
+async def process_one_danmaku(ts, room_id, msg):
+    cmd = msg["cmd"]
+    if cmd == "GUARD_BUY":
+        await mq_source_to_raffle.put(("G", room_id))
+        logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
+
+    elif cmd == "PK_LOTTERY_START":
+        await mq_source_to_raffle.put(("P", room_id, msg))
+        logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
+
+    elif cmd in ("RAFFLE_END", "TV_END", "ANCHOR_LOT_AWARD"):
+        await mq_source_to_raffle.put(("R", room_id, msg))
+        display_msg = msg.get("data", {}).get("win", {}).get("msg", "")
+        logging.info(f"SOURCE: {cmd}, room_id: {room_id}, msg: {display_msg}")
+
+    elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":
+        await mq_source_to_raffle.put(("S", room_id))
+        logging.info(f"SOURCE: {cmd}-节奏风暴, room_id: {room_id}")
+
+    elif cmd.startswith("DANMU_MSG"):
+        if msg["info"][2][0] == 64782616:
+            # uid = msg["info"][2][0]
+            await mq_source_to_raffle.put(("D", room_id, msg))
+            logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
+
+    elif cmd == "ANCHOR_LOT_START":
+        await mq_source_to_raffle.put(("A", room_id, msg))
+        data = msg["data"]
+        logging.info(f"SOURCE: {cmd}, room_id: {room_id}, {data['require_text']} -> {data['award_name']}")
 
 
 class WsClient:
@@ -190,21 +223,20 @@ class ClientsManager:
                 "target clients": len(expected),
                 "valuable hit rate": cache_hit_rate,
             }
-            # await MonitorWsClient.record(__monitor_info)
+            await MonitorWsClient.record(__monitor_info)
 
             cost = time.time() - start_time
             if cost < cyc_time:
                 await asyncio.sleep(cyc_time - cost)
 
     async def parse_message(self):
-        async def parse_one(ts, room_id, msg):
-            pass
-
         while True:
             ts, room_id, raw = await self._message_q.get()
             for m in WsApi.parse_msg(raw):
                 try:
-                    await parse_one(ts, room_id, m)
+                    await process_one_danmaku(ts, room_id, m)
+                except (KeyError, IndexError, TypeError, ValueError):
+                    pass
                 except Exception as e:
                     logging.error(f"PARSE_MSG_ERROR: {e}")
 
@@ -213,14 +245,15 @@ class ClientsManager:
         msg_count_of_last_second = 0
 
         cyc_count = 0
+        cyc_duration = 59
         while True:
             start_time = time.time()
 
             msg_speed_peak = max(self._message_count - msg_count_of_last_second, msg_speed_peak)
             msg_count_of_last_second = self._message_count
 
-            if cyc_count % 31 == 0:
-                msg_speed_avg = self._message_count / 31
+            if cyc_count % cyc_duration == 0:
+                msg_speed_avg = self._message_count / cyc_duration
                 log = f"Message speed avg: {msg_speed_avg:0.2f}, peak: {msg_speed_peak}. "
 
                 active_clients = 0
@@ -247,8 +280,7 @@ class ClientsManager:
                 for reason, rooms in broken_details.items():
                     broken_count += len(rooms)
                     de_dup_rooms = set(rooms)
-                    if DEBUG or len(rooms) > 50:
-                        log += f"\n\t{reason} {len(de_dup_rooms)} rooms broken {len(rooms)} times."
+                    log += f"\n\t{reason} {len(de_dup_rooms)} rooms broken {len(rooms)} times."
 
                 logging.info(log)
 
@@ -257,16 +289,13 @@ class ClientsManager:
                     "msg peak speed": msg_speed_peak,
                     "broken clients": broken_count
                 }
-                # await MonitorWsClient.record(__monitor_info)
+                await MonitorWsClient.record(__monitor_info)
 
                 self._message_count = 0
                 msg_speed_peak = 0
 
             cost = time.time() - start_time
-            if cost < 1:
-                await asyncio.sleep(1 - cost)
-            else:
-                logging.warning("")
+            await asyncio.sleep(max(0.0, 1 - cost))
             cyc_count += 1
 
     async def run(self):
