@@ -10,7 +10,7 @@ from utils.cq import async_zy
 from utils.biliapi import BiliApi
 from utils.udp import mq_source_to_raffle
 from config.log4 import lt_server_logger as logging
-from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, InLotteryLiveRooms
+from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, InLotteryLiveRooms, LotteryDanmaku
 
 
 class Executor:
@@ -76,6 +76,9 @@ class Executor:
         key_type, room_id, danmaku, *_ = args
         info = danmaku.get("info", {})
         msg = str(info[1])
+        if msg in g.lottery_danmaku:
+            return
+
         uid = info[2][0]
         user_name = info[2][1]
         is_admin = info[2][2]
