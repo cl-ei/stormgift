@@ -342,12 +342,3 @@ async def main():
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
-
-
-
-2019-12-30 20:23:22,710 [INFO]: DANMU_MSG: put to mq, room_id: 5643058, msg: {'cmd': 'DANMU_MSG', 'info': [[0, 1, 25, 16750592, 1577708602530, 0, 0, '81a1fba3', 0, 2, 0], '哔哩哔哩 (?-?)つロ 干杯~', [64782616, '温柔祯', 0, 0, 0, 10000, 1, ''], [19, '小孩梓', '阿梓从小就很可爱', 80397, 16752445, '', 0], [35, 0, 10512625, '>50000'], ['title-278-1', 'title-278-1'], 0, 0, None, {'ts': 1577708602, 'ct': '18B0685D'}, None, None]}
-2019-12-30 20:23:23,243 [INFO]: ('5643058 (2019-12-30 20:23:23.243097) ->\n\n', '[小孩梓 19] [64782616][温柔祯][35]-> 哔哩哔哩 (?-?)つロ 干杯~')
-2019-12-30 20:23:31,013 [INFO]: SOURCE: ANCHOR_LOT_AWARD, room_id: 21432674, msg:
-2019-12-30 20:23:36,012 [INFO]: SOURCE: ANCHOR_LOT_AWARD, room_id: 21677811, msg:
-2019-12-30 20:23:47,574 [INFO]: SOURCE: ANCHOR_LOT_START, room_id: 21432674, 关注主播 -> 1元红包
-2019-12-30 20:23:49,105 [INFO]: SOURCE: SEND_GIFT-节奏风暴, room_
