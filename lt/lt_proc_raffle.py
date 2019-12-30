@@ -10,7 +10,7 @@ from utils.cq import async_zy
 from utils.biliapi import BiliApi
 from utils.udp import mq_source_to_raffle
 from config.log4 import lt_server_logger as logging
-from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, InLotteryLiveRooms, LotteryDanmaku
+from utils.dao import redis_cache, RedisGuard, RedisRaffle, RedisAnchor, InLotteryLiveRooms
 
 
 class Executor:
