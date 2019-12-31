@@ -162,10 +162,9 @@ class ClientsManager:
         self._broken_clients = asyncio.Queue()
 
     async def update_connection(self):
-        cyc_time = 60
-        while True:
-            start_time = time.time()
 
+        async def run_once():
+            start_time = time.time()
             expected = await MonitorLiveRooms.get()
             in_lottery = await InLotteryLiveRooms.get_all()
             expected |= in_lottery
@@ -184,12 +183,6 @@ class ClientsManager:
             need_add = expected - existed
             need_del = existed - expected
 
-            logging.info(
-                f"WS MONITOR CLIENTS UPDATE!"
-                f"\n\texpected: {len(expected)}, in lottery {len(in_lottery)}, valuable: {len(valuable)}"
-                f"\n\tadd {len(need_add)}: {list(need_add)[:10]}"
-                f"\n\tdel {len(need_del)}: {list(need_del)[:10]}"
-            )
             need_del_clients = {ws for ws in self._all_clients if ws.room_id in need_del}
             for ws in need_del_clients:
                 await ws.close()
@@ -222,8 +215,16 @@ class ClientsManager:
             }
             await MonitorWsClient.record(__monitor_info)
 
-            cost = time.time() - start_time
-            await asyncio.sleep(max(0.0, cyc_time - cost))
+            logging.info(
+                f"WS MONITOR CLIENTS UPDATE! cost: {time.time() - start_time:.3f}"
+                f"\n\texpected: {len(expected)}, in lottery {len(in_lottery)}, valuable: {len(valuable)}"
+                f"\n\tadd {len(need_add)}: {list(need_add)[:10]}"
+                f"\n\tdel {len(need_del)}: {list(need_del)[:10]}"
+            )
+
+        while True:
+            await run_once()
+            await asyncio.sleep(60)
 
     async def parse_message(self):
         while True:
