@@ -180,20 +180,16 @@ class ClientsManager:
                     valuable_hit_count += 1
             cache_hit_rate = valuable_hit_count / len(valuable) * 100
 
-            logging.debug(f"Monitor rooms get from redis: {len(expected)}")
-
             existed = {ws.room_id for ws in self._all_clients}
             need_add = expected - existed
             need_del = existed - expected
 
-            if len(need_del) > 0 or len(need_add) > 0:
-                log = f"WS MONITOR CLIENTS UPDATE: need add {len(need_add)}, del: {len(need_del)}"
-                if 0 < len(need_add):
-                    log += f"\n\tadd: {list(need_add)[:10]}"
-                if 0 < len(need_del):
-                    log += f"\n\tdel: {list(need_del)[:10]}"
-                logging.info(log)
-
+            logging.info(
+                f"WS MONITOR CLIENTS UPDATE!"
+                f"\n\texpected: {len(expected)}, in lottery {in_lottery}, valuable: {len(valuable)}"
+                f"\n\tadd {len(need_add)}: {list(need_add)[:10]}"
+                f"\n\tdel {len(need_del)}: {list(need_del)[:10]}"
+            )
             need_del_clients = {ws for ws in self._all_clients if ws.room_id in need_del}
             for ws in need_del_clients:
                 await ws.close()
