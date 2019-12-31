@@ -186,7 +186,7 @@ class ClientsManager:
 
             logging.info(
                 f"WS MONITOR CLIENTS UPDATE!"
-                f"\n\texpected: {len(expected)}, in lottery {in_lottery}, valuable: {len(valuable)}"
+                f"\n\texpected: {len(expected)}, in lottery {len(in_lottery)}, valuable: {len(valuable)}"
                 f"\n\tadd {len(need_add)}: {list(need_add)[:10]}"
                 f"\n\tdel {len(need_del)}: {list(need_del)[:10]}"
             )
