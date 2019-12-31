@@ -6,7 +6,7 @@ from utils.biliapi import WsApi
 from utils.udp import mq_source_to_raffle
 from config.log4 import lt_server_logger as logging
 from utils.dao import MonitorLiveRooms, InLotteryLiveRooms, ValuableLiveRoom
-from utils.model import MonitorWsClient
+from utils.model import objects, MonitorWsClient
 
 MONITOR_COUNT = 20000
 DEBUG = True
@@ -287,10 +287,11 @@ class ClientsManager:
                 __monitor_info = {
                     "msg speed": msg_speed_avg,
                     "msg peak speed": msg_speed_peak,
-                    "broken clients": broken_count
+                    "broken clients": broken_count,
+                    "active clients": active_clients,
+                    "total clients": len(self._all_clients)
                 }
                 await MonitorWsClient.record(__monitor_info)
-
                 self._message_count = 0
                 msg_speed_peak = 0
 
@@ -309,8 +310,12 @@ class ClientsManager:
 
 
 async def main():
+    await objects.connect()
+
     mgr = ClientsManager()
     await mgr.run()
+
+    await objects.close()
 
 
 loop = asyncio.get_event_loop()

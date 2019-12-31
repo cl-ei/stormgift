@@ -2,7 +2,7 @@ import time
 import asyncio
 from utils.biliapi import BiliApi
 from utils.dao import MonitorLiveRooms
-from utils.model import MonitorWsClient
+from utils.model import objects, MonitorWsClient
 from config.log4 import lt_server_logger as logging
 from utils.ws import get_ws_established_and_time_wait
 
@@ -67,7 +67,9 @@ async def get_live_rooms_from_api():
         "TCP ESTABLISHED": established,
         "TCP TIME_WAIT": time_wait,
     }
+    await objects.connect()
     await MonitorWsClient.record(__monitor_info)
+    await objects.close()
     return r
 
 
