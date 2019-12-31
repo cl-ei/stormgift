@@ -91,10 +91,12 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
     for url, time_412 in URLS_AND_412_TIME.items():
         if time.time() - time_412 > 20*60:
             cloud_urls.append(url)
-    if cloud_urls is None:
-        return False, "No usable url!", None
+    if not cloud_urls:
+        cloud_url = random.choice(URLS_AND_412_TIME.keys())
+        logging.error("No usable url! now force choose ome!")
+    else:
+        cloud_url = random.choice(cloud_urls)
 
-    cloud_url = random.choice(cloud_urls)
     req_json = {
         "act": act,
         "room_id": room_id,
@@ -121,6 +123,8 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
             if count_412 > 3:
                 URLS_AND_412_TIME[cloud_url] = time.time()
                 return False, "412", cloud_url
+
+    URLS_AND_412_TIME[cloud_url] = 0
     return True, return_data, cloud_url
 
 
