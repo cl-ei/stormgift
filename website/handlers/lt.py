@@ -261,7 +261,7 @@ async def query_raffles(request):
     json_req = request.query.get("json")
     try:
         page_size = int(request.query["page_size"])
-        assert 0 < page_size < 10000
+        assert 0 < page_size <= 100000
     except (ValueError, TypeError, KeyError, AssertionError):
         page_size = 1000
     update_time = await redis_cache.get(key="LT_RAFFLE_DB_UPDATE_TIME")
