@@ -2,6 +2,7 @@ import sys
 import time
 import asyncio
 import aiohttp
+import traceback
 from utils.biliapi import WsApi
 from utils.udp import mq_source_to_raffle
 from config.log4 import lt_server_logger as logging
@@ -188,9 +189,9 @@ class ClientsManager:
             if len(need_del) > 0 or len(need_add) > 0:
                 log = f"WS MONITOR CLIENTS UPDATE: need add {len(need_add)}, del: {len(need_del)}"
                 if 0 < len(need_add):
-                    log += f"\n\tadd: {list(need_add)[:10]}{'...' if len(need_add) > 10 else ''}"
+                    log += f"\n\tadd: {list(need_add)[:10]}"
                 if 0 < len(need_del):
-                    log += f"\n\tdel: {list(need_del)[:10]}{'...' if len(need_del) > 10 else ''}"
+                    log += f"\n\tdel: {list(need_del)[:10]}"
                 logging.info(log)
 
             need_del_clients = {ws for ws in self._all_clients if ws.room_id in need_del}
@@ -226,8 +227,7 @@ class ClientsManager:
             await MonitorWsClient.record(__monitor_info)
 
             cost = time.time() - start_time
-            if cost < cyc_time:
-                await asyncio.sleep(cyc_time - cost)
+            await asyncio.sleep(max(0.0, cyc_time - cost))
 
     async def parse_message(self):
         while True:
@@ -300,13 +300,14 @@ class ClientsManager:
             cyc_count += 1
 
     async def run(self):
-        fs = [
-            self.parse_message(),
-            self.update_connection(),
-            self.monitor_status(),
-        ]
-        done, pending = await asyncio.wait(fs=fs, return_when=asyncio.FIRST_COMPLETED)
-        logging.error(f"WS MONITOR EXIT! done: {done}, pending: {pending}")
+        try:
+            await asyncio.gather(
+                self.parse_message(),
+                self.update_connection(),
+                self.monitor_status(),
+            )
+        except Exception as e:
+            logging.error(f"WS MONITOR EXIT! Exception: {e}\n\n{traceback.format_exc()}")
 
 
 async def main():
