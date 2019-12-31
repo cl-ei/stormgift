@@ -191,12 +191,17 @@ async def post_settings(request):
 
 async def query_gifts(request):
     json_req = request.query.get("json")
+    try:
+        time_delta = int(request.query["time_delta"])
+        assert 0 < time_delta < 3600*36
+    except (ValueError, TypeError, KeyError, AssertionError):
+        time_delta = 0
     start_time = time.time()
     guard_records = await AsyncMySQL.execute(
         (
             "select id, room_id, gift_name, sender_name, expire_time "
             "from guard where expire_time > %s;"
-        ), (datetime.datetime.now(),)
+        ), (datetime.datetime.now() - datetime.timedelta(seconds=time_delta),)
     )
     room_id_list = [row[1] for row in guard_records]
     room_info = await AsyncMySQL.execute(
