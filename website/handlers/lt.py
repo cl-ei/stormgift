@@ -259,6 +259,11 @@ async def query_gifts(request):
 
 async def query_raffles(request):
     json_req = request.query.get("json")
+    try:
+        page_size = int(request.query["page_size"])
+        assert 0 < page_size < 10000
+    except (ValueError, TypeError, KeyError, AssertionError):
+        page_size = 1000
     update_time = await redis_cache.get(key="LT_RAFFLE_DB_UPDATE_TIME")
     update_datetime_str = f"{datetime.datetime.fromtimestamp(update_time)}"
     hash_str = f"{hash(update_datetime_str):0x}"[:8]
@@ -272,8 +277,8 @@ async def query_raffles(request):
             "from raffle "
             "where expire_time >= %s "
             "order by expire_time desc, id desc "
-            "limit 1000;"
-        ), (start_date, )
+            "limit %s;"
+        ), (start_date, page_size)
     )
     user_obj_ids = set()
     room_ids = set()
