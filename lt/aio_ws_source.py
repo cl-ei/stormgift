@@ -73,7 +73,7 @@ class WsClient:
 
         self.session = None
         self.task = None
-        self._close_sig_q = asyncio.Queue()
+        self.task_heartbeat = None
         self._url = WsApi.BILI_WS_URI
         self._join_pkg = WsApi.gen_join_room_pkg(room_id=self.room_id)
         self._hb_pkg = WsApi.gen_heart_beat_pkg()
@@ -89,44 +89,35 @@ class WsClient:
         self._connect_times += 1
         self._reconnect_time = 0
 
-        async def wait_close(q):
-            await q.get()
-            return "KILL"
-
-        async def receive_msg():
-            while True:
-                try:
-                    msg = await ws_conn.receive()
-                except Exception as e:
-                    logging.error(f"Error happened in ws receive msg: {e}")
-                    return f"ERROR: {e}"
-
-                if msg.type == aiohttp.WSMsgType.ERROR:
-                    return f"ERROR: {msg.data}"
-                elif msg.type == aiohttp.WSMsgType.CLOSED:
-                    return f"CLOSED_BY_REMOTE"
-                else:
-                    await self.on_message(msg.data, self)
-
         async def heart_beat():
             while True:
                 await asyncio.sleep(50)
                 if not ws_conn.closed:
                     await ws_conn.send_bytes(self._hb_pkg)
 
-        fs = [heart_beat(), receive_msg(), wait_close(self._close_sig_q)]
-        done, pending = await asyncio.wait(fs=fs, return_when=asyncio.FIRST_COMPLETED)
+        if self.task_heartbeat is not None:
+            raise RuntimeError(f"self.task_heartbeat task not stopped! It will caused MEMORY_LEAK!")
+        self.task_heartbeat = asyncio.create_task(heart_beat())
 
-        closed_reason = None
-        for done_task in done:
-            closed_reason = done_task.result()
-            break
+        while True:
+            msg = await ws_conn.receive()
+            if msg.type == aiohttp.WSMsgType.ERROR:
+                closed_reason = f"ERROR: {msg.data}"
+                break
+            elif msg.type == aiohttp.WSMsgType.CLOSED:
+                closed_reason = f"CLOSED_BY_REMOTE"
+                break
+            else:
+                await self.on_message(msg.data, self)
+
         return closed_reason
 
     async def _listen_for_ever(self):
         while True:
             try:
                 closed_reason = await self._listen()
+            except asyncio.CancelledError:
+                closed_reason = "KILL"
             except Exception as e:
                 logging.warning(f"WS._listen raised a Exception! {e}")
                 closed_reason = F"EXCEPTION: {e}"
@@ -135,13 +126,19 @@ class WsClient:
                 await self.session.close()
                 self.session = None
 
+            if self.task_heartbeat:
+                if self.task_heartbeat.done():
+                    raise RuntimeError("self.task_heartbeat Should not be done!")
+                self.task_heartbeat.cancel()
+                self.task_heartbeat = None
+
             if closed_reason == "KILL":
                 return
-            else:
-                await self.on_broken(closed_reason, self)
-                logging.debug(F"_listen BROKEN: {self.room_id}, reason: {closed_reason}")
-            self._reconnect_time += 1
 
+            await self.on_broken(closed_reason, self)
+            logging.debug(F"_listen BROKEN: {self.room_id}, reason: {closed_reason}")
+
+            self._reconnect_time += 1
             if self._reconnect_time < 3:
                 sleep_time = randint(200, 1000) / 1000
             elif self._reconnect_time < 10:
@@ -170,8 +167,8 @@ class WsClient:
             logging.error(f"Task ALREADY closed! {self.room_id} -> {self.task}")
             raise RuntimeError("Task ALREADY closed!")
 
-        self._close_sig_q.put_nowait("KILL")
-        await self.task
+        self.task.cancel()
+        self.task = None
 
 
 class ClientsManager:
