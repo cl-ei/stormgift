@@ -1,7 +1,7 @@
 import asyncio
 import aiohttp
-from utils.udp import mq_source_to_raffle
 from utils.biliapi import WsApi, BiliApi
+from utils.udp import mq_source_to_raffle
 from config.log4 import lt_server_logger as logging
 
 prize_room_q = asyncio.Queue()
@@ -25,8 +25,8 @@ async def monitor(index):
     async def proc_danmaku(area_id, room_id, raw_msg):
         for danmaku in WsApi.parse_msg(raw_msg):
             try:
-                cmd = danmaku.get("cmd")
-                if cmd == "PREPARING":
+                cmd = danmaku["cmd"]
+                if cmd in ("PREPARING", "ROOM_CHANGE"):
                     return True
 
                 elif cmd == "NOTICE_MSG":
@@ -36,8 +36,8 @@ async def monitor(index):
                         await mq_source_to_raffle.put(("T", real_room_id))
 
                 elif cmd == "GUARD_MSG" and danmaku["buy_type"] == 1:  # and area_id == 1:
-                    prize_room_id = danmaku['roomid']  # TODO: need find real room id.
-                    await mq_source_to_raffle.put(("G", prize_room_id))
+                    prize_room_id = danmaku['roomid']
+                    await mq_source_to_raffle.put(("Z", prize_room_id))
 
             except KeyError:
                 continue
