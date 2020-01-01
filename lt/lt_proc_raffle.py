@@ -300,7 +300,7 @@ async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target:
         for msg in sources:
             key_type, room_id, *_ = msg
             if key_type in ("G", "S", "R", "D", "P", "A"):
-                msg, ts, *others = _
+                _, ts, *_ = _
                 executor = Executor(start_time=ts, br=broadcast_target)
                 task_q.put_nowait(getattr(executor, key_type.lower())(*msg))
                 # logging.info(f"Assign task: {key_type} room_id: {room_id}")
