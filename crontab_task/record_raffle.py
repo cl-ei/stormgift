@@ -1,4 +1,5 @@
 import time
+import peewee
 import asyncio
 import datetime
 import traceback
@@ -59,7 +60,13 @@ async def sync_raffle(redis):
                 uid = await ReqFreLimitApi.get_uid_by_name(user_name=name)
 
             raffle["winner_uid"] = uid
-            r = await Raffle.create(**raffle)
+            try:
+                r = await Raffle.create(**raffle)
+            except peewee.IntegrityError as e:
+                if "Duplicate entry" in f"{e}":
+                    pass
+                raise e
+
             if uid:
                 # notice
                 await notice_qq(
