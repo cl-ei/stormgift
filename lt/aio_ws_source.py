@@ -185,6 +185,8 @@ class ClientsManager:
 
         async def run_once():
             start_time = time.time()
+            logging.info(f"WS MONITOR CLIENTS UPDATING...start: {start_time}.")
+
             in_lottery = await InLotteryLiveRooms.get_all()
             expected = in_lottery | (await MonitorLiveRooms.get())
             valuable = await ValuableLiveRoom.get_all()
@@ -203,6 +205,7 @@ class ClientsManager:
             need_del = existed - expected
 
             need_del_clients = {ws for ws in self._all_clients if ws.room_id in need_del}
+            logging.info(f"WS MONITOR CLIENTS UPDATING: close non-active clients, count: {len(need_del_clients)}")
             for ws in need_del_clients:
                 await ws.close()
                 self._all_clients.remove(ws)
@@ -226,7 +229,7 @@ class ClientsManager:
                 )
                 await ws.connect()
                 self._all_clients.add(ws)
-
+            logging.info(f"WS MONITOR CLIENTS UPDATING: MonitorWsClient.")
             # record
             __monitor_info = {
                 "valuable room": len(valuable),
