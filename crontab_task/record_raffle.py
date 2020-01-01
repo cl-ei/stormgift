@@ -65,7 +65,8 @@ async def sync_raffle(redis):
             except peewee.IntegrityError as e:
                 if "Duplicate entry" in f"{e}":
                     pass
-                raise e
+                else:
+                    raise e
 
             if uid:
                 # notice
@@ -143,7 +144,8 @@ async def sync_anchor(redis):
             except peewee.IntegrityError as e:
                 if "Duplicate entry" in f"{e}":
                     pass
-                raise e
+                else:
+                    raise e
 
             # notice
             await notice_qq(
