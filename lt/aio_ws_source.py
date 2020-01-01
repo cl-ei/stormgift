@@ -210,6 +210,7 @@ class ClientsManager:
                 await ws.close()
                 self._all_clients.remove(ws)
 
+            logging.info(f"WS MONITOR CLIENTS CREATING NEW: {len(need_add)}")
             for i, room_id in enumerate(need_add):
                 if i > 0 and i % 300 == 0:
                     await asyncio.sleep(1)
