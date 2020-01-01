@@ -123,22 +123,27 @@ async def sync_anchor(redis):
             winner_face = user["face"]
             winner = await BiliUser.get_or_update(uid=winner_uid, name=winner_name, face=winner_face)
 
-            r = await objects.create(
-                Raffle,
-                id=inner_raffle_id,
-                room_id=room_id,
-                gift_name=gift_name,
-                gift_type=gift_type,
-                sender_obj_id=sender.id,
-                sender_name=sender_name,
-                winner_obj_id=winner.id,
-                winner_name=winner_name,
-                prize_gift_name=prize_gift_name,
-                prize_count=prize_count,
-                created_time=datetime.datetime.now() - datetime.timedelta(seconds=600),
-                expire_time=datetime.datetime.now()
-            )
-            logging.info(f"Saved: Anchor:{raffle_id} {r.id}")
+            try:
+                r = await objects.create(
+                    Raffle,
+                    id=inner_raffle_id,
+                    room_id=room_id,
+                    gift_name=gift_name,
+                    gift_type=gift_type,
+                    sender_obj_id=sender.id,
+                    sender_name=sender_name,
+                    winner_obj_id=winner.id,
+                    winner_name=winner_name,
+                    prize_gift_name=prize_gift_name,
+                    prize_count=prize_count,
+                    created_time=datetime.datetime.now() - datetime.timedelta(seconds=600),
+                    expire_time=datetime.datetime.now()
+                )
+                logging.info(f"Saved: Anchor:{raffle_id} {r.id}")
+            except peewee.IntegrityError as e:
+                if "Duplicate entry" in f"{e}":
+                    pass
+                raise e
 
             # notice
             await notice_qq(
