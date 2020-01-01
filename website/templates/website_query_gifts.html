@@ -20,6 +20,7 @@
 </head>
 <body>
     <h2>礼物列表:（e_tag: {{ e_tag }}）<a href="/lt/query_gifts?json=true" target="_blank">JSON格式</a></h2>
+    <h5>Process time: {{ proc_time }}(db query time: {{ db_query_time }})</h5>
     <table>
     <tr>
         <th>raffle id</th>
@@ -49,6 +50,5 @@
     </tr>
     {% endfor %}
     </table>
-    <h6>Process time: {{ proc_time }}(db query time: {{ db_query_time }})</h6>
 </body>
 </html>
