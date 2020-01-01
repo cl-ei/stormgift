@@ -1,5 +1,6 @@
 import sys
 import pickle
+import socket
 import asyncio
 
 
@@ -91,21 +92,40 @@ class UdpClient:
 
 class UDPSourceToRaffleMQ:
     def __init__(self, host="127.0.0.1", port=40001):
-        self.udp_client = UdpClient(remote_addr=(host, port))
-        self.udp_server = UdpServer(local_addr=(host, port))
+        self.host = host
+        self.port = port
+
+        self.udp_server = None
+        self.udp_client = None
+        self.sync_udp_client = None
+
+    def put_nowait(self, message):
+        py_obj_bytes = pickle.dumps(message)
+        if self.sync_udp_client is None:
+            self.sync_udp_client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return self.sync_udp_client.sendto(py_obj_bytes, (self.host, self.port))
 
     async def put(self, message):
         py_obj_bytes = pickle.dumps(message)
+        if self.udp_client is None:
+            self.udp_client = UdpClient(remote_addr=(self.host, self.port))
         await self.udp_client.sendto(py_obj_bytes)
 
     async def start_listen(self):
+        if self.udp_server is None:
+            self.udp_server = UdpServer(local_addr=(self.host, self.port))
         await self.udp_server.start_server()
 
     def get_nowait(self):
+        if self.udp_server is None:
+            raise Exception("Serever must listen first!")
+
         data, addr = self.udp_server.received_data_nowait()
         return pickle.loads(data)
 
     async def get(self):
+        if self.udp_server is None:
+            await self.start_listen()
         data, addr = await self.udp_server.received_data()
         return pickle.loads(data)
 

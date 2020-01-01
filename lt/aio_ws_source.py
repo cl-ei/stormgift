@@ -3,14 +3,18 @@ import time
 import asyncio
 import aiohttp
 import traceback
+from random import randint
 from utils.biliapi import WsApi
 from utils.udp import mq_source_to_raffle
+from multiprocessing import Process, Queue
 from config.log4 import lt_server_logger as logging
 from utils.dao import MonitorLiveRooms, InLotteryLiveRooms, ValuableLiveRoom
 from utils.model import objects, MonitorWsClient
 
-MONITOR_COUNT = 20000
+
 DEBUG = True
+MONITOR_COUNT = 20000
+parse_process = None
 
 
 if sys.argv[-1].lower() == "--product":
@@ -18,41 +22,52 @@ if sys.argv[-1].lower() == "--product":
     DEBUG = False
 
 
-async def process_one_danmaku(ts, room_id, msg):
-    cmd = msg["cmd"]
-    if cmd == "GUARD_BUY":
-        await mq_source_to_raffle.put(("G", room_id))
-        logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
+def danmaku_parser_process(damaku_q):
 
-    elif cmd == "PK_LOTTERY_START":
-        await mq_source_to_raffle.put(("P", room_id, msg))
-        logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
+    def parse(ts, room_id, msg):
+        cmd = msg["cmd"]
+        if cmd == "GUARD_LOTTERY_START":
+            mq_source_to_raffle.put_nowait(("G", room_id, msg, ts))
+            logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
 
-    elif cmd in ("RAFFLE_END", "TV_END", "ANCHOR_LOT_AWARD"):
-        await mq_source_to_raffle.put(("R", room_id, msg))
-        display_msg = msg.get("data", {}).get("win", {}).get("msg", "")
-        logging.info(f"SOURCE: {cmd}, room_id: {room_id}, msg: {display_msg}")
+        elif cmd == "SPECIAL_GIFT":
+            mq_source_to_raffle.put_nowait(("S", room_id, msg, ts))
+            logging.info(f"SOURCE: {cmd}-节奏风暴, room_id: {room_id}")
 
-    elif cmd == "SEND_GIFT" and msg["data"]["giftName"] == "节奏风暴":
-        await mq_source_to_raffle.put(("S", room_id))
-        logging.info(f"SOURCE: {cmd}-节奏风暴, room_id: {room_id}")
+        elif cmd == "PK_LOTTERY_START":
+            mq_source_to_raffle.put_nowait(("P", room_id, msg, ts))
+            logging.info(f"SOURCE: {cmd}, room_id: {room_id}")
 
-    elif cmd.startswith("DANMU_MSG"):
-        if msg["info"][2][0] == 64782616:
-            # uid = msg["info"][2][0]
-            await mq_source_to_raffle.put(("D", room_id, msg))
-            logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
+        elif cmd in ("RAFFLE_END", "TV_END", "ANCHOR_LOT_AWARD"):
+            mq_source_to_raffle.put_nowait(("R", room_id, msg, ts))
+            display_msg = msg.get("data", {}).get("win", {}).get("msg", "")
+            logging.info(f"SOURCE: {cmd}, room_id: {room_id}, msg: {display_msg}")
 
-    elif cmd == "ANCHOR_LOT_START":
-        await mq_source_to_raffle.put(("A", room_id, msg))
-        data = msg["data"]
-        logging.info(f"SOURCE: {cmd}, room_id: {room_id}, {data['require_text']} -> {data['award_name']}")
+        elif cmd.startswith("DANMU_MSG"):
+            if msg["info"][2][0] == 64782616:
+                mq_source_to_raffle.put_nowait(("D", room_id, msg, ts))
+                logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
+
+        elif cmd == "ANCHOR_LOT_START":
+            mq_source_to_raffle.put_nowait(("A", room_id, msg, ts))
+            data = msg["data"]
+            logging.info(f"SOURCE: {cmd}, room_id: {room_id}, {data['require_text']} -> {data['award_name']}")
+
+    while True:
+        start_time, msg_from_room_id, danmaku = damaku_q.get()
+        for m in WsApi.parse_msg(danmaku):
+            try:
+                parse(start_time, msg_from_room_id, m)
+            except KeyError:
+                continue
+            except Exception as e:
+                logging.error(f"Error Happened in parse danmaku: {e}\n{traceback.format_exc()}")
+                continue
 
 
 class WsClient:
     def __init__(self, room_id, on_message, on_broken):
         self.room_id = room_id
-
         self.on_message = on_message
         self.on_broken = on_broken
 
@@ -127,7 +142,12 @@ class WsClient:
                 logging.debug(F"_listen BROKEN: {self.room_id}, reason: {closed_reason}")
             self._reconnect_time += 1
 
-            sleep_time = min(self._reconnect_time / 5, 2)
+            if self._reconnect_time < 3:
+                sleep_time = randint(200, 1000) / 1000
+            elif self._reconnect_time < 10:
+                sleep_time = randint(1000, 5000) / 1000
+            else:
+                sleep_time = randint(5000, 15000) / 1000
             await asyncio.sleep(sleep_time)
 
     async def connect(self):
@@ -155,9 +175,9 @@ class WsClient:
 
 
 class ClientsManager:
-    def __init__(self):
+    def __init__(self, q):
         self._all_clients = set()
-        self._message_q = asyncio.Queue()
+        self._message_q = q
         self._message_count = 0
         self._broken_clients = asyncio.Queue()
 
@@ -165,9 +185,8 @@ class ClientsManager:
 
         async def run_once():
             start_time = time.time()
-            expected = await MonitorLiveRooms.get()
             in_lottery = await InLotteryLiveRooms.get_all()
-            expected |= in_lottery
+            expected = in_lottery | (await MonitorLiveRooms.get())
             valuable = await ValuableLiveRoom.get_all()
             valuable_hit_count = 0
             for room_id in valuable:
@@ -192,12 +211,13 @@ class ClientsManager:
                 if i > 0 and i % 300 == 0:
                     await asyncio.sleep(1)
 
-                async def on_message(msg, ws):
-                    self._message_count += 1
-                    self._message_q.put_nowait((time.time(), ws.room_id, msg))
-
                 async def on_broken(reason, ws):
                     self._broken_clients.put_nowait(f"{ws.room_id}${reason}")
+
+                async def on_message(data, ws):
+                    self._message_count += 1
+                    m = (int(time.time()), room_id, data)
+                    self._message_q.put_nowait(m)
 
                 ws = WsClient(
                     room_id=room_id,
@@ -216,26 +236,15 @@ class ClientsManager:
             await MonitorWsClient.record(__monitor_info)
 
             logging.info(
-                f"WS MONITOR CLIENTS UPDATE! cost: {time.time() - start_time:.3f}"
-                f"\n\texpected: {len(expected)}, in lottery {len(in_lottery)}, valuable: {len(valuable)}"
+                f"WS MONITOR CLIENTS UPDATE! cost: {time.time() - start_time:.3f}."
                 f"\n\tadd {len(need_add)}: {list(need_add)[:10]}"
                 f"\n\tdel {len(need_del)}: {list(need_del)[:10]}"
+                f"\n\texpected: {len(expected)}, in lottery {len(in_lottery)}, valuable: {len(valuable)}"
             )
 
         while True:
             await run_once()
             await asyncio.sleep(60)
-
-    async def parse_message(self):
-        while True:
-            ts, room_id, raw = await self._message_q.get()
-            for m in WsApi.parse_msg(raw):
-                try:
-                    await process_one_danmaku(ts, room_id, m)
-                except (KeyError, IndexError, TypeError, ValueError):
-                    pass
-                except Exception as e:
-                    logging.error(f"PARSE_MSG_ERROR: {e}")
 
     async def monitor_status(self):
         msg_speed_peak = 0
@@ -245,6 +254,10 @@ class ClientsManager:
         cyc_duration = 59
         while True:
             start_time = time.time()
+            p_status = parse_process.is_alive() if parse_process else '-'
+            if p_status is False:
+                logging.error(f"Sub process: Parse danmaku process unexpected shutdown! now exit.")
+                sys.exit(-1)
 
             msg_speed_peak = max(self._message_count - msg_count_of_last_second, msg_speed_peak)
             msg_count_of_last_second = self._message_count
@@ -299,7 +312,6 @@ class ClientsManager:
     async def run(self):
         try:
             await asyncio.gather(
-                self.parse_message(),
                 self.update_connection(),
                 self.monitor_status(),
             )
@@ -307,14 +319,22 @@ class ClientsManager:
             logging.error(f"WS MONITOR EXIT! Exception: {e}\n\n{traceback.format_exc()}")
 
 
-async def main():
-    await objects.connect()
+def main():
+    global parse_process
 
-    mgr = ClientsManager()
-    await mgr.run()
+    danmaku_q = Queue()
+    parse_process = Process(target=danmaku_parser_process, args=(danmaku_q, ), daemon=False)
+    parse_process.start()
 
-    await objects.close()
+    async def run():
+        await objects.connect()
+        mgr = ClientsManager(danmaku_q)
+        await mgr.run()
+        await objects.close()
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(run())
 
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+if __name__ == "__main__":
+    main()

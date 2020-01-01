@@ -18,6 +18,11 @@ class Executor:
         self._start_time = start_time
         self.broadcast = br
 
+    async def g(self, *args):
+        key_type, room_id, danmaku, *_ = args
+        guards = [danmaku["data"]]
+        await self._handle_guard(room_id, guards)
+
     async def r(self, *args):
         """ record_raffle """
 
@@ -110,13 +115,31 @@ class Executor:
 
     async def s(self, *args):
         """ storm """
+        key_type, room_id, danmaku, *_ = args
+        raffle_id = int(danmaku["data"]["39"]["id"])
+        key = F"S${room_id}${raffle_id}"
+        if not await redis_cache.set_if_not_exists(key, "de-duplication"):
+            return
 
-        key_type, room_id, *_ = args
+        created_time = datetime.datetime.fromtimestamp(self._start_time)
+        expire_time = created_time - datetime.timedelta(seconds=90)
+        create_param = {
+            "gift_id": int(raffle_id/1000000),
+            "room_id": room_id,
+            "gift_name": "节奏风暴",
+            "sender_uid": -1,
+            "sender_name": "&__STORM_SENDER__",
+            "sender_face": "",
+            "created_time": created_time,
+            "expire_time": expire_time,
+        }
+        await RedisGuard.add(raffle_id=raffle_id, value=create_param)
+
         await self.broadcast(json.dumps({
             "raffle_type": "storm",
             "ts": int(self._start_time),
             "real_room_id": room_id,
-            "raffle_id": None,
+            "raffle_id": raffle_id,
             "gift_name": "节奏风暴",
         }, ensure_ascii=False))
 
@@ -276,12 +299,13 @@ async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target:
 
         for msg in sources:
             key_type, room_id, *_ = msg
-            if key_type in ("R", "D", "P", "S", "A"):
-                executor = Executor(start_time=start_time, br=broadcast_target)
+            if key_type in ("G", "S", "R", "D", "P", "A"):
+                msg, ts, *others = _
+                executor = Executor(start_time=ts, br=broadcast_target)
                 task_q.put_nowait(getattr(executor, key_type.lower())(*msg))
                 # logging.info(f"Assign task: {key_type} room_id: {room_id}")
 
-            elif key_type in ("G", "T", "Z"):
+            elif key_type in ("T", "Z"):
                 if room_id not in de_dup:
                     de_dup.add(room_id)
                     executor = Executor(start_time=start_time, br=broadcast_target)
