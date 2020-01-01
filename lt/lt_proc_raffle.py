@@ -20,7 +20,13 @@ class Executor:
 
     async def g(self, *args):
         key_type, room_id, danmaku, *_ = args
-        guards = [danmaku["data"]]
+        data = danmaku["data"]
+        guards = [{
+            "id": data["id"],
+            "privilege_type": data["lottery"]["privilege_type"],
+            "time": data["lottery"]["time"],
+            "sender": data["lottery"]["sender"],
+        }]
         await self._handle_guard(room_id, guards)
 
     async def r(self, *args):
