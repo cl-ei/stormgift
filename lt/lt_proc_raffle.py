@@ -124,8 +124,9 @@ class Executor:
 
         created_time = datetime.datetime.fromtimestamp(self._start_time)
         expire_time = created_time - datetime.timedelta(seconds=90)
+        inner_raffle_id = int(raffle_id/1000000)
         create_param = {
-            "gift_id": int(raffle_id/1000000),
+            "gift_id": inner_raffle_id,
             "room_id": room_id,
             "gift_name": "节奏风暴",
             "sender_uid": -1,
@@ -134,7 +135,7 @@ class Executor:
             "created_time": created_time,
             "expire_time": expire_time,
         }
-        await RedisGuard.add(raffle_id=raffle_id, value=create_param)
+        await RedisGuard.add(raffle_id=inner_raffle_id, value=create_param)
 
         await self.broadcast(json.dumps({
             "raffle_type": "storm",
