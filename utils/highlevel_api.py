@@ -2,16 +2,17 @@ import os
 import time
 import json
 import random
+import peewee
 import asyncio
 import aiohttp
 import datetime
 from config import g
-import configparser
 from utils.dao import XNodeRedis
-from utils.biliapi import BiliApi, CookieFetcher
 from config import cloud_get_uid
-from config.log4 import bili_api_logger as logging
 from utils.db_raw_query import AsyncMySQL
+from utils.reconstruction_model import objects
+from utils.biliapi import BiliApi, CookieFetcher
+from config.log4 import bili_api_logger as logging
 from utils.reconstruction_model import LTUserCookie
 from utils.email import send_cookie_invalid_notice
 from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord, LTTempBlack, LTLastAcceptTime, redis_cache
@@ -284,7 +285,6 @@ class DBCookieOperator:
     @classmethod
     async def execute(cls, *args, **kwargs):
         if cls._objects is None:
-            from utils.reconstruction_model import objects
             await objects.connect()
             cls._objects = objects
         if args or kwargs:
@@ -321,125 +321,88 @@ class DBCookieOperator:
         return count
 
     @classmethod
+    async def _refresh_token(cls, lt_user):
+        if not lt_user.refresh_token or not lt_user.access_token:
+            return False, "NO FRESH_TOKEN OR ACCESS_TOKEN"
+
+        flag, r = await CookieFetcher.fresh_token(lt_user.cookie, lt_user.access_token, lt_user.refresh_token)
+        if not flag:
+            return r
+
+        update_fields = ["available"]
+        lt_user.available = True
+        for k, v in r.items():
+            setattr(lt_user, k, v)
+            update_fields.append(k)
+        await objects.update(lt_user, only=update_fields)
+        return True, ""
+
+    @classmethod
+    async def _login(cls, lt_user):
+        flag, r = await CookieFetcher.login(lt_user.account, lt_user.password)
+        if not flag:
+            return False, r
+
+        update_fields = ["available"]
+        lt_user.available = True
+        for k, v in r.items():
+            setattr(lt_user, k, v)
+            update_fields.append(k)
+        await objects.update(lt_user, only=update_fields)
+        return True, ""
+
+    @classmethod
+    async def _update_cookie(cls, lt_user):
+        if lt_user.available:
+            return True, ""
+
+        if not lt_user.account or not lt_user.password:
+            return False, "No account or password."
+
+        flag, data = await cls._refresh_token(lt_user)
+        if flag:
+            return True, data
+
+        flag, data = await cls._login(lt_user)
+        return flag, data
+
+    @classmethod
     async def add_user_by_account(cls, account, password, notice_email=None):
-        objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.account == account))
-        if not objs:
+        try:
+            lt_user = await objects.get(LTUserCookie, account=account)
+        except peewee.DoesNotExist:
             return False, "你不在白名单里。提前联系站长经过允许才可以使用哦。"
 
-        lt_user = objs[0]
+        update_filed = []
+        if lt_user.password != password:
+            lt_user.password = password
+            update_filed.append("password")
+        if lt_user.notice_email != notice_email:
+            lt_user.notice_email = notice_email
+            update_filed.append("notice_email")
+        if update_filed:
+            await objects.update(lt_user, only=update_filed)
+
         if lt_user.available:
             return True, lt_user
 
-        flag, data = await CookieFetcher.login(account, password)
-        if not flag:
-            return False, data
-
-        lt_user.password = password
-        lt_user.cookie_expire_time = datetime.datetime.now() + datetime.timedelta(days=30)
-        lt_user.available = True
-        attrs = ["password", "cookie_expire_time", "available"]
-
-        for k, v in data.items():
-            setattr(lt_user, k, v)
-            attrs.append(k)
-
-        flag, data, uname = await BiliApi.get_if_user_is_live_vip(
-            cookie=lt_user.cookie,
-            user_id=lt_user.uid,
-            return_uname=True
-        )
-        if not flag:
-            return False, "无法获取你的个人信息，请稍后再试。"
-
-        lt_user.is_vip = data
-        lt_user.name = uname
-        attrs.extend(["is_vip", "name"])
-
-        if notice_email is not None:
-            lt_user.notice_email = notice_email
-            attrs.append("notice_email")
-
-        for obj in await cls._objects.execute(LTUserCookie.select().where(
-            (LTUserCookie.DedeUserID == lt_user.DedeUserID) & (LTUserCookie.id != lt_user.id)
-        )):
-            await cls._objects.delete(obj)
-
-        await cls._objects.update(lt_user, only=attrs)
-        if lt_user.uid in (g.BILI_UID_CZ, g.BILI_UID_TZ):
-            await ReqFreLimitApi.set_available_cookie_for_xnode()
-        return True, lt_user
+        return await cls._update_cookie(lt_user)
 
     @classmethod
     async def set_invalid(cls, obj_or_user_id):
         if isinstance(obj_or_user_id, LTUserCookie):
-            cookie_obj = obj_or_user_id
+            user = obj_or_user_id
         else:
-            objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == obj_or_user_id))
-            if not objs:
-                return False, "Cannot get LTUserCookie obj."
-            cookie_obj = objs[0]
+            user = await objects.get(LTUserCookie, DedeUserID=obj_or_user_id)
 
-        cookie_obj.available = False
-        await cls._objects.update(cookie_obj, only=("available",))
+        user.available = False
+        await cls._objects.update(user, only=("available",))
+        flag, result = await cls._update_cookie(user)
+        if flag:
+            return True, ""
 
-        user_in_period = await LtUserLoginPeriodOfValidity.in_period(user_id=cookie_obj.DedeUserID)
-        user_in_iptt_list = cookie_obj.DedeUserID in cls.IMPORTANT_UID_LIST
-
-        if (user_in_iptt_list or user_in_period) and cookie_obj.account and cookie_obj.password:
-            for try_times in range(3):
-                flag, data = await cls.add_user_by_account(
-                    account=cookie_obj.account,
-                    password=cookie_obj.password
-                )
-                if flag:
-                    # send_cookie_relogin_notice(cookie_obj)
-                    return True, ""
-                else:
-                    logging.error(
-                        f"Failed to login user: {cookie_obj.name}(uid: {cookie_obj.user_id}), "
-                        f"try times: {try_times}, error msg: {data}"
-                    )
-                    await asyncio.sleep(1)
-
-        send_cookie_invalid_notice(cookie_obj)
-        return True, ""
-
-    @classmethod
-    async def refresh_token(cls, obj_or_user_id):
-        if isinstance(obj_or_user_id, LTUserCookie):
-            cookie_obj = obj_or_user_id
-        else:
-            objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.DedeUserID == obj_or_user_id))
-            if not objs:
-                return False, "Cannot get LTUserCookie obj."
-            cookie_obj = objs[0]
-
-        if not cookie_obj.available:
-            return False, "User not available!"
-
-        if not cookie_obj.account or not cookie_obj.password:
-            return False, "No account or password."
-
-        user_in_period = await LtUserLoginPeriodOfValidity.in_period(user_id=cookie_obj.DedeUserID)
-        user_in_iptt_list = cookie_obj.DedeUserID in cls.IMPORTANT_UID_LIST
-        if not user_in_period and not user_in_iptt_list:
-            return False, "User not in period."
-
-        if not cookie_obj.refresh_token or not cookie_obj.access_token:
-            # 重新登录
-            return await cls.set_invalid(cookie_obj)
-
-        flag, r = await CookieFetcher.fresh_token(cookie_obj.cookie, cookie_obj.access_token, cookie_obj.refresh_token)
-        if not flag:
-            return False, f"User {cookie_obj.name}(uid: {cookie_obj.uid}) cannot fresh_token: {r}"
-
-        attrs = []
-        for k, v in r.items():
-            setattr(cookie_obj, k, v)
-            attrs.append(k)
-        await cls._objects.update(cookie_obj, only=attrs)
-        logging.info(f"User {cookie_obj.name}(uid: {cookie_obj.uid}) access token refresh success!")
-        return True, ""
+        send_cookie_invalid_notice(user)
+        return False, result
 
     @classmethod
     async def set_vip(cls, obj_or_user_id, is_vip):
