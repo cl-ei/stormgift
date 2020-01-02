@@ -25,7 +25,6 @@ class DanmakuProcessor:
         self.dmk_q = asyncio.Queue()
 
         self.cookie = ""
-        self.cookie_expire_time = None
 
         self.msg_speed_counter = 0
         self.msg_speed_counter_start_time = 0
@@ -35,7 +34,7 @@ class DanmakuProcessor:
         self.followers = []
 
     async def load_cookie(self):
-        if self.cookie and self.cookie_expire_time > time.time():
+        if self.cookie:
             return True, self.cookie
 
         config = await self.load_config()
@@ -44,7 +43,6 @@ class DanmakuProcessor:
         cookie = await SuperDxjCookieMgr.load_cookie(account=account)
         if cookie:
             self.cookie = cookie
-            self.cookie_expire_time = time.time() + 60
             return True, cookie
 
         flag, cookie = await CookieFetcher.get_cookie(account=account, password=password)
@@ -54,7 +52,6 @@ class DanmakuProcessor:
 
         await SuperDxjCookieMgr.save_cookie(account=account, cookie=cookie)
         self.cookie = cookie
-        self.cookie_expire_time = time.time() + 60
         logging.info(f"Super dxj CookieFetcher.get_cookie 登录成功！{self.room_id}.")
         return True, cookie
 
