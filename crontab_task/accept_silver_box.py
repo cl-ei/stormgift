@@ -85,10 +85,11 @@ class UserSilverAcceptTimeCtrl:
             return
 
         await redis_cache.delete(self.key_for_user)
-
         await self._post_accept_req()
         await asyncio.sleep(5)
+
         await self._get_accept_time()
+        await asyncio.sleep(5)
 
 
 async def main():
@@ -96,7 +97,6 @@ async def main():
     for user in objs:
         a = UserSilverAcceptTimeCtrl(user_obj=user)
         await a.accept()
-        await asyncio.sleep(5)
 
 
 loop = asyncio.get_event_loop()
