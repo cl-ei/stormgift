@@ -17,6 +17,7 @@ async def accept(user):
             return
 
         code = data['code']
+        logging.info(f"{user.name} check response data: {data}")
         if code == -10017:
             logging.info(f"{user.name}(uid: {user.uid}) 今日宝箱领取完毕！现在退出。")
             return
@@ -43,7 +44,7 @@ async def accept(user):
 
         code = data['code']
         if code == 0:
-            logging.info(f"CODE: 0, Response data: {data}")
+            logging.info(f"{user.name} CODE: 0, Response data: {data}")
             award_silver = data["data"]["awardSilver"]
             raffle_id = int(f"313{randint(100000, 999999)}")
             await UserRaffleRecord.create(user.uid, "宝箱", raffle_id=raffle_id, intimacy=award_silver)
