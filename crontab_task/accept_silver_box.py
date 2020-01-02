@@ -1,50 +1,58 @@
 import time
+import datetime
 from random import randint
 import asyncio
 from utils.biliapi import BiliApi
 from config.log4 import silver_box_logger as logging
 from utils.highlevel_api import DBCookieOperator
-from utils.dao import UserRaffleRecord
+from utils.dao import UserRaffleRecord, redis_cache
 
 
-async def accept(user):
-    logging.info(f"Now proc {user.name}(uid: {user.uid})...")
+class UserSilverAcceptTimeCtrl:
+    key = "LT_SILVER_TIME_CTL"
 
-    while True:
-        flag, data = await BiliApi.check_silver_box(cookie=user.cookie)
+    def __init__(self, user_obj):
+        self.user = user_obj
+        self.key_for_user = f"{self.key}_{datetime.datetime.today().date()}_{self.user.uid}"
+
+    async def _get_accept_time(self):
+        r = await redis_cache.get(self.key_for_user)
+        if isinstance(r, int):
+            return r
+
+        flag, data = await BiliApi.check_silver_box(cookie=self.user.cookie)
         if not flag:
-            logging.warning(f"{user.name}(uid: {user.uid}) Cannot check_silver_box! error: {data}！ 现在退出。")
-            return
+            logging.error(f"{self.user.name}({self.user.uid}) Cannot check_silver_box! error: {data}！")
+            return -1
 
         code = data['code']
-        logging.info(f"{user.name} check response data: {data}")
         if code == -10017:
-            logging.info(f"{user.name}(uid: {user.uid}) 今日宝箱领取完毕！现在退出。")
-            return
+            await redis_cache.set(key=self.key_for_user, value=-1, timeout=24 * 3600)
+            logging.info(f"{self.user.name}({self.user.uid}) 今日宝箱领取完毕！现在退出。")
+            return -1
 
-        if code != 0:
-            await asyncio.sleep(60)
-            continue
+        elif code == 0:
+            accept_time = data["data"]["time_end"]
+            await redis_cache.set(key=self.key_for_user, value=accept_time, timeout=24 * 3600)
+            logging.info(f"{self.user.name}({self.user.uid}) 从API获取到下次领取宝箱时间: {accept_time - time.time():.3f}")
+            return accept_time
+        return -1
 
+    async def _post_accept_req(self):
+        user = self.user
         flag, data = await BiliApi.join_silver_box(cookie=user.cookie, access_token=user.access_token)
         if not flag:
-            logging.warning(f"{user.name}(uid: {user.uid})  Join silver box failed! {data}")
-            await asyncio.sleep(60)
-            continue
+            logging.error(f"{user.name}(uid: {user.uid})  Join silver box failed! {data}")
+            return
 
         error_message = data.get("message", "")
         if "请先登录" in error_message:
             flag, data = await DBCookieOperator.refresh_token(obj_or_user_id=user)
-            if flag:
-                logging.info(f"DBCookieOperator refresh token: {flag}, msg: {data}")
-                continue
-            else:
-                logging.info(f"{user.name}(uid: {user.uid}) 不能刷新token! 现在退出。err msg: {data}")
-                return
+            logging.info(f"DBCookieOperator refresh token: {flag}, msg: {data}")
+            return
 
         code = data['code']
         if code == 0:
-            logging.info(f"{user.name} CODE: 0, Response data: {data}")
             award_silver = data["data"]["awardSilver"]
             raffle_id = int(f"313{randint(100000, 999999)}")
             await UserRaffleRecord.create(user.uid, "宝箱", raffle_id=raffle_id, intimacy=award_silver)
@@ -52,33 +60,44 @@ async def accept(user):
 
         elif code == -500:
             sleep_time = data['data']['surplus'] * 60 + 5
-            logging.info(f"{user.name}(uid: {user.uid}) 继续等待宝箱冷却, sleep_time: {int(sleep_time)}.")
-            await asyncio.sleep(sleep_time)
-
-        elif code == -903:
-            return
+            logging.error(f"{user.name}({user.uid}) 发生了不期待的结果：继续等待宝箱冷却, surplus: {int(sleep_time)}.")
 
         elif code == 400:
             logging.info(f"{user.name}(uid: {user.uid}) 宝箱开启中返回了小黑屋提示.")
-            return
+            await redis_cache.set(self.key_for_user, value=-1, timeout=24*3600)
 
         elif code == -800:
             logging.info(f'{user.name}(uid: {user.uid}) 未绑定手机!')
-            return
+            await redis_cache.set(self.key_for_user, value=-1, timeout=24 * 3600)
 
         else:
-            logging.warn(f'Unknown Error: {data}')
+            logging.error(f'领取宝箱时发生Unknown Error, code {code}, data: {data}')
             return
+
+    async def accept(self):
+        accept_time = await self._get_accept_time()
+        if accept_time < 0:
+            return
+
+        interval = accept_time - time.time()
+        if interval > 0:
+            logging.info(f"{self.user.name}({self.user.uid}) 领取时间未到，sleep: {interval:.3f}.")
+            return
+
+        await redis_cache.delete(self.key_for_user)
+
+        await self._post_accept_req()
+        await asyncio.sleep(5)
+        await self._get_accept_time()
 
 
 async def main():
     objs = await DBCookieOperator.get_objs(available=True, non_blocked=True)
-    tasks = [asyncio.create_task(accept(o)) for o in objs]
-    for t in tasks:
-        await t
+    for user in objs:
+        a = UserSilverAcceptTimeCtrl(user_obj=user)
+        await a.accept()
+        await asyncio.sleep(5)
 
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
-
-
