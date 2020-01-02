@@ -321,7 +321,7 @@ class DBCookieOperator:
         return count
 
     @classmethod
-    async def add_cookie_by_account(cls, account, password, notice_email=None):
+    async def add_user_by_account(cls, account, password, notice_email=None):
         objs = await cls.execute(LTUserCookie.select().where(LTUserCookie.account == account))
         if not objs:
             return False, "你不在白名单里。提前联系站长经过允许才可以使用哦。"
@@ -387,7 +387,7 @@ class DBCookieOperator:
 
         if (user_in_iptt_list or user_in_period) and cookie_obj.account and cookie_obj.password:
             for try_times in range(3):
-                flag, data = await cls.add_cookie_by_account(
+                flag, data = await cls.add_user_by_account(
                     account=cookie_obj.account,
                     password=cookie_obj.password
                 )

@@ -41,6 +41,8 @@ class UserSilverAcceptTimeCtrl:
         elif code == -500:
             flag, data = await DBCookieOperator.refresh_token(obj_or_user_id=self.user)
             logging.info(f"{self.user.name}({self.user.uid})从API获取等待时间时需要refresh token: {flag}, msg: {data}")
+            if not flag:
+                await DBCookieOperator.set_invalid(self.user)
             return -2
 
         elif code == 0:
@@ -62,6 +64,8 @@ class UserSilverAcceptTimeCtrl:
         error_message = data.get("message", "")
         if "请先登录" in error_message:
             flag, data = await DBCookieOperator.refresh_token(obj_or_user_id=user)
+            if not flag:
+                await DBCookieOperator.set_invalid(user)
             logging.info(f"DBCookieOperator refresh token: {flag}, msg: {data}")
             return
 

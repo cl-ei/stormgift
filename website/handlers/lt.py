@@ -113,7 +113,7 @@ async def login(request):
         return json_response({"code": 403, "err_msg": "输入错误！检查你的输入!"})
 
     try:
-        flag, obj = await DBCookieOperator.add_cookie_by_account(
+        flag, obj = await DBCookieOperator.add_user_by_account(
             account=account, password=password, notice_email=email)
     except Exception as e:
         return json_response({"code": 500, "err_msg": f"服务器内部发生错误! {e}\n{traceback.format_exc()}"})

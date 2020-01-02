@@ -92,9 +92,6 @@ async def send_danmaku(msg, user=""):
                 logging.info(f"DMK success: {send_m}, reason: {data}")
                 break
             else:
-                if "账号未登录" in data:
-                    await DBCookieOperator.add_cookie_by_account(account=c.account, password=c.password)
-                    continue
                 logging.error(f"Dmk send failed, msg: {send_m}, reason: {data}")
                 await asyncio.sleep(0.4)
         else:
