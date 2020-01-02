@@ -43,6 +43,7 @@ async def accept(user):
 
         code = data['code']
         if code == 0:
+            logging.info(f"CODE: 0, Response data: {data}")
             award_silver = data["data"]["awardSilver"]
             raffle_id = int(f"313{randint(100000, 999999)}")
             await UserRaffleRecord.create(user.uid, "宝箱", raffle_id=raffle_id, intimacy=award_silver)
