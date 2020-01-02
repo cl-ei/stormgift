@@ -38,11 +38,17 @@ class UserSilverAcceptTimeCtrl:
             logging.info(f"{self.user.name}({self.user.uid}) 今日宝箱领取完毕！现在退出。")
             return -1
 
+        elif code == -500:
+            flag, data = await DBCookieOperator.refresh_token(obj_or_user_id=self.user)
+            logging.info(f"{self.user.name}({self.user.uid})从API获取等待时间时需要refresh token: {flag}, msg: {data}")
+            return -2
+
         elif code == 0:
             accept_time = data["data"]["time_end"]
             await redis_cache.set(key=self.key_for_user, value=accept_time, timeout=24 * 3600)
             logging.info(f"{self.user.name}({self.user.uid}) 从API获取到下次领取宝箱时间: {accept_time - time.time():.3f}")
             return accept_time
+
         logging.error(f"不能从API获取下次领取时间！data: {data}")
         return -2
 
