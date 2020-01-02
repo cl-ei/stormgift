@@ -104,7 +104,7 @@ class UserSilverAcceptTimeCtrl:
 async def main():
     start_time = time.time()
     today_key = F"LT_SILVER_BOX_ALL_DONE_{datetime.datetime.today().date()}"
-    if redis_cache.get(today_key):
+    if await redis_cache.get(today_key):
         return
 
     objs = await DBCookieOperator.get_objs(available=True, non_blocked=True)
