@@ -16,6 +16,13 @@ class UserSilverAcceptTimeCtrl:
         self.key_for_user = f"{self.key}_{datetime.datetime.today().date()}_{self.user.uid}"
 
     async def _get_accept_time(self):
+        """
+
+        :return: r:
+            -1  done
+            -2  skip
+            >0  wait seconds
+        """
         r = await redis_cache.get(self.key_for_user)
         if isinstance(r, int):
             return r
@@ -23,7 +30,7 @@ class UserSilverAcceptTimeCtrl:
         flag, data = await BiliApi.check_silver_box(cookie=self.user.cookie)
         if not flag:
             logging.error(f"{self.user.name}({self.user.uid}) Cannot check_silver_box! error: {data}！")
-            return -1
+            return -2
 
         code = data['code']
         if code == -10017:
@@ -36,7 +43,8 @@ class UserSilverAcceptTimeCtrl:
             await redis_cache.set(key=self.key_for_user, value=accept_time, timeout=24 * 3600)
             logging.info(f"{self.user.name}({self.user.uid}) 从API获取到下次领取宝箱时间: {accept_time - time.time():.3f}")
             return accept_time
-        return -1
+        logging.error(f"不能从API获取下次领取时间！data: {data}")
+        return -2
 
     async def _post_accept_req(self):
         user = self.user
@@ -77,26 +85,46 @@ class UserSilverAcceptTimeCtrl:
     async def accept(self):
         accept_time = await self._get_accept_time()
         if accept_time < 0:
-            return
+            return accept_time
 
         interval = accept_time - time.time()
         if interval > 0:
             logging.info(f"{self.user.name}({self.user.uid}) 领取时间未到，sleep: {interval:.3f}.")
-            return
+            return accept_time
 
         await redis_cache.delete(self.key_for_user)
         await self._post_accept_req()
         await asyncio.sleep(5)
 
-        await self._get_accept_time()
+        accept_time = await self._get_accept_time()
         await asyncio.sleep(5)
+        return accept_time
 
 
 async def main():
+    start_time = time.time()
+    today_key = F"LT_SILVER_BOX_ALL_DONE_{datetime.datetime.today().date()}"
+    if redis_cache.get(today_key):
+        return
+
     objs = await DBCookieOperator.get_objs(available=True, non_blocked=True)
+    logging.info(f"Now start silver box task. users: {len(objs)}")
+
+    result_list = []
     for user in objs:
         a = UserSilverAcceptTimeCtrl(user_obj=user)
-        await a.accept()
+        r = await a.accept()
+        if r == -1:
+            result_list.append(user)
+
+    if len(result_list) == objs:
+        await redis_cache.set(today_key, value=int(time.time()), timeout=3600*24)
+        logging.info(f"Silver box ALL_DONE!")
+    else:
+        logging.info(
+            f"Silver box task done. "
+            f"finished {len(result_list)}/{len(objs)}, cost: {time.time() - start_time:.3f}"
+        )
 
 
 loop = asyncio.get_event_loop()
