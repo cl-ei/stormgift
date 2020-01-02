@@ -217,7 +217,7 @@ class ClientsManager:
 
                 async def on_message(data, ws):
                     self._message_count += 1
-                    m = (int(time.time()), room_id, data)
+                    m = (int(time.time()), ws.room_id, data)
                     self._message_q.put_nowait(m)
 
                 ws = WsClient(
