@@ -122,7 +122,7 @@ async def main():
         if r == -1:
             result_list.append(user)
 
-    if len(result_list) == objs:
+    if len(result_list) == len(objs):
         await redis_cache.set(today_key, value=int(time.time()), timeout=3600*24)
         logging.info(f"Silver box ALL_DONE!")
     else:
