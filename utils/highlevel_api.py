@@ -327,7 +327,7 @@ class DBCookieOperator:
 
         flag, r = await CookieFetcher.fresh_token(lt_user.cookie, lt_user.access_token, lt_user.refresh_token)
         if not flag:
-            return r
+            return False, r
 
         update_fields = ["available"]
         lt_user.available = True
