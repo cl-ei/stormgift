@@ -335,7 +335,7 @@ class DBCookieOperator:
             setattr(lt_user, k, v)
             update_fields.append(k)
         await objects.update(lt_user, only=update_fields)
-        return True, ""
+        return True, lt_user
 
     @classmethod
     async def _login(cls, lt_user):
@@ -349,12 +349,12 @@ class DBCookieOperator:
             setattr(lt_user, k, v)
             update_fields.append(k)
         await objects.update(lt_user, only=update_fields)
-        return True, ""
+        return True, lt_user
 
     @classmethod
     async def _update_cookie(cls, lt_user):
         if lt_user.available:
-            return True, ""
+            return True, lt_user
 
         if not lt_user.account or not lt_user.password:
             return False, "No account or password."
