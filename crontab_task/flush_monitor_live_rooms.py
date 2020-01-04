@@ -9,10 +9,7 @@ from utils.ws import get_ws_established_and_time_wait
 MONITOR_COUNT = 20000
 
 
-async def batch_get_live_room_ids(count) -> set:
-    page_size = 1000
-    pages = (count + page_size) // page_size
-    result = [[] for _ in range(pages)]
+async def batch_get_live_room_ids(count) -> list:
 
     async def get_one_page(page_no):
         for _try_times in range(3):
@@ -20,25 +17,28 @@ async def batch_get_live_room_ids(count) -> set:
                 logging.info(f"get one page Failed: page no {page_no}, failed times: {_try_times}")
 
             flag, data = await BiliApi.get_lived_room_id_by_page(page=page_no, page_size=page_size, timeout=30)
+            await asyncio.sleep(1)
             if not flag:
-                await asyncio.sleep(1)
                 continue
+            if isinstance(data, list):
+                return data
+        return []
 
-            result[page_no] = data
-            return
+    page_size = 1000
+    pages = (count + page_size) // page_size
+    result = []
+    for page in range(pages):
+        result.extend(await get_one_page(page))
 
-    await asyncio.gather(*[
-        get_one_page(page_number)
-        for page_number in range(pages)
-    ])
-
-    living_rooms = set()
-    for page_data in result:
-        for room_id in page_data:
-            living_rooms.add(room_id)
-            if len(living_rooms) >= MONITOR_COUNT:
-                return living_rooms
-    return living_rooms
+    de_dup = set()
+    return_data = []
+    for room_id in result:
+        if room_id not in de_dup:
+            de_dup.add(room_id)
+            return_data.append(room_id)
+            if len(return_data) >= MONITOR_COUNT:
+                return return_data
+    return return_data
 
 
 async def get_live_rooms_from_api():
@@ -54,6 +54,7 @@ async def get_live_rooms_from_api():
 
     if abs(target_count - len(living_room_id_list)) > 1001:
         logging.error("从api获取的直播间数与目标差异过大，不予更新。")
+        return
 
     start = time.time()
     r = await MonitorLiveRooms.set(living_room_id_list)

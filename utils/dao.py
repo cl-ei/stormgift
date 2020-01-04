@@ -394,22 +394,30 @@ class InLotteryLiveRooms(object):
 
 
 class MonitorLiveRooms(object):
-    _key = "MonitorLiveRooms_KEY"
+    _key = "LT_LIVING_ROOM_LIST"
 
     @classmethod
-    async def get(cls) -> set:
+    async def get(cls) -> list:
         r = await redis_cache.get(cls._key)
-        if not r or not isinstance(r, set):
-            return set()
-        return r
+        if not r:
+            return []
+        if isinstance(r, bytes):
+            r = r.decode()
+        result = [int(room_id_str) for room_id_str in r.split("$")]
+        return result
 
     @classmethod
-    async def set(cls, live_room_id_set: set):
-        live_room_id_set = {
-            int(room_id) for room_id in live_room_id_set
-            if room_id not in (0, "0", None, "")
-        }
-        return await redis_cache.set(cls._key, live_room_id_set)
+    async def set(cls, live_room_id_list):
+        target = []
+        for room_id in live_room_id_list:
+            try:
+                r = int(room_id)
+                assert r > 0
+            except (ValueError, TypeError, AssertionError):
+                continue
+            target.append(str(room_id))
+        target = "$".join(target)
+        return await redis_cache.set(cls._key, value=target)
 
 
 class LtUserLoginPeriodOfValidity(object):
