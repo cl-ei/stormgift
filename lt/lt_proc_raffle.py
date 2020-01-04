@@ -283,6 +283,11 @@ class Executor:
         await self._handle_guard(room_id, guards)
         await self._handle_tv(room_id, gifts)
 
+    async def raffle_start(self, *args):
+        key_type, room_id, danmaku, *_ = args
+        data = danmaku["data"]
+        await self._handle_tv(room_id=room_id, gift_list=[data])
+
 
 async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target: asyncio.coroutines):
     await mq_source_to_raffle.start_listen()
@@ -301,7 +306,7 @@ async def receive_prize_from_udp_server(task_q: asyncio.Queue, broadcast_target:
 
         for msg in sources:
             key_type, room_id, *_ = msg
-            if key_type in ("G", "S", "R", "D", "P", "A"):
+            if key_type in ("G", "S", "R", "D", "P", "A", "RAFFLE_START"):
                 _, ts, *_ = _
                 executor = Executor(start_time=ts, br=broadcast_target)
                 task_q.put_nowait(getattr(executor, key_type.lower())(*msg))

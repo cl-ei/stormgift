@@ -53,6 +53,11 @@ def danmaku_parser_process(damaku_q):
             data = msg["data"]
             logging.info(f"SOURCE: {cmd}, room_id: {room_id}, {data['require_text']} -> {data['award_name']}")
 
+        elif cmd == "RAFFLE_START":
+            data = msg["data"]
+            mq_source_to_raffle.put_nowait(("RAFFLE_START", room_id, msg, ts))
+            logging.info(f"SOURCE: {cmd}, room_id: {room_id}, {data['thank_text']}")
+
     while True:
         start_time, msg_from_room_id, danmaku = damaku_q.get()
         for m in WsApi.parse_msg(danmaku):
