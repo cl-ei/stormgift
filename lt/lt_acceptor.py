@@ -240,7 +240,7 @@ async def listen_ws():
             BatchLotteryNotice.add(room_id=room_id, gift_name=gift_name)
         elif raffle_type == "guard":
             act = "join_guard"
-            recommended_implementation_time = ts + random.randint(60, 600)
+            recommended_implementation_time = ts + random.randint(60, 300)
         elif raffle_type == "pk":
             act = "join_pk"
             recommended_implementation_time = now
