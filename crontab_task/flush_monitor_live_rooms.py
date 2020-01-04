@@ -24,7 +24,7 @@ async def batch_get_live_room_ids(count) -> list:
                 return data
         return []
 
-    page_size = 1000
+    page_size = 500
     pages = (count + page_size) // page_size
     result = []
     for page in range(pages):
