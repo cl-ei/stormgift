@@ -44,7 +44,10 @@ def danmaku_parser_process(damaku_q):
             logging.info(f"SOURCE: {cmd}, room_id: {room_id}, msg: {display_msg}")
 
         elif cmd.startswith("DANMU_MSG"):
-            if msg["info"][2][0] == 64782616:
+            if msg["info"][2][0] in (
+                64782616,  # 温柔桢
+                9859414,   # G7
+            ):
                 mq_source_to_raffle.put_nowait(("D", room_id, msg, ts))
                 logging.info(f"DANMU_MSG: put to mq, room_id: {room_id}, msg: {msg}")
 
