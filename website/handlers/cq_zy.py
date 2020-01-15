@@ -29,6 +29,7 @@ from utils.dao import (
     BiliToQQBindInfo,
     DelayAcceptGiftsQueue,
     SuperDxjUserAccounts,
+    RaffleToCQPushList,
 )
 
 
@@ -759,6 +760,57 @@ class BotHandler:
         user_id = context["sender"]["user_id"]
         user_nickname = context["sender"]["nickname"]
         msg = context["raw_message"]
+
+        if msg.startswith("ML"):
+            if msg.startswith("ML_BIND_BILI_"):
+                # ML_BIND_BILI_123_TO_QQ_456
+                try:
+                    *_, bili_uid, a, b, qq_uid = msg.split("_")
+                    qq_uid = int(qq_uid)
+                    bili_uid = int(bili_uid)
+                except Exception as e:
+                    await async_zy.send_private_msg(
+                        user_id=user_id,
+                        message=f"命令错误。",
+                        auto_escape=True,
+                    )
+                    return
+
+                r = await RaffleToCQPushList.add(bili_uid=bili_uid, qq_uid=qq_uid)
+                await async_zy.send_private_msg(user_id=user_id, message=f"{r}")
+
+            elif msg.startswith("ML_GET"):
+                result = await RaffleToCQPushList.get_all()
+                message = "\n".join(str(item) for item in result)
+                await async_zy.send_private_msg(
+                    user_id=user_id,
+                    message=f"已绑定如下：\n\n(bili_uid, qq_uid)\n{message}",
+                    auto_escape=True,
+                )
+
+            elif msg.startswith("ML_DEL_BY_QQ_"):
+                try:
+                    qq_uid = int(msg.split("_")[-1])
+                except Exception:
+                    return bot.send_private_msg(user_id=user_id, message=f"命令错误")
+
+                result = await RaffleToCQPushList.del_by_qq_uid(qq_uid)
+                await async_zy.send_private_msg(user_id=user_id, message=f"{msg} -> {result}")
+
+            elif msg.startswith("ML_DEL_BY_BILI_"):
+                try:
+                    bili_uid = int(msg.split("_")[-1])
+                except Exception:
+                    return bot.send_private_msg(user_id=user_id, message=f"命令错误")
+
+                result = await RaffleToCQPushList.del_by_bili_uid(bili_uid)
+                await async_zy.send_private_msg(user_id=user_id, message=f"{msg} -> {result}")
+
+            await async_zy.send_private_msg(
+                user_id=user_id,
+                message=f"ML_BIND_BILI_123_TO_QQ_456\nML_GET\nML_DEL_BY_BILI_123\nML_DEL_BY_QQ_456"
+            )
+            return
 
         if user_id == g.QQ_NUMBER_DD:
             if msg.startswith("approve"):
