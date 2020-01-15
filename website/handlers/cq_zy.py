@@ -806,10 +806,12 @@ class BotHandler:
                 result = await RaffleToCQPushList.del_by_bili_uid(bili_uid)
                 await async_zy.send_private_msg(user_id=user_id, message=f"{msg} -> {result}")
 
-            await async_zy.send_private_msg(
-                user_id=user_id,
-                message=f"ML_BIND_BILI_123_TO_QQ_456\nML_GET\nML_DEL_BY_BILI_123\nML_DEL_BY_QQ_456"
-            )
+            else:
+                await async_zy.send_private_msg(
+                    user_id=user_id,
+                    message=f"ML_BIND_BILI_123_TO_QQ_456\nML_GET\nML_DEL_BY_BILI_123\nML_DEL_BY_QQ_456"
+                )
+
             return
 
         if user_id == g.QQ_NUMBER_DD:
