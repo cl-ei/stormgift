@@ -10,15 +10,17 @@ async def main():
     @web.middleware
     async def log_access(request, handler):
         ua = request.headers.get("User-Agent", "NON_UA")
-        web_access_logger.info(f"{request.method} {request.url} <*> {request.remote} {ua}")
-        return await handler(request)
+        resp = await handler(request)
+        web_access_logger.info(f"{request.method}-{resp.status} {request.remote} {request.url}\n\t{ua}")
+        return resp
 
     @web.middleware
     async def set_server_name(request, handler):
         try:
             resp = await handler(request)
         except Exception as e:
-            resp = web.Response(status=500, text=f"{e}")
+            status = getattr(e, "status", 500)
+            resp = web.Response(status=status, text=f"{e}")
 
         resp.headers['Server'] = 'madliar/2.1.1a11(Darwin)'
         return resp
