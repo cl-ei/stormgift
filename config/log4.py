@@ -111,6 +111,14 @@ silver_box_logger.addHandler(console)
 silver_box_logger.addHandler(silver_box_fh)
 
 
+web_access_fh = logging.FileHandler(os.path.join(LOG_PATH, "web_access.log"))
+web_access_fh.setFormatter(log_format)
+web_access_logger = logging.getLogger("web_access")
+web_access_logger.setLevel(logging.DEBUG)
+web_access_logger.addHandler(console)
+web_access_logger.addHandler(web_access_fh)
+
+
 def config_logger(file_name):
     file_name = file_name.lower()
     if not file_name.endswith(".log"):
@@ -138,5 +146,6 @@ __all__ = (
     "super_dxj_logger",
     "bili_api_logger",
     "silver_box_logger",
+    "web_access_logger",
     "config_logger",
 )

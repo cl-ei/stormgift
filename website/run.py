@@ -5,6 +5,14 @@ from website.handlers import lt, cq, dxj
 
 
 async def main():
+    from config.log4 import web_access_logger
+
+    @web.middleware
+    async def log_access(request, handler):
+        ua = request.headers.get("User-Agent", "NON_UA")
+        web_access_logger.info(f"{request.method} {request.url} <*> {request.remote} {ua}")
+        return await handler(request)
+
     @web.middleware
     async def set_server_name(request, handler):
         try:
@@ -15,7 +23,7 @@ async def main():
         resp.headers['Server'] = 'madliar/2.1.1a11(Darwin)'
         return resp
 
-    app = web.Application(middlewares=[set_server_name])
+    app = web.Application(middlewares=[log_access, set_server_name])
 
     async def home_page(request):
         return web.Response(text=f"OK.\n\n{datetime.datetime.now()}")

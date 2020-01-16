@@ -87,7 +87,7 @@ async def lt(request):
         return web.HTTPForbidden()
 
     ua = request.headers.get("User-Agent", "NON_UA")
-    remote_ip = request.headers.get("X-Real-IP", "")
+    remote_ip = request.remote  # request.headers.get("X-Real-IP", "")
     logging.info(f"LT_ACCESS_TOKEN_RECEIVED: {token}, ip: {remote_ip}. UA: {ua}")
 
     key = F"LT_ACCESS_TOKEN_{token}"
