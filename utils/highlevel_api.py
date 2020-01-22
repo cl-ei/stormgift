@@ -399,6 +399,8 @@ class DBCookieOperator:
         await cls._objects.update(user, only=("available",))
         flag, result = await cls._update_cookie(user)
         if flag:
+            if user.uid in (g.BILI_UID_TZ, g.BILI_UID_CZ):
+                await ReqFreLimitApi.set_available_cookie_for_xnode()
             return True, ""
 
         send_cookie_invalid_notice(user)
