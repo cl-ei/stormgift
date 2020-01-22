@@ -43,18 +43,18 @@ template_text = """
 <div style="border-bottom: 1px dashed #ccc;">
   <p style="margin-top: 0px">ヾ(❀╹◡╹)ﾉﾞ❀~&nbsp; 点此去
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
-      href="https://www.madliar.com/lt/query_gifts" target="_blank">
+      href="https://www.madliar.com/bili/guards" target="_blank">
       礼物列表站点
     </a>
     <span>，</span>
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
-      href="https://www.madliar.com/lt/broadcast" target="_blank">
+      href="https://www.madliar.com/bili/broadcast" target="_blank">
       实时广播站（WS协议）
     </a>
   </p>
   <p>想看看都谁中奖了？➟ 
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
-      href="https://www.madliar.com/lt/query_raffles" target="_blank">获奖记录</a>
+      href="https://www.madliar.com/bili/raffles" target="_blank">获奖记录</a>
     <br />  
     收藏歌单？➟
     <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;" 
