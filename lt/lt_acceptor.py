@@ -3,7 +3,6 @@ import json
 import random
 import asyncio
 import aiohttp
-import datetime
 import traceback
 from utils.cq import async_zy
 from config import cloud_acceptors, g
@@ -12,11 +11,9 @@ from utils.dao import DelayAcceptGiftsQueue
 from config.log4 import acceptor_logger as logging
 from utils.dao import (
     redis_cache,
-    LTTempBlack,
     LTUserSettings,
     UserRaffleRecord,
     LTLastAcceptTime,
-    StormGiftBlackRoom,
 )
 
 NON_SKIP_USER_ID = [
