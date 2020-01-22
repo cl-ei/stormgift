@@ -29,7 +29,7 @@ from utils.dao import (
     BiliToQQBindInfo,
     DelayAcceptGiftsQueue,
     SuperDxjUserAccounts,
-    RaffleToCQPushList,
+    MLBiliToQQBindInfo,
 )
 
 
@@ -776,11 +776,11 @@ class BotHandler:
                     )
                     return
 
-                r = await RaffleToCQPushList.add(bili_uid=bili_uid, qq_uid=qq_uid)
+                r = await MLBiliToQQBindInfo.bind(bili=bili_uid, qq=qq_uid)
                 await async_zy.send_private_msg(user_id=user_id, message=f"{r}")
 
             elif msg.startswith("ML_GET"):
-                result = await RaffleToCQPushList.get_all()
+                result = await MLBiliToQQBindInfo.get_all()
                 message = "\n".join(str(item) for item in result)
                 await async_zy.send_private_msg(
                     user_id=user_id,
@@ -794,7 +794,7 @@ class BotHandler:
                 except Exception:
                     return bot.send_private_msg(user_id=user_id, message=f"命令错误")
 
-                result = await RaffleToCQPushList.del_by_qq_uid(qq_uid)
+                result = await MLBiliToQQBindInfo.unbind_by_qq(qq_uid)
                 await async_zy.send_private_msg(user_id=user_id, message=f"{msg} -> {result}")
 
             elif msg.startswith("ML_DEL_BY_BILI_"):
@@ -803,7 +803,7 @@ class BotHandler:
                 except Exception:
                     return bot.send_private_msg(user_id=user_id, message=f"命令错误")
 
-                result = await RaffleToCQPushList.del_by_bili_uid(bili_uid)
+                result = await MLBiliToQQBindInfo.unbind_by_bili(bili_uid)
                 await async_zy.send_private_msg(user_id=user_id, message=f"{msg} -> {result}")
 
             else:

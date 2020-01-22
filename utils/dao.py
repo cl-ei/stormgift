@@ -428,51 +428,10 @@ class LtUserLoginPeriodOfValidity(object):
 
 
 class RaffleToCQPushList(object):
+    """
+        for ml.
+    """
     _key = "RAFFLE_TO_CQ_"
-
-    @classmethod
-    async def add(cls, bili_uid, qq_uid):
-        key = cls._key + str(bili_uid)
-        value = qq_uid
-        return await redis_cache.set(key, value)
-
-    @classmethod
-    async def get(cls, bili_uid):
-        key = cls._key + str(bili_uid)
-        return await redis_cache.get(key)
-
-    @classmethod
-    async def get_all(cls, return_raw_keys=False):
-        key = cls._key + "*"
-        keys = await redis_cache.execute("keys", key)
-        if return_raw_keys or not keys:
-            return keys
-
-        qq_uid_list = await redis_cache.mget(*keys)
-        result = []
-        index = 0
-        for qq_uid in qq_uid_list:
-            bili_uid = int(keys[index][len(cls._key):])
-            result.append((bili_uid, qq_uid))
-            index += 1
-        return result
-
-    @classmethod
-    async def del_by_bili_uid(cls, bili_uid):
-        key = cls._key + str(bili_uid)
-        return await redis_cache.delete(key)
-
-    @classmethod
-    async def del_by_qq_uid(cls, qq_uid):
-        keys = await cls.get_all(return_raw_keys=True)
-        if keys:
-            qq_uids = await redis_cache.mget(*keys)
-            index = 0
-            for _ in qq_uids:
-                if _ == qq_uid:
-                    return await redis_cache.delete(keys[index])
-                index += 1
-        return 0
 
 
 class BiliToQQBindInfo(object):
@@ -527,6 +486,58 @@ class BiliToQQBindInfo(object):
     async def get_all_bili(cls, qq):
         r = await redis_cache.get(cls.key)
         return [p[1] for p in r if p[0] == qq]
+
+
+class MLBiliToQQBindInfo(object):
+    key = "ML_QQ_BIND_INFO"
+
+    @classmethod
+    async def bind(cls, qq, bili):
+        bind_pair = (int(qq), int(bili))
+        async with XNodeRedis() as redis:
+            r = await redis.get(cls.key)
+            if not isinstance(r, (list, tuple)):
+                r = []
+            if bili in [p[1] for p in r]:
+                return
+            r.append(bind_pair)
+            return await redis.set(key=cls.key, value=r)
+
+    @classmethod
+    async def unbind_by_bili(cls, bili):
+        async with XNodeRedis() as redis:
+            r = await redis.get(cls.key)
+            if not isinstance(r, (list, tuple)):
+                r = []
+            qq = [p[0] for p in r if p[1] == bili]
+            if not qq:
+                return
+
+            new_r = [p for p in r if p[1] != bili]
+            await redis.set(key=cls.key, value=new_r)
+            return qq[0]
+
+    @classmethod
+    async def unbind_by_qq(cls, qq):
+        async with XNodeRedis() as redis:
+            r = await redis.get(cls.key)
+            if not isinstance(r, (list, tuple)):
+                r = []
+            bili = [p[1] for p in r if p[0] == qq]
+            if not bili:
+                return
+
+            new_r = [p for p in r if p[0] != qq]
+            await redis.set(key=cls.key, value=new_r)
+            return bili
+
+    @classmethod
+    async def get_all(cls):
+        async with XNodeRedis() as redis:
+            r = await redis.get(cls.key)
+            if not isinstance(r, (list, tuple)):
+                r = []
+            return r
 
 
 class HansyDynamicNotic(object):
