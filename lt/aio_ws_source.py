@@ -6,7 +6,6 @@ import traceback
 from random import randint
 from utils.biliapi import WsApi
 from utils.udp import mq_source_to_raffle
-from multiprocessing import Process, Queue
 from config.log4 import lt_server_logger as logging
 from utils.dao import MonitorLiveRooms, InLotteryLiveRooms, ValuableLiveRoom
 from utils.model import objects, MonitorWsClient
@@ -14,7 +13,6 @@ from utils.model import objects, MonitorWsClient
 
 DEBUG = True
 MONITOR_COUNT = 20000
-parse_process = None
 
 
 if sys.argv[-1].lower() == "--product":
@@ -22,7 +20,7 @@ if sys.argv[-1].lower() == "--product":
     DEBUG = False
 
 
-def danmaku_parser_process(damaku_q):
+async def danmaku_parser_process(damaku_q):
 
     def parse(ts, room_id, msg):
         cmd = msg["cmd"]
@@ -62,7 +60,7 @@ def danmaku_parser_process(damaku_q):
             logging.info(f"SOURCE: {cmd}, room_id: {room_id}, {data['thank_text']}")
 
     while True:
-        start_time, msg_from_room_id, danmaku = damaku_q.get()
+        start_time, msg_from_room_id, danmaku = await damaku_q.get()
         for m in WsApi.parse_msg(danmaku):
             try:
                 parse(start_time, msg_from_room_id, m)
@@ -263,10 +261,6 @@ class ClientsManager:
         cyc_duration = 59
         while True:
             start_time = time.time()
-            p_status = parse_process.is_alive() if parse_process else '-'
-            if p_status is False:
-                logging.error(f"Sub process: Parse danmaku process unexpected shutdown! now exit.")
-                sys.exit(-1)
 
             msg_speed_peak = max(self._message_count - msg_count_of_last_second, msg_speed_peak)
             msg_count_of_last_second = self._message_count
@@ -328,22 +322,17 @@ class ClientsManager:
             logging.error(f"WS MONITOR EXIT! Exception: {e}\n\n{traceback.format_exc()}")
 
 
-def main():
-    global parse_process
+async def main():
+    await objects.connect()
+    danmaku_q = asyncio.Queue()
 
-    danmaku_q = Queue()
-    parse_process = Process(target=danmaku_parser_process, args=(danmaku_q, ), daemon=False)
-    parse_process.start()
-
-    async def run():
-        await objects.connect()
-        mgr = ClientsManager(danmaku_q)
-        await mgr.run()
-        await objects.close()
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run())
+    await asyncio.gather(
+        danmaku_parser_process(danmaku_q),
+        ClientsManager(danmaku_q).run()
+    )
+    await objects.close()
 
 
 if __name__ == "__main__":
-    main()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
