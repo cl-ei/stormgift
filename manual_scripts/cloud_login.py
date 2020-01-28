@@ -22,11 +22,6 @@ class CookieFetcher:
     mobi_app = "android"
     platform = "android"
     app_secret = "560c52ccd288fed045859ed18bffd973"
-    refresh_token = ""
-    access_key = ""
-    cookie = ""
-    csrf = ""
-    uid = ""
 
     pc_headers = {
         "Accept-Language": "zh-CN,zh;q=0.9",
@@ -39,7 +34,7 @@ class CookieFetcher:
         ),
     }
     app_headers = {
-        "User-Agent": "bili-universal/6570 CFNetwork/894 Darwin/17.4.0",
+        "User-Agent": "Mozilla/5.0 BilidDroid/5.51.1(bbcallen@gmail.com)",
         "Accept-encoding": "gzip",
         "Buvid": "000ce0b9b9b4e342ad4f421bcae5e0ce",
         "Display-ID": "146771405-1521008435",
@@ -129,7 +124,7 @@ class CookieFetcher:
         text_with_appsecret = f'{text}{cls.app_secret}'
         sign = hashlib.md5(text_with_appsecret.encode('utf-8')).hexdigest()
         payload = f'{text}&sign={sign}'
-        url = "https://passport.bilibili.com/api/v3/oauth2/login"
+        url = "https://passport.bilibili.com/api/v2/oauth2/login"
 
         for _ in range(10):
             status_code, content = cls._request('POST', url, params=payload, headers=cls.app_headers)
@@ -236,7 +231,7 @@ class CookieFetcher:
         except Exception as e:
             return False, f"Error: {e}"
 
-        return True, ""
+        return True, r
 
     @classmethod
     def fresh_token(cls, cookie, access_token, refresh_token):
