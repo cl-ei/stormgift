@@ -156,4 +156,3 @@ async def post_settings(request):
 
     await SuperDxjUserSettings.set(room_id=room_id, **config)
     return web.json_response({"code": 0, "err_msg": "设置成功！"})
-
