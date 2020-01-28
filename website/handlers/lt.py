@@ -534,7 +534,3 @@ async def trends_qq_notice(request):
         return web.Response(status=206)
     return web.Response(status=403)
 
-
-async def broadcast(request):
-    context = {"CDN_URL": CDN_URL}
-    return render_to_response("website/templates/raffle_broadcast.html", context=context)
