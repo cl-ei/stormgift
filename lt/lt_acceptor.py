@@ -32,7 +32,7 @@ class BatchLotteryNotice:
     room_update_time = {
         # "1008$gift_name": time.time()
     }
-    threshold = 10
+    threshold = 20
 
     @classmethod
     def add(cls, room_id, gift_name):
