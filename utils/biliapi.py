@@ -3,62 +3,13 @@ import json
 import time
 import asyncio
 import aiohttp
+import hashlib
 from math import floor
 from random import random
-from utils.dao import redis_cache
-from config.log4 import bili_api_logger as logging
-from config import cloud_function_url
 from config import cloud_login
-
-
-class CookieFetcher:
-
-    @classmethod
-    async def get_bili_login_response(cls, **request_kw_params):
-        """
-
-        account, password, cookie=None, access_token=None, refresh_token=None
-        """
-        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
-        async with client_session as session:
-            async with session.post(cloud_login, json=request_kw_params) as resp:
-                content = await resp.text()
-
-        try:
-            json_rsp = json.loads(content)
-            assert "code" in json_rsp
-        except (AssertionError, json.JSONDecodeError) as e:
-            logging.error(f"get_bili_login_response from cloud: {e}, content: {content}")
-            return False, f"登录认证服务器返回的数据格式错误。"
-
-        if json_rsp["code"] == -449:
-            return False, f"Bili服务器繁忙，请3秒后重试。"
-
-        if json_rsp["code"] != 0:
-            return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
-
-        if json_rsp["data"]["status"] != 0:
-            return False, "需要升级APP版本"
-
-        return True, json_rsp
-
-    @classmethod
-    async def login(cls, account, password, cookie=None, access_token=None, refresh_token=None):
-        flag, json_rsp = await cls.get_bili_login_response(
-            account=account,
-            password=password,
-            cookie=cookie,
-            access_token=access_token,
-            refresh_token=refresh_token
-        )
-        if not flag:
-            return flag, json_rsp
-
-        cookies = json_rsp["data"]["cookie_info"]["cookies"]
-        result = {c['name']: c['value'] for c in cookies}
-        result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
-        result["refresh_token"] = json_rsp["data"]["token_info"]["refresh_token"]
-        return True, result
+from utils.dao import redis_cache
+from config import cloud_function_url
+from config.log4 import bili_api_logger as logging
 
 
 class WsApi(object):
@@ -132,6 +83,73 @@ class BiliApi:
             "Chrome/70.0.3538.110 Safari/537.36"
         ),
     }
+
+    appkey = "1d8b6e7d45233436"
+    actionKey = "appkey"
+    build = "520001"
+    device = "android"
+    mobi_app = "android"
+    platform = "android"
+    app_secret = "560c52ccd288fed045859ed18bffd973"
+
+    app_headers = {
+        "User-Agent": "Mozilla/5.0 BilidDroid/5.51.1(bbcallen@gmail.com)",
+        "Accept-encoding": "gzip",
+        "Buvid": "000ce0b9b9b4e342ad4f421bcae5e0ce",
+        "Display-ID": "146771405-1521008435",
+        "Accept-Language": "zh-CN",
+        "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+        "Connection": "keep-alive",
+    }
+    app_params = (
+        f'actionKey={actionKey}'
+        f'&appkey={appkey}'
+        f'&build={build}'
+        f'&device={device}'
+        f'&mobi_app={mobi_app}'
+        f'&platform={platform}'
+    )
+
+    @classmethod
+    def calc_sign(cls, text):
+        text = f'{text}{cls.app_secret}'
+        return hashlib.md5(text.encode('utf-8')).hexdigest()
+
+    @staticmethod
+    async def login(account, password, cookie=None, access_token=None, refresh_token=None):
+        req_json = {
+            "account": account,
+            "password": password,
+            "cookie": cookie,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+        }
+        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
+        async with client_session as session:
+            async with session.post(cloud_login, json=req_json) as resp:
+                content = await resp.text()
+
+        try:
+            json_rsp = json.loads(content)
+            assert "code" in json_rsp
+        except (AssertionError, json.JSONDecodeError) as e:
+            logging.error(f"get_bili_login_response from cloud: {e}, content: {content}")
+            return False, f"登录认证服务器返回的数据格式错误。"
+
+        if json_rsp["code"] == -449:
+            return False, f"Bili服务器繁忙，请3秒后重试。"
+
+        if json_rsp["code"] != 0:
+            return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
+
+        if json_rsp["data"]["status"] != 0:
+            return False, "需要升级APP版本"
+
+        cookies = json_rsp["data"]["cookie_info"]["cookies"]
+        result = {c['name']: c['value'] for c in cookies}
+        result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
+        result["refresh_token"] = json_rsp["data"]["token_info"]["refresh_token"]
+        return True, result
 
     @classmethod
     async def _request_async(cls, method, url, headers, params, data, timeout):
@@ -468,11 +486,11 @@ class BiliApi:
 
     @classmethod
     async def post_heartbeat_app(cls, cookie, access_token, timeout=30):
-        temp_params = f'access_key={access_token}&{CookieFetcher.app_params}&ts={int(time.time())}'
-        sign = CookieFetcher.calc_sign(temp_params)
+        temp_params = f'access_key={access_token}&{cls.app_params}&ts={int(time.time())}'
+        sign = cls.calc_sign(temp_params)
         url = f'https://api.live.bilibili.com/mobile/userOnlineHeart?{temp_params}&sign={sign}'
         headers = {"cookie": cookie}
-        headers.update(CookieFetcher.app_headers)
+        headers.update(cls.app_headers)
         return await cls.get(url, headers=headers, timeout=timeout, check_error_code=True)
 
     @classmethod
@@ -728,17 +746,12 @@ class BiliApi:
 
     @classmethod
     async def join_silver_box(cls, cookie, access_token, timeout=10):
-        app_params = CookieFetcher.app_params
+        app_params = cls.app_params
         temp_params = f'access_key={access_token}&{app_params}&ts={int(time.time())}'
-        # {'code': 0, 'msg': 'ok', 'message': 'ok', 'data': {'silver': '894135', 'awardSilver': 30, 'isEnd': 0}}
-        # {'code': -500, 'msg': '领取时间未到, 请稍后再试', 'message': '领取时间未到, 请稍后再试', 'data': {'surplus': 3}}
-        # {'code': -903, 'msg': '已经领取过这个宝箱', 'message': '已经领取过这个宝箱', 'data': {'surplus': -8.0166666666667}}
-        # {'code': 400, 'msg': '访问被拒绝', 'message': '访问被拒绝', 'data': []}
-        # {'code': -800, 'msg': '未绑定手机', ...}
-        sign = CookieFetcher.calc_sign(temp_params)
+        sign = cls.calc_sign(temp_params)
         url = f'https://api.live.bilibili.com/lottery/v1/SilverBox/getAward?{temp_params}&sign={sign}'
         headers = {"cookie": cookie}
-        headers.update(CookieFetcher.app_headers)
+        headers.update(cls.app_headers)
         return await cls.get(url=url, headers=headers, timeout=timeout, check_response_json=True)
 
     @classmethod

@@ -1,4 +1,3 @@
-import os
 import time
 import json
 import random
@@ -9,13 +8,13 @@ import datetime
 from config import g
 from utils.dao import XNodeRedis
 from config import cloud_get_uid
+from utils.biliapi import BiliApi
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import objects
-from utils.biliapi import BiliApi, CookieFetcher
 from config.log4 import bili_api_logger as logging
-from utils.reconstruction_model import LTUserCookie
 from utils.email import send_cookie_invalid_notice
-from utils.dao import LtUserLoginPeriodOfValidity, UserRaffleRecord, LTTempBlack, LTLastAcceptTime, redis_cache
+from utils.reconstruction_model import LTUserCookie
+from utils.dao import UserRaffleRecord, LTTempBlack, LTLastAcceptTime, redis_cache
 
 
 BLOCK_FRESH_TIME = 1
@@ -220,7 +219,6 @@ class ReqFreLimitApi(object):
             "select id from guard where created_time < %s order by id desc limit 1;",
             (datetime.date.today(),)
         ))[0][0]
-        print("max_id_yesterday: %s" % max_id_yesterday)
 
         result = await AsyncMySQL.execute(
             "select id from guard where id > %s and created_time >= %s order by id desc;",
@@ -321,37 +319,6 @@ class DBCookieOperator:
         return count
 
     @classmethod
-    async def _refresh_token(cls, lt_user):
-        if not lt_user.refresh_token or not lt_user.access_token:
-            return False, "NO FRESH_TOKEN OR ACCESS_TOKEN"
-
-        flag, r = await CookieFetcher.fresh_token(lt_user.cookie, lt_user.access_token, lt_user.refresh_token)
-        if not flag:
-            return False, r
-
-        update_fields = ["available"]
-        lt_user.available = True
-        for k, v in r.items():
-            setattr(lt_user, k, v)
-            update_fields.append(k)
-        await objects.update(lt_user, only=update_fields)
-        return True, lt_user
-
-    @classmethod
-    async def _login(cls, lt_user):
-        flag, r = await CookieFetcher.login(lt_user.account, lt_user.password)
-        if not flag:
-            return False, r
-
-        update_fields = ["available"]
-        lt_user.available = True
-        for k, v in r.items():
-            setattr(lt_user, k, v)
-            update_fields.append(k)
-        await objects.update(lt_user, only=update_fields)
-        return True, lt_user
-
-    @classmethod
     async def _update_cookie(cls, lt_user):
         if lt_user.available:
             return True, lt_user
@@ -359,12 +326,18 @@ class DBCookieOperator:
         if not lt_user.account or not lt_user.password:
             return False, "No account or password."
 
-        flag, data = await cls._refresh_token(lt_user)
-        if flag:
-            return True, data
+        flag, r = await BiliApi.login(
+            lt_user.account, lt_user.password, lt_user.cookie, lt_user.access_token, lt_user.refresh_token)
+        if not flag:
+            return False, r
 
-        flag, data = await cls._login(lt_user)
-        return flag, data
+        update_fields = ["available"]
+        lt_user.available = True
+        for k, v in r.items():
+            setattr(lt_user, k, v)
+            update_fields.append(k)
+        await objects.update(lt_user, only=update_fields)
+        return True, lt_user
 
     @classmethod
     async def add_user_by_account(cls, account, password, notice_email=None):

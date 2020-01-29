@@ -2,7 +2,7 @@ import time
 import asyncio
 from utils.ws import RCWebSocketClient
 from utils.dao import SuperDxjUserAccounts, SuperDxjUserSettings, SuperDxjCookieMgr
-from utils.biliapi import BiliApi, WsApi, CookieFetcher
+from utils.biliapi import BiliApi, WsApi
 from config.log4 import super_dxj_logger as logging
 
 
@@ -45,9 +45,9 @@ class DanmakuProcessor:
             self.cookie = cookie
             return True, cookie
 
-        flag, result = await CookieFetcher.login(account=account, password=password)
+        flag, result = await BiliApi.login(account=account, password=password)
         if not flag:
-            logging.error(f"Super dxj CookieFetcher.get_cookie Error: {result}")
+            logging.error(f"Super dxj login Error: {result}")
             return False, f"登录失败：{cookie}"
 
         cookie = ""
@@ -57,7 +57,7 @@ class DanmakuProcessor:
 
         await SuperDxjCookieMgr.save_cookie(account=account, cookie=cookie)
         self.cookie = cookie
-        logging.info(f"Super dxj CookieFetcher.get_cookie 登录成功！{self.room_id}.")
+        logging.info(f"Super dxj 登录成功！{self.room_id}.")
         return True, cookie
 
     async def set_cookie_invalid(self):
