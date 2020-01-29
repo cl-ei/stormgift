@@ -1,12 +1,8 @@
 import re
-import sys
 import json
 import time
-import base64
 import asyncio
 import aiohttp
-import hashlib
-import traceback
 from math import floor
 from random import random
 from utils.dao import redis_cache
@@ -16,148 +12,18 @@ from config import cloud_login
 
 
 class CookieFetcher:
-    appkey = "1d8b6e7d45233436"
-    actionKey = "appkey"
-    build = "520001"
-    device = "android"
-    mobi_app = "android"
-    platform = "android"
-    app_secret = "560c52ccd288fed045859ed18bffd973"
-
-    pc_headers = {
-        "Accept-Language": "zh-CN,zh;q=0.9",
-        "accept-encoding": "gzip, deflate",
-        "Accept": "application/json, text/plain, */*",
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/62.0.3202.94 Safari/537.36"
-        ),
-    }
-    app_headers = {
-        "User-Agent": "bili-universal/6570 CFNetwork/894 Darwin/17.4.0",
-        "Accept-encoding": "gzip",
-        "Buvid": "000ce0b9b9b4e342ad4f421bcae5e0ce",
-        "Display-ID": "146771405-1521008435",
-        "Accept-Language": "zh-CN",
-        "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
-        "Connection": "keep-alive",
-    }
-    app_params = (
-        f'actionKey={actionKey}'
-        f'&appkey={appkey}'
-        f'&build={build}'
-        f'&device={device}'
-        f'&mobi_app={mobi_app}'
-        f'&platform={platform}'
-    )
 
     @classmethod
-    def record_captcha(cls, source, result):
-        if sys.platform.lower() != "linux":
-            return
+    async def get_bili_login_response(cls, **request_kw_params):
+        """
 
-        with open("/home/wwwroot/captchars/c", "ab") as f:
-            f.write(f"{result}${source}\r\n".encode("utf-8"))
+        account, password, cookie=None, access_token=None, refresh_token=None
+        """
+        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
+        async with client_session as session:
+            async with session.post(cloud_login, json=request_kw_params) as resp:
+                content = await resp.text()
 
-    @classmethod
-    def calc_sign(cls, text):
-        text = f'{text}{cls.app_secret}'
-        return hashlib.md5(text.encode('utf-8')).hexdigest()
-
-    @classmethod
-    async def _request(cls, method, url, params=None, data=None, json=None, headers=None, timeout=5, binary_rsp=False):
-        client_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
-        try:
-            async with client_session as session:
-                if method.lower() == "get":
-                    async with session.get(url, params=params, data=data, json=json, headers=headers) as resp:
-                        status_code = resp.status
-                        if binary_rsp is True:
-                            content = await resp.read()
-                        else:
-                            content = await resp.text()
-                        return status_code, content
-
-                else:
-                    async with session.post(url, data=data, params=params, json=json, headers=headers) as resp:
-                        status_code = resp.status
-                        content = await resp.text()
-                        return status_code, content
-        except Exception as e:
-            return 5000, f"Error happend: {e}\n {traceback.format_exc()}"
-
-    @classmethod
-    async def fetch_key(cls):
-        url = 'https://passport.bilibili.com/api/oauth2/getKey'
-
-        sign = cls.calc_sign(f'appkey={cls.appkey}')
-        data = {'appkey': cls.appkey, 'sign': sign}
-
-        status_code, content = await cls._request("post", url=url, data=data)
-        if status_code != 200:
-            return False, content
-
-        if "由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝。" in content:
-            return False, "412"
-
-        try:
-            json_response = json.loads(content)
-        except json.JSONDecodeError:
-            return False, f"RESPONSE_JSON_DECODE_ERROR: {content}"
-
-        if json_response["code"] != 0:
-            return False, json_response.get("message") or json_response.get("msg") or "unknown error!"
-
-        return True, json_response
-
-    @classmethod
-    async def post_login_req(cls, url_name, url_password, captcha=''):
-        temp_params = (
-            f'actionKey={cls.actionKey}'
-            f'&appkey={cls.appkey}'
-            f'&build={cls.build}'
-            f'&captcha={captcha}'
-            f'&device={cls.device}'
-            f'&mobi_app={cls.mobi_app}'
-            f'&password={url_password}'
-            f'&platform={cls.platform}'
-            f'&username={url_name}'
-        )
-        sign = cls.calc_sign(temp_params)
-        payload = f'{temp_params}&sign={sign}'
-        url = "https://passport.bilibili.com/api/v3/oauth2/login"
-        for _ in range(10):
-            status_code, content = await cls._request('POST', url, params=payload)
-            if status_code != 200:
-                await asyncio.sleep(0.75)
-                continue
-            try:
-                json_response = json.loads(content)
-            except json.JSONDecodeError:
-                continue
-            return True, json_response
-
-        return False, "Cannot login. Tried too many times."
-
-    @classmethod
-    async def fetch_captcha(cls):
-        url = "https://passport.bilibili.com/captcha"
-        status, content = await cls._request(method="get", url=url, binary_rsp=True)
-
-        url = "http://152.32.186.69:19951/captcha/v1"
-        str_img = base64.b64encode(content).decode(encoding='utf-8')
-        _, json_rsp = await cls._request("post", url=url, json={"image": str_img})
-        try:
-            captcha = json.loads(json_rsp)['message']
-        except json.JSONDecodeError:
-            captcha = None
-        return str_img, captcha
-
-    @classmethod
-    async def get_bili_login_response(cls, account, password):
-        req_json = {"account": account, "password": password}
-        status_code, content = await cls._request(method="post", url=cloud_login, json=req_json, timeout=50)
         try:
             json_rsp = json.loads(content)
             assert "code" in json_rsp
@@ -177,87 +43,17 @@ class CookieFetcher:
         return True, json_rsp
 
     @classmethod
-    async def get_cookie(cls, account, password):
-        flag, json_rsp = await cls.get_bili_login_response(account=account, password=password)
-        if not flag:
-            return flag, json_rsp
-
-        cookies = json_rsp["data"]["cookie_info"]["cookies"]
-        result = []
-        for c in cookies:
-            result.append(f"{c['name']}={c['value']}; ")
-
-        return True, "".join(result).strip()
-
-    @classmethod
-    async def login(cls, account, password):
-        flag, json_rsp = await cls.get_bili_login_response(account=account, password=password)
-        if not flag:
-            return flag, json_rsp
-
-        cookies = json_rsp["data"]["cookie_info"]["cookies"]
-        result = {c['name']: c['value'] for c in cookies}
-        result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
-        result["refresh_token"] = json_rsp["data"]["token_info"]["refresh_token"]
-        return True, result
-
-    @classmethod
-    async def is_token_usable(cls, cookie, access_token):
-        list_url = f'access_key={access_token}&{cls.app_params}&ts={int(time.time())}'
-        list_cookie = [_.strip() for _ in cookie.split(';')]
-        cookie = ";".join(list_cookie).strip(";")
-
-        params = '&'.join(sorted(list_url.split('&') + list_cookie))
-        sign = cls.calc_sign(params)
-
-        url = f'https://passport.bilibili.com/api/v3/oauth2/info?{params}&sign={sign}'
-        headers = {"cookie": cookie}
-        headers.update(cls.app_headers)
-        status_code, content = await cls._request("get", url=url, headers=headers)
-        if status_code != 200:
-            return False, content
-
-        try:
-            r = json.loads(content)
-            assert r["code"] == 0
-            assert "mid" in r["data"]
-        except Exception as e:
-            return False, f"Error: {e}"
-
-        return True, ""
-
-    @classmethod
-    async def fresh_token(cls, cookie, access_token, refresh_token):
-        list_url = (
-            f'access_key={access_token}'
-            f'&access_token={access_token}'
-            f'&{cls.app_params}'
-            f'&refresh_token={refresh_token}'
-            f'&ts={int(time.time())}'
+    async def login(cls, account, password, cookie=None, access_token=None, refresh_token=None):
+        flag, json_rsp = await cls.get_bili_login_response(
+            account=account,
+            password=password,
+            cookie=cookie,
+            access_token=access_token,
+            refresh_token=refresh_token
         )
+        if not flag:
+            return flag, json_rsp
 
-        # android param! 严格
-        list_cookie = [_.strip() for _ in cookie.split(';')]
-        cookie = ";".join(list_cookie).strip(";")
-
-        params = ('&'.join(sorted(list_url.split('&') + list_cookie)))
-        sign = cls.calc_sign(params)
-        payload = f'{params}&sign={sign}'
-
-        url = f'https://passport.bilibili.com/api/v2/oauth2/refresh_token'
-        headers = {"cookie": cookie}
-        headers.update(cls.app_headers)
-        status_code, content = await cls._request("post", url=url, headers=headers, params=payload)
-        if status_code != 200:
-            return False, content
-
-        try:
-            json_rsp = json.loads(content)
-        except json.JSONDecodeError:
-            return False, f"JSONDecodeError: {content}"
-
-        if json_rsp["code"] != 0:
-            return False, json_rsp["message"]
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}
         result["access_token"] = json_rsp["data"]["token_info"]["access_token"]

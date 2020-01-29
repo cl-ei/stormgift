@@ -45,10 +45,15 @@ class DanmakuProcessor:
             self.cookie = cookie
             return True, cookie
 
-        flag, cookie = await CookieFetcher.get_cookie(account=account, password=password)
+        flag, result = await CookieFetcher.login(account=account, password=password)
         if not flag:
-            logging.error(f"Super dxj CookieFetcher.get_cookie Error: {cookie}")
+            logging.error(f"Super dxj CookieFetcher.get_cookie Error: {result}")
             return False, f"登录失败：{cookie}"
+
+        cookie = ""
+        for k, v in result.items():
+            if k not in ("access_token", "refresh_token"):
+                cookie += f"{k}={v};"
 
         await SuperDxjCookieMgr.save_cookie(account=account, cookie=cookie)
         self.cookie = cookie

@@ -9,6 +9,7 @@ import requests
 import traceback
 from urllib import parse
 
+
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger()
 logger.setLevel(level=logging.INFO)
@@ -299,3 +300,59 @@ def main_handler(event, context):
         "statusCode": status_code,
         "body": content
     }
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    async def main():
+        from aiohttp import web
+
+        async def login(request):
+            try:
+                request_params = await request.json()
+            except json.JSONDecodeError:
+                return web.Response(text='{"code": 403}', content_type="application/json")
+
+            try:
+                account = request_params["account"]
+                password = request_params["password"]
+
+                cookie = request_params.get("cookie")
+                access_token = request_params.get("access_token")
+                refresh_token = request_params.get("refresh_token")
+
+                if cookie and access_token and refresh_token:
+                    flag, result = CookieFetcher.fresh_token(
+                        cookie=cookie,
+                        access_token=access_token,
+                        refresh_token=refresh_token
+                    )
+                    if flag:
+                        return web.Response(text=json.dumps(result), content_type="application/json")
+
+                status_code, content = CookieFetcher.login(account=account, password=password)
+                if isinstance(content, dict):
+                    content = json.dumps(content)
+                return web.Response(status=status_code, text=content, content_type="application/json")
+
+            except Exception as e:
+                return web.Response(
+                    text=json.dumps({"code": 5000, "msg": f"Exception: {e}"}),
+                    status=500,
+                    content_type="application/json"
+                )
+
+        app = web.Application()
+        app.add_routes([web.route('*', '/login', login)])
+        runner = web.AppRunner(app)
+        await runner.setup()
+
+        site = web.TCPSite(runner, '127.0.0.1', 4096)
+        await site.start()
+        print("Started.")
+        while True:
+            await asyncio.sleep(100)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
