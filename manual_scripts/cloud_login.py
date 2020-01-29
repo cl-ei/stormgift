@@ -254,7 +254,6 @@ class CookieFetcher:
 
         url = f'https://passport.bilibili.com/api/v2/oauth2/refresh_token'
         headers = {"cookie": cookie}
-        print(cookie)
         headers.update(cls.app_headers)
         status_code, content = cls._request("post", url=url, headers=headers, params=payload)
         if status_code != 200:
@@ -276,29 +275,35 @@ class CookieFetcher:
 
 
 def main_handler(event, context):
+    request_params = json.loads(event["body"])
 
-    try:
-        request_params = json.loads(event["body"])
-        if not request_params:
-            raise ValueError("Bad request_params: `%s`." % request_params)
+    account = request_params["account"]
+    password = request_params["password"]
+    cookie = request_params.get("cookie")
+    access_token = request_params.get("access_token")
+    refresh_token = request_params.get("refresh_token")
 
-        account = request_params["account"]
-        password = request_params["password"]
-    except Exception as e:
-        return {
-            "headers": {"Content-Type": "text"},
-            "statusCode": 403,
-            "body": "Request Param Error: %s\n\n%s" % (e, traceback.format_exc())
-        }
+    if cookie and access_token and refresh_token:
+        flag, result = CookieFetcher.fresh_token(
+            cookie=cookie,
+            access_token=access_token,
+            refresh_token=refresh_token
+        )
+        if flag:
+            return {
+                "headers": {"Content-Type": "application/json"},
+                "statusCode": 200,
+                "body": json.dumps(result),
+            }
 
     status_code, content = CookieFetcher.login(account=account, password=password)
     if isinstance(content, dict):
         content = json.dumps(content)
 
     return {
-        "headers": {"Content-Type": "text"},
-        "statusCode": status_code,
-        "body": content
+        "headers": {"Content-Type": "application/json"},
+        "statusCode": 200,
+        "body": content,
     }
 
 
@@ -309,39 +314,9 @@ if __name__ == "__main__":
         from aiohttp import web
 
         async def login(request):
-            try:
-                request_params = await request.json()
-            except json.JSONDecodeError:
-                return web.Response(text='{"code": 403}', content_type="application/json")
-
-            try:
-                account = request_params["account"]
-                password = request_params["password"]
-
-                cookie = request_params.get("cookie")
-                access_token = request_params.get("access_token")
-                refresh_token = request_params.get("refresh_token")
-
-                if cookie and access_token and refresh_token:
-                    flag, result = CookieFetcher.fresh_token(
-                        cookie=cookie,
-                        access_token=access_token,
-                        refresh_token=refresh_token
-                    )
-                    if flag:
-                        return web.Response(text=json.dumps(result), content_type="application/json")
-
-                status_code, content = CookieFetcher.login(account=account, password=password)
-                if isinstance(content, dict):
-                    content = json.dumps(content)
-                return web.Response(status=status_code, text=content, content_type="application/json")
-
-            except Exception as e:
-                return web.Response(
-                    text=json.dumps({"code": 5000, "msg": f"Exception: {e}"}),
-                    status=500,
-                    content_type="application/json"
-                )
+            request_params = await request.text()
+            r = main_handler({"body": request_params}, None)
+            return web.Response(status=r["statusCode"], text=r["body"], content_type=r["headers"]["Content-Type"])
 
         app = web.Application()
         app.add_routes([web.route('*', '/login', login)])
@@ -350,7 +325,7 @@ if __name__ == "__main__":
 
         site = web.TCPSite(runner, '127.0.0.1', 4096)
         await site.start()
-        print("Started.")
+        print(f"Started. http://127.0.0.1:4096/login")
         while True:
             await asyncio.sleep(100)
 
