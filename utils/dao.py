@@ -439,15 +439,16 @@ class BiliToQQBindInfo(object):
 
     @classmethod
     async def bind(cls, qq, bili):
-        bind_pair = (int(qq), int(bili))
+        qq = int(qq)
+        bili = int(bili)
 
         r = await redis_cache.get(cls.key)
         if not isinstance(r, (list, tuple)):
             r = []
-        if bili in [p[1] for p in r]:
-            return
-        r.append(bind_pair)
-        return await redis_cache.set(key=cls.key, value=r)
+        new_pairs = [pair for pair in r if pair[1] != bili]
+        new_pairs.append((qq, bili))
+
+        return await redis_cache.set(key=cls.key, value=new_pairs)
 
     @classmethod
     async def unbind(cls, bili):
