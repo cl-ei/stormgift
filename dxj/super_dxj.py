@@ -16,8 +16,7 @@ class DanmakuProcessor:
         self._cached_settings = None
         self._settings_expire_time = 0
 
-        self._is_live = False
-        self._last_live_time = 0
+        self.is_live = False
 
         self.gift_list = []
         self.carousel_msg_counter = 100
@@ -62,27 +61,6 @@ class DanmakuProcessor:
         account = config["account"]
         await SuperDxjCookieMgr.set_invalid(account=account)
         return True
-
-    async def get_live_status(self):
-        if self._is_live is False:
-            return False
-
-        now = time.time()
-        if now - self._last_live_time < 1800:
-            return True
-
-        flag, live_status = await BiliApi.get_live_status(room_id=self.room_id)
-        if not flag:
-            logging.error(f"Cannot get live room status, room_id: {self.room_id}, {live_status}")
-            live_status = False
-
-        if live_status:
-            self._is_live = True
-            self._last_live_time = now
-            return True
-        else:
-            self._is_live = False
-            return False
 
     async def send_danmaku(self):
         msg_block_until = 0
@@ -167,11 +145,10 @@ class DanmakuProcessor:
             # )
 
             thank_gold = settings["thank_gold"]
-            is_live = await self.get_live_status()
             if (
                 thank_gold == 1
-                or (thank_gold == 2 and not is_live)
-                or (thank_gold == 3 and is_live)
+                or (thank_gold == 2 and not self.is_live)
+                or (thank_gold == 3 and self.is_live)
             ):
                 thank_gold_text = settings["thank_gold_text"].replace(
                     "{num}", str(num)).replace("{gift}", gift_name).replace("{user}", uname)
@@ -186,7 +163,6 @@ class DanmakuProcessor:
             coin_type = data.get("coin_type", "")
             total_coin = data.get("total_coin", 0)
             num = data.get("num", "")
-            is_live = await self.get_live_status()
 
             # logging.info(
             #     f"{self.short_room_id}-{self.name} SEND_GIFT: "
@@ -197,8 +173,8 @@ class DanmakuProcessor:
                 thank_gold = settings["thank_gold"]
                 if (
                     thank_gold == 1
-                    or (thank_gold == 2 and not is_live)
-                    or (thank_gold == 3 and is_live)
+                    or (thank_gold == 2 and not self.is_live)
+                    or (thank_gold == 3 and self.is_live)
                 ):
                     self.gift_list.append((coin_type, uname, gift_name, num))
 
@@ -206,17 +182,18 @@ class DanmakuProcessor:
                 thank_silver = settings["thank_silver"]
                 if (
                     thank_silver == 1
-                    or (thank_silver == 2 and not is_live)
-                    or (thank_silver == 3 and is_live)
+                    or (thank_silver == 2 and not self.is_live)
+                    or (thank_silver == 3 and self.is_live)
                 ):
                     self.gift_list.append((coin_type, uname, gift_name, num))
 
         elif cmd == "LIVE":
-            self._is_live = True
-            self._last_live_time = time.time()
+            logging.info(f"LIVE: {self.short_room_id}-{self.name}")
+            self.is_live = True
 
         elif cmd == "PREPARING":
-            self._is_live = False
+            logging.info(f"PREPARING: {self.short_room_id}-{self.name}")
+            self.is_live = False
 
     async def thank_gift(self):
         while True:
@@ -301,8 +278,7 @@ class DanmakuProcessor:
             await asyncio.sleep(20)
 
             config = await self.load_config()
-            live_status = await self.get_live_status()
-            if not live_status or config["thank_follower"] != 1:
+            if not self.is_live or config["thank_follower"] != 1:
                 self.followers = None
                 continue
 
@@ -330,15 +306,6 @@ class DanmakuProcessor:
                 self.followers = list(set(new_fans_id_list))
 
     async def run(self):
-        flag, live_status = await BiliApi.get_live_status(room_id=self.room_id)
-        if not flag:
-            logging.error(f"Cannot get live status when init... e: {live_status}")
-        else:
-            logging.info(f"Live room status: {self.room_id} -> {live_status}")
-
-            self._is_live = bool(live_status)
-            self._last_live_time = time.time()
-
         await asyncio.gather(*[
             self.thank_follower(),
             self.parse_danmaku(),
@@ -370,6 +337,10 @@ class WsManager(object):
 
         async def on_connect(ws):
             await ws.send(WsApi.gen_join_room_pkg(room_id))
+
+            flag, live_status = await BiliApi.get_live_status(room_id=room_id)
+            if flag:
+                q.put_nowait({"cmd": "LIVE" if live_status else "PREPARING"})
 
         async def on_error(e, msg):
             self._broken_live_rooms.append(room_id)
