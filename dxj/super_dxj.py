@@ -22,13 +22,9 @@ class DanmakuProcessor:
         self.gift_list = []
         self.carousel_msg_counter = 100
         self.carousel_msg_index = 0
-        self.dmk_q = asyncio.Queue()
+        self._dmk_q = asyncio.Queue()
 
         self.cookie = ""
-
-        self.msg_speed_counter = 0
-        self.msg_speed_counter_start_time = 0
-        self.msg_block_until = 0
 
         self.master_uid = None
         self.followers = []
@@ -89,42 +85,38 @@ class DanmakuProcessor:
             return False
 
     async def send_danmaku(self):
+        msg_block_until = 0
+
         while True:
-            dmk = await self.dmk_q.get()
+            dmk = await self._dmk_q.get()
 
             now = time.time()
-            if now < self.msg_block_until:
+            if now < msg_block_until:
                 logging.warning(f"DMK BLOCK: {self.short_room_id}-{self.name} -> {dmk}")
                 continue
 
-            # 计数
-            if now - self.msg_speed_counter_start_time > 60:
-                self.msg_speed_counter_start_time = now
-                self.msg_speed_counter = 0
-            self.msg_speed_counter += 1
-
-            # 检查计数
-            if self.msg_speed_counter > 60:
-                self.msg_block_until = now + 30
-
             flag, cookie = await self.load_cookie()
             if not flag:
-                # 登录失败，冷却1分钟
-                self.msg_block_until = now + 30
+                # 登录失败，冷却30秒
+                msg_block_until = now + 30
                 logging.warning(f"DMK BLOCK(Login failed): {self.short_room_id}-{self.name} -> {dmk}")
                 continue
 
             flag, msg = await BiliApi.send_danmaku(message=dmk, room_id=self.room_id, cookie=cookie)
-            if flag:
-                await asyncio.sleep(1)
-                continue
+            if not flag:
+                logging.error(f"DMK send failed. {self.short_room_id}-{self.name} -> {dmk}\n\t{msg}")
+                if "412" in msg:
+                    msg_block_until = now + 60 * 5
+                elif "账号未登录" in msg:
+                    await self.set_cookie_invalid()
 
-            logging.error(f"DMK send failed. {self.short_room_id}-{self.name} -> {dmk}\n\t{msg}")
-            if "412" in msg:
-                self.msg_block_until = now + 60 * 5
+            await asyncio.sleep(1)
 
-            elif "账号未登录" in msg:
-                await self.set_cookie_invalid()
+    def sch_danmaku(self, dmk):
+        if self._dmk_q.qsize() > 15:
+            logging.error(f"sch_danmaku abandon: {self.short_room_id}-{self.name} -> {dmk}")
+            return
+        self._dmk_q.put_nowait(dmk)
 
     async def load_config(self):
         if self._cached_settings and self._settings_expire_time > time.time():
@@ -158,7 +150,7 @@ class DanmakuProcessor:
 
             for key_word, resp in settings["auto_response"]:
                 if key_word in msg:
-                    self.dmk_q.put_nowait(resp)
+                    self.sch_danmaku(resp)
 
         elif cmd == "GUARD_BUY":
             data = dmk.get("data")
@@ -183,7 +175,7 @@ class DanmakuProcessor:
             ):
                 thank_gold_text = settings["thank_gold_text"].replace(
                     "{num}", str(num)).replace("{gift}", gift_name).replace("{user}", uname)
-                self.dmk_q.put_nowait(thank_gold_text)
+                self.sch_danmaku(thank_gold_text)
 
         elif cmd == "SEND_GIFT":
             data = dmk.get("data")
@@ -253,7 +245,7 @@ class DanmakuProcessor:
 
                         message = tpl.replace("{user}", user_name).replace(
                             "{gift}", gift_name).replace("{num}", str(num))
-                        self.dmk_q.put_nowait(message)
+                        self.sch_danmaku(message)
 
     async def parse_danmaku(self):
         while True:
@@ -292,7 +284,8 @@ class DanmakuProcessor:
                 self.carousel_msg_index = 0
                 self.carousel_msg_counter = 0
 
-            self.dmk_q.put_nowait(carousel_msg[self.carousel_msg_index])
+            danmaku = carousel_msg[self.carousel_msg_index]
+            self.sch_danmaku(danmaku)
             self.carousel_msg_index = (self.carousel_msg_index + 1) % len(carousel_msg)
             self.carousel_msg_counter += 1
 
@@ -310,6 +303,7 @@ class DanmakuProcessor:
             config = await self.load_config()
             live_status = await self.get_live_status()
             if not live_status or config["thank_follower"] != 1:
+                self.followers = None
                 continue
 
             if not self.followers:
@@ -328,7 +322,7 @@ class DanmakuProcessor:
             for uid in thank_uid_list:
                 name = uid_to_name_map.get(uid)
                 dmk = thank_follower_text.replace("{user}", name)
-                self.dmk_q.put_nowait(dmk)
+                self.sch_danmaku(dmk)
 
             self.followers.extend(new_fans_id_list)
             self.followers = list(set(self.followers))
@@ -355,7 +349,6 @@ class DanmakuProcessor:
 
 
 class WsManager(object):
-
     def __init__(self):
         self._clients = {}
         self.monitor_live_rooms = {}
