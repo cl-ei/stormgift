@@ -1,6 +1,3 @@
-import re
-import os
-import configparser
 import time
 import json
 import random
@@ -8,6 +5,7 @@ import pickle
 import asyncio
 import aioredis
 import datetime
+import configparser
 from config import REDIS_CONFIG
 
 
