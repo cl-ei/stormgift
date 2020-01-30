@@ -87,7 +87,7 @@ class ReqFreLimitApi(object):
                 user_name,
                 r["display_room_id"],
                 r["prize_gift_name"],
-                r["expire_time"],
+                datetime.datetime.strptime(r["expire_time"], "%Y-%m-%d %H:%M:%S"),  # 2020-01-30 13:25:43
             ])
         return results
 
