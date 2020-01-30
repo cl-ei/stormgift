@@ -1,4 +1,3 @@
-import re
 import os
 import time
 import json
@@ -17,7 +16,6 @@ from utils.cq import async_zy
 from utils.biliapi import BiliApi
 from utils.cq import bot_zy as bot
 from config import cloud_function_url
-from utils.db_raw_query import AsyncMySQL
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import cqbot_logger as logging
 from utils.highlevel_api import DBCookieOperator
@@ -638,18 +636,12 @@ class BotUtils:
 
         message = f"辣🐔最后活跃时间: {gen_time_prompt(last_active_time)}，队列中有{len(gifts)}个未收大宝贝：\n\n{'-'*20}\n"
 
-        room_id_q = await AsyncMySQL.execute(
-            "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
-            ({int(d["room_id"]) for d in gifts},)
-        )
-        room_id_map = {r[0]: r[1] for r in room_id_q if r[1]}
         prompt_gift_list = []
         for i, gift in enumerate(gifts):
             room_id = gift["room_id"]
             gift_name = gift["gift_name"]
 
             room_id = int(room_id)
-            room_id = room_id_map.get(room_id, room_id)
             accept_time = -1 * int(time.time() - score[i])
             if accept_time < 0:
                 accept_time = 0
