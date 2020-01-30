@@ -71,29 +71,24 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def get_raffle_record(cls, uid):
-        raffles = await AsyncMySQL.execute(
-            "select u.name, r.room_id, r.prize_gift_name, r.expire_time "
-            "from raffle r, biliuser u "
-            "where r.winner_obj_id = u.id and u.uid = %s and r.expire_time >= %s "
-            "order by r.expire_time desc;",
-            (uid, datetime.datetime.now() - datetime.timedelta(days=7))
-        )
+        url = "https://www.madliar.com/bili/raffles?day_range=7&json=1&user={uid}"
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
+            async with session.get(url) as resp:
+                response = await resp.json()
 
+        if response.get("code") != 0:
+            return []
+
+        raffle_data = response.get("raffle_data") or []
+        user_name = response.get("user_name") or "??"
         results = []
-        for r in raffles:
-            name, room_id, gift_name, created_time = r
-            results.append([name, room_id, gift_name, created_time])
-
-        if not results:
-            return results
-
-        room_id_map = await AsyncMySQL.execute(
-            "select real_room_id, short_room_id from biliuser where real_room_id in %s;",
-            ([row[1] for row in results], )
-        )
-        room_id_map = {r[0]: r[1] for r in room_id_map if r[1]}
-        for r in results:
-            r[1] = room_id_map.get(r[1], r[1])
+        for r in raffle_data:
+            results.append([
+                user_name,
+                r["display_room_id"],
+                r["prize_gift_name"],
+                r["expire_time"],
+            ])
         return results
 
     @classmethod
