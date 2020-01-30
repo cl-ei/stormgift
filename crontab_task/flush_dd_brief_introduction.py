@@ -1,9 +1,9 @@
-import asyncio
-import datetime
 import jinja2
-from utils.highlevel_api import DBCookieOperator
+import asyncio
+import requests
+import datetime
 from utils.biliapi import BiliApi
-from utils.db_raw_query import AsyncMySQL
+from utils.highlevel_api import DBCookieOperator
 
 
 template_text = """
@@ -75,50 +75,7 @@ template_text = """
 
 
 async def gen_intro():
-    now = datetime.datetime.now()
-    guard_query = await AsyncMySQL.execute(
-        "select room_id, gift_name from guard where expire_time > %s and gift_name in %s;",
-        (now, ("舰长", "提督", "总督"))
-    )
-
-    room_id_list = {row[0] for row in guard_query}
-    live_room_info = await AsyncMySQL.execute(
-        "select short_room_id, real_room_id from biliuser where real_room_id in %s;",
-        (room_id_list, )
-    )
-    real_to_short_dict = {row[1]: row[0] for row in live_room_info if row[0]}
-
-    gifts = {}
-    for row in guard_query:
-        room_id, gift_name = row
-        gifts.setdefault(room_id, []).append(gift_name)
-
-    guard_list = []
-    for room_id, gifts_list in gifts.items():
-        display = []
-        intimacy = 0
-
-        z = [n for n in gifts_list if n == "总督"]
-        if z:
-            display.append(f"{len(z)}个总督")
-            intimacy += 20*len(z)
-        t = [n for n in gifts_list if n == "提督"]
-        if t:
-            display.append(f"{len(t)}个提督")
-            intimacy += 5 * len(t)
-        j = [n for n in gifts_list if n == "舰长"]
-        if j:
-            display.append(f"{len(j)}个舰长")
-            intimacy += len(j)
-
-        guard_list.append({
-            "room_id": real_to_short_dict.get(room_id, room_id),
-            "prompt": "、".join(display),
-            "intimacy": intimacy
-        })
-    guard_list.sort(key=lambda x: (x["intimacy"], -x["room_id"]), reverse=True)
-
-    context = {"guard_list": guard_list, "update_time": str(datetime.datetime.now())[:19]}
+    context = requests.get("https://www.madliar.com/bili/realtime_guards").json()
     return jinja2.Template(template_text).render(context)
 
 
