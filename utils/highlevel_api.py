@@ -72,9 +72,8 @@ class ReqFreLimitApi(object):
     @classmethod
     async def get_raffle_record(cls, uid):
         url = f"https://www.madliar.com/bili/raffles?day_range=7&json=1&user={uid}"
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
-            async with session.get(url) as resp:
-                response = await resp.json()
+        async with aiohttp.request("get", url=url, timeout=30) as resp:
+            response = await resp.json()
 
         if response.get("code") != 0:
             return []
