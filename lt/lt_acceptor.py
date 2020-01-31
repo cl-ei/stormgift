@@ -106,10 +106,11 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
         async with client_session as session:
             async with session.post(cloud_url, json=req_json) as resp:
                 status_code = resp.status
+                response = await resp.text()
                 if status_code != 200:
-                    return False, "Cloud Function Error!", cloud_url
+                    return False, f"Cloud Function Error! [{response}]", cloud_url
 
-                return_data = json.loads(await resp.text())
+                return_data = json.loads(response)
     except Exception as e:
         return False, f"Cloud Function Connection Error: {e}", cloud_url
 
