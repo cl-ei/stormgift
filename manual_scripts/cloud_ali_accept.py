@@ -114,11 +114,12 @@ class Executor:
 
     async def join_pk(self):
         csrf_token = re.findall(r"bili_jct=(\w+)", self.cookie)[0]
-        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/pk/join"
+        req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v2/pk/join"
         headers = {"Cookie": self.cookie}
         data = {
-            "roomid": self.room_id,
             "id": self.gift_id,
+            "roomid": self.room_id,
+            "type": "pk",
             "csrf_token": csrf_token,
             "csrf": csrf_token,
             "visit_id": ""

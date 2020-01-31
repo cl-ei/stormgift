@@ -166,11 +166,12 @@ def join_guard(room_id, gift_id, cookie, gift_type=None):
 
 def join_pk(room_id, gift_id, cookie, gift_type=None):
     csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-    req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v1/pk/join"
+    req_url = "https://api.live.bilibili.com/xlive/lottery-interface/v2/pk/join"
     headers = {"Cookie": cookie}
     data = {
-        "roomid": room_id,
         "id": gift_id,
+        "roomid": room_id,
+        "type": "pk",
         "csrf_token": csrf_token,
         "csrf": csrf_token,
         "visit_id": ""
