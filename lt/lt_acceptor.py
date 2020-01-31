@@ -153,7 +153,7 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
         flag, result, cloud_acceptor_url = await cloud_accept(**run_params)
 
     if not flag:
-        logging.error(f"Accept Failed! e: {result}")
+        logging.error(f"Accept Failed! {cloud_acceptor_url[-20:]} -> e: {result}")
         return
 
     success = []

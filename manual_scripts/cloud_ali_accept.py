@@ -124,7 +124,7 @@ class Executor:
             "csrf": csrf_token,
             "visit_id": ""
         }
-        status_code, content = request(method="post", url=req_url, headers=headers, data=data)
+        status_code, content = await request(method="post", url=req_url, headers=headers, data=data)
         if status_code != 200:
             return False, content
 
