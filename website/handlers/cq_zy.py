@@ -986,7 +986,7 @@ class BotHandler:
             try:
                 return await cls.handle_private_message(context)
             except Exception as e:
-                message = f"在处理命令[{msg}]时发生了不可处理的错误，请稍后再试。\n\n{e}"
+                message = f"在处理命令[{msg}]时发生了不可处理的错误，请稍后再试。\n\n{e}\n\n{traceback.format_exc()}"
                 await async_zy.send_private_msg(user_id=user_id, message=message)
                 return None
 
