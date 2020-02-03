@@ -1,45 +1,15 @@
+import time
 import logging
 import asyncio
 from config import g
 from utils.cq import async_zy
+from utils.biliapi import WsApi
 from utils.ws import RCWebSocketClient
-from utils.biliapi import WsApi, BiliApi
 from config.log4 import console_logger as logging
-from utils.highlevel_api import DBCookieOperator
 
 
 MONITOR_ROOM_ID = 2951931
-
-
-async def send_danmaku(msg):
-    user = "DD"
-    c = await DBCookieOperator.get_by_uid(user_id=user)
-    if not c:
-        logging.error(f"Cannot get cookie for user: {user}.")
-        return
-
-    while True:
-        send_m = msg[:30]
-        for _ in range(3):
-            flag, data = await BiliApi.send_danmaku(message=send_m, room_id=MONITOR_ROOM_ID, cookie=c.cookie)
-            if flag:
-                if data == "fire":
-                    return
-
-                logging.info(f"DMK success: {send_m}, reason: {data}")
-                break
-            else:
-                logging.error(f"Dmk send failed, msg: {send_m}, reason: {data}")
-                await asyncio.sleep(0.4)
-        else:
-            logging.error(f"Cannot send danmaku {send_m}. now return.")
-            return
-
-        msg = msg[30:]
-        if msg:
-            await asyncio.sleep(1.1)
-        else:
-            return
+last_live_time = 0
 
 
 async def proc_message(message):
@@ -58,13 +28,18 @@ async def proc_message(message):
         logging.info(msg_record)
 
     elif cmd == "LIVE":
+        global last_live_time
+        now = time.time()
+        if now - last_live_time < 5:
+            return
+        last_live_time = now
         await async_zy.send_private_msg(
             user_id=g.QQ_NUMBER_DD,
-            message=f"温柔祯开播了.\n\nhttps://live.bilibili.com/{MONITOR_ROOM_ID}\n\n{message}"
+            message=f"温柔祯开播了.\n\nhttps://live.bilibili.com/{MONITOR_ROOM_ID}"
         )
 
     elif cmd == "PREPARING":
-        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message="温柔祯已下播。\n\n{message}")
+        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message="温柔祯已下播。")
 
 
 async def main():
