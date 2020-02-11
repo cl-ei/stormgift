@@ -4,10 +4,6 @@ import aiohttp
 import weakref
 import datetime
 from aiohttp import web
-from jinja2 import Template
-
-with open("music.html", encoding="utf-8") as f:
-    music_html = f.read()
 
 
 async def main():
@@ -15,16 +11,26 @@ async def main():
     app['ws'] = weakref.WeakSet()
 
     async def home_page(request):
+        with open("music.html", encoding="utf-8") as f:
+            from jinja2 import Template
+            music_html = f.read()
+            template = Template(music_html)
+
         music_files = os.listdir("./live_room_statics/music/")
         image_files = os.listdir("./live_room_statics/img/")
 
         context = {
+            "CDN_URL": "http://192.168.100.100:80",
             "title": "grafana",
             "background_images": ["/static/img/" + img for img in image_files],
             "background_musics": ["/static/music/" + mp3 for mp3 in music_files],
         }
-        template = Template(music_html)
+
         return web.Response(text=template.render(context), content_type="text/html")
+
+    async def push_message_to_web_page(message):
+        for ws in set(app['ws']):
+            await ws.send_str(f"{message}\n")
 
     async def command(request):
         cmd = request.match_info['cmd']
@@ -42,10 +48,6 @@ async def main():
         finally:
             request.app['ws'].discard(ws)
         return ws
-
-    async def push_message_to_web_page(message):
-        for ws in set(app['ws']):
-            await ws.send_str(f"{message}\n")
 
     app.add_routes([
         web.get('/', home_page),

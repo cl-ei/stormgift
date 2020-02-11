@@ -45,8 +45,7 @@
             height: 30px;
             text-align: left;
             line-height: 30px;
-            margin-top: -86px;
-            margin-left: 50px;
+            margin-top: 20px;
             cursor: pointer;
             transition: all 0.3s ease-out;
         }
@@ -59,26 +58,49 @@
         #cached-audio{
             display: none;
         }
+        #player-bg {
+            margin: 15px 1px 1px 905px;
+            position: absolute;
+            width: 360px;
+            height: 437px;
+            overflow: hidden;
+            z-index: 99;
+            opacity: 0.2;
+            background: #ccc;
+        }
+        #player {
+            padding: 15px;
+            margin: 15px 1px 1px 905px;
+            position: absolute;
+            width: 330px;
+            height: 407px;
+            overflow: hidden;
+            z-index: 100;
+            color: white;
+            text-shadow: 1px 1px 4px #000000;
+        }
     </style>
 </head>
 <body>
 <iframe id="grafana" name="frame" src="https://www.madliar.com:233"
         frameborder="0" scrolling="no" marginheight="0" marginwidth="0" width="1200px" height="800px">
 </iframe>
+<div id="player-bg"></div>
+<div id="player">
+    <div id="music-link">歌单地址 <span style="border-bottom: 1px solid;">https://madliar.com/music </span></div>
+    <div id="player-title"><span id="play-icon">▶ </span><span id="song-name"></span> <span id="play-progress"></span></div>
+</div>
+</div>
 <div id="bg">
     {% for bg in background_images %}
-    <img src="{{ bg }}">
+    <img src="{{ CDN_URL }}{{ bg }}">
     {% endfor %}
 </div>
-<div id="player-title">
-    <span id="music-link">歌单地址 <span style="border-bottom: 1px solid;">https://madliar.com/music </span></span><br />
-    <span id="play-icon">▶ </span>
-    <span id="song-name"></span> <span id="play-progress"></span>
-</div>
+
 <audio id="audio" src=""></audio>
 <div id="#cached-audio">
     {% for mp3 in background_musics %}
-    <audio src="{{ mp3 }}"></audio>
+    <audio src="{{ CDN_URL }}{{ mp3 }}"></audio>
     {% endfor %}
 </div>
 <script>
@@ -100,7 +122,7 @@
 
         var musics = [
             {% for mp3 in background_musics %}
-                "{{ mp3 }}",
+                "{{ CDN_URL }}{{ mp3 }}",
             {% endfor %}
         ];
         var flushCount = 0;
