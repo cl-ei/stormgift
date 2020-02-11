@@ -8,3 +8,4 @@ package-lock.json
 config/proj_config.json
 madliar.settings.ini
 test*
+live_room_statics/*

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html  class="no-js" lang="zh-CN">
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,Chrome=1" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <meta charset="utf-8">
+    <title>Grafana</title>
+    <meta name="author" content="Caoliang">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://media.madliar.com/static/css/font-awesome.min.css">
+    <script type="text/javascript" src="https://media.madliar.com/static/js/jquery.min.js"></script>
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+            display: block;
+            height: 720px;
+            width: 1280px;
+            overflow: hidden;
+        }
+        #grafana{
+            transform: scale(0.30);
+            opacity: 0.7;
+            padding: 2px;
+            position: absolute;
+            z-index: 9999;
+            margin: 185px 0 0 483px;
+        }
+        #bg{
+            height: 100%;
+            width: 100%;
+            background: #737373;
+        }
+        #bg img{
+            width: 1280px;
+            height: 720px;
+            position: fixed;
+            opacity: 0;
+        }
+        #player-title{
+            color: #efefef;
+            text-shadow: 1px 1px 4px #000000;
+            position: absolute;
+            z-index: 99999;
+            height: 30px;
+            text-align: left;
+            line-height: 30px;
+            margin-top: -86px;
+            margin-left: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease-out;
+        }
+        #player-title:hover{
+            background: #ccc;
+        }
+        #music-link{
+            font-size: 20px;
+        }
+        #cached-audio{
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<iframe id="grafana" name="frame" src="https://www.madliar.com:233"
+        frameborder="0" scrolling="no" marginheight="0" marginwidth="0" width="1200px" height="800px">
+</iframe>
+<div id="bg">
+    {% for bg in background_images %}
+    <img src="{{ bg }}">
+    {% endfor %}
+</div>
+<div id="player-title">
+    <span id="music-link">歌单地址 <span style="border-bottom: 1px solid;">https://madliar.com/music </span></span><br />
+    <span id="play-icon">▶ </span>
+    <span id="song-name"></span> <span id="play-progress"></span>
+</div>
+<audio id="audio" src=""></audio>
+<div id="#cached-audio">
+    {% for mp3 in background_musics %}
+    <audio src="{{ mp3 }}"></audio>
+    {% endfor %}
+</div>
+<script>
+    $(function(){
+        var index = 0;
+        setInterval(function () {
+            var imgDoms = $("#bg img");
+            var totalLength = imgDoms.length;
+
+            imgDoms.eq(index).animate({opacity: 0.6}, 300, function () {
+                imgDoms.eq(index).animate({opacity: 0}, 500);
+                index += 1;
+                if (index === totalLength) {
+                    index = 0;
+                }
+                imgDoms.eq(index).animate({opacity: 1}, 800)
+            });
+        }, 15000);
+
+        var musics = [
+            {% for mp3 in background_musics %}
+                "{{ mp3 }}",
+            {% endfor %}
+        ];
+        var flushCount = 0;
+        var musicCount = musics.length;
+        var audioDom = $("#audio");
+        var musicIindex = Math.floor(Math.random()*musicCount);
+        audioDom[0].src = musics[musicIindex];
+        $("#song-name").html(musics[musicIindex].split("/").reverse()[0].split(".")[0]);
+        audioDom[0].play();
+
+        audioDom.bind('ended', function(){
+            flushCount += 1;
+            if (flushCount === musicCount){
+                window.location.reload();
+            }
+
+            var musicIindex = Math.floor(Math.random()*musicCount);
+
+            audioDom[0].src = musics[musicIindex];
+            $("#song-name").html(musics[musicIindex].split("/").reverse()[0].split(".")[0]);
+            audioDom[0].play();
+
+            console.log("musics[music_index]: ", musics[musicIindex]);
+        });
+
+        var progressCount = 0;
+        setInterval(function(){
+            progressCount += 1;
+            var char = {
+                0: "",
+                1: "．",
+                2: "．．",
+                3: "．．．"
+            }[progressCount % 4];
+            $("#play-progress").html(char);
+        }, 500);
+
+        $("#player-title").click(function(){window.location.reload()});
+    });
+</script>
+</body>
+</html>
