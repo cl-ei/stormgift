@@ -9,6 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://media.madliar.com/static/css/font-awesome.min.css">
     <script type="text/javascript" src="https://media.madliar.com/static/js/jquery.min.js"></script>
+    <script type="text/javascript" src="https://media.madliar.com/static/js/reconnectwebsocket.min.js"></script>
     <style>
         body{
             margin: 0;
@@ -40,9 +41,9 @@
         #player-title{
             color: #efefef;
             text-shadow: 1px 1px 4px #000000;
-            position: absolute;
             z-index: 99999;
-            height: 30px;
+            max-height: 60px;
+            overflow: hidden;
             text-align: left;
             line-height: 30px;
             margin-top: 20px;
@@ -66,7 +67,7 @@
             overflow: hidden;
             z-index: 99;
             opacity: 0.2;
-            background: #ccc;
+            background: #000;
         }
         #player {
             padding: 15px;
@@ -79,6 +80,15 @@
             color: white;
             text-shadow: 1px 1px 4px #000000;
         }
+        #player-extra{
+            margin-top: 10px;
+            margin-bottom: -10px;
+        }
+        #player-prompt{
+            position: fixed;
+            z-index: 99999;
+            top: 420px;
+        }
     </style>
 </head>
 <body>
@@ -89,6 +99,9 @@
 <div id="player">
     <div id="music-link">歌单地址 <span style="border-bottom: 1px solid;">https://madliar.com/music </span></div>
     <div id="player-title"><span id="play-icon">▶ </span><span id="song-name"></span> <span id="play-progress"></span></div>
+    <div id="player-extra"></div>
+    <div id="player-list"></div>
+    <div id="player-prompt">点歌格式： 点歌 出山</div>
 </div>
 </div>
 <div id="bg">
@@ -98,10 +111,10 @@
 </div>
 
 <audio id="audio" src=""></audio>
-<div id="#cached-audio">
-    {% for mp3 in background_musics %}
-    <audio src="{{ CDN_URL }}{{ mp3 }}"></audio>
-    {% endfor %}
+
+<div id="test">
+    <input class="input-number" type="text" name="cmd">
+    <button class="button center" id="submit">提交</button>
 </div>
 <script>
     $(function(){
@@ -120,32 +133,50 @@
             });
         }, 15000);
 
-        var musics = [
-            {% for mp3 in background_musics %}
-                "{{ CDN_URL }}{{ mp3 }}",
-            {% endfor %}
-        ];
-        var flushCount = 0;
-        var musicCount = musics.length;
-        var audioDom = $("#audio");
-        var musicIindex = Math.floor(Math.random()*musicCount);
-        audioDom[0].src = musics[musicIindex];
-        $("#song-name").html(musics[musicIindex].split("/").reverse()[0].split(".")[0]);
-        audioDom[0].play();
-
-        audioDom.bind('ended', function(){
-            flushCount += 1;
-            if (flushCount === musicCount){
-                window.location.reload();
+        function update_player(data){
+            console.log("update_player(data): ", data);
+            if (data.current !== undefined){
+                var audioDom = $("#audio");
+                audioDom[0].src = data.current;
+                $("#song-name").html(data.current.split("/").reverse()[0].split(".")[0]);
+                audioDom[0].play();
             }
+            if (data.extra !== undefined){
+                $("#player-extra").html(data.extra);
+            }
+            if (data.play_list !== undefined){
+                var playListHtml = "";
+                for (var i = 0; i < data.play_list.length; i++){
+                    playListHtml += "<li>" + data.play_list[i] + "</li>";
+                }
+                $("#player-list").html("<ul>" + playListHtml + "</ul>");
+            }
+            if (data.prompt !== undefined){
+                $("#player-prompt").html(data.prompt);
+            }
+        }
 
-            var musicIindex = Math.floor(Math.random()*musicCount);
+        var ws = new ReconnectingWebSocket("ws://127.0.0.2:4096/ws");
+        ws.onopen = function (evnt) {
+            console.log("Websocket connected!");
+             ws.send("init");
+        };
+        ws.onmessage = function (evnt) {
+            try{
+                response = JSON.parse(evnt.data)
+            }catch(e){
+                console.log("evnt.data error: ", evnt.data);
+                return;
+            };
+            if (response.cmd === "update"){
+                update_player(response);
+            }else{
+                console.log("onmessage: ", data);
+            }
+        };
 
-            audioDom[0].src = musics[musicIindex];
-            $("#song-name").html(musics[musicIindex].split("/").reverse()[0].split(".")[0]);
-            audioDom[0].play();
-
-            console.log("musics[music_index]: ", musics[musicIindex]);
+        $("#audio").bind('ended', function(){
+            ws.send("next");
         });
 
         var progressCount = 0;
@@ -161,6 +192,17 @@
         }, 500);
 
         $("#player-title").click(function(){window.location.reload()});
+
+        $("#submit").click(() => {
+            let cmd = $("input[name=cmd]").val();
+            $.ajax({
+                url: "/command/" + cmd,
+                type: "get",
+                success: function (r){
+                    console.log("r: ", r);
+                }
+            });
+        });
     });
 </script>
 </body>

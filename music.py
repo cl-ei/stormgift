@@ -1,79 +1,27 @@
 import os
+import time
+import json
 import asyncio
 import aiohttp
 import weakref
 import datetime
+from random import choice
 from aiohttp import web
 
-
-async def main():
-    app = web.Application()
-    app['ws'] = weakref.WeakSet()
-
-    async def home_page(request):
-        with open("music.html", encoding="utf-8") as f:
-            from jinja2 import Template
-            music_html = f.read()
-            template = Template(music_html)
-
-        music_files = os.listdir("./live_room_statics/music/")
-        image_files = os.listdir("./live_room_statics/img/")
-
-        context = {
-            "CDN_URL": "http://192.168.100.100:80",
-            "title": "grafana",
-            "background_images": ["/static/img/" + img for img in image_files],
-            "background_musics": ["/static/music/" + mp3 for mp3 in music_files],
-        }
-
-        return web.Response(text=template.render(context), content_type="text/html")
-
-    async def push_message_to_web_page(message):
-        for ws in set(app['ws']):
-            await ws.send_str(f"{message}\n")
-
-    async def command(request):
-        cmd = request.match_info['cmd']
-        print(f"cmd: {cmd}")
-        return web.Response(status=206)
-
-    async def ws_server(request):
-        ws = web.WebSocketResponse()
-        await ws.prepare(request)
-
-        request.app['ws'].add(ws)
-        try:
-            async for msg in ws:
-                pass
-        finally:
-            request.app['ws'].discard(ws)
-        return ws
-
-    app.add_routes([
-        web.get('/', home_page),
-        web.get('/command/{cmd}', command),
-        web.get('/ws', ws_server),
-        web.static('/static', "./live_room_statics")
-    ])
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    site = web.TCPSite(runner, '0.0.0.0', 4096)
-    await site.start()
-    print("Site started.\nhttp://127.0.0.1:4096")
-
-    while True:
-        await asyncio.sleep(10)
-        await push_message_to_web_page(f"OK.\n\n{datetime.datetime.now()}")
+music_files = os.listdir("./live_room_statics/music/")
+image_files = os.listdir("./live_room_statics/img/")
 
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+class MusicList:
+    background_musics = ["/static/music/" + mp3 for mp3 in music_files]
+    music_list = [
+        # ("music_name", "user")
+    ]
+
+    last_change_song_time = time.time()
 
 
-async def get_song():
-    song_name = "美丽新世界"
-
+async def get_song_param(song_name):
     headers = {
         "Accept": (
             "text/html,application/xhtml+xml,application/xml;"
@@ -94,9 +42,164 @@ async def get_song():
 
     async with aiohttp.request(**req_params) as response:
         status_code = response.status
+        if status_code != 200:
+            return False, f"{song_name} 请求错误"
         content = await response.text()
 
-    url = "http://music.163.com/song/media/outer/url?id=562598065.mp3"
+    songs = json.loads(content).get("result", {}).get("songs", []) or []
+    if not isinstance(songs, list):
+        return False, f"{song_name} 请求错误"
 
-    print(status_code)
-    print(content)
+    song_name = song_name.lower().strip()
+    for song in songs:
+        name = song.get("name").lower().strip()
+        if (
+                name == song_name
+                or (len(name) < len(song_name) and name in song_name)
+                or (len(song_name) < len(name) and song_name in name)
+        ):
+            return True, song
+    return True, songs[0]
+
+
+async def download_song(song_id, song_name):
+    path = f"./live_room_statics/download/{song_name}.mp3"
+    if os.path.isfile(path):
+        return True, ""
+
+    url = f"http://music.163.com/song/media/outer/url?id={song_id}.mp3"
+    cmd = f"wget -O path \"{url}\""
+    download_info = os.popen(cmd).read()
+    print(f"download_info: {download_info}")
+    return True, download_info
+
+
+async def main():
+    command_q = asyncio.Queue()
+
+    app = web.Application()
+    app['ws'] = weakref.WeakSet()
+
+    async def home_page(request):
+        with open("music.html", encoding="utf-8") as f:
+            from jinja2 import Template
+            music_html = f.read()
+            template = Template(music_html)
+
+        context = {
+            "CDN_URL": "http://192.168.100.100:80",
+            "title": "grafana",
+            "background_images": ["/static/img/" + img for img in image_files],
+            "background_musics": ["/static/music/" + mp3 for mp3 in music_files],
+        }
+
+        return web.Response(text=template.render(context), content_type="text/html")
+
+    async def notice(data):
+        data["cmd"] = "update"
+        for ws in set(app['ws']):
+            await ws.send_str(json.dumps(data, ensure_ascii=False))
+
+    async def flush_player():
+        if MusicList.music_list:
+            current = MusicList.music_list[0][0]
+            extra = f"来自{MusicList.music_list[0][1]}的点播。接下来播放："
+            play_list = [x[0] for x in MusicList.music_list[1:]] or ["无"]
+        else:
+            current = choice(MusicList.background_musics)
+            extra = f"接下来播放："
+            play_list = ["无"]
+
+        message = {
+            "current": current,
+            "extra": extra,
+            "play_list": play_list,
+        }
+        await notice(message)
+
+    async def command(request):
+        cmd = request.match_info['cmd']
+        user, song = cmd.split("$", 1)
+        command_q.put_nowait((user, song))
+        await notice({"prompt": f"收到{user}的点歌指令: {song}"})
+        return web.Response(status=206)
+
+    async def ws_server(request):
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        request.app['ws'].add(ws)
+        try:
+            async for msg in ws:
+                if msg.data in ("next", "init"):
+                    if MusicList.music_list and msg.data == "next":
+                        MusicList.music_list.pop(0)
+
+                    MusicList.last_change_song_time = time.time()
+                    await flush_player()
+        finally:
+            request.app['ws'].discard(ws)
+        return ws
+
+    app.add_routes([
+        web.get('/', home_page),
+        web.get('/command/{cmd}', command),
+        web.get('/ws', ws_server),
+        web.static('/static', "./live_room_statics")
+    ])
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    site = web.TCPSite(runner, '0.0.0.0', 4097)
+    await site.start()
+    print("Site started.\nhttp://127.0.0.1:4096")
+
+    async def proc_song():
+        while True:
+            user, song = await command_q.get()
+            if len(MusicList.music_list) > 6:
+                await notice({"prompt": f"歌单已满，请稍后点歌。点歌格式：点歌 出山"})
+                continue
+
+            flag, song_param = await get_song_param(song)
+            if not flag:
+                await notice({"prompt": f"开始下载：{song}"})
+                await asyncio.sleep(3)
+                continue
+
+            song = song_param.get("name", "??")
+            song_id = song_param["id"]
+
+            await notice({"prompt": f"开始下载：{song}"})
+            flag, msg = await download_song(song_id, song)
+            if not flag:
+                await notice({"prompt": f"{song} 下载出错！"})
+                await asyncio.sleep(3)
+                continue
+
+            MusicList.music_list.append((song, user))
+            await notice({
+                "prompt": "下载完毕。点歌格式：点歌 出山",
+                "play_list": [x[0] for x in MusicList.music_list[1:]] or ["无"],
+            })
+            # 如果队列里只有1首，那么立即播放
+            if len(MusicList.music_list) == 1:
+                await flush_player()
+
+    async def monitor_song():
+        while True:
+            await asyncio.sleep(1)
+            if time.time() - MusicList.last_change_song_time > 300:
+                if MusicList.music_list:
+                    s = MusicList.music_list.pop(0)
+                    print(f"Force pop: {s}")
+                else:
+                    print("Too long! Force change song.")
+                MusicList.last_change_song_time = time.time()
+                await flush_player()
+
+    await asyncio.gather(proc_song(), monitor_song())
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
