@@ -66,7 +66,7 @@ async def get_song_param(song_name):
 async def download_song(song_id, song_name):
     try:
         path = f"./live_room_statics/download/{song_name}.lrc"
-        if not os.path.isfile(path):
+        if not os.path.exists(path):
             lyric = None
             lyc_url = "http://music.163.com/api/song/media?id={song_id}"
             async with aiohttp.request("get", headers=headers, url=lyc_url) as r:
@@ -77,6 +77,7 @@ async def download_song(song_id, song_name):
                 raise Exception("No lyric!")
             with open(path, "w") as f:
                 f.write(lyric)
+                print(f"lrc download success: {song_name} -> {lyric}")
     except Exception as e:
         print(f"Lyric download error: {e}")
 
