@@ -77,7 +77,7 @@ async def download_song(song_id, song_name):
                 raise Exception("No lyric!")
             with open(path, "w") as f:
                 f.write(lyric)
-                print(f"lrc download success: {song_name} -> {lyric}")
+                print(f"lrc download success: {song_name} -> {len(lyric)}")
     except Exception as e:
         print(f"Lyric download error: {e}")
 
@@ -133,6 +133,15 @@ async def main():
             "extra": extra,
             "play_list": play_list,
         }
+
+        song_name = current.split("/")[-1].split(".")[0]
+        path = f"./live_room_statics/download/{song_name}.lrc"
+        try:
+            with open(path, "r") as f:
+                lrc = f.read()
+                message["lrc"] = lrc
+        except IOError:
+            pass
         await notice(message)
 
     async def command(request):
