@@ -156,7 +156,7 @@
             }
         }
 
-        var ws = new ReconnectingWebSocket("ws://127.0.0.2:4096/ws");
+        var ws = new ReconnectingWebSocket("ws://192.168.100.100:4097/ws");
         ws.onopen = function (evnt) {
             console.log("Websocket connected!");
              ws.send("init");
