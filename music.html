@@ -147,7 +147,8 @@
             if (data.play_list !== undefined){
                 var playListHtml = "";
                 for (var i = 0; i < data.play_list.length; i++){
-                    playListHtml += "<li>" + data.play_list[i] + "</li>";
+                    var innerSongName = data.play_list[i].split("/").reverse()[0].split(".")[0]
+                    playListHtml += "<li>" + innerSongName + "</li>";
                 }
                 $("#player-list").html("<ul>" + playListHtml + "</ul>");
             }
