@@ -8,6 +8,18 @@ import datetime
 from random import choice
 from aiohttp import web
 
+headers = {
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;"
+        "q=0.9,image/webp,image/apng,*/*;q=0.8"
+    ),
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/70.0.3538.110 Safari/537.36"
+    ),
+}
+
 music_files = os.listdir("./live_room_statics/music/")
 image_files = os.listdir("./live_room_statics/img/")
 
@@ -22,17 +34,6 @@ class MusicList:
 
 
 async def get_song_param(song_name):
-    headers = {
-        "Accept": (
-            "text/html,application/xhtml+xml,application/xml;"
-            "q=0.9,image/webp,image/apng,*/*;q=0.8"
-        ),
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/70.0.3538.110 Safari/537.36"
-        ),
-    }
     req_params = {
         "method": "post",
         "url": "http://music.163.com/api/search/pc",
@@ -63,6 +64,21 @@ async def get_song_param(song_name):
 
 
 async def download_song(song_id, song_name):
+    try:
+        path = f"./live_room_statics/download/{song_name}.lrc"
+        if not os.path.isfile(path):
+            lyc_url = "http://music.163.com/api/song/media?id={song_id}"
+            async with aiohttp.request("get", headers=headers, url=lyc_url) as r:
+                if r.status == 200:
+                    response = await r.json(content_type="*")
+                    lyric = response.get("lyric") or ""
+                    if not lyric:
+                        raise Exception("No lyric!")
+            with open(path, "w") as f:
+                f.write(lyric)
+    except Exception as e:
+        print(f"Lyric download error: {e}")
+
     path = f"./live_room_statics/download/{song_name}.mp3"
     if os.path.isfile(path):
         return True, ""
