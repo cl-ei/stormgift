@@ -177,7 +177,7 @@
         }
         setInterval(function(){
             if (window.lyric === undefined) return;
-            let currentTime = $("#audio")[0].currentTime;
+            let currentTime = $("#audio")[0].currentTime + 1.1;
             let tmp = [];
             for (let i = 0; i < window.lyric.length; i++){
                 if (currentTime > window.lyric[i][0]){
