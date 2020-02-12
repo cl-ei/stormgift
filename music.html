@@ -138,7 +138,7 @@
             if (data.current !== undefined){
                 var audioDom = $("#audio");
                 if (data.current.indexOf("http://") < 0){
-                    data.current += "http://192.168.100.100"
+                    data.current = "http://192.168.100.100" + data.current
                 }
                 audioDom[0].src = data.current;
                 $("#song-name").html(data.current.split("/").reverse()[0].split(".")[0]);
