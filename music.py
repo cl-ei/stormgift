@@ -150,7 +150,7 @@ async def main():
     runner = web.AppRunner(app)
     await runner.setup()
 
-    site = web.TCPSite(runner, '0.0.0.0', 4097)
+    site = web.TCPSite(runner, '0.0.0.0', 4096)
     await site.start()
     print("Site started.\nhttp://127.0.0.1:4096")
 
@@ -163,12 +163,19 @@ async def main():
 
             flag, song_param = await get_song_param(song)
             if not flag:
-                await notice({"prompt": f"开始下载：{song}"})
+                await notice({"prompt": f"未找到歌曲：{song}"})
                 await asyncio.sleep(3)
                 continue
 
             song = song_param.get("name", "??")
             song_id = song_param["id"]
+
+            if song in [x[0] for x in MusicList.music_list]:
+                await notice({
+                    "prompt": "下载完毕。点歌格式：点歌 出山",
+                    "play_list": [x[0] for x in MusicList.music_list[1:]] or ["无"],
+                })
+                continue
 
             await notice({"prompt": f"开始下载：{song}"})
             flag, msg = await download_song(song_id, song)
