@@ -1,6 +1,7 @@
 import re
 import logging
 import asyncio
+import aiohttp
 import datetime
 from utils.cq import async_zy
 from utils.dao import redis_cache
@@ -122,9 +123,16 @@ async def proc_message(message):
         deco = d[1] if d else "undefined"
         msg_record = f"{'[管] ' if is_admin else ''}[{deco} {dl}] [{uid}][{user_name}][{ul}]-> {msg}"
         logging.info(msg_record)
+        msg = msg.strip()
 
         if msg in ("总督", "提督", "舰长", "低保"):
             await send_danmaku("|･ω･｀) 查看下方的主播简介哦")
+
+        elif msg.startswith("#点歌") or msg.startswith("点歌") or msg.startswith("＃点歌"):
+            song_name = msg.split("点歌", 1)[-1].strip()
+            url = f"http://192.168.100.100:4096/command/{user_name}${song_name}"
+            async with aiohttp.request("get", url=url) as _:
+                pass
 
         elif "中奖" in msg and "查询" in msg:
             if msg.startswith("#中奖查询"):
