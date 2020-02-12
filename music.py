@@ -177,7 +177,7 @@ async def main():
                 await asyncio.sleep(3)
                 continue
 
-            MusicList.music_list.append((song, user))
+            MusicList.music_list.append((f"/static/music/{song}.mp3", user))
             await notice({
                 "prompt": "下载完毕。点歌格式：点歌 出山",
                 "play_list": [x[0] for x in MusicList.music_list[1:]] or ["无"],
