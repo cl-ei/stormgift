@@ -144,18 +144,20 @@ async def main():
         def parse_lyrics(lyric):
             result = []
             for line in lyric.split("\n"):
-                if "[" not in line or "]" not in line:
+                try:
+                    if "[" not in line or "]" not in line:
+                        continue
+
+                    time_str, lyric = line.split("[")[1].split("]", 1)
+                    lyric = lyric.split("]")[-1].strip()
+
+                    minute, seconds = time_str.split(":")
+                    time_line = int(minute.lstrip("0") or "0")*60 + float(seconds)
+                    result.append([time_line, lyric])
+                except Exception as e:
+                    print(f"parse_lyrics Exception: {e}")
                     continue
 
-                time_str, lyric = line.split("[")[1].split("]")
-                time_tuple = time_str.split(":")
-                if len(time_tuple) == 2:
-                    time_line = int(time_tuple[0])*60 + float(time_tuple[1])
-                elif len(time_tuple) == 3:
-                    time_line = int(time_tuple[0])*3600 + int(time_tuple[1])*60 + float(time_tuple[2])
-                else:
-                    continue
-                result.append([time_line, lyric.strip()])
             return result
 
         song_name = current.split("/")[-1].split(".")[0]
