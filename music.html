@@ -89,6 +89,15 @@
             z-index: 99999;
             top: 420px;
         }
+        #lyrics{
+            position: absolute;
+            top: 630px;
+            left: 20px;
+            line-height: 34px;
+            color: white;
+            font-size: 20px;
+            text-shadow: 1px 1px 4px #000000;
+        }
     </style>
 </head>
 <body>
@@ -111,6 +120,7 @@
 </div>
 
 <audio id="audio" src=""></audio>
+<div id="lyrics"></div>
 
 <div id="test">
     <input class="input-number" type="text" name="cmd">
@@ -138,7 +148,7 @@
             if (data.current !== undefined){
                 var audioDom = $("#audio");
                 if (data.current.indexOf("http://") < 0){
-                    data.current = "http://192.168.100.100" + data.current
+                    data.current = {% if not DEBUG %} "http://192.168.100.100" + {% endif %} data.current
                 }
                 audioDom[0].src = data.current;
                 $("#song-name").html(data.current.split("/").reverse()[0].split(".")[0]);
@@ -158,9 +168,32 @@
             if (data.prompt !== undefined){
                 $("#player-prompt").html(data.prompt);
             }
+            if (data.lyric !== undefined){
+                window.lyric = data.lyric;
+            }else{
+                window.lyric = undefined;
+                $("#lyrics").html("<br/>");
+            }
         }
+        setInterval(function(){
+            if (window.lyric === undefined) return;
+            let currentTime = $("#audio")[0].currentTime;
+            let tmp = [];
+            for (let i = 0; i < window.lyric.length; i++){
+                if (currentTime > window.lyric[i][0]){
+                    tmp.push(window.lyric[i][1]);
+                }else{
+                    break;
+                }
+            }
+            if (tmp.length === 1){
+                $("#lyrics").html("<br/>" + tmp[0]);
+            }else if (tmp.length >= 2){
+                $("#lyrics").html(tmp[tmp.length - 2] + "<br/>" + tmp[tmp.length - 1]);
+            }
+        }, 1000);
 
-        var ws = new ReconnectingWebSocket("ws://192.168.100.100:4096/ws");
+        var ws = new ReconnectingWebSocket("ws://{% if not DEBUG %}192.168.100.100{% else %}127.0.0.1{% endif %}:4096/ws");
         ws.onopen = function (evnt) {
             console.log("Websocket connected!");
              ws.send("init");

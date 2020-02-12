@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import json
 import asyncio
@@ -7,6 +8,11 @@ import weakref
 import datetime
 from random import choice
 from aiohttp import web
+
+if sys.platform.lower() == "linux":
+    DEBUG = False
+else:
+    DEBUG = True
 
 headers = {
     "Accept": (
@@ -105,6 +111,7 @@ async def main():
             template = Template(music_html)
 
         context = {
+            "DEBUG": DEBUG,
             "CDN_URL": "http://192.168.100.100:80",
             "title": "grafana",
             "background_images": ["/static/img/" + img for img in image_files],
@@ -134,12 +141,28 @@ async def main():
             "play_list": play_list,
         }
 
+        def parse_lyrics(lyric):
+            result = []
+            for line in lyric.split("\n"):
+                if "[" not in line or "]" not in line:
+                    continue
+
+                time_str, lyric = line.split("[")[1].split("]")
+                time_tuple = time_str.split(":")
+                if len(time_tuple) == 2:
+                    time_line = int(time_tuple[0])*60 + float(time_tuple[1])
+                elif len(time_tuple) == 3:
+                    time_line = int(time_tuple[0])*3600 + int(time_tuple[1])*60 + float(time_tuple[2])
+                else:
+                    continue
+                result.append([time_line, lyric.strip()])
+            return result
+
         song_name = current.split("/")[-1].split(".")[0]
         path = f"./live_room_statics/download/{song_name}.lrc"
         try:
             with open(path, "r") as f:
-                lrc = f.read()
-                message["lrc"] = lrc
+                message["lyric"] = parse_lyrics(f.read())
         except IOError:
             pass
         await notice(message)
