@@ -68,7 +68,7 @@ async def download_song(song_id, song_name):
         return True, ""
 
     url = f"http://music.163.com/song/media/outer/url?id={song_id}.mp3"
-    cmd = f"wget -O path \"{url}\""
+    cmd = f"wget -O {path} \"{url}\""
     download_info = os.popen(cmd).read()
     print(f"download_info: {download_info}")
     return True, download_info
