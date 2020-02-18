@@ -128,7 +128,9 @@
 </div>
 <script>
     $(function(){
-        var index = 0;
+        let index = 0;
+        let musicPlayTime = 0;
+        let musicTempTime = 0;
         setInterval(function () {
             var imgDoms = $("#bg img");
             var totalLength = imgDoms.length;
@@ -176,8 +178,11 @@
             }
         }
         setInterval(function(){
-            if (window.lyric === undefined) return;
             let currentTime = $("#audio")[0].currentTime + 1.1;
+            musicPlayTime = currentTime;
+
+            if (window.lyric === undefined) return;
+
             let tmp = [];
             for (let i = 0; i < window.lyric.length; i++){
                 if (currentTime > window.lyric[i][0]){
@@ -216,17 +221,22 @@
             ws.send("next");
         });
 
-        var progressCount = 0;
         setInterval(function(){
-            progressCount += 1;
-            var char = {
-                0: "",
-                1: "．",
-                2: "．．",
-                3: "．．．"
-            }[progressCount % 4];
-            $("#play-progress").html(char);
-        }, 500);
+            if (musicPlayTime == musicTempTime){
+                ws.send("next");
+            }else{
+                musicTempTime = musicPlayTime;
+            }
+        }, 8000);
+
+        setInterval(function(){
+            let dom = $("#play-icon");
+            if (dom.css("opacity") != 1){
+                dom.css({"opacity": 1});
+            }else{
+                dom.css({"opacity": 0});
+            }
+        }, 800);
 
         $("#player-title").click(function(){window.location.reload()});
 
