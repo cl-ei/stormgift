@@ -222,8 +222,9 @@
         });
 
         setInterval(function(){
-            if (musicPlayTime == musicTempTime){
+            if (musicPlayTime === musicTempTime){
                 ws.send("next");
+                musicTempTime = 0;
             }else{
                 musicTempTime = musicPlayTime;
             }
