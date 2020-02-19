@@ -33,20 +33,20 @@ class SignRecord:
         continue_key = f"{ukey}_c"
         total_key = f"{ukey}_t"
 
+        # 签到
         user_today = f"{ukey}_{today_str}"
-        sign_success = await redis_cache.set_if_not_exists(key=user_today, value=1, timeout=3600*36)
-        continue_days = None
-        total_days = None
-
+        sign_success = await redis_cache.set_if_not_exists(key=user_today, value=1, timeout=3600*72)  # 保留3天
         if sign_success:
+            # 首次签到
 
+            # # 今日第几位签到
             today_sign_key = f"{self.key_root}_{today_str}_sign_count"
             today_sign_count = await redis_cache.incr(key=today_sign_key)
             await redis_cache.expire(key=today_sign_key, timeout=3600*24)
             dec_score = 0.001*int(today_sign_count)
 
+            # 如果昨日没有签到，则清空连续签到天数。因此昨日签到的key需保存至少48小时
             user_yesterday = f"{self.key_root}_{user_id}_{yesterday}"
-
             if not await redis_cache.get(user_yesterday):
                 await redis_cache.delete(continue_key)
 
@@ -55,10 +55,8 @@ class SignRecord:
 
             incr_score = 50 + min(84, 12 * (continue_days - 1)) - dec_score
             await redis_cache.sorted_set_zincr(key=self.key_root, member=user_id, increment=incr_score)
-
-        if continue_days is None:
+        else:
             continue_days = int(await redis_cache.get(continue_key))
-        if total_days is None:
             total_days = int(await redis_cache.get(total_key))
 
         rank = await redis_cache.sorted_set_zrank(key=self.key_root, member=user_id)
