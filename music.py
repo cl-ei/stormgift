@@ -5,9 +5,9 @@ import json
 import asyncio
 import aiohttp
 import weakref
-import datetime
-from random import choice
 from aiohttp import web
+from random import choice
+
 
 if sys.platform.lower() == "linux":
     DEBUG = False
@@ -248,7 +248,7 @@ async def main():
     async def monitor_song():
         while True:
             await asyncio.sleep(1)
-            if time.time() - MusicList.last_change_song_time > 300:
+            if time.time() - MusicList.last_change_song_time > 600:
                 if MusicList.music_list:
                     s = MusicList.music_list.pop(0)
                     print(f"Force pop: {s}")
