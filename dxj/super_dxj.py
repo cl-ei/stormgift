@@ -82,7 +82,7 @@ class DanmakuProcessor:
 
             flag, msg = await BiliApi.send_danmaku(message=dmk, room_id=self.room_id, cookie=cookie)
             if flag:
-                logging.info(f"DMK send: {self.short_room_id}-{self.name} ->\n\t{dmk}")
+                logging.info(f"DMK send: {self.short_room_id}-{self.name} {flag}|{msg}->\n\t{dmk}")
             else:
                 logging.error(f"DMK send failed. {self.short_room_id}-{self.name} -> {dmk}\n\t{msg}")
                 if "412" in msg:
