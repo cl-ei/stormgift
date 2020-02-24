@@ -286,7 +286,8 @@ class BotUtils:
     async def proc_query_medal(self, msg, user_id, group_id=None):
         self.user_id = user_id
         self.group_id = group_id
-
+        self.response(f"此命令暂停使用。")
+        return
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
             raw_uid_or_uname = await BiliToQQBindInfo.get_by_qq(qq=user_id)
