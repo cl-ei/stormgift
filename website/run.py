@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 from aiohttp import web
-from website.handlers import lt, cq, dxj
+from website.handlers import lt, cq_zy, dxj
 
 
 async def main():
@@ -51,7 +51,7 @@ async def main():
         web.get('/lt/query_raffles_by_user', lambda x: web.HTTPFound('https://www.madliar.com/bili/raffles')),
 
         web.get('/lt/trends_qq_notice', lt.trends_qq_notice),
-        web.route('*', "/lt/cq_handler", cq.handler),
+        web.route('*', "/lt/cq_handler", cq_zy.handler),
     ])
     runner = web.AppRunner(app)
     await runner.setup()

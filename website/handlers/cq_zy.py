@@ -303,8 +303,8 @@ class BotUtils:
             return
 
         user_name = await BiliApi.get_user_name(uid=uid)
-
-        flag, r = await BiliApi.get_user_medal_list(uid=uid)
+        cookie = await DBCookieOperator.get_by_uid("*")
+        flag, r = await BiliApi.get_user_medal_list(uid=uid, cookie=cookie)
         if not flag or not isinstance(r, list) or not r:
             message = f"未查询到{user_name}(uid: {uid})拥有的勋章。检查用户名或uid是否正确。"
             self.response(message)
