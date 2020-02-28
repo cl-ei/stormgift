@@ -14,67 +14,76 @@ from utils.highlevel_api import ReqFreLimitApi, DBCookieOperator
 MONITOR_ROOM_ID = 13369254
 
 
-class SignRecord:
+async def sign_dd(user_id):
+    """
+        [{
+            id: xxx,
+            score: xx,
+            sign: [221, 220...]
+        }...
 
-    def __init__(self, room_id):
-        self.key_root = F"LT_SIGN_{room_id}"
+        ]
 
-    async def sign(self, user_id):
-        """
+    :param user_id:
+    :return:
+    """
+    room_id = 13369254
+    key = F"LT_SIGN_V2_{room_id}"
+    base = datetime.date.fromisoformat("2020-01-01")
+    now = datetime.datetime.now().date()
+    today_num = (now - base).days
 
-        :param user_id:
-        :return: sign success. continue, total, rank
-        """
-        ukey = f"{self.key_root}_{user_id}"
-        offset = 0
-        today_str = str(datetime.datetime.now().date() + datetime.timedelta(days=offset))
-        yesterday = str(datetime.datetime.now().date() - datetime.timedelta(days=1) + datetime.timedelta(days=offset))
+    info = await redis_cache.get(key=key)
+    info = info or []
 
-        continue_key = f"{ukey}_c"
-        total_key = f"{ukey}_t"
+    # 检查今日已有几人签到
+    today_sign_count = 0
+    for s in info:
+        if today_num in s["sign"]:
+            today_sign_count += 1
+    dec_score = 0.001 * int(today_sign_count)
 
-        # 签到
-        user_today = f"{ukey}_{today_str}"
-        sign_success = await redis_cache.set_if_not_exists(key=user_today, value=1, timeout=3600*72)  # 保留3天
-        if sign_success:
-            # 首次签到
+    for s in info:
+        if s["id"] == user_id:
+            if today_num in s["sign"]:
+                sign_success = False
+            else:
+                s["sign"].insert(0, today_num)
+                sign_success = True
 
-            # # 今日第几位签到
-            today_sign_key = f"{self.key_root}_{today_str}_sign_count"
-            today_sign_count = await redis_cache.incr(key=today_sign_key)
-            await redis_cache.expire(key=today_sign_key, timeout=3600*24)
-            dec_score = 0.001*int(today_sign_count)
+            continue_days = 0
+            for delta in range(len(s["sign"])):
+                if (today_num - delta) in s["sign"]:
+                    continue_days += 1
+                else:
+                    break
+            total_days = len(s["sign"])
 
-            # 如果昨日没有签到，则清空连续签到天数。因此昨日签到的key需保存至少48小时
-            user_yesterday = f"{self.key_root}_{user_id}_{yesterday}"
-            if not await redis_cache.get(user_yesterday):
-                await redis_cache.delete(continue_key)
+            if sign_success:
+                s["score"] += 50 + min(84, 12 * (continue_days - 1)) - dec_score
+            current_score = s["score"]
+            break
+    else:
+        # 新用户
+        s = {
+            "id": user_id,
+            "score": 50 - dec_score,
+            "sign": [today_num],
+        }
+        info.append(s)
+        continue_days = 1
+        total_days = 1
+        current_score = s["score"]
+        sign_success = True
 
-            continue_days = await redis_cache.incr(continue_key)
-            total_days = await redis_cache.incr(total_key)
-
-            incr_score = 50 + min(84, 12 * (continue_days - 1)) - dec_score
-            await redis_cache.sorted_set_zincr(key=self.key_root, member=user_id, increment=incr_score)
-        else:
-            continue_days = int(await redis_cache.get(continue_key))
-            total_days = int(await redis_cache.get(total_key))
-
-        rank = await redis_cache.sorted_set_zrank(key=self.key_root, member=user_id)
-        return bool(sign_success), continue_days, total_days, rank + 1
-
-    async def get_info(self):
-        return await redis_cache.sorted_set_zrange_by_score(key=self.key_root, with_scores=True)
-
-    async def get_score(self, user_id):
-        score = await redis_cache.sorted_set_zscore(key=self.key_root, member=user_id)
-        try:
-            return float(score)
-        except (TypeError, ValueError):
-            return 0
+    await redis_cache.set(key=key, value=info)
+    all_scores = sorted([s["score"] for s in info], reverse=True)
+    rank = all_scores.index(current_score)
+    return sign_success, continue_days, total_days, rank + 1, current_score, today_sign_count
 
 
 async def send_danmaku(msg, user=""):
-    user = user or "LP"
+    user = user or "TZ"
     c = await DBCookieOperator.get_by_uid(user_id=user)
     if not c:
         logging.error(f"Cannot get cookie for user: {user}.")
@@ -102,9 +111,6 @@ async def send_danmaku(msg, user=""):
             await asyncio.sleep(1.1)
         else:
             return
-
-
-s = SignRecord(room_id=MONITOR_ROOM_ID)
 
 
 async def proc_message(message):
@@ -191,16 +197,23 @@ async def proc_message(message):
             await send_danmaku(danmaku)
 
         elif msg in ("签到", "打卡"):
-            sign, conti, total, rank = await s.sign(user_id=uid)
+            (
+                sign_success, continue_days, total_days,
+                rank, current_score, today_sign_count
+            ) = await sign_dd(user_id=uid)
 
-            prompt = f"{msg}成功！" if sign else f"已{msg}，"
-            message = f"{user_name}{prompt}连续{msg}{conti}天、累计{total}天，排名第{rank}."
+            if sign_success:
+                prompt = f"今日第{today_sign_count + 1}位{msg}！"
+            else:
+                prompt = f"已{msg}，"
+            message = f"{user_name}{prompt}连续{msg}{continue_days}天、累计{total_days}天，排名第{rank}."
             await send_danmaku(msg=message)
 
         elif msg == "积分":
-            score = await s.get_score(user_id=uid)
-            message = f"{user_name}现在拥有{score:.2f}积分."
-            await send_danmaku(msg=message)
+            # score = await s.get_score(user_id=uid)
+            # message = f"{user_name}现在拥有{score:.2f}积分."
+            # await send_danmaku(msg=message)
+            pass
 
         else:
             for key_word in ("大气大气~", "现在拥有", "连续打卡", "连续签到", "."):
