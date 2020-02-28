@@ -82,6 +82,17 @@ async def sign_dd(user_id):
     return sign_success, continue_days, total_days, rank + 1, current_score, today_sign_count
 
 
+async def get_score(user_id):
+    room_id = 13369254
+    key = F"LT_SIGN_V2_{room_id}"
+    info = await redis_cache.get(key)
+    info = info or []
+    for s in info:
+        if s["id"] == user_id:
+            return s["score"]
+    return 0
+
+
 async def send_danmaku(msg, user=""):
     user = user or "TZ"
     c = await DBCookieOperator.get_by_uid(user_id=user)
@@ -210,10 +221,9 @@ async def proc_message(message):
             await send_danmaku(msg=message)
 
         elif msg == "积分":
-            # score = await s.get_score(user_id=uid)
-            # message = f"{user_name}现在拥有{score:.2f}积分."
-            # await send_danmaku(msg=message)
-            pass
+            score = await get_score(user_id=uid)
+            message = f"{user_name}现在拥有{score:.2f}积分."
+            await send_danmaku(msg=message)
 
         else:
             for key_word in ("大气大气~", "现在拥有", "连续打卡", "连续签到", "."):
