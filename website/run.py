@@ -56,7 +56,7 @@ async def main():
     runner = web.AppRunner(app)
     await runner.setup()
 
-    site = web.TCPSite(runner, '0.0.0.0', 1024)
+    site = web.TCPSite(runner, '0.0.0.0', 2020)
     await site.start()
     print("Site started.")
 
