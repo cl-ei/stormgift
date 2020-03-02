@@ -559,9 +559,11 @@ class HYMCookies:
     key = "HYM_COOKIES_"
 
     @classmethod
-    async def add(cls, account, password, cookie):
+    async def add(cls, account, password, cookie, access_token=None, refresh_token=None):
         key = cls.key + str(account)
         value = {"cookie": cookie, "password": password}
+        if access_token and refresh_token:
+            value.update({"access_token": access_token, "refresh_token": refresh_token})
         await redis_cache.set(key=key, value=value)
 
     @classmethod
@@ -600,49 +602,8 @@ class HYMCookies:
         return True
 
 
-class HYMCookiesOfCl:
+class HYMCookiesOfCl(HYMCookies):
     key = "HYM_CL_COOKIES_"
-
-    @classmethod
-    async def add(cls, account, password, cookie):
-        key = cls.key + str(account)
-        value = {"cookie": cookie, "password": password}
-        await redis_cache.set(key=key, value=value)
-
-    @classmethod
-    async def get(cls, account=None, return_dict=False):
-        if account is None:
-            keys = await redis_cache.keys(cls.key + "*")
-            r = await redis_cache.mget(*keys)
-            if not return_dict:
-                return r
-
-            result = {}
-            for index in range(len(keys)):
-                key = keys[index]
-                account = key[len(cls.key):]
-                data = r[index]
-                result[account] = data
-            return result
-
-        r = await redis_cache.get(cls.key + str(account))
-        return {account: r} if return_dict else r
-
-    @classmethod
-    async def set_invalid(cls, account):
-        key = cls.key + str(account)
-        data = await redis_cache.get(key)
-        data["invalid"] = True
-        await redis_cache.set(key, data)
-        return True
-
-    @classmethod
-    async def set_blocked(cls, account):
-        key = cls.key + str(account)
-        data = await redis_cache.get(key)
-        data["blocked"] = int(time.time())
-        await redis_cache.set(key, data)
-        return True
 
 
 class LTUserSettings:

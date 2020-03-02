@@ -1040,6 +1040,27 @@ class BiliApi:
         r = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_response_json=True)
         return r
 
+    @classmethod
+    async def report(cls, cookie, oid=92580201, rpid=2447796361, reason=7, type_=1, timeout=10):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.bilibili.com/x/v2/reply/report"
+        data = {
+            "oid": oid,
+            "type": type_,
+            "rpid": rpid,
+            "reason": reason,
+            "content": "",
+            "jsonp": "jsonp",
+            "csrf": csrf_token
+        }
+        headers = {"Cookie": cookie}
+        flag, msg = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+        return flag, msg
+
 
 async def test():
     pass
