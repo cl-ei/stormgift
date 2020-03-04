@@ -89,8 +89,17 @@
             z-index: 99999;
             top: 420px;
         }
-        #lyrics{
+        #lyrics-border{
+            height: 68px;
+            width: 800px;
             position: absolute;
+            top: 630px;
+            left: 20px;
+            overflow: hidden;
+        }
+        #lyrics{
+            height: 68px;
+            width: 800px;
             top: 630px;
             left: 20px;
             line-height: 34px;
@@ -120,7 +129,7 @@
 </div>
 
 <audio id="audio" src=""></audio>
-<div id="lyrics"></div>
+<div id="lyrics-border"><div id="lyrics"></div></div>
 
 <div id="test">
     <input class="input-number" type="text" name="cmd">
@@ -131,6 +140,7 @@
         let index = 0;
         let musicPlayTime = 0;
         let musicTempTime = 0;
+        window.lyricLastChangeTime = 0;
         setInterval(function () {
             var imgDoms = $("#bg img");
             var totalLength = imgDoms.length;
@@ -172,10 +182,17 @@
             }
             if (data.lyric !== undefined){
                 window.lyric = data.lyric;
-                $("#lyrics").html("<br/>");
+                let html = [];
+                for (let i = 0; i < window.lyric.length; i++){
+                    if (window.lyric[i][1] === ""){
+                        window.lyric[i][1] = "<br/>";
+                    }
+                    html.push("<div>" + window.lyric[i][1] + "</div>");
+                }
+                $("#lyrics").html(html.join(""));
             }else{
                 window.lyric = undefined;
-                $("#lyrics").html("<br/>");
+                $("#lyrics").html("");
             }
         }
         setInterval(function(){
@@ -184,18 +201,20 @@
 
             if (window.lyric === undefined) return;
 
-            let tmp = [];
+            let thisTime = 0;
+            let thisIndex = 0;
             for (let i = 0; i < window.lyric.length; i++){
                 if (currentTime > window.lyric[i][0]){
-                    tmp.push(window.lyric[i][1]);
+                    thisTime = window.lyric[i][0];
+                    thisIndex = i;
                 }else{
                     break;
                 }
             }
-            if (tmp.length === 1){
-                $("#lyrics").html("<br/>" + tmp[0]);
-            }else if (tmp.length >= 2){
-                $("#lyrics").html(tmp[tmp.length - 2] + "<br/>" + tmp[tmp.length - 1]);
+            if (thisTime !== window.lyricLastChangeTime){
+                window.lyricLastChangeTime = thisTime;
+                let marginTop = 34 * thisIndex;
+                $("#lyrics").animate({"margin-top": "-" + marginTop + "px"}, 500);
             }
         }, 1000);
 
