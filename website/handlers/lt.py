@@ -1,16 +1,18 @@
+import os
 import time
 import json
 import traceback
 from aiohttp import web
 from random import randint
 from jinja2 import Template
-from utils.cq import bot_zy
+from utils.cq import bot_zy, async_zy
 from config import CDN_URL, g
 from utils.biliapi import BiliApi
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import website_logger as logging
 from utils.dao import redis_cache, LTUserSettings
 from utils.dao import LtUserLoginPeriodOfValidity
+from utils.images import DynamicPicturesProcessor
 
 
 def request_frequency_control(time_interval=4):
@@ -186,70 +188,81 @@ async def post_settings(request):
 
 async def trends_qq_notice(request):
     token = request.query.get("token")
-    if token == "BXzgeJTWxGtd6b5F":
-        post_data = request.query.get("post_data")
-        uid_to_dynamic = json.loads(post_data, encoding="utf-8")
-        for uid, dynamic_id_list in uid_to_dynamic.items():
-            uid = int(uid)
-            dynamic_id_set = set(dynamic_id_list)
+    if token != "BXzgeJTWxGtd6b5F":
+        return web.Response(status=403)
 
-            key = f"MONITOR_BILI_UID_V2_{uid}"
-            existed_dynamic_id_set = await redis_cache.get(key=key)
-            if not isinstance(existed_dynamic_id_set, set):
-                await redis_cache.set(key=key, value=dynamic_id_set)
+    post_data = request.query.get("post_data")
+    uid_to_dynamic = json.loads(post_data, encoding="utf-8")
 
-                bili_user_name = await BiliApi.get_user_name(uid=uid)
-                message = f"{bili_user_name}(uid: {uid})的动态监测已经添加！"
-                bot_zy.send_private_msg(user_id=g.QQ_NUMBER_雨声雷鸣, message=message)
-                bot_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
-                return web.Response(status=206)
+    async def report_error(m):
+        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_雨声雷鸣, message=m)
+        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=m)
 
-            new_dynamics = dynamic_id_set - existed_dynamic_id_set
-            if new_dynamics:
-                refreshed_data = dynamic_id_set | existed_dynamic_id_set
-                await redis_cache.set(key=key, value=refreshed_data)
+    for uid, dynamic_id_list in uid_to_dynamic.items():
+        uid = int(uid)
+        dynamic_id_set = set(dynamic_id_list)
 
-                try:
-                    flag, dynamics = await BiliApi.get_user_dynamics(uid=uid)
-                    if not flag:
-                        raise Exception(f"Cannot get user dynamics!")
+        key = f"MONITOR_BILI_UID_V2_{uid}"
+        existed_dynamic_id_set = await redis_cache.get(key=key)
+        if not isinstance(existed_dynamic_id_set, set):
+            await redis_cache.set(key=key, value=dynamic_id_set)
 
-                    latest_dynamic = dynamics[0]
-                    bili_user_name = latest_dynamic["desc"]["user_profile"]["info"]["uname"]
-                    content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(latest_dynamic)
+            bili_user_name = await BiliApi.get_user_name(uid=uid)
+            await report_error(f"{bili_user_name}(uid: {uid})的动态监测已经添加！")
+            continue
 
-                    content = "\n".join(content)
-                    message = f"{bili_user_name}(uid: {uid})新动态：\n\n{content}"
+        new_dynamics = dynamic_id_set - existed_dynamic_id_set
+        if not new_dynamics:
+            continue
 
-                    if uid == 337052615:
-                        latest_dynamic_id = latest_dynamic["desc"]["dynamic_id"]
-                        from website.handlers.cq_zy import BotUtils
-                        await BotUtils().proc_dynamic(
-                            user_id=250666570,
-                            msg=f"#动态{latest_dynamic_id}",
-                            group_id=895699676
-                        )
+        refreshed_data = dynamic_id_set | existed_dynamic_id_set
+        await redis_cache.set(key=key, value=refreshed_data)
 
-                    if not pictures:
-                        image = "https://i0.hdslb.com/bfs/space/cb1c3ef50e22b6096fde67febe863494caefebad.png"
-                    else:
-                        image = pictures[0]
+        latest_dynamic_id = dynamic_id_list[0]
+        flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=latest_dynamic_id)
+        if not flag:
+            await report_error(f"未能获取到动态：{latest_dynamic_id}：{dynamic}")
+            continue
 
-                    message_share = (
-                        f"\n\n[CQ:share,"
-                        f"url=https://t.bilibili.com/{dynamic_id_list[0]},"
-                        f"title={content[:30].replace(',', '，')},content=Bilibili动态,image={image}]"
-                    )
-                    bot_zy.send_private_msg(user_id=171660901, message=message_share)
+        master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dynamic["desc"]["timestamp"]))
+        prefix = f"{timestamp}　{master_name} 最新发布：\n\n"
 
-                except Exception as e:
-                    error_msg = f"Error happened when fetching user dynamic: {e}\n\n{traceback.format_exc()}"
-                    logging.error(error_msg)
+        content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
+        if not pictures:
+            qq_response = prefix + "\n".join(content)
+        else:
+            work_path = f"/tmp/bili_dynamic_{int(time.time())}"
+            if not os.path.exists(work_path):
+                os.mkdir(work_path)
 
-                    bili_user_name = await BiliApi.get_user_name(uid=uid)
-                    message = f"{bili_user_name}(uid: {uid})有新动态啦! 动态id：{dynamic_id_list[0]}！"
+            index = 0
+            last_pic_name = None
+            for pic in pictures:
+                ex_name = pic.split(".")[-1]
+                last_pic_name = f"{index}.{ex_name}"
+                cmd = f"wget -O {work_path}/{last_pic_name} \"{pic}\""
+                os.system(cmd)
+                index += 1
 
-                bot_zy.send_private_msg(user_id=171660901, message=message)
+            if index > 1:
+                p = DynamicPicturesProcessor(path=work_path)
+                flag, file_name = p.join()
+                if not flag:
+                    await report_error(f"处理动态图片时，发生错误（已忽略）：{file_name}")
+            else:
+                flag = True
+                file_name = f"b_{int(time.time() * 1000):0x}." + last_pic_name.split(".")[-1]
+                os.system(f"mv {work_path}/{last_pic_name} /home/ubuntu/coolq_zy/data/image/{file_name}")
 
-        return web.Response(status=206)
-    return web.Response(status=403)
+            if flag:
+                message = prefix + "\n".join(content)
+                qq_response = f"{message}\n [CQ:image,file={file_name}]"
+            else:
+                qq_response = prefix + "\n".join(content) + "\n" + "\n".join(pictures)
+
+        await report_error(qq_response)
+        if uid == 337052615:
+            await async_zy.send_group_msg(group_id=895699676, message=qq_response)
+
+    return web.Response(status=206)
