@@ -163,6 +163,13 @@ async def qr_code_result(request):
         'oauthKey': request.query.get("oauthKey"),
         'gourl': 'https://passport.bilibili.com/account/security'
     }
+
+    key = f"LT_OAUTH_KEY_{data['oauthKey']}"
+    r = await redis_cache.incr(key)
+    await redis_cache.expire(key, 3600*72)
+    if r >= 10:
+        return json_response({"code": 400, "msg": f"二维码已经过期，请刷新页面。"})
+
     async with aiohttp.request("post", url=url, data=data, headers=BROWSER_HEADERS) as r:
         bili_response = await r.json()
         headers = r.headers
