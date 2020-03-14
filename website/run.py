@@ -40,7 +40,7 @@ async def main():
         web.get('/lt/dxj/logout', dxj.logout),
 
         web.post('/lt/login', lt.login),
-        web.get('/lt/qr_code_login', lt.qr_code_login),
+        web.get('/lt/qr_code_login/{token}', lt.qr_code_login),
         web.get('/lt/qr_code_result', lt.qr_code_result),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),

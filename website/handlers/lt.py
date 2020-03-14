@@ -144,6 +144,23 @@ async def login(request):
 
 
 async def qr_code_login(request):
+    token = request.match_info['token']
+    if not token:
+        return web.HTTPForbidden()
+
+    ua = request.headers.get("User-Agent", "NON_UA")
+    remote_ip = request.remote  # request.headers.get("X-Real-IP", "")
+    logging.info(f"LT_ACCESS_TOKEN_RECEIVED: {token}, ip: {remote_ip}. UA: {ua}")
+
+    key = F"LT_ACCESS_TOKEN_{token}"
+    r = await redis_cache.get(key=key)
+    if not r:
+        return web.HTTPNotFound()
+    r = await redis_cache.incr(key)
+    if r < 4:
+        return web.Response(text="<h3>请刷新此页面，直到能够正常显示。</h3>", content_type="text/html")
+    await redis_cache.delete(key)
+
     url = "https://passport.bilibili.com/qrcode/getLoginUrl"
     async with aiohttp.request("get", url=url, headers=BROWSER_HEADERS) as r:
         bili_response = await r.json()
