@@ -371,7 +371,7 @@ class DBCookieOperator:
         lt_user.refresh_token = ""
         lt_user.available = True
         await objects.update(lt_user)
-        return True, ""
+        return True, lt_user
 
     @classmethod
     async def set_invalid(cls, obj_or_user_id):
