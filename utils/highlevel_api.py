@@ -356,6 +356,24 @@ class DBCookieOperator:
         return await cls._update_cookie(lt_user)
 
     @classmethod
+    async def add_cookie_by_qrcode(cls, DedeUserID, SESSDATA, bili_jct, sid, DedeUserID__ckMd5):
+        try:
+            lt_user = await objects.get(LTUserCookie, DedeUserID=DedeUserID)
+        except peewee.DoesNotExist:
+            return False, "你不在白名单里。提前联系站长经过允许才可以使用哦。"
+
+        lt_user.DedeUserID = DedeUserID
+        lt_user.SESSDATA = SESSDATA
+        lt_user.bili_jct = bili_jct
+        lt_user.sid = sid
+        lt_user.DedeUserID__ckMd5 = DedeUserID__ckMd5
+        lt_user.access_token = ""
+        lt_user.refresh_token = ""
+        lt_user.available = True
+        await objects.update(lt_user)
+        return True, ""
+
+    @classmethod
     async def set_invalid(cls, obj_or_user_id):
         if isinstance(obj_or_user_id, LTUserCookie):
             user = obj_or_user_id

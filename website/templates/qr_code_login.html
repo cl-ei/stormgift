@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html class="no-js" lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <title>二维码 - 登录</title>
+    <meta name="referrer" content="same-origin">
+    <meta name="author" content="CL" />
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="MobileOptimized" content="320" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ CDN_URL }}/static/css/font-awesome.min.css">
+    <style>
+        body{
+            margin: 30px;
+            width: calc(100% - 60px);
+            background: #eee;
+        }
+        table{
+            width: 100%;
+            max-width: 1600px;
+            margin-bottom: 20px;
+            border: 1px solid #7a7a7a;
+            border-collapse: collapse;
+            border-left: none;
+            word-break: normal;
+            line-height: 30px;
+            text-align: center;
+        }
+        tr, th, td{
+            border: 1px solid #7a7a7a;
+            text-align: center;
+        }
+        hr{
+            border-top: 1px solid #444;
+        }
+        input{
+            margin: 0 3px 0 7px !important;
+            text-align: center;
+            background: #eee;
+        }
+        .input-number{
+            width: 150px;
+            border: none;
+            border-bottom: 1px solid;
+        }
+        button{
+            border: none;
+            background: #ccc;
+            padding: 6px 12px;
+            margin-top: 15px;
+            outline: none;
+            transition: all 0.3s ease-out;
+            cursor: pointer;
+        }button:hover{
+            background: #777;
+            color: #fff;
+        }
+        a{
+            text-decoration: none;
+            color: #333;
+            border-bottom: 1px solid;
+        }
+        a:hover{
+            text-decoration: none;
+            color: #000000;
+            border-bottom: 1px solid;
+        }
+        label{
+            display: block;
+        }
+        #qrcode {
+            width:160px;
+            height:160px;
+            margin-top:15px;
+        }
+    </style>
+    <script>
+        window.CDN_URL = "{{ CDN_URL }}";
+    </script>
+</head>
+<body>
+<h4><strong>请扫描登录</strong></h4>
+<div id="qrcode"></div>
+<div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body" style="text-align: center;">
+                <div id="prompt-modal-body"></div>
+                <button class="button center" id="modal-confirm-btn">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="{{ CDN_URL }}/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="{{ CDN_URL }}/static/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="{{ CDN_URL }}/static/js/qrcode.min.js"></script>
+<script>
+$(function (){
+    function warning(msg){$("#prompt-modal-body").html(msg);$("#prompt-modal").modal("show")}
+    $("#modal-confirm-btn").click(function () {$("#prompt-modal").modal("hide")});
+
+    let ts = {{ ts }};
+    let url = "{{ url }}";
+    let oauthKey = "{{ oauthKey }}";
+    let qrcode = new QRCode("qrcode");
+    qrcode.makeCode(url);
+
+    function getResult(){
+        $.ajax({
+            url: "/lt/qr_code_result?oauthKey={{ oauthKey }}",
+            type: "get",
+            success: function (data){
+                console.log("success: ", data);
+                if (data.code === 0){
+                    window.location.href = data.location;
+                }else if (data.code == -4){
+                    setTimeout(getResult, 6000);
+                }else{
+                    warning(data.msg);
+                }
+            },
+            error: function (data) {
+                console.log("E: ", data);
+                warning("发生了网络错误，请刷新页面。");
+            }
+        });
+    }
+    setTimeout(getResult, 5000);
+});
+</script>
+</body>
+</html>

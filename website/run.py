@@ -34,14 +34,14 @@ async def main():
         web.get('/', home_page),
         web.get('/lt_{token}', lt.lt),
 
-        web.route('*', '/lt/dxj/login', dxj.login),
-
         web.get('/lt/dxj/settings', dxj.settings),
         web.post('/lt/dxj/change_password', dxj.change_password),
         web.post('/lt/dxj/post_settings', dxj.post_settings),
         web.get('/lt/dxj/logout', dxj.logout),
 
         web.post('/lt/login', lt.login),
+        web.get('/lt/qr_code_login', lt.qr_code_login),
+        web.get('/lt/qr_code_result', lt.qr_code_result),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),
 

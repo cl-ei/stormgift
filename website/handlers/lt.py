@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import aiohttp
 import traceback
 from aiohttp import web
 from random import randint
@@ -14,6 +15,18 @@ from utils.dao import redis_cache, LTUserSettings
 from utils.dao import LtUserLoginPeriodOfValidity
 from utils.images import DynamicPicturesProcessor
 
+
+BROWSER_HEADERS = {
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;"
+        "q=0.9,image/webp,image/apng,*/*;q=0.8"
+    ),
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/70.0.3538.110 Safari/537.36"
+    ),
+}
 
 def request_frequency_control(time_interval=4):
     user_requests_records = []  # [(uniq, time), ... ]
@@ -123,6 +136,63 @@ async def login(request):
     key = f"LT_USER_MAD_TOKEN_{obj.DedeUserID}"
     mad_token = f"{int(time.time() * 1000):0x}{randint(0x1000, 0xffff):0x}"
     await redis_cache.set(key=key, value=mad_token, timeout=3600*24*30)
+
+    response = json_response({"code": 0, "location": "/lt/settings"})
+    response.set_cookie(name="mad_token", value=mad_token, httponly=True)
+    response.set_cookie(name="DedeUserID", value=obj.DedeUserID, httponly=True)
+    return response
+
+
+async def qr_code_login(request):
+    url = "https://passport.bilibili.com/qrcode/getLoginUrl"
+    async with aiohttp.request("get", url=url, headers=BROWSER_HEADERS) as r:
+        bili_response = await r.json()
+
+    context = {
+        "CDN_URL": CDN_URL,
+        "ts": bili_response["ts"],
+        "url": bili_response["data"]["url"],
+        "oauthKey": bili_response["data"]["oauthKey"],
+    }
+    return render_to_response("website/templates/qr_code_login.html", context=context)
+
+
+async def qr_code_result(request):
+    url = "https://passport.bilibili.com/qrcode/getLoginInfo"
+    data = {
+        'oauthKey': request.query.get("oauthKey"),
+        'gourl': 'https://passport.bilibili.com/account/security'
+    }
+    async with aiohttp.request("post", url=url, data=data, headers=BROWSER_HEADERS) as r:
+        bili_response = await r.json()
+        headers = r.headers
+
+    if bili_response.get("data") in (-4, -5):
+        return json_response({"code": -4})
+    elif bili_response.get("code") != 0:
+        message = bili_response.get("message") or bili_response.get("msg")
+        return json_response({
+            "code": -1,
+            "msg": f"二维码已过期，请刷新页面。\n(原始返回：{bili_response['code']}: {message})"
+        })
+
+    cookies = headers.getall("Set-Cookie")
+    cookies_dict = {}
+    for c in cookies:
+        k, v = c.split(";", 1)[0].split("=", 1)
+        cookies_dict[k] = v
+
+    try:
+        flag, obj = await DBCookieOperator.add_cookie_by_qrcode(**cookies_dict)
+    except Exception as e:
+        return json_response({"code": 500, "msg": f"服务器内部发生错误! {e}\n{traceback.format_exc()}"})
+
+    if not flag:
+        return json_response({"code": 400, "msg": obj})
+
+    key = f"LT_USER_MAD_TOKEN_{obj.DedeUserID}"
+    mad_token = f"{int(time.time() * 1000):0x}{randint(0x1000, 0xffff):0x}"
+    await redis_cache.set(key=key, value=mad_token, timeout=3600 * 24 * 30)
 
     response = json_response({"code": 0, "location": "/lt/settings"})
     response.set_cookie(name="mad_token", value=mad_token, httponly=True)
@@ -266,3 +336,41 @@ async def trends_qq_notice(request):
             await async_zy.send_group_msg(group_id=895699676, message=qq_response)
 
     return web.Response(status=206)
+"""
+<CIMultiDictProxy('Date': 'Sat, 14 Mar 2020 04:16:35 GMT',
+'Content-Type': 'application/json;charset=UTF-8',
+'Transfer-Encoding': 'chunked',
+'Connection': 'keep-alive',
+'Server': 'Apache-Coyote/1.1',
+'Set-Cookie': 'sid=76y4ecg0; Domain=.bilibili.com; Expires=Sun, 14-Mar-2021 04:16:35 GMT; Path=/',
+'Expires': 'Sat, 14 Mar 2020 04:16:34 GMT',
+'Cache-Control': 'no-cache',
+'X-Cache-Webcdn': 'BYPASS from ks-bj-bgp-w-01', 'Content-Encoding': 'gzip')>
+
+
+<CIMultiDictProxy(
+    'Date': 'Sat, 14 Mar 2020 04:16:45 GMT',
+'Content-Type': 'application/json;charset=UTF-8',
+'Transfer-Encoding': 'chunked',
+'Connection': 'keep-alive',
+'Server': 'Apache-Coyote/1.1',
+
+'Set-Cookie': 'sid=lxenuaj2; Domain=.bilibili.com; Expires=Sun, 14-Mar-2021 04:16:45 GMT; Path=/',
+'Set-Cookie': 'DedeUserID=312186483; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:00:05 GMT; Path=/',
+'Set-Cookie': 'DedeUserID__ckMd5=0f2a290325f41158; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:00:05 GMT; Path=/',
+'Set-Cookie': 'SESSDATA=5ea8e728%2C1599711405%2C929c8*31; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:00:05 GMT; Path=/; HttpOnly',
+'Set-Cookie': 'bili_jct=72e876c26e0698176c76971a235907d8; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:00:05 GMT; Path=/',
+
+'Expires': 'Sat, 14 Mar 2020 04:16:44 GMT',
+'Cache-Control': 'no-cache',
+'X-Cache-Webcdn': 'BYPASS from ks-bj-bgp-w-01',
+'Content-Encoding': 'gzip')>
+"""
+
+[
+    'sid=7w1tqf1r; Domain=.bilibili.com; Expires=Sun, 14-Mar-2021 05:01:49 GMT; Path=/',
+    'DedeUserID=312186483; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:45:09 GMT; Path=/',
+    'DedeUserID__ckMd5=0f2a290325f41158; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:45:09 GMT; Path=/',
+    'SESSDATA=adf53c04%2C1599714109%2Cd72c0*31; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:45:09 GMT; Path=/; HttpOnly',
+    'bili_jct=01b5ff5cd99ece3baf4428c8d17799a6; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:45:09 GMT; Path=/'
+]
