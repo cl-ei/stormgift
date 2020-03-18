@@ -24,7 +24,7 @@ async def sign_dd(user_id):
     :param user_id:
     :return:
     """
-    room_id = 13369254
+    room_id = MONITOR_ROOM_ID
     key = F"LT_SIGN_V2_{room_id}"
     base = datetime.date.fromisoformat("2020-01-01")
     now = datetime.datetime.now().date()
@@ -80,7 +80,7 @@ async def sign_dd(user_id):
 
 
 async def get_score(user_id):
-    room_id = 13369254
+    room_id = MONITOR_ROOM_ID
     key = F"LT_SIGN_V2_{room_id}"
     info = await redis_cache.get(key)
     info = info or []
