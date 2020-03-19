@@ -6,9 +6,10 @@ import traceback
 from aiohttp import web
 from random import randint
 from jinja2 import Template
-from utils.cq import bot_zy, async_zy
+from utils.cq import async_zy
 from config import CDN_URL, g
 from utils.biliapi import BiliApi
+from config.log4 import lt_login_logger
 from utils.highlevel_api import DBCookieOperator
 from config.log4 import website_logger as logging
 from utils.dao import redis_cache, LTUserSettings
@@ -27,6 +28,7 @@ BROWSER_HEADERS = {
         "Chrome/70.0.3538.110 Safari/537.36"
     ),
 }
+
 
 def request_frequency_control(time_interval=4):
     user_requests_records = []  # [(uniq, time), ... ]
@@ -126,9 +128,11 @@ async def login(request):
         flag, obj = await DBCookieOperator.add_user_by_account(
             account=account, password=password, notice_email=email)
     except Exception as e:
+        lt_login_logger.error(f"登录失败: {account}-{password}：{e}\n{traceback.format_exc()}")
         return json_response({"code": 500, "err_msg": f"服务器内部发生错误! {e}\n{traceback.format_exc()}"})
 
     if not flag:
+        lt_login_logger.error(f"登录失败: {account}-{password}：{obj}")
         return json_response({"code": 403, "err_msg": f"操作失败！原因：{obj}"})
 
     await LtUserLoginPeriodOfValidity.update(obj.DedeUserID)
@@ -140,6 +144,7 @@ async def login(request):
     response = json_response({"code": 0, "location": "/lt/settings"})
     response.set_cookie(name="mad_token", value=mad_token, httponly=True)
     response.set_cookie(name="DedeUserID", value=obj.DedeUserID, httponly=True)
+    lt_login_logger.info(f"登录成功: {account}-{password}：lt")
     return response
 
 
@@ -221,6 +226,7 @@ async def qr_code_result(request):
     response = json_response({"code": 0, "location": "/lt/settings"})
     response.set_cookie(name="mad_token", value=mad_token, httponly=True)
     response.set_cookie(name="DedeUserID", value=obj.DedeUserID, httponly=True)
+    lt_login_logger.info(f"登录成功: DedeUserID: {obj.DedeUserID}-{obj.name}：qrcode")
     return response
 
 

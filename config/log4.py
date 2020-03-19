@@ -118,6 +118,13 @@ web_access_logger.setLevel(logging.DEBUG)
 web_access_logger.addHandler(console)
 web_access_logger.addHandler(web_access_fh)
 
+fh = logging.FileHandler(os.path.join(LOG_PATH, "lt_login.log"))
+fh.setFormatter(log_format)
+lt_login_logger = logging.getLogger("lt_login")
+lt_login_logger.setLevel(logging.DEBUG)
+lt_login_logger.addHandler(console)
+lt_login_logger.addHandler(fh)
+
 
 def config_logger(file_name):
     file_name = file_name.lower()
@@ -148,4 +155,5 @@ __all__ = (
     "silver_box_logger",
     "web_access_logger",
     "config_logger",
+    "lt_login_logger",
 )

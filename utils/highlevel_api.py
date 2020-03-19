@@ -6,15 +6,17 @@ import asyncio
 import aiohttp
 import datetime
 from config import g
+from utils.cq import async_zy
 from utils.dao import XNodeRedis
 from config import cloud_get_uid
 from utils.biliapi import BiliApi
+from config.log4 import lt_login_logger
 from utils.db_raw_query import AsyncMySQL
 from utils.reconstruction_model import objects
 from config.log4 import bili_api_logger as logging
 from utils.email import send_cookie_invalid_notice
 from utils.reconstruction_model import LTUserCookie
-from utils.dao import UserRaffleRecord, LTTempBlack, LTLastAcceptTime, redis_cache
+from utils.dao import UserRaffleRecord, LTTempBlack, LTLastAcceptTime, redis_cache, BiliToQQBindInfo
 
 
 BLOCK_FRESH_TIME = 1
@@ -386,9 +388,16 @@ class DBCookieOperator:
         if flag:
             if user.uid in (g.BILI_UID_TZ, g.BILI_UID_CZ):
                 await ReqFreLimitApi.set_available_cookie_for_xnode()
+            lt_login_logger.info(f"登录过期（重登录成功）：{user.DedeUserID}-{user.name}")
             return True, ""
 
+        # email & qq notice
         send_cookie_invalid_notice(user)
+        qq_num = await BiliToQQBindInfo.get_by_bili(bili=user.DedeUserID)
+        if qq_num:
+            await async_zy.send_private_msg(user_id=qq_num, message=f"你的登录已过期，请重新登录。")
+
+        lt_login_logger.error(f"登录过期：{user.DedeUserID}-{user.name}，尝试重新登录失败，notice: {qq_num}")
         return False, result
 
     @classmethod
