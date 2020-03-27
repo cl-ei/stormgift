@@ -2,6 +2,7 @@ import os
 import time
 import json
 import aiohttp
+import asyncio
 import traceback
 from aiohttp import web
 from random import randint
@@ -319,16 +320,28 @@ async def trends_qq_notice(request):
         await redis_cache.set(key=key, value=refreshed_data)
 
         latest_dynamic_id = dynamic_id_list[0]
-        flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=latest_dynamic_id)
+        flag, dynamic = None, None
+        for _try_times in range(3):
+            flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=latest_dynamic_id)
+            if flag:
+                break
+            await asyncio.sleep(2)
+
         if not flag:
-            await report_error(f"未能获取到动态：{latest_dynamic_id}：{dynamic}")
+            await report_error(f"尝试了3次后，也未能获取到动态：{latest_dynamic_id}：{dynamic}")
             continue
 
         master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dynamic["desc"]["timestamp"]))
-        prefix = f"{timestamp}　{master_name} 最新发布：\n\n"
+        prefix = f"{timestamp}　{master_name}最新发布：\n\n"
 
-        content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
+        content, pictures = None, None
+        for _try_times in range(3):
+            content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
+            if content or pictures:
+                break
+            await asyncio.sleep(2)
+
         if not pictures:
             qq_response = prefix + "\n".join(content)
         else:
@@ -366,41 +379,3 @@ async def trends_qq_notice(request):
             await async_zy.send_group_msg(group_id=895699676, message=qq_response)
 
     return web.Response(status=206)
-"""
-<CIMultiDictProxy('Date': 'Sat, 14 Mar 2020 04:16:35 GMT',
-'Content-Type': 'application/json;charset=UTF-8',
-'Transfer-Encoding': 'chunked',
-'Connection': 'keep-alive',
-'Server': 'Apache-Coyote/1.1',
-'Set-Cookie': 'sid=76y4ecg0; Domain=.bilibili.com; Expires=Sun, 14-Mar-2021 04:16:35 GMT; Path=/',
-'Expires': 'Sat, 14 Mar 2020 04:16:34 GMT',
-'Cache-Control': 'no-cache',
-'X-Cache-Webcdn': 'BYPASS from ks-bj-bgp-w-01', 'Content-Encoding': 'gzip')>
-
-
-<CIMultiDictProxy(
-    'Date': 'Sat, 14 Mar 2020 04:16:45 GMT',
-'Content-Type': 'application/json;charset=UTF-8',
-'Transfer-Encoding': 'chunked',
-'Connection': 'keep-alive',
-'Server': 'Apache-Coyote/1.1',
-
-'Set-Cookie': 'sid=lxenuaj2; Domain=.bilibili.com; Expires=Sun, 14-Mar-2021 04:16:45 GMT; Path=/',
-'Set-Cookie': 'DedeUserID=312186483; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:00:05 GMT; Path=/',
-'Set-Cookie': 'DedeUserID__ckMd5=0f2a290325f41158; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:00:05 GMT; Path=/',
-'Set-Cookie': 'SESSDATA=5ea8e728%2C1599711405%2C929c8*31; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:00:05 GMT; Path=/; HttpOnly',
-'Set-Cookie': 'bili_jct=72e876c26e0698176c76971a235907d8; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:00:05 GMT; Path=/',
-
-'Expires': 'Sat, 14 Mar 2020 04:16:44 GMT',
-'Cache-Control': 'no-cache',
-'X-Cache-Webcdn': 'BYPASS from ks-bj-bgp-w-01',
-'Content-Encoding': 'gzip')>
-"""
-
-[
-    'sid=7w1tqf1r; Domain=.bilibili.com; Expires=Sun, 14-Mar-2021 05:01:49 GMT; Path=/',
-    'DedeUserID=312186483; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:45:09 GMT; Path=/',
-    'DedeUserID__ckMd5=0f2a290325f41158; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:45:09 GMT; Path=/',
-    'SESSDATA=adf53c04%2C1599714109%2Cd72c0*31; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:45:09 GMT; Path=/; HttpOnly',
-    'bili_jct=01b5ff5cd99ece3baf4428c8d17799a6; Domain=.bilibili.com; Expires=Thu, 10-Sep-2020 04:45:09 GMT; Path=/'
-]
