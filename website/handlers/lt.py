@@ -296,7 +296,7 @@ async def trends_qq_notice(request):
     uid_to_dynamic = json.loads(post_data, encoding="utf-8")
 
     async def report_error(m):
-        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_雨声雷鸣, message=m)
+        # await async_zy.send_private_msg(user_id=g.QQ_NUMBER_雨声雷鸣, message=m)
         await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=m)
 
     for uid, dynamic_id_list in uid_to_dynamic.items():
@@ -309,7 +309,8 @@ async def trends_qq_notice(request):
             await redis_cache.set(key=key, value=dynamic_id_set)
 
             bili_user_name = await BiliApi.get_user_name(uid=uid)
-            await report_error(f"{bili_user_name}(uid: {uid})的动态监测已经添加！")
+            m = f"{bili_user_name}(uid: {uid})的动态监测已经添加！"
+            await async_zy.send_private_msg(user_id=g.QQ_NUMBER_雨声雷鸣, message=m)
             continue
 
         new_dynamics = dynamic_id_set - existed_dynamic_id_set
@@ -373,9 +374,6 @@ async def trends_qq_notice(request):
                 qq_response = f"{message}\n [CQ:image,file={file_name}]"
             else:
                 qq_response = prefix + "\n".join(content) + "\n" + "\n".join(pictures)
-
-        await report_error(qq_response)
-        if uid == 337052615:
-            await async_zy.send_group_msg(group_id=895699676, message=qq_response)
+        await async_zy.send_private_msg(user_id=g.QQ_NUMBER_雨声雷鸣, message=qq_response)
 
     return web.Response(status=206)
