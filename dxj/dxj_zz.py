@@ -6,6 +6,7 @@ from utils.cq import async_zy
 from utils.biliapi import WsApi
 from utils.ws import RCWebSocketClient
 from config.log4 import console_logger as logging
+from utils.dao import redis_cache
 
 
 MONITOR_ROOM_ID = 2951931
@@ -38,8 +39,19 @@ async def proc_message(message):
             message=f"温柔祯开播了.\n\nhttps://live.bilibili.com/{MONITOR_ROOM_ID}"
         )
 
+        key = "LT_ZZ_LIVE_NOTICE_LIVE"
+        if await redis_cache.set_if_not_exists(key=key, value="123", timeout=60*30):
+            await async_zy.send_group_msg(
+                group_id=g.QQ_NUMBER_温柔祯,
+                message=f"温柔祯开播啦\n\nhttps://live.bilibili.com/{MONITOR_ROOM_ID}"
+            )
+
     elif cmd == "PREPARING":
         await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message="温柔祯已下播。")
+
+        key = "LT_ZZ_LIVE_NOTICE_PREPARING"
+        if await redis_cache.set_if_not_exists(key=key, value="123", timeout=60*30):
+            await async_zy.send_group_msg(group_id=g.QQ_NUMBER_温柔祯, message="温柔祯已下播。")
 
 
 async def main():
