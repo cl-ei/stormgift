@@ -34,8 +34,8 @@ template_text = """
   偷闲一天打个盹<br>
   <a style="color: #7a91f3;" 
     title="←◡←" 
-    href="https://jq.qq.com/?_wv=1027&k=5lH8D0S">
-    加入宝藏站点交流群:629411180
+    href="https://jq.qq.com/?_wv=1027&k=5dO3qQY">
+    加入宝藏站点交流群:614382552
   </a>
 </span>
 </div>
@@ -61,7 +61,7 @@ template_text = """
       href="https://www.madliar.com/music" target="_blank">音乐列表</a>
     <br />
     交流群➟ <a style="padding: 0px;color: #7a91f3;border-bottom: 1px solid;padding-bottom: 2px;"
-    href="https://jq.qq.com/?_wv=1027&k=5lH8D0S">6294 111 80</a>
+    href="https://jq.qq.com/?_wv=1027&k=5dO3qQY">614 382 552</a>
   </p>
 </div>
 
