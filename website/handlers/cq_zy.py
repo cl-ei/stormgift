@@ -710,7 +710,7 @@ class BotUtils:
             if user_id == g.QQ_NUMBER_DD:
                 message += (
                     f"\n"
-                    f"ac、dc: 辣条白名单\n"
+                    f"ac、dc、auc: 辣条白名单\n"
                     f"as、ds: 超级答谢鸡\n"
                     f"++123+1212、--33234: 绑定解绑\n"
                     f"approve、11、33、44、g、r"
@@ -820,6 +820,15 @@ class BotHandler:
                 bot.send_private_msg(
                     user_id=80873436,
                     message=f"白名单已添加: {account}, id: {cookie_obj.id}"
+                )
+                return
+
+            elif msg.startswith("auc"):
+                uid, account = msg[3:].split("-")
+                cookie_obj = await DBCookieOperator.add_uid_or_account_to_white_list(uid=int(uid), account=account)
+                bot.send_private_msg(
+                    user_id=80873436,
+                    message=f"白名单已添加: {account}, uid: {uid}, id: {cookie_obj.id}"
                 )
                 return
 
