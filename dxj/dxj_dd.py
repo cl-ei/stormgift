@@ -222,7 +222,10 @@ async def proc_message(message):
 
         elif msg == "积分":
             score = await get_score(user_id=uid)
-            message = f"{user_name}现在拥有{score:.2f}积分."
+            if score > 9999:
+                message = f"{user_name}现在拥有{score/100.0:.2f}积元（1积元=100积分）."
+            else:
+                message = f"{user_name}现在拥有{score:.2f}积分."
             await send_danmaku(msg=message)
 
         else:
