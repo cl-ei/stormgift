@@ -206,7 +206,7 @@ class BotUtils:
 
         return filtered_songs[0].get("id") if filtered_songs else None
 
-    def proc_one_sentence(self, msg, group_id):
+    async def proc_one_sentence(self, msg, group_id):
         key = f"LT_ONE_SENTENCE_{group_id}"
         if not await redis_cache.set_if_not_exists(key=key, value="1", timeout=300):
             if await redis_cache.set_if_not_exists(key=f"{key}_FLUSH", value="1", timeout=300):
@@ -740,7 +740,7 @@ class BotHandler:
         msg = msg.replace("＃", "#")
         p = BotUtils()
         if msg in ("一言", "#一言"):
-            return p.proc_one_sentence(msg, group_id)
+            return await p.proc_one_sentence(msg, group_id)
 
         elif msg.startswith("#点歌"):
             return await p.proc_song(msg, group_id)
