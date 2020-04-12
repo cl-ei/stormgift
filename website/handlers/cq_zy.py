@@ -207,6 +207,12 @@ class BotUtils:
         return filtered_songs[0].get("id") if filtered_songs else None
 
     def proc_one_sentence(self, msg, group_id):
+        key = f"LT_ONE_SENTENCE_{group_id}"
+        if not await redis_cache.set_if_not_exists(key=key, value="1", timeout=300):
+            if await redis_cache.set_if_not_exists(key=f"{key}_FLUSH", value="1", timeout=300):
+                self.bot.send_group_msg(group_id=group_id, message=f"防刷屏，5分钟内不再响应。")
+            return
+
         try:
             r = requests.get("https://v1.hitokoto.cn/", timeout=10)
             if r.status_code != 200:
