@@ -830,7 +830,7 @@ class BotHandler:
                 return
 
             elif msg.startswith("auc"):
-                uid, account = msg[3:].split("-", "1")
+                uid, account = msg[3:].split("-", 1)
                 cookie_obj = await DBCookieOperator.add_uid_or_account_to_white_list(uid=int(uid), account=account)
                 bot.send_private_msg(
                     user_id=80873436,
