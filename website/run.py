@@ -33,6 +33,7 @@ async def main():
     app.add_routes([
         web.get('/', home_page),
         web.get('/lt_{token}', lt.lt),
+        web.get('/bili/q/{user_id}/{web_token}', lt.q),
 
         web.get('/lt/dxj/settings', dxj.settings),
         web.post('/lt/dxj/change_password', dxj.change_password),

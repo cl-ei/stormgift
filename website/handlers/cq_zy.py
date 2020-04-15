@@ -634,10 +634,7 @@ class BotHandler:
             return await p.proc_help()
 
     @classmethod
-    async def handle_private_message(cls, context):
-        user_id = context["sender"]["user_id"]
-        msg = context["raw_message"]
-
+    async def handle_private_message(cls, msg, user_id):
         if user_id == g.QQ_NUMBER_DD:
             if msg.startswith("approve"):
                 flag = msg[7:]
@@ -731,10 +728,19 @@ class BotHandler:
             await redis_cache.expire(key=key, timeout=180)
 
             logging.info(F"LT_ACCESS_TOKEN_GEND: {token}, user_id: {user_id}")
+
+            key = f"LT_WEB_{user_id}"
+            web_token = await redis_cache.get(key=key)
+            if not web_token:
+                web_token = token
+                await redis_cache.set(key=key, value=web_token)
+
             message = (
                 f"宝藏站点地址: \nhttp://lt.madliar.com:2020/lt_{token}\n\n"
                 f"如果无法使用密码登录，请使用二维码扫码登录：\nhttp://lt.madliar.com:2020/lt/qr_code_login/{token}\n\n"
-                f"本URL只可一次性使用，如遇404则说明已失效，请重新获取；否则，请一直刷新页面，直到能够正常显示。"
+                f"本URL只可一次性使用，如遇404则说明已失效，请重新获取；否则，请一直刷新页面，直到能够正常显示。\n\n"
+                "另外，为了防止异常情况导致QQ机器人不可用，你还可以通过web页面发送指令，来查询状态，你的专属地址（请保存浏览器标签）：\n"
+                f"https://www.madliar.com/bili/q/{user_id}/{web_token}"
             )
             return message
 
@@ -764,7 +770,7 @@ class BotHandler:
             user_id = context["sender"]["user_id"]
             msg = context["raw_message"]
             try:
-                response = await cls.handle_private_message(context)
+                response = await cls.handle_private_message(msg=msg, user_id=user_id)
             except Exception as e:
                 response = f"在处理命令[{msg}]时发生了不可处理的错误，请稍后再试。\n\n{e}\n\n{traceback.format_exc()}"
 

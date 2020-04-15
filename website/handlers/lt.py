@@ -117,6 +117,22 @@ async def lt(request):
     return render_to_response("website/templates/website_homepage.html", context=context)
 
 
+async def q(request):
+    user_id = request.match_info['user_id']
+    token = request.match_info['web_token']
+    key = f"LT_WEB_{user_id}"
+    if await redis_cache.get(key=key) != token:
+        return web.Response(text=f"你访问了错误的链接！")
+
+    msg = request.query.get("msg")
+    from website.handlers.cq_zy import BotHandler
+    try:
+        r = await BotHandler.handle_private_message(msg=msg, user_id=user_id)
+    except Exception as e:
+        r = f"处理「{msg}」时发生错误：{e}"
+    return web.Response(text=r)
+
+
 async def login(request):
     data = await request.post()
     account = data['account']
