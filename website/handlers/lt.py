@@ -122,7 +122,7 @@ async def q(request):
     token = request.match_info['web_token']
     key = f"LT_WEB_{user_id}"
     if await redis_cache.get(key=key) != token:
-        return web.Response(text=f"你访问了错误的链接！")
+        return web.Response(text=f"你访问了错误的链接！可能的原因你的私密链接已过期，请给机器人发送lt重新获取。")
 
     msg = request.query.get("msg")
     from website.handlers.cq_zy import BotHandler
