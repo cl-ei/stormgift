@@ -118,7 +118,7 @@ async def lt(request):
 
 
 async def q(request):
-    user_id = request.match_info['user_id']
+    user_id = int(request.match_info['user_id'])
     token = request.match_info['web_token']
     key = f"LT_WEB_{user_id}"
     if await redis_cache.get(key=key) != token:
