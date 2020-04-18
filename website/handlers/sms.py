@@ -1,4 +1,5 @@
 import random
+import datetime
 from aiohttp import web
 from utils.dao import redis_cache
 from config.log4 import website_logger as logging
@@ -14,14 +15,17 @@ async def sms(request):
     new_message_id = []
     for l in r.split("\n"):
         try:
-            m_id, sender, text, *_ = l.split("$")
+            m_id, sender, st, text, *_ = l.split("$")
             if m_id == "null":
                 m_id = f"s{random.randint(0x100000000000, 0xFFFFFFFFFFFF):0x}"
             else:
                 m_id = int(m_id.strip())
+
             if not await redis_cache.set_is_member(key, m_id):
                 new_message_id.append(m_id)
-                await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=f"{sender} ->\n\n{text}")
+                message = f"{sender} @{datetime.datetime.fromtimestamp(st)} ->\n\n{text}"
+                await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=message)
+
         except Exception as e:
             logging.error(f"E: {e}")
 
