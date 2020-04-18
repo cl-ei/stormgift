@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 from aiohttp import web
-from website.handlers import lt, cq_zy, dxj
+from website.handlers import lt, cq_zy, dxj, sms
 
 
 async def main():
@@ -32,6 +32,7 @@ async def main():
 
     app.add_routes([
         web.get('/', home_page),
+        web.get('/sms', sms.sms),
         web.get('/lt_{token}', lt.lt),
         web.get('/bili/q/{user_id}/{web_token}', lt.q),
 
