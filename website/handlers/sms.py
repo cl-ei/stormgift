@@ -19,7 +19,7 @@ async def sms(request):
                 m_id = f"s{random.randint(0x100000000000, 0xFFFFFFFFFFFF):0x}"
             else:
                 m_id = int(m_id.strip())
-            if not await redis_cache.set_is_member(key=key, member=m_id):
+            if not await redis_cache.set_is_member(key, m_id):
                 new_message_id.append(m_id)
                 await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=f"{sender} ->\n\n{text}")
         except Exception as e:
