@@ -9,6 +9,7 @@ from utils.cq import async_zy
 
 async def sms(request):
     r = await request.text()
+    r = r.strip()
     logging.info(f"Receive sms: [{r}]")
     key = "CL_SMS"
 
