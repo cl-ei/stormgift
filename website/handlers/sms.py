@@ -23,7 +23,7 @@ async def sms(request):
 
             if not await redis_cache.set_is_member(key, m_id):
                 new_message_id.append(m_id)
-                message = f"{sender} @{datetime.datetime.fromtimestamp(int(st)/1000)} ->\n\n{text}"
+                message = f"{sender} [{m_id}]@{datetime.datetime.fromtimestamp(int(st)/1000)} ->\n\n{text}"
                 await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=message)
 
         except Exception as e:
