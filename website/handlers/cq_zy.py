@@ -209,8 +209,7 @@ class BotUtils:
             async with aiohttp.request("get", "https://v1.hitokoto.cn/") as req:
                 if req.status != 200:
                     return ""
-
-                r = await req.json(content_type="*")
+                r = await req.json()
                 return r.get("hitokoto") or ""
 
         key = f"LT_ONE_SENTENCE_{self.group_id}"
