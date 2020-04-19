@@ -204,18 +204,23 @@ class BotUtils:
         return filtered_songs[0].get("id") if filtered_songs else None
 
     async def proc_one_sentence(self):
+
+        async def get_one_sentence():
+            async with aiohttp.request("get", "https://v1.hitokoto.cn/") as req:
+                if req.status != 200:
+                    return ""
+
+                r = await req.json(content_type="*")
+                return r.get("hitokoto") or ""
+
         key = f"LT_ONE_SENTENCE_{self.group_id}"
         if not await redis_cache.set_if_not_exists(key=key, value="1", timeout=300):
             if await redis_cache.set_if_not_exists(key=f"{key}_FLUSH", value="1", timeout=300):
-                return f"防刷屏，5分钟内不再响应。"
+                s = await get_one_sentence()
+                return f"{s}\n(防刷屏，5分钟内不再响应)"
             return
 
-        r = requests.get("https://v1.hitokoto.cn/", timeout=10)
-        if r.status_code != 200:
-            return
-        data = r.content.decode("utf-8")
-        response = json.loads(data).get("hitokoto")
-        return response
+        return await get_one_sentence()
 
     async def proc_song(self, msg):
         song_name = msg.split("点歌")[-1].strip()
