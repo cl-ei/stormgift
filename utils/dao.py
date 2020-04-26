@@ -237,10 +237,10 @@ async def gen_x_node_redis() -> RedisCache:
     config = configparser.ConfigParser()
     config.read(config_file)
     redis = RedisCache(**{
-        "host": config["xnode_redis"]["host"],
-        "port": int(config["xnode_redis"]["port"]),
-        "password": config["xnode_redis"]["password"],
-        "db": int(config["xnode_redis"]["stormgift_db"]),
+        "host": config["redis"]["host"],
+        "port": int(config["redis"]["port"]),
+        "password": config["redis"]["password"],
+        "db": int(config["redis"]["stormgift_db"]),
     })
     return redis
 

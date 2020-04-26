@@ -18,7 +18,7 @@ REDIS_CONFIG = {
     "host": config["redis"]["host"],
     "port": int(config["redis"]["port"]),
     "password": config["redis"]["password"],
-    "db": int(config["redis"]["stormgift_db"]),
+    "db": int(config["redis"]["stormgift_client_db"]),  # client
 }
 
 
