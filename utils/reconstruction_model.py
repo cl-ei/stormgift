@@ -142,6 +142,7 @@ class LTUserCookie:
 
         if await redis_cache.set_is_member(cls.key_white_list, uid):
             return uid
+        logging.error(f"Not in white list: {uid}, {type(uid)}")
         return None
 
     @classmethod
