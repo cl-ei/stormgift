@@ -4,7 +4,7 @@ from random import randint
 import asyncio
 from utils.biliapi import BiliApi
 from config.log4 import silver_box_logger as logging
-from utils.highlevel_api import DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
 from utils.dao import UserRaffleRecord, redis_cache
 
 
@@ -39,7 +39,7 @@ class UserSilverAcceptTimeCtrl:
             return -1
 
         elif code == -500:
-            await DBCookieOperator.set_invalid(self.user)
+            await LTUserCookie.set_invalid(self.user)
             return -2
 
         elif code == 0:
@@ -60,8 +60,8 @@ class UserSilverAcceptTimeCtrl:
 
         error_message = data.get("message", "")
         if "请先登录" in error_message:
-            await DBCookieOperator.set_invalid(user)
-            logging.info(f"DBCookieOperator refresh token: {flag}, msg: {data}")
+            await LTUserCookie.set_invalid(user)
+            logging.info(f"LTUserCookie refresh token: {flag}, msg: {data}")
             return
 
         code = data['code']
@@ -112,7 +112,7 @@ async def main():
     if await redis_cache.get(today_key):
         return
 
-    objs = await DBCookieOperator.get_objs(available=True, non_blocked=True)
+    objs = await LTUserCookie.get_objs(available=True, non_blocked=True)
     logging.info(f"Now start silver box task. users: {len(objs)}")
 
     result_list = []

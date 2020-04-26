@@ -8,7 +8,7 @@ from utils.dao import redis_cache
 from utils.ws import RCWebSocketClient
 from utils.biliapi import WsApi, BiliApi
 from config.log4 import dxj_dd_logger as logging
-from utils.highlevel_api import ReqFreLimitApi, DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
 
 
 MONITOR_ROOM_ID = 13369254
@@ -95,7 +95,7 @@ async def get_score(user_id):
 
 async def send_danmaku(msg, user=""):
     user = user or "TZ"
-    c = await DBCookieOperator.get_by_uid(user_id=user)
+    c = await LTUserCookie.get_by_uid(user_id=user)
     if not c:
         logging.error(f"Cannot get cookie for user: {user}.")
         return
@@ -148,64 +148,6 @@ async def proc_message(message):
             url = f"http://192.168.100.100:4096/command/{user_name}${song_name}"
             async with aiohttp.request("get", url=url) as _:
                 pass
-
-        elif "中奖" in msg and "查询" in msg:
-            if msg.startswith("#中奖查询"):
-                try:
-                    uid = int(msg[5:])
-                except (ValueError, TypeError):
-                    return
-
-                user_name = f"uid{uid}"
-
-            raffle_list = await ReqFreLimitApi.get_raffle_record(uid)
-            if not raffle_list:
-                return await send_danmaku(f"{user_name}: 七天内没有中奖纪录。")
-
-            count = len(raffle_list)
-            latest = raffle_list[0]
-            interval = (datetime.datetime.now() - latest[3]).total_seconds()
-            if interval < 3600:
-                date_time_str = "刚刚"
-            elif interval < 3600*24:
-                date_time_str = f"{int(interval/3600)}小时前"
-            else:
-                date_time_str = f"{int(interval/(3600*24))}天前"
-
-            msg = f"{latest[0]}在7天内中奖{count}次，最后一次{date_time_str}在{latest[1]}直播间获得{latest[2]}."
-            return await send_danmaku(msg)
-
-        elif msg.startswith("小电视"):
-            int_str = msg.replace("小电视", "").strip()
-            try:
-                int_str = int(int_str)
-            except (TypeError, ValueError):
-                int_str = 0
-
-            result = await ReqFreLimitApi.get_raffle_count(day_range=int_str)
-
-            r = "、".join([f"{v}个{k}" for k, v in result["gift_list"].items()])
-            miss = result['miss']
-            miss_raffle = result['miss_raffle']
-            if miss == 0 and miss_raffle == 0:
-                path_prompt = "全部记录"
-            elif miss > 0 and miss_raffle == 0:
-                path_prompt = f"高能遗漏{miss}个"
-            elif miss == 0 and miss_raffle > 0:
-                path_prompt = f"高能全部记录，中奖记录漏{miss_raffle}个"
-            else:
-                path_prompt = f"高能漏{miss}个，中奖记录漏{miss_raffle}个"
-            danmaku = (
-                f"{'今日' if int_str == 0 else str(int_str) + '天前'}统计到{r}, "
-                f"共{result['total']}个，{path_prompt}。"
-            )
-            await send_danmaku(danmaku)
-
-        elif msg == "船员":
-            result = await ReqFreLimitApi.get_guard_count()
-            r = "、".join([f"{v}个{k}" for k, v in result["gift_list"].items()])
-            danmaku = f"今日统计到{r}, 共{result['total']}个"
-            await send_danmaku(danmaku)
 
         elif msg in ("签到", "打卡"):
             (

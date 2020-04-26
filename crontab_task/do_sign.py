@@ -2,7 +2,7 @@ import time
 import asyncio
 from config import g
 from utils.biliapi import BiliApi
-from utils.highlevel_api import DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
 from config.log4 import crontab_task_logger as logging
 
 
@@ -16,7 +16,7 @@ async def main():
         f"\n{split_char}{start_prompt}{split_char}\n\n",
     ]
     start_time = time.time()
-    objs = await DBCookieOperator.get_objs(available=True)
+    objs = await LTUserCookie.get_objs(available=True)
 
     for obj in objs:
         _m = f"Now proc {obj.name}(uid: {obj.DedeUserID}): \n"
@@ -30,13 +30,13 @@ async def main():
                 f"WARNING: Do sign failed, user: {obj.name} - {obj.DedeUserID}, "
                 f"flag: {flag}, result: {result}\n"
             )
-            await DBCookieOperator.set_invalid(obj)
+            await LTUserCookie.set_invalid(obj)
             continue
 
         flag, is_vip = await BiliApi.get_if_user_is_live_vip(cookie)
         if flag:
             if is_vip != obj.is_vip:
-                await DBCookieOperator.set_vip(obj, is_vip)
+                await LTUserCookie.set_vip(obj, is_vip)
         else:
             logging_msg_list.append(
                 f"WARNING: Get if it is vip failed, user: {obj.name} - {obj.DedeUserID}, "

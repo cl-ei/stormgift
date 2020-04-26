@@ -5,7 +5,7 @@ from utils.dao import redis_cache
 from utils.ws import RCWebSocketClient
 from utils.biliapi import WsApi, BiliApi
 from config.log4 import dxj_wanzi_logger as logging
-from utils.highlevel_api import DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
 
 
 MONITOR_ROOM_ID = 24541
@@ -91,7 +91,7 @@ async def get_score(user_id):
 
 
 async def send_danmaku(msg, user_id=12298306):
-    c = await DBCookieOperator.get_by_uid(user_id=user_id)
+    c = await LTUserCookie.get_by_uid(user_id=user_id)
     if not c:
         logging.error(f"Cannot get cookie for user: WANZI {user_id}.")
         return

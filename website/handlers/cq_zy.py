@@ -18,7 +18,8 @@ from utils.cq import bot_zy as bot
 from config import cloud_function_url
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import cqbot_logger as logging
-from utils.highlevel_api import DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
+from utils.reconstruction_model import LTUserCookie
 from utils.images import DynamicPicturesProcessor
 from utils.dao import (
     RedisLock,
@@ -296,7 +297,7 @@ class BotUtils:
         else:
             assigned_uid = bili_uid_list[0]
 
-        flag, msg = await DBCookieOperator.get_lt_status(uid=assigned_uid)
+        flag, msg = await LTUserCookie.get_lt_status(uid=assigned_uid)
         return msg
 
     async def proc_record_followings(self, msg, user_id, group_id=None):
@@ -325,7 +326,7 @@ class BotUtils:
             self.response(f"你尚未绑定B站账号，请私聊我然后发送“#绑定”进行绑定。")
             return
 
-        cookie_obj = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
+        cookie_obj = await LTUserCookie.get_by_uid(user_id=bili_uid, available=True)
         if not cookie_obj:
             self.response("你的登录已过期！请登录辣条宝藏站点重新登录。")
             return
@@ -366,7 +367,7 @@ class BotUtils:
         except (ValueError, TypeError, AssertionError):
             pass
 
-        user = await DBCookieOperator.get_by_uid(user_id=bili_uid, available=True)
+        user = await LTUserCookie.get_by_uid(user_id=bili_uid, available=True)
         if not user:
             return f"未查询到用户「{bili_uid}」。可能用户已过期，请重新登录。"
 
@@ -647,22 +648,22 @@ class BotHandler:
 
             elif msg.startswith("ac"):
                 account = msg[2:]
-                cookie_obj = await DBCookieOperator.add_uid_or_account_to_white_list(account=account)
-                return f"白名单已添加: {account}, id: {cookie_obj.id}"
+                r = await LTUserCookie.add_uid_or_account_to_white_list(account=account)
+                return f"白名单已添加: {account}, id: {r}"
 
             elif msg.startswith("auc"):
                 uid, account = msg[3:].split("-", 1)
-                cookie_obj = await DBCookieOperator.add_uid_or_account_to_white_list(uid=int(uid), account=account)
-                return f"白名单已添加: {account}, uid: {uid}, id: {cookie_obj.id}"
+                r = await LTUserCookie.add_uid_or_account_to_white_list(uid=int(uid), account=account)
+                return f"白名单已添加: {account}, uid: {uid}, id: {r.id}"
 
             elif msg.startswith("dc"):
                 account = msg[2:]
-                r = await DBCookieOperator.del_uid_or_account_from_white_list(account=account)
+                r = await LTUserCookie.del_uid_or_account_from_white_list(account=account)
                 return f"白名单已删除: {account}, id: {r}"
 
             elif msg.startswith("33"):
                 message = msg[2:]
-                dd_obj = await DBCookieOperator.get_by_uid("DD")
+                dd_obj = await LTUserCookie.get_by_uid("DD")
                 await BiliApi.send_danmaku(message=message, room_id=13369254, cookie=dd_obj.cookie)
                 return
 

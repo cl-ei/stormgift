@@ -6,7 +6,7 @@ import aiohttp
 import traceback
 from utils.cq import async_zy
 from config import cloud_acceptors, g
-from utils.highlevel_api import DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
 from utils.dao import DelayAcceptGiftsQueue
 from config.log4 import acceptor_logger as logging
 from utils.dao import (
@@ -127,7 +127,7 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
 
 
 async def accept(index, act, room_id, gift_id, gift_type, gift_name):
-    cookie_objs = await DBCookieOperator.get_objs(available=True, non_blocked=True)
+    cookie_objs = await LTUserCookie.get_objs(available=True, non_blocked=True)
     # temporary_blocked = await LTTempBlack.get_blocked()
     # cookie_objs = [c for c in cookie_objs if c.uid not in temporary_blocked]
 
@@ -164,9 +164,9 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
 
         if flag is not True:
             if "访问被拒绝" in message:
-                await DBCookieOperator.set_blocked(cookie_obj)
+                await LTUserCookie.set_blocked(cookie_obj)
             elif "请先登录哦" in message:
-                await DBCookieOperator.set_invalid(cookie_obj)
+                await LTUserCookie.set_invalid(cookie_obj)
             # elif "你已经领取过" in message or "您已参加抽奖" in message:
             #     await LTTempBlack.manual_accept_once(uid=cookie_obj.uid)
 

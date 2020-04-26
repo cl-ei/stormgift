@@ -1,6 +1,6 @@
 import asyncio
 from config.log4 import config_logger
-from utils.highlevel_api import DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
 from utils.dao import LTUserSettings
 
 logging = config_logger("auto_intimacy")
@@ -98,7 +98,7 @@ async def send_gift(cookie, medal, user_name=""):
 async def main():
     r = await LTUserSettings.get_all()
     for user_id, setting in r.items():
-        obj = await DBCookieOperator.get_by_uid(user_id=user_id, available=True)
+        obj = await LTUserCookie.get_by_uid(user_id=user_id, available=True)
         if not obj:
             continue
 
@@ -106,11 +106,11 @@ async def main():
         for medal in medals:
             await send_gift(cookie=obj.cookie, medal=medal, user_name=obj.name)
 
-    obj = await DBCookieOperator.get_by_uid(312186483)
+    obj = await LTUserCookie.get_by_uid(312186483)
     if obj:
         await send_gift(cookie=obj.cookie, medal="發电姬", user_name="桃子")
 
-    obj = await DBCookieOperator.get_by_uid(87301592)
+    obj = await LTUserCookie.get_by_uid(87301592)
     if obj:
         await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="村长")
 

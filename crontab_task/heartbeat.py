@@ -1,6 +1,6 @@
 import asyncio
 from utils.biliapi import BiliApi
-from utils.highlevel_api import DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
 from config.log4 import crontab_task_logger as logging
 
 
@@ -24,7 +24,7 @@ async def post_heartbeat(index, total, lt_user_obj):
 
 
 async def main():
-    objs = await DBCookieOperator.get_objs(available=True, is_vip=True)
+    objs = await LTUserCookie.get_objs(available=True, is_vip=True)
     for i, obj in enumerate(objs):
         await post_heartbeat(i, len(objs), obj)
         await asyncio.sleep(5)

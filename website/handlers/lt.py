@@ -11,7 +11,7 @@ from utils.cq import async_zy
 from config import CDN_URL, g
 from utils.biliapi import BiliApi
 from config.log4 import lt_login_logger
-from utils.highlevel_api import DBCookieOperator
+from utils.reconstruction_model import LTUserCookie
 from config.log4 import website_logger as logging
 from utils.dao import redis_cache, LTUserSettings
 from utils.dao import LtUserLoginPeriodOfValidity
@@ -142,7 +142,7 @@ async def login(request):
         return json_response({"code": 403, "err_msg": "输入错误！检查你的输入!"})
 
     try:
-        flag, obj = await DBCookieOperator.add_user_by_account(
+        flag, obj = await LTUserCookie.add_user_by_account(
             account=account, password=password, notice_email=email)
     except Exception as e:
         lt_login_logger.error(f"登录失败: {account}-{password}：{e}\n{traceback.format_exc()}")
@@ -229,7 +229,7 @@ async def qr_code_result(request):
         cookies_dict[k] = v
 
     try:
-        flag, obj = await DBCookieOperator.add_cookie_by_qrcode(**cookies_dict)
+        flag, obj = await LTUserCookie.add_cookie_by_qrcode(**cookies_dict)
     except Exception as e:
         return json_response({"code": 500, "msg": f"服务器内部发生错误! {e}\n{traceback.format_exc()}"})
 
@@ -254,7 +254,7 @@ async def settings(request):
         context["err_msg"] = "你无权访问此页面。请返回宝藏站点首页，正确填写你的信息，然后点击「我要挂辣条」按钮。"
         return render_to_response("website/templates/settings.html", context=context)
 
-    obj = await DBCookieOperator.get_by_uid(user_id=bili_uid)
+    obj = await LTUserCookie.get_by_uid(user_id=bili_uid)
     context["user_name"] = obj.name
     context["user_id"] = obj.uid
     context["settings"] = await LTUserSettings.get(uid=bili_uid)

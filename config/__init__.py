@@ -21,22 +21,6 @@ REDIS_CONFIG = {
     "db": int(config["redis"]["stormgift_db"]),
 }
 
-REDIS_CONFIG_FOR_GO = {
-    "host": config["redis"]["host"],
-    "port": int(config["redis"]["port"]),
-    "password": config["redis"]["password"],
-    "db": int(config["redis"]["go_storm_db"]),
-}
-
-
-MYSQL_CONFIG = {
-    "user": config["mysql"]["user"],
-    "host": config["mysql"]["host"],
-    "port": int(config["mysql"]["port"]),
-    "password": config["mysql"]["password"],
-    "database": config["mysql"]["stormgift_database"],
-}
-
 
 CQBOT = {
     "api_root": config["cqbot"]["api_root"],
