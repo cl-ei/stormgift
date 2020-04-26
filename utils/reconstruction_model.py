@@ -263,6 +263,8 @@ class LTUserCookie:
             setattr(update_fields, k, v)
 
         await cls.update(lt_user, update_fields)
+        await redis_cache.set(key=f"{cls.key_account_to_uid}:{lt_user.account}", value=lt_user.uid)
+
         return True, lt_user
 
     @classmethod
@@ -286,12 +288,13 @@ class LTUserCookie:
                 return False, f"登录失败。{r}"
 
         diff = {}
+        if lt_user.account != account:
+            diff["password"] = account
+
         if lt_user.password != password:
-            lt_user.password = password
             diff["password"] = password
 
         if lt_user.notice_email != notice_email:
-            lt_user.notice_email = notice_email
             diff["notice_email"] = notice_email
         await cls.update(lt_user, diff)
 
