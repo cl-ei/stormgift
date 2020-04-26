@@ -134,8 +134,11 @@ class LTUserCookie:
         if not uid:
             uid = await redis_cache.get(key=f"{cls.key_account_to_uid}:{account}")
 
-        if not uid or uid <= 0:
-            return None
+        if uid is None:
+            return uid
+
+        if isinstance(uid, int) and uid <= 0:
+            return uid
 
         if await redis_cache.set_is_member(cls.key_white_list, uid):
             return uid
