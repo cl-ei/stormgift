@@ -95,10 +95,27 @@ class LTUserCookie:
             setattr(self, k, value)
 
     @classmethod
+    async def create(cls, **kwargs):
+        account = kwargs.get("account")
+        if not account:
+            return None
+
+        obj = cls(**kwargs)
+        save_values = {}
+        for k in cls.FIELDS:
+            save_values[k] = getattr(obj, k)
+
+        uid = kwargs.get("DedeUserID")
+        if isinstance(uid, int) and uid > 0:
+            await redis_cache.set(key=f"{cls.key_account_to_uid}:{account}", value=uid)
+        await redis_cache.set(key=f"{cls.key_prefix}:{uid}", value=save_values)
+        return obj
+
+    @classmethod
     async def add_uid_or_account_to_white_list(cls, uid=None, account=None):
         r1, r2 = None, None
         if account:
-            r1 = await redis_cache.set(key=f"{cls.key_account_to_uid}:{account}", value=uid)
+            r1 = await redis_cache.set(key=f"{cls.key_account_to_uid}:{account}", value=int(uid or -1))
         if uid:
             r2 = await redis_cache.set_add(cls.key_white_list, uid)
         return f"{r1}_{r2}"
@@ -117,7 +134,7 @@ class LTUserCookie:
         if not uid:
             uid = await redis_cache.get(key=f"{cls.key_account_to_uid}:{account}")
 
-        if not uid:
+        if not uid or uid <= 0:
             return None
 
         if await redis_cache.set_is_member(cls.key_white_list, uid):
@@ -248,9 +265,22 @@ class LTUserCookie:
     @classmethod
     async def add_user_by_account(cls, account, password, notice_email=None):
         uid = await cls.get_uid(account=account)
-        if not uid:
+        if uid is None:
             return False, "你不在白名单里。提前联系站长经过允许才可以使用哦。"
-        lt_user = await cls.get_by_uid(uid)
+        if uid > 0:
+            lt_user = await cls.get_by_uid(uid)
+        else:
+            flag, r = await BiliApi.login(account, password)
+            if flag:
+                r.update({
+                    "account": account,
+                    "password": password,
+                    "available": True,
+                })
+                lt_user = await cls.create(**r)
+                return True, lt_user
+            else:
+                return False, "登录失败。"
 
         diff = {}
         if lt_user.password != password:
