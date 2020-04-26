@@ -289,7 +289,7 @@ class LTUserCookie:
 
         diff = {}
         if lt_user.account != account:
-            diff["password"] = account
+            diff["account"] = account
 
         if lt_user.password != password:
             diff["password"] = password
