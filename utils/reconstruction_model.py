@@ -283,7 +283,7 @@ class LTUserCookie:
                 lt_user = await cls.create(**r)
                 return True, lt_user
             else:
-                return False, "登录失败。"
+                return False, f"登录失败。{r}"
 
         diff = {}
         if lt_user.password != password:
