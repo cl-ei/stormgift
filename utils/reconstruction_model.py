@@ -306,7 +306,7 @@ class LTUserCookie:
 
     @classmethod
     async def add_cookie_by_qrcode(cls, DedeUserID, SESSDATA, bili_jct, sid, DedeUserID__ckMd5):
-        uid = await cls.get_uid(uid=DedeUserID)
+        uid = await cls.get_uid(uid=int(DedeUserID))
         if not uid:
             return False, "你不在白名单里。提前联系站长经过允许才可以使用哦。"
 
