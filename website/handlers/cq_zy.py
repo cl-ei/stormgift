@@ -741,8 +741,8 @@ class BotHandler:
                 await redis_cache.set(key=key, value=web_token, timeout=3600*24*30)
 
             message = (
-                f"宝藏站点地址: \nhttp://lt.madliar.com:2020/lt_{token}\n\n"
-                f"如果无法使用密码登录，请使用二维码扫码登录：\nhttp://lt.madliar.com:2020/lt/qr_code_login/{token}\n\n"
+                f"宝藏站点地址: \nhttp://www.madliar.com:2020/lt_{token}\n\n"
+                f"如果无法使用密码登录，请使用二维码扫码登录：\nhttp://www.madliar.com:2020/lt/qr_code_login/{token}\n\n"
                 f"本URL只可一次性使用，如遇404则说明已失效，请重新获取；否则，请一直刷新页面，直到能够正常显示。\n\n"
                 "---------------\n"
                 "另外，为了防止异常情况导致QQ机器人不可用，你还可以通过web页面发送指令，来查询状态，你的专属地址"
