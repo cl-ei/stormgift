@@ -776,6 +776,9 @@ class BotHandler:
         elif context["message_type"] == "private":
             user_id = context["sender"]["user_id"]
             msg = context["raw_message"]
+            await async_zy.send_private_msg(user_id=user_id, message="系统升级中，预计27日晚24时恢复服务。")
+            return
+
             try:
                 response = await cls.handle_private_message(msg=msg, user_id=user_id)
             except Exception as e:
