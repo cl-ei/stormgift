@@ -654,7 +654,7 @@ class BotHandler:
             elif msg.startswith("auc"):
                 uid, account = msg[3:].split("-", 1)
                 r = await LTUserCookie.add_uid_or_account_to_white_list(uid=int(uid), account=account)
-                return f"白名单已添加: {account}, uid: {uid}, id: {r.id}"
+                return f"白名单已添加: {account}, uid: {uid}, id: {r}"
 
             elif msg.startswith("dc"):
                 account = msg[2:]
