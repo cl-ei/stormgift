@@ -172,7 +172,7 @@ class LTUserCookie:
         key = f"{cls.key_prefix}:{user_id}"
         value = await redis_cache.get(key=key)
         if not isinstance(value, dict):
-            value = {}
+            return None
         obj = cls(**value)
         if not available:
             return obj
