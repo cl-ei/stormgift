@@ -510,6 +510,9 @@ class BiliApi:
 
     @classmethod
     async def post_heartbeat_app(cls, cookie, access_token, timeout=30):
+        if not access_token:
+            return False, "No access_token."
+
         temp_params = f'access_key={access_token}&{cls.app_params}&ts={int(time.time())}'
         sign = cls.calc_sign(temp_params)
         url = f'https://api.live.bilibili.com/mobile/userOnlineHeart?{temp_params}&sign={sign}'
