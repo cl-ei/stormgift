@@ -85,6 +85,9 @@ class LTUserCookie:
         "available",
     )
 
+    def __repr__(self):
+        return f"<{self.DedeUserID}: {self.name}>"
+
     def __init__(self, **kwargs):
         for k in self.FIELDS:
             value = kwargs.get(k, None)
@@ -92,6 +95,8 @@ class LTUserCookie:
                 value = ""
             if k in ("cookie_expire_time", "blocked_time", ) and not value:
                 value = random_datetime()
+            if k == "available":
+                value = bool(value)
             setattr(self, k, value)
 
     @classmethod
@@ -152,6 +157,7 @@ class LTUserCookie:
             all_values = await redis_cache.mget(*all_keys)
             for value in all_values:
                 obj = cls(**value)
+                print(f"obj: {obj}")
                 if not available:
                     return obj
 
@@ -337,7 +343,7 @@ class LTUserCookie:
         flag, result = await cls._update_cookie(user)
         if flag:
             if user.uid in (g.BILI_UID_TZ, g.BILI_UID_CZ):
-                # await ReqFreLimitApi.set_available_cookie_for_xnode()
+                await cls.set_available_cookie_for_xnode()
                 pass
             return True, ""
 

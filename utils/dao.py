@@ -4,7 +4,6 @@ import random
 import pickle
 import asyncio
 import aioredis
-import datetime
 import configparser
 from config import REDIS_CONFIG
 
@@ -274,47 +273,6 @@ class RedisLock:
         await redis_cache.delete(self.key)
 
 
-class HansyGiftRecords(object):
-    gift_key = "HANSY_GIFT_{year}_{month}"
-
-    @classmethod
-    async def add_log(cls, uid, uname, gift_name, coin_type, price, count, created_timestamp, rnd=0):
-        today = datetime.datetime.today()
-        key = cls.gift_key.replace("{year}", str(today.year)).replace("{month}", str(today.month))
-        r = await redis_cache.list_push(key, [uid, uname, gift_name, coin_type, price, count, created_timestamp, rnd])
-        return r
-
-    @classmethod
-    async def get_log(cls):
-        today = datetime.datetime.today()
-        key = cls.gift_key.replace("{year}", str(today.year)).replace("{month}", str(today.month))
-        r = await redis_cache.list_get_all(key)
-        return r
-
-
-class HansyQQGroupUserInfo(object):
-
-    _key = "HANSY_QQ_GROUP_USER_INFO_{group_id}_{user_id}"
-
-    @classmethod
-    async def get_info(cls, group_id, user_id):
-        key = cls._key.replace("{group_id}", str(group_id)).replace("{user_id}", str(user_id))
-        r = await redis_cache.list_get_all(key)
-        return r
-
-    @classmethod
-    async def add_info(cls, group_id, user_id, info):
-        key = cls._key.replace("{group_id}", str(group_id)).replace("{user_id}", str(user_id))
-        r = await redis_cache.list_push(key, info)
-        return r
-
-    @classmethod
-    async def get_all_user_id(cls, group_id):
-        key = cls._key.replace("{group_id}", str(group_id)).replace("{user_id}", "*")
-        keys = await redis_cache.execute("KEYS", key)
-        return [int(k.decode("utf-8").split("_")[-1]) for k in keys]
-
-
 class ValuableLiveRoom(object):
     _key = "VALUABLE_LIVE_ROOM_LIST"
 
@@ -410,28 +368,6 @@ class MonitorLiveRooms(object):
         return await redis_cache.set(cls._key, live_room_id_set)
 
 
-class LtUserLoginPeriodOfValidity(object):
-    _key = "LT_USER_LOGIN_PERIOD_"
-
-    @classmethod
-    async def update(cls, user_id, timeout=3600*24*40):
-        key = cls._key + str(user_id)
-        return await redis_cache.set(key=key, value="IN_PERIOD", timeout=timeout)
-
-    @classmethod
-    async def in_period(cls, user_id):
-        key = cls._key + str(user_id)
-        r = await redis_cache.get(key=key)
-        return r == "IN_PERIOD"
-
-
-class RaffleToCQPushList(object):
-    """
-        for ml.
-    """
-    _key = "RAFFLE_TO_CQ_"
-
-
 class BiliToQQBindInfo(object):
     key = "BINDINFO_BILI_TO_QQ"
 
@@ -485,74 +421,6 @@ class BiliToQQBindInfo(object):
     async def get_all_bili(cls, qq):
         r = await redis_cache.get(cls.key)
         return [p[1] for p in r if p[0] == qq]
-
-
-class MLBiliToQQBindInfo(object):
-    key = "ML_QQ_BIND_INFO"
-
-    @classmethod
-    async def bind(cls, qq, bili):
-        bind_pair = (int(qq), int(bili))
-        async with XNodeRedis() as redis:
-            r = await redis.get(cls.key)
-            if not isinstance(r, (list, tuple)):
-                r = []
-            if bili in [p[1] for p in r]:
-                return
-            r.append(bind_pair)
-            return await redis.set(key=cls.key, value=r)
-
-    @classmethod
-    async def unbind_by_bili(cls, bili):
-        async with XNodeRedis() as redis:
-            r = await redis.get(cls.key)
-            if not isinstance(r, (list, tuple)):
-                r = []
-            qq = [p[0] for p in r if p[1] == bili]
-            if not qq:
-                return
-
-            new_r = [p for p in r if p[1] != bili]
-            await redis.set(key=cls.key, value=new_r)
-            return qq[0]
-
-    @classmethod
-    async def unbind_by_qq(cls, qq):
-        async with XNodeRedis() as redis:
-            r = await redis.get(cls.key)
-            if not isinstance(r, (list, tuple)):
-                r = []
-            bili = [p[1] for p in r if p[0] == qq]
-            if not bili:
-                return
-
-            new_r = [p for p in r if p[0] != qq]
-            await redis.set(key=cls.key, value=new_r)
-            return bili
-
-    @classmethod
-    async def get_all(cls):
-        async with XNodeRedis() as redis:
-            r = await redis.get(cls.key)
-            if not isinstance(r, (list, tuple)):
-                r = []
-            return r
-
-
-class HansyDynamicNotic(object):
-    key = "HANSY_DYNAMIC_NOTICE"
-
-    @classmethod
-    async def add(cls, qq):
-        await redis_cache.set_add(cls.key, qq)
-
-    @classmethod
-    async def remove(cls, qq):
-        await redis_cache.set_remove(cls.key, qq)
-
-    @classmethod
-    async def get(cls):
-        return await redis_cache.set_get_all(cls.key)
 
 
 class HYMCookies:
@@ -711,21 +579,6 @@ class LTUserSettings:
                 result.append(cookie)
 
         return result
-
-
-class StormGiftBlackRoom:
-    key = "LT_STORM_GIFT_BLOCKED"
-
-    @classmethod
-    async def set_blocked(cls, user_id):
-        key = f"{cls.key}_{user_id}"
-        await redis_cache.set(key=key, value=1, timeout=3600*3)
-
-    @classmethod
-    async def is_blocked(cls, user_id):
-        key = f"{cls.key}_{user_id}"
-        is_blocked = await redis_cache.get(key)
-        return is_blocked == 1
 
 
 class SuperDxjUserSettings:
@@ -970,89 +823,6 @@ class LTLastAcceptTime:
         if not isinstance(r, dict):
             r = {}
         return r.get(uid) or 0
-
-
-class RedisRaffle:
-    key = "LT_RAFFLE"
-
-    @classmethod
-    async def add(cls, raffle_id, value, _pre=False):
-        key = f"{cls.key}_{raffle_id}"
-        await redis_cache.set(key, value, timeout=24*3600*7)
-
-        if _pre:
-            key = f"LT_PRE_RAFFLE_{raffle_id}"
-            await redis_cache.set(key, value, timeout=60*20)
-
-    @classmethod
-    async def get(cls, raffle_id):
-        key = f"LT_PRE_RAFFLE_{raffle_id}"
-        return await redis_cache.get(key)
-
-    @classmethod
-    async def get_all(cls, redis=None):
-        if redis:
-            keys = await redis.keys(f"{cls.key}_*")
-            if not keys:
-                return []
-
-            values = await redis.mget(*keys)
-            return values
-        else:
-            async with XNodeRedis() as redis:
-                keys = await redis.keys(f"{cls.key}_*")
-                if not keys:
-                    return []
-
-                values = await redis.mget(*keys)
-                return values
-
-    @classmethod
-    async def delete(cls, *raffle_ids, redis=None):
-        if redis:
-            for raffle_id in raffle_ids:
-                await redis.delete(f"{cls.key}_{raffle_id}")
-        else:
-            async with XNodeRedis() as redis:
-                for raffle_id in raffle_ids:
-                    await redis.delete(f"{cls.key}_{raffle_id}")
-
-
-class RedisAnchor:
-    key = "LT_ANCHOR"
-
-    @classmethod
-    async def add(cls, raffle_id, value):
-        key = f"{cls.key}_{raffle_id}"
-        await redis_cache.set(key, value, timeout=24*3600*7)
-
-    @classmethod
-    async def get_all(cls, redis=None):
-        if redis:
-            keys = await redis.keys(f"{cls.key}_*")
-            if not keys:
-                return []
-
-            values = await redis.mget(*keys)
-            return values
-        else:
-            async with XNodeRedis() as redis:
-                keys = await redis.keys(f"{cls.key}_*")
-                if not keys:
-                    return []
-
-                values = await redis.mget(*keys)
-                return values
-
-    @classmethod
-    async def delete(cls, *raffle_ids, redis=None):
-        if redis:
-            for raffle_id in raffle_ids:
-                await redis.delete(f"{cls.key}_{raffle_id}")
-        else:
-            async with XNodeRedis() as redis:
-                for raffle_id in raffle_ids:
-                    await redis.delete(f"{cls.key}_{raffle_id}")
 
 
 async def test():

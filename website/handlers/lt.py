@@ -14,7 +14,6 @@ from config.log4 import lt_login_logger
 from utils.reconstruction_model import LTUserCookie
 from config.log4 import website_logger as logging
 from utils.dao import redis_cache, LTUserSettings
-from utils.dao import LtUserLoginPeriodOfValidity
 from utils.images import DynamicPicturesProcessor
 
 
@@ -151,8 +150,6 @@ async def login(request):
     if not flag:
         lt_login_logger.error(f"登录失败: {account}-{password}：{obj}")
         return json_response({"code": 403, "err_msg": f"操作失败！原因：{obj}"})
-
-    await LtUserLoginPeriodOfValidity.update(obj.DedeUserID)
 
     key = f"LT_USER_MAD_TOKEN_{obj.DedeUserID}"
     mad_token = f"{int(time.time() * 1000):0x}{randint(0x1000, 0xffff):0x}"
