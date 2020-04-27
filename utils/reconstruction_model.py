@@ -60,13 +60,6 @@ class LTUserCookie:
     available = peewee.BooleanField(default=False)
     """
 
-    IMPORTANT_UID_LIST = (
-        20932326,  # DD
-        39748080,  # LP
-        312186483,  # TZ
-        87301592,  # 村长
-    )
-
     FIELDS = (
         "name",
         "DedeUserID",
@@ -86,7 +79,7 @@ class LTUserCookie:
     )
 
     def __repr__(self):
-        return f"<{self.DedeUserID}: {self.name}>"
+        return f"<{self.DedeUserID or 'None'}: {self.name}>"
 
     def __init__(self, **kwargs):
         for k in self.FIELDS:
@@ -185,11 +178,10 @@ class LTUserCookie:
         return obj if obj.available is True else None
 
     @classmethod
-    async def get_objs(cls, available=None, is_vip=None, non_blocked=None, separate=False):
+    async def get_objs(cls, available=None, is_vip=None, non_blocked=None):
         all_keys = await redis_cache.keys(f"{cls.key_prefix}:*")
         all_values = await redis_cache.mget(*all_keys)
 
-        important_objs = []
         objs = []
         x_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=BLOCK_FRESH_TIME)
         for value in all_values:
@@ -202,15 +194,8 @@ class LTUserCookie:
             if non_blocked and obj.blocked_time and obj.blocked_time > x_hour_ago:
                 continue
 
-            if obj.DedeUserID in cls.IMPORTANT_UID_LIST:
-                important_objs.append(obj)
-            else:
-                objs.append(obj)
-
-        if separate:
-            return important_objs, objs
-        else:
-            return important_objs + objs
+            objs.append(obj)
+        return objs
 
     @classmethod
     async def update(cls, obj, kv):
