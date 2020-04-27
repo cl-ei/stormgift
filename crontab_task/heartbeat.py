@@ -16,11 +16,11 @@ async def post_heartbeat(index, total, lt_user_obj):
         logging.error(f"post_heartbeat_last_timest failed! msg: {data}")
         return
 
-    r, data = await BiliApi.post_heartbeat_app(cookie=cookie, access_token=lt_user_obj.access_token)
-    if not r:
-        logging.error(f"post_heartbeat_app failed! msg: {data}")
-        return
-    logging.info(f"({index + 1}/{total}) Post heartbeat for {lt_user_obj.name}(uid: {lt_user_obj.DedeUserID}) done.")
+    if lt_user_obj.access_token:
+        r, data = await BiliApi.post_heartbeat_app(cookie=cookie, access_token=lt_user_obj.access_token)
+        if not r:
+            logging.error(f"post_heartbeat_app failed! msg: {data}")
+    logging.info(f"({index + 1}/{total}) Post heartbeat for {lt_user_obj} done.")
 
 
 async def main():
