@@ -79,7 +79,7 @@ class LTUserCookie:
     )
 
     def __repr__(self):
-        return f"<{self.DedeUserID or 'None'}: {self.name}>"
+        return f"<{self.DedeUserID}: {self.name or 'None'}>"
 
     def __init__(self, **kwargs):
         for k in self.FIELDS:
