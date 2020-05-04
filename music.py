@@ -98,7 +98,52 @@ async def download_song(song_id, song_name):
     return True, download_info
 
 
+async def start_danmaku_monitor():
+    from utils.biliapi import WsApi
+    from utils.ws import RCWebSocketClient
+
+    MONITOR_ROOM_ID = 13369254
+
+    async def on_connect(ws):
+        await ws.send(WsApi.gen_join_room_pkg(MONITOR_ROOM_ID))
+
+    async def on_shut_down():
+        raise RuntimeError("Connection broken!")
+
+    async def on_message(message):
+        for m in WsApi.parse_msg(message):
+            try:
+                cmd = m.get("cmd", "")
+                if not cmd.startswith("DANMU_MSG"):
+                    continue
+
+                info = message.get("info", {})
+                msg = str(info[1])
+                user_name = info[2][1]
+
+                if msg.startswith("#点歌") or msg.startswith("点歌") or msg.startswith("＃点歌"):
+                    song_name = msg.split("点歌", 1)[-1].strip()
+                    url = f"http://127.0.0.1:4096/command/{user_name}${song_name}"
+                    async with aiohttp.request("get", url=url) as _:
+                        pass
+            except Exception as e:
+                print(f"Exception: {e}")
+
+    new_client = RCWebSocketClient(
+        url=WsApi.BILI_WS_URI,
+        on_message=on_message,
+        on_connect=on_connect,
+        on_shut_down=on_shut_down,
+        heart_beat_pkg=WsApi.gen_heart_beat_pkg(),
+        heart_beat_interval=30
+    )
+
+    await new_client.start()
+
+
 async def main():
+    await start_danmaku_monitor()
+
     command_q = asyncio.Queue()
 
     app = web.Application()
@@ -112,7 +157,7 @@ async def main():
 
         context = {
             "DEBUG": DEBUG,
-            "CDN_URL": "http://192.168.100.100:80",
+            "CDN_URL": "" if DEBUG else "http://192.168.100.100:80",
             "title": "grafana",
             "background_images": ["/static/img/" + img for img in image_files],
             "background_musics": ["/static/music/" + mp3 for mp3 in music_files],
@@ -163,8 +208,12 @@ async def main():
         song_name = current.split("/")[-1].split(".")[0]
         path = f"./live_room_statics/download/{song_name}.lrc"
         try:
-            with open(path, "r") as f:
-                message["lyric"] = parse_lyrics(f.read())
+            with open(path, "rb") as f:
+                try:
+                    lyr_content = f.read().decode("utf-8")
+                except UnicodeDecodeError:
+                    lyr_content = f.read().decode("gbk")
+                message["lyric"] = parse_lyrics(lyr_content)
         except IOError:
             pass
         await notice(message)

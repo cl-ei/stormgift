@@ -1,0 +1,1 @@
+CreateObject("WScript.Shell").Run "python c:\\Users\\Administrator\\Desktop\\stormgift\\music.py", 0
