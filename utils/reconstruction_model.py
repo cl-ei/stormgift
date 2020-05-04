@@ -336,7 +336,7 @@ class LTUserCookie:
         send_cookie_invalid_notice(user)
         qq_num = await BiliToQQBindInfo.get_by_bili(bili=user.DedeUserID)
         if qq_num:
-            await async_zy.send_private_msg(user_id=qq_num, message=f"你的登录已过期，请重新登录。")
+            await async_zy.send_private_msg(user_id=qq_num, message=f"你的登录已过期，请重新登录。\n{str(user)}")
         return False, result
 
     @classmethod
