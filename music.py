@@ -117,7 +117,7 @@ async def start_danmaku_monitor():
                 if not cmd.startswith("DANMU_MSG"):
                     continue
 
-                info = message.get("info", {})
+                info = m.get("info", {})
                 msg = str(info[1])
                 user_name = info[2][1]
 
