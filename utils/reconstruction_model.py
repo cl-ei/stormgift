@@ -10,7 +10,8 @@ from utils.email import send_cookie_invalid_notice
 from utils.dao import BiliToQQBindInfo, UserRaffleRecord, LTLastAcceptTime, LTTempBlack, XNodeRedis
 
 
-BLOCK_FRESH_TIME = 1
+# 辣条领取小黑屋更新时间, 单位：秒
+BLOCK_FRESH_TIME = 60*10
 
 
 def random_datetime():
@@ -183,7 +184,7 @@ class LTUserCookie:
         all_values = await redis_cache.mget(*all_keys)
 
         objs = []
-        x_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=BLOCK_FRESH_TIME)
+        block_threshold = datetime.datetime.now() - datetime.timedelta(seconds=BLOCK_FRESH_TIME)
         for value in all_values:
             obj = cls(**value)
             if available and not obj.available:
@@ -191,7 +192,7 @@ class LTUserCookie:
             if is_vip and not obj.is_vip:
                 continue
 
-            if non_blocked and obj.blocked_time and obj.blocked_time > x_hour_ago:
+            if non_blocked and obj.blocked_time and obj.blocked_time > block_threshold:
                 continue
 
             objs.append(obj)
