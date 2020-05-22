@@ -580,6 +580,18 @@ class LTUserSettings:
 
         return result
 
+    @classmethod
+    async def reset_to_zero(cls, uid):
+        key = f"{cls.key}_{uid}"
+        settings = await redis_cache.get(key=key)
+        if not isinstance(settings, dict):
+            return
+        for k in settings:
+            if k.endswith("_percent"):
+                settings[k] = 0
+        await redis_cache.set(key=key, value=settings)
+        return True
+
 
 class SuperDxjUserSettings:
     key = "LT_SUPER_DXJ_SETTINGS"
