@@ -642,8 +642,15 @@ class BotHandler:
     async def handle_private_message(cls, msg, user_id):
         if user_id == g.QQ_NUMBER_DD:
             if msg.startswith("approve"):
-                flag = msg[7:]
-                r = await async_zy.set_friend_add_request(flag=flag, approve=True)
+                try:
+                    _, flag, sub_type = msg.strip().split("$")
+                except (TypeError, ValueError, IndexError):
+                    return
+
+                if sub_type:
+                    r = await async_zy.set_group_add_request(flag=flag, sub_type=sub_type, approve=True)
+                else:
+                    r = await async_zy.set_friend_add_request(flag=flag, approve=True)
                 return f"已通过：{r}"
 
             elif msg.startswith("ac"):
@@ -789,11 +796,9 @@ class BotHandler:
     @classmethod
     async def handle_request(cls, context):
         if context["request_type"] == "group":
-            await async_zy.send_private_msg(
-                user_id=g.QQ_NUMBER_DD,
-                message=f"request_type: group, context: \n{context}"
-            )
-            return
+            postfix = f"梓亚收到【加群】请求\n\napprove${context['flag']}${context['sub_type']}"
+        else:
+            postfix = f"梓亚收到【好友】请求\n\napprove${context['flag']}$"
 
         try:
             flag, data = await async_zy.get_stranger_info(user_id=context['user_id'], no_cache=True)
@@ -813,11 +818,10 @@ class BotHandler:
         sex = data.get("sex", "-")
 
         message = (
-            f"梓亚收到好友请求:\n"
             f"验证消息: {context['comment']}\n"
             f"{nickname}({context['user_id']}) - {sex}\n"
-            f"年龄: {age}\n\n"
-            f"approve{context['flag']}"
+            f"年龄: {age}\n"
+            f"{postfix}"
         )
         await async_zy.send_private_msg(user_id=g.QQ_NUMBER_DD, message=message)
 
