@@ -100,8 +100,15 @@ class RedisCache(object):
             if not isinstance(r, list) or len(r) != len(keys):
                 raise Exception(f"Redis hash map read error! r: {r}")
 
-            result = [pickle.loads(_) for _ in r]
-            return result[0] if len(result) == 1 else result
+            result = {}
+            for i, key in enumerate(keys):
+                value = r[i]
+                try:
+                    value = pickle.loads(value)
+                except (TypeError, ValueError, IndexError, pickle.UnpicklingError):
+                    value = None
+                result[key] = value
+            return result
 
         else:
             """HDEL key field1 [field2] """

@@ -700,10 +700,10 @@ class BiliApi:
         return flag, data
 
     @classmethod
-    async def get_user_medal_list(cls, uid, cookie=None, timeout=10):
-        url = f"https://api.live.bilibili.com/AppUser/medal?uid={uid}"
-        headers = {"Cookie": cookie} if cookie else {}
-        flag, r = await cls.get(url=url, timeout=timeout, headers=headers, check_error_code=True)
+    async def get_user_medal_list(cls, *uid_list: int, timeout=10):
+        uid_param = "&".join([f"uids[{_}]={uid_list[_]}" for _ in range(len(uid_list))])
+        url = f"https://api.live.bilibili.com/user/v2/User/getMultiple?attributes[]=medal&{uid_param}"
+        flag, r = await cls.get(url=url, timeout=timeout, check_error_code=True)
         if flag:
             return True, r["data"]
         return flag, r

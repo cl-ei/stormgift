@@ -330,7 +330,6 @@ class LTUserCookie:
         if flag:
             if user.uid in (g.BILI_UID_TZ, g.BILI_UID_CZ):
                 await cls.set_available_cookie_for_xnode()
-                pass
             return True, ""
 
         # email & qq notice
