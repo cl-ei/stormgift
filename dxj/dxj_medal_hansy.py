@@ -153,8 +153,9 @@ async def main():
                 if m.get("cmd", "") == "SEND_GIFT":
                     gift = SendGift(**m["data"])
                     info_queue.put_nowait(gift)
+
                 elif m.get("cmd", "").startswith("DANMU_MSG"):
-                    info = message.get("info", {})
+                    info = m.get("info", {})
                     msg = str(info[1])
                     uid = info[2][0]
                     user_name = info[2][1]
