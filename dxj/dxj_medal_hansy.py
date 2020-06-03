@@ -44,7 +44,7 @@ mgr = MedalManager(MONITOR_ROOM_ID)
 
 
 async def notice(user_name: str, medal_name: str, level: int):
-    msg = f"恭喜{user_name}的【{medal_name}】勋章升级到{level}级！再接再厉~"
+    msg = f"恭喜{user_name}的{medal_name}勋章升到{level}级~mua~"
     await send_danmaku(msg, user_id=DANMAKU_SENDER_UID)
 
 
