@@ -68,7 +68,9 @@ async def worker(master_id: int):
         # do notice!
         medal_name = medal["medal_name"]
         danmaku = f"恭喜{user_name}的【{medal_name}】勋章升级到{current_level}级~~"
-        await dmk_sender.send(danmaku)
+        flag, reason = await dmk_sender.send(msg=danmaku)
+        if not flag:
+            logging.error(f"弹幕发送失败: {reason}")
 
         await medal_mgr.add_today_prompted(uid)
 
@@ -101,13 +103,17 @@ async def proc_message(message):
             else:
                 prompt = f"已{msg}，"
             message = f"{user_name}{prompt}连续{msg}{continue_days}天、累计{total_days}天，排名第{rank}."
-            await dmk_sender.send(msg=message)
+            flag, reason = await dmk_sender.send(msg=message)
+            if not flag:
+                logging.error(f"弹幕发送失败: {reason}")
 
         elif msg == "积分":
             sign_mgr = SignManager(room_id=MONITOR_ROOM_ID, user_id=uid)
             score = await sign_mgr.get_score()
             message = f"{user_name}现在拥有{score:.2f}积分."
-            await dmk_sender.send(msg=message)
+            flag, reason = await dmk_sender.send(msg=message)
+            if not flag:
+                logging.error(f"弹幕发送失败: {reason}")
 
     elif cmd == "SEND_GIFT":
         gift = SendGift(**message["data"])

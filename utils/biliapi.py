@@ -1126,7 +1126,7 @@ class DmkSender:
             flag, reason = await self._send_one(msg[:30], cookie=c.cookie)
             if not flag:
                 return flag, reason
-            msg = msg[:30]
+            msg = msg[30:]
             await asyncio.sleep(1.1)
         return True, ""
 
