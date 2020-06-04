@@ -4,7 +4,9 @@ import random
 import pickle
 import asyncio
 import aioredis
+import datetime
 import configparser
+from typing import List, Dict
 from config import REDIS_CONFIG
 
 
@@ -842,6 +844,96 @@ class LTLastAcceptTime:
         if not isinstance(r, dict):
             r = {}
         return r.get(uid) or 0
+
+
+class MedalManager:
+    key_prefix = "LT:INTI"
+    today_key_prefix = "LT:INTI_TODAY"
+
+    def __init__(self, room_id: int):
+        self.room_id = room_id
+        self.key = f"{self.key_prefix}:{room_id}"
+        self.today_key = f"{self.today_key_prefix}:{room_id}"
+
+    async def set_level_info(self, uid: int, level: int) -> int:
+        return await redis_cache.hash_map_set(self.key, {uid: level})
+
+    async def get_level_info(self, *uids: int) -> Dict[int, dict]:
+        return await redis_cache.hash_map_get(self.key, *uids)
+
+    async def get_today_prompted(self) -> List[int]:
+        return await redis_cache.list_get_all(self.today_key)
+
+    async def add_today_prompted(self, uid: int) -> None:
+        await redis_cache.list_push(self.today_key, uid)
+
+
+class SignManager:
+    def __init__(self, room_id: int, user_id: int):
+        self.room_id = room_id
+        self.user_id = user_id
+        self.key = F"LT_SIGN_V2_{room_id}"
+
+    async def sign_dd(self):
+        base = datetime.date.fromisoformat("2020-01-01")
+        now = datetime.datetime.now().date()
+        today_num = (now - base).days
+
+        info = await redis_cache.get(key=self.key)
+        info = info or []
+
+        # 检查今日已有几人签到
+        today_sign_count = 0
+        for s in info:
+            if today_num in s["sign"]:
+                today_sign_count += 1
+        dec_score = 0.001 * int(today_sign_count)
+
+        for s in info:
+            if s["id"] == self.user_id:
+                if today_num in s["sign"]:
+                    sign_success = False
+                else:
+                    s["sign"].insert(0, today_num)
+                    sign_success = True
+
+                continue_days = 0
+                for delta in range(len(s["sign"])):
+                    if (today_num - delta) in s["sign"]:
+                        continue_days += 1
+                    else:
+                        break
+                total_days = len(s["sign"])
+
+                if sign_success:
+                    s["score"] += 50 + min(84, 12 * (continue_days - 1)) - dec_score
+                current_score = s["score"]
+                break
+        else:
+            # 新用户
+            s = {
+                "id": self.user_id,
+                "score": 50 - dec_score,
+                "sign": [today_num],
+            }
+            info.append(s)
+            continue_days = 1
+            total_days = 1
+            current_score = s["score"]
+            sign_success = True
+
+        await redis_cache.set(key=self.key, value=info)
+        all_scores = sorted([s["score"] for s in info], reverse=True)
+        rank = all_scores.index(current_score)
+        return sign_success, continue_days, total_days, rank + 1, current_score, today_sign_count
+
+    async def get_score(self):
+        info = await redis_cache.get(self.key)
+        info = info or []
+        for s in info:
+            if s["id"] == self.user_id:
+                return s["score"]
+        return 0
 
 
 async def test():

@@ -7,6 +7,7 @@ QQ_NUMBER_温柔祯 = 785713982
 BILI_UID_DD = 20932326
 BILI_UID_TZ = 312186483
 BILI_UID_CZ = 87301592
+BILI_UID_WZ = 12298306
 
 lottery_danmaku = (
     "哔哩哔哩 (゜-゜)つロ 干杯~",

@@ -4,6 +4,8 @@ import time
 import zlib
 import struct
 import asyncio
+from typing import Tuple
+
 import aiohttp
 import hashlib
 import traceback
@@ -1088,6 +1090,45 @@ class BiliApi:
         headers = {"Cookie": cookie}
         flag, msg = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
         return flag, msg
+
+
+class DmkSender:
+    def __init__(self, room_id: int, user_id: int, try_times=3):
+        self.room_id = room_id
+        self.user_id = user_id
+        self.try_times = try_times
+
+    async def _send_one(self, dmk, cookie) -> Tuple[bool, str]:
+        dmk = dmk[:30]
+        for _ in range(self.try_times):
+            flag, data = await BiliApi.send_danmaku(
+                message=dmk, room_id=self.room_id, cookie=cookie)
+            if not flag:
+                logging.error(f"Dmk send failed, msg: {dmk}, reason: {data}")
+                await asyncio.sleep(1.1)
+                continue
+
+            # flag is True
+            if data == "fire":
+                return False, "返回'fire'，可能是请求太频繁"
+            # logging.debug(f"DMK success: {send_m}, reason: {data}")
+            return True, ""
+
+        return False, f"连续{self.try_times}次都没能成功发送[{dmk}].结束发送."
+
+    async def send(self, msg: str) -> Tuple[bool, str]:
+        from utils.reconstruction_model import LTUserCookie
+        c = await LTUserCookie.get_by_uid(user_id=self.user_id)
+        if not c:
+            return False, f"未能获取Cookie user_id: {self.user_id}"
+
+        while msg:
+            flag, reason = await self._send_one(msg[:30], cookie=c.cookie)
+            if not flag:
+                return flag, reason
+            msg = msg[:30]
+            await asyncio.sleep(1.1)
+        return True, ""
 
 
 async def test():

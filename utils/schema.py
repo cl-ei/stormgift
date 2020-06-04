@@ -79,3 +79,9 @@ class SendGift(RWSchema):
 
     def __str__(self):
         return self.__repr__()
+
+
+class Sign(RWSchema):
+    id: int
+    score: float
+    sign: List[int]

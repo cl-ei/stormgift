@@ -10,36 +10,12 @@ from utils.biliapi import WsApi, BiliApi
 from config.log4 import dxj_hansy_logger as logging
 from utils.reconstruction_model import LTUserCookie
 from utils.schema import SendGift
-
+from utils.dao import MedalManager
 
 MONITOR_ROOM_ID = 2516117
 DANMAKU_SENDER_UID = 87301592
 
 info_queue = asyncio.Queue()
-
-
-class MedalManager:
-    key_prefix = "LT:INTI"
-    today_key_prefix = "LT:INTI_TODAY"
-
-    def __init__(self, room_id: int):
-        self.room_id = room_id
-        self.key = f"{self.key_prefix}:{room_id}"
-        self.today_key = f"{self.today_key_prefix}:{room_id}"
-
-    async def set_level_info(self, uid: int, level: int) -> int:
-        return await redis_cache.hash_map_set(self.key, {uid: level})
-
-    async def get_level_info(self, *uids: int) -> Dict[int, dict]:
-        return await redis_cache.hash_map_get(self.key, *uids)
-
-    async def get_today_prompted(self) -> List[int]:
-        return await redis_cache.list_get_all(self.today_key)
-
-    async def add_today_prompted(self, uid: int) -> None:
-        await redis_cache.list_push(self.today_key, uid)
-
-
 mgr = MedalManager(MONITOR_ROOM_ID)
 
 
