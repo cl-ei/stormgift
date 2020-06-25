@@ -10,8 +10,9 @@ from jinja2 import Template
 from utils.cq import async_zy
 from config import CDN_URL, g
 from utils.biliapi import BiliApi
+from db.queries import queries, LTUser
+from website.operations import add_user_by_account
 from config.log4 import lt_login_logger
-from utils.reconstruction_model import LTUserCookie
 from config.log4 import website_logger as logging
 from utils.dao import redis_cache, LTUserSettings
 from utils.images import DynamicPicturesProcessor
@@ -93,6 +94,17 @@ async def check_login(request):
     return bili_uid
 
 
+async def gen_login_succeed_response(lt_user: LTUser):
+    key = f"LT_USER_MAD_TOKEN_{lt_user.DedeUserID}"
+    mad_token = f"{int(time.time() * 1000):0x}{randint(0x1000, 0xffff):0x}"
+    await redis_cache.set(key=key, value=mad_token, timeout=3600*24*30)
+
+    response = json_response({"code": 0, "location": "/lt/settings"})
+    response.set_cookie(name="mad_token", value=mad_token)
+    response.set_cookie(name="DedeUserID", value=lt_user.DedeUserID)
+    return response
+
+
 async def lt(request):
     token = request.match_info['token']
     if not token:
@@ -140,24 +152,19 @@ async def login(request):
     if not account or not password:
         return json_response({"code": 403, "err_msg": "输入错误！检查你的输入!"})
 
-    try:
-        flag, obj = await LTUserCookie.add_user_by_account(
-            account=account, password=password, notice_email=email)
-    except Exception as e:
-        lt_login_logger.error(f"登录失败: {account}-{password}：{e}\n{traceback.format_exc()}")
-        return json_response({"code": 500, "err_msg": f"服务器内部发生错误! {e}\n{traceback.format_exc()}"})
+    flag, message = await add_user_by_account(
+        account=account,
+        password=password,
+        notice_email=email,
+    )
 
-    if not flag:
-        lt_login_logger.error(f"登录失败: {account}-{password}：{obj}")
-        return json_response({"code": 403, "err_msg": f"操作失败！原因：{obj}"})
+    if flag:
+        lt_user = message
+    else:
+        lt_login_logger.error(f"登录失败: {account}-{password}：{message}")
+        return json_response({"code": 403, "err_msg": f"操作失败！原因：{message}"})
 
-    key = f"LT_USER_MAD_TOKEN_{obj.DedeUserID}"
-    mad_token = f"{int(time.time() * 1000):0x}{randint(0x1000, 0xffff):0x}"
-    await redis_cache.set(key=key, value=mad_token, timeout=3600*24*30)
-
-    response = json_response({"code": 0, "location": "/lt/settings"})
-    response.set_cookie(name="mad_token", value=mad_token, httponly=True)
-    response.set_cookie(name="DedeUserID", value=obj.DedeUserID, httponly=True)
+    response = await gen_login_succeed_response(lt_user)
     lt_login_logger.info(f"登录成功: {account}-{password}：lt")
     return response
 
@@ -225,22 +232,14 @@ async def qr_code_result(request):
         k, v = c.split(";", 1)[0].split("=", 1)
         cookies_dict[k] = v
 
-    try:
-        flag, obj = await LTUserCookie.add_cookie_by_qrcode(**cookies_dict)
-    except Exception as e:
-        return json_response({"code": 500, "msg": f"服务器内部发生错误! {e}\n{traceback.format_exc()}"})
+    lt_user = await queries.upsert_lt_user(
+        access_token="",
+        refresh_token="",
+        **cookies_dict
+    )
 
-    if not flag:
-        return json_response({"code": 400, "msg": obj})
-
-    key = f"LT_USER_MAD_TOKEN_{obj.DedeUserID}"
-    mad_token = f"{int(time.time() * 1000):0x}{randint(0x1000, 0xffff):0x}"
-    await redis_cache.set(key=key, value=mad_token, timeout=3600 * 24 * 30)
-
-    response = json_response({"code": 0, "location": "/lt/settings"})
-    response.set_cookie(name="mad_token", value=mad_token, httponly=True)
-    response.set_cookie(name="DedeUserID", value=obj.DedeUserID, httponly=True)
-    lt_login_logger.info(f"登录成功: DedeUserID: {obj.DedeUserID}-{obj.name}：qrcode")
+    response = await gen_login_succeed_response(lt_user)
+    lt_login_logger.info(f"登录成功: DedeUserID: {lt_user}：qrcode")
     return response
 
 
@@ -251,7 +250,7 @@ async def settings(request):
         context["err_msg"] = "你无权访问此页面。请返回宝藏站点首页，正确填写你的信息，然后点击「我要挂辣条」按钮。"
         return render_to_response("website/templates/settings.html", context=context)
 
-    obj = await LTUserCookie.get_by_uid(user_id=bili_uid)
+    obj = await queries.get_lt_user_by_uid(user_id=bili_uid)
     context["user_name"] = obj.name
     context["user_id"] = obj.uid
     context["settings"] = await LTUserSettings.get(uid=bili_uid)

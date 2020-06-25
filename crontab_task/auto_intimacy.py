@@ -1,7 +1,8 @@
 import asyncio
 from config.log4 import config_logger
-from utils.reconstruction_model import LTUserCookie
 from utils.dao import LTUserSettings
+from db.queries import queries, LTUser
+
 
 logging = config_logger("auto_intimacy")
 
@@ -98,21 +99,21 @@ async def send_gift(cookie, medal, user_name=""):
 async def main():
     r = await LTUserSettings.get_all()
     for user_id, setting in r.items():
-        obj = await LTUserCookie.get_by_uid(user_id=user_id, available=True)
-        if not obj:
+        lt_user: LTUser = await queries.get_lt_user_by_uid(user_id=user_id)
+        if not lt_user or not lt_user.available:
             continue
 
         medals = setting["medals"]
         for medal in medals:
-            await send_gift(cookie=obj.cookie, medal=medal, user_name=obj.name)
+            await send_gift(cookie=lt_user.cookie, medal=medal, user_name=lt_user.name)
 
-    obj = await LTUserCookie.get_by_uid(312186483)
-    if obj:
-        await send_gift(cookie=obj.cookie, medal="發电姬", user_name="桃子")
+    lt_user: LTUser = await queries.get_lt_user_by_uid(user_id=312186483)
+    if lt_user:
+        await send_gift(cookie=lt_user.cookie, medal="發电姬", user_name="桃子")
 
-    obj = await LTUserCookie.get_by_uid(87301592)
-    if obj:
-        await send_gift(cookie=obj.cookie, medal="电磁泡", user_name="村长")
+    lt_user: LTUser = await queries.get_lt_user_by_uid(user_id=87301592)
+    if lt_user:
+        await send_gift(cookie=lt_user.cookie, medal="电磁泡", user_name="村长")
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

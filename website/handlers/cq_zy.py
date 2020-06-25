@@ -16,10 +16,11 @@ from utils.cq import async_zy
 from utils.biliapi import BiliApi
 from utils.cq import bot_zy as bot
 from config import cloud_function_url
+from utils.covert import gen_time_prompt
+from db.queries import LTUser, queries
 from utils.highlevel_api import ReqFreLimitApi
 from config.log4 import cqbot_logger as logging
-from utils.reconstruction_model import LTUserCookie
-from utils.reconstruction_model import LTUserCookie
+from website.operations import get_lt_user_status
 from utils.images import DynamicPicturesProcessor
 from utils.dao import (
     RedisLock,
@@ -296,64 +297,8 @@ class BotUtils:
 
         else:
             assigned_uid = bili_uid_list[0]
-
-        flag, msg = await LTUserCookie.get_lt_status(uid=assigned_uid)
+        flag, msg = await get_lt_user_status(user_id=assigned_uid)
         return msg
-
-    async def proc_record_followings(self, msg, user_id, group_id=None):
-        self.group_id = group_id
-        self.user_id = user_id
-
-        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
-        if not bili_uid:
-            self.response(f"你尚未绑定B站账号，请私聊我然后发送\"#绑定\"进行绑定。")
-            return
-
-        flag, fs = await BiliApi.get_followings(user_id=bili_uid)
-        if not flag:
-            self.response(f"记录失败！{fs}")
-            return
-        key = f"LT_FOLLOWINGS_{bili_uid}"
-        await redis_cache.set(key, fs, timeout=3600*24*30)
-        self.response(f"操作成功！记录下了你最新关注的{len(fs)}个up主。")
-
-    async def proc_unfollow(self, msg, user_id, group_id=None):
-        self.group_id = group_id
-        self.user_id = user_id
-
-        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=user_id)
-        if not bili_uid:
-            self.response(f"你尚未绑定B站账号，请私聊我然后发送“#绑定”进行绑定。")
-            return
-
-        cookie_obj = await LTUserCookie.get_by_uid(user_id=bili_uid, available=True)
-        if not cookie_obj:
-            self.response("你的登录已过期！请登录辣条宝藏站点重新登录。")
-            return
-
-        async with RedisLock(key=f"LT_UNFOLLOW_{user_id}") as _:
-            key = f"LT_FOLLOWINGS_{bili_uid}"
-            follows = await redis_cache.get(key)
-            if not isinstance(follows, (list, set)):
-                self.response("你没有记录你的关注列表，不能操作。")
-                return
-
-            flag, current_follows = await BiliApi.get_followings(user_id=bili_uid)
-            if not flag:
-                self.response(f"操作失败，未能获取你的关注列表: {current_follows}")
-                return
-
-            need_delete = list(set(current_follows) - set(follows))
-            if need_delete:
-                self.response(f"开始操作，需要取关{len(need_delete)}个up主。可能会耗费较久的时间，期间不要重复发送指令。")
-
-            for i, uid in enumerate(need_delete):
-                flag, msg = await BiliApi.unfollow(user_id=uid, cookie=cookie_obj.cookie)
-                if not flag:
-                    self.response(f"在处理第{i}个时发生了错误：{msg}.")
-                    return
-                await asyncio.sleep(0.2)
-            self.response(f"操作成功！取关了{len(need_delete)}个up主。")
 
     async def proc_query_bag(self, msg):
         bili_uid = await BiliToQQBindInfo.get_by_qq(qq=self.user_id)
@@ -367,8 +312,8 @@ class BotUtils:
         except (ValueError, TypeError, AssertionError):
             pass
 
-        user = await LTUserCookie.get_by_uid(user_id=bili_uid, available=True)
-        if not user:
+        user = await queries.get_lt_user_by_uid(user_id=bili_uid)
+        if not user or not user.available:
             return f"未查询到用户「{bili_uid}」。可能用户已过期，请重新登录。"
 
         bag_list = await BiliApi.get_bag_list(user.cookie)
@@ -519,17 +464,6 @@ class BotUtils:
             last_active_time = 0
         last_active_time = int(time.time()) - last_active_time
 
-        def gen_time_prompt(interval):
-            if interval > 3600 * 24 * 365:
-                return f"很久以前"
-            elif interval > 3600 * 24:
-                return f"约{int(interval // (3600 * 24))}天前"
-            elif interval > 3600:
-                return f"约{int(interval // 3600)}小时前"
-            elif interval > 60:
-                return f"约{int(interval // 60)}分钟前"
-            return f"{int(interval)}秒前"
-
         all_gifts = await DelayAcceptGiftsQueue.get_all()
         gifts = []
         score = []
@@ -653,24 +587,9 @@ class BotHandler:
                     r = await async_zy.set_friend_add_request(flag=flag, approve=True)
                 return f"已通过：{r}"
 
-            elif msg.startswith("ac"):
-                account = msg[2:]
-                r = await LTUserCookie.add_uid_or_account_to_white_list(account=account)
-                return f"白名单已添加: {account}, id: {r}"
-
-            elif msg.startswith("auc"):
-                uid, account = msg[3:].split("-", 1)
-                r = await LTUserCookie.add_uid_or_account_to_white_list(uid=int(uid), account=account)
-                return f"白名单已添加: {account}, uid: {uid}, id: {r}"
-
-            elif msg.startswith("dc"):
-                account = msg[2:]
-                r = await LTUserCookie.del_uid_or_account_from_white_list(account=account)
-                return f"白名单已删除: {account}, id: {r}"
-
             elif msg.startswith("33"):
                 message = msg[2:]
-                dd_obj = await LTUserCookie.get_by_uid("DD")
+                dd_obj = await queries.get_lt_user_by_uid("DD")
                 await BiliApi.send_danmaku(message=message, room_id=13369254, cookie=dd_obj.cookie)
                 return
 

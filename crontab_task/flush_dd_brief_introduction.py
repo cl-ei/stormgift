@@ -3,7 +3,7 @@ import asyncio
 import requests
 import datetime
 from utils.biliapi import BiliApi
-from utils.reconstruction_model import LTUserCookie
+from db.queries import queries, LTUser
 
 
 template_text = """
@@ -81,8 +81,8 @@ async def gen_intro():
 
 async def main():
     intro = await gen_intro()
-    obj = await LTUserCookie.get_by_uid(user_id="DD")
-    r = await BiliApi.update_brief_intro(cookie=obj.cookie, description=intro)
+    lt_user: LTUser = await queries.get_lt_user_by_uid(user_id="DD")
+    r = await BiliApi.update_brief_intro(cookie=lt_user.cookie, description=intro)
     print(r)
 
 

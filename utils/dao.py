@@ -97,35 +97,33 @@ class RedisCache(object):
         return await self.execute("hmset", name, *args)
 
     async def hash_map_get(self, name, *keys):
-        if keys:
-            r = await self.execute("hmget", name, *[pickle.dumps(k) for k in keys])
-            if not isinstance(r, list) or len(r) != len(keys):
-                raise Exception(f"Redis hash map read error! r: {r}")
+        r = await self.execute("hmget", name, *[pickle.dumps(k) for k in keys])
+        if not isinstance(r, list) or len(r) != len(keys):
+            raise Exception(f"Redis hash map read error! r: {r}")
 
-            result = {}
-            for i, key in enumerate(keys):
-                value = r[i]
-                try:
-                    value = pickle.loads(value)
-                except (TypeError, ValueError, IndexError, pickle.UnpicklingError):
-                    value = None
-                result[key] = value
-            return result
+        result = {}
+        for i, key in enumerate(keys):
+            value = r[i]
+            try:
+                value = pickle.loads(value)
+            except (TypeError, ValueError, IndexError, pickle.UnpicklingError):
+                value = None
+            result[key] = value
+        return result
 
-        else:
-            """HDEL key field1 [field2] """
-            r = await self.execute("hgetall", name)
-            if not isinstance(r, list):
-                raise Exception(f"Redis hash map read error! r: {r}")
+    async def hash_map_get_all(self, name: str) -> dict:
+        r = await self.execute("hgetall", name)
+        if not isinstance(r, list):
+            raise Exception(f"Redis hash map read error! r: {r}")
 
-            result = {}
-            key_temp = None
-            for index in range(len(r)):
-                if index & 1:
-                    result[pickle.loads(key_temp)] = pickle.loads(r[index])
-                else:
-                    key_temp = r[index]
-            return result
+        result = {}
+        key_temp = None
+        for index in range(len(r)):
+            if index & 1:
+                result[pickle.loads(key_temp)] = pickle.loads(r[index])
+            else:
+                key_temp = r[index]
+        return result
 
     async def list_push(self, name, *items):
         r = await self.execute("LPUSH", name, *[pickle.dumps(e) for e in items])

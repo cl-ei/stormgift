@@ -6,12 +6,14 @@ import datetime
 from utils.cq import async_zy
 from utils.dao import redis_cache
 from utils.ws import RCWebSocketClient
-from utils.biliapi import WsApi, BiliApi
+from utils.biliapi import WsApi, DmkSender
 from config.log4 import dxj_dd_logger as logging
-from utils.reconstruction_model import LTUserCookie
 
 
 MONITOR_ROOM_ID = 13369254
+
+
+danmaku_sender = DmkSender(room_id=MONITOR_ROOM_ID, user_id="TZ")
 
 
 async def sign_dd(user_id):
@@ -93,37 +95,6 @@ async def get_score(user_id):
     return 0
 
 
-async def send_danmaku(msg, user=""):
-    user = user or "TZ"
-    c = await LTUserCookie.get_by_uid(user_id=user)
-    if not c:
-        logging.error(f"Cannot get cookie for user: {user}.")
-        return
-
-    while True:
-        send_m = msg[:30]
-        for _ in range(3):
-            flag, data = await BiliApi.send_danmaku(message=send_m, room_id=MONITOR_ROOM_ID, cookie=c.cookie)
-            if flag:
-                if data == "fire":
-                    return
-
-                logging.info(f"DMK success: {send_m}, reason: {data}")
-                break
-            else:
-                logging.error(f"Dmk send failed, msg: {send_m}, reason: {data}")
-                await asyncio.sleep(0.4)
-        else:
-            logging.error(f"Cannot send danmaku {send_m}. now return.")
-            return
-
-        msg = msg[30:]
-        if msg:
-            await asyncio.sleep(1.1)
-        else:
-            return
-
-
 async def proc_message(message):
     cmd = message.get("cmd", "")
     if cmd.startswith("DANMU_MSG"):
@@ -141,7 +112,7 @@ async def proc_message(message):
         msg = msg.strip()
 
         if msg in ("总督", "提督", "舰长", "低保"):
-            await send_danmaku("|･ω･｀) 查看下方的主播简介哦")
+            await danmaku_sender.send("|･ω･｀) 查看下方的主播简介哦")
 
         elif msg.startswith("#点歌") or msg.startswith("点歌") or msg.startswith("＃点歌"):
             song_name = msg.split("点歌", 1)[-1].strip()
@@ -160,7 +131,7 @@ async def proc_message(message):
             else:
                 prompt = f"已{msg}，"
             message = f"{user_name}{prompt}连续{msg}{continue_days}天、累计{total_days}天，排名第{rank}."
-            await send_danmaku(msg=message)
+            await danmaku_sender.send(msg=message)
 
         elif msg == "积分":
             score = await get_score(user_id=uid)
@@ -168,7 +139,7 @@ async def proc_message(message):
                 message = f"{user_name}现在拥有{score/100.0:.2f}积元（1积元=100积分）."
             else:
                 message = f"{user_name}现在拥有{score:.2f}积分."
-            await send_danmaku(msg=message)
+            await danmaku_sender.send(msg=message)
 
         else:
             for key_word in ("大气大气~", "现在拥有", "连续打卡", "连续签到", "."):

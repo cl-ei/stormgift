@@ -2,7 +2,7 @@ import asyncio
 from config import g
 from random import choice
 from utils.biliapi import BiliApi
-from utils.reconstruction_model import LTUserCookie
+from db.queries import LTUser, List, queries
 
 
 MEDAL_ID_小孩梓 = 13139
@@ -61,7 +61,7 @@ async def share(user, aids):
 async def main():
     aids = await get_aids()
     for uid in ("TZ", "DD", g.BILI_UID_CZ):
-        user = await LTUserCookie.get_by_uid(user_id=uid)
+        user = await queries.get_lt_user_by_uid(user_id=uid)
         if uid == "DD":
             await sign_510(user)
         await send_coin(user=user, aids=aids)

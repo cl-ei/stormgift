@@ -1,14 +1,9 @@
 import time
 import asyncio
-import datetime
-from config.g import QQ_NUMBER_DD
-from utils.cq import async_zy
-from utils.dao import redis_cache
-from typing import Union, List, Dict
+from typing import List, Dict
 from utils.ws import RCWebSocketClient
-from utils.biliapi import WsApi, BiliApi
+from utils.biliapi import WsApi, BiliApi, DmkSender
 from config.log4 import dxj_hansy_logger as logging
-from utils.reconstruction_model import LTUserCookie
 from utils.schema import SendGift
 from utils.dao import MedalManager
 
@@ -19,9 +14,12 @@ info_queue = asyncio.Queue()
 mgr = MedalManager(MONITOR_ROOM_ID)
 
 
+danmaku_sender = DmkSender(room_id=MONITOR_ROOM_ID, user_id=12298306)
+
+
 async def notice(user_name: str, medal_name: str, level: int):
     msg = f"恭喜{user_name}的{medal_name}勋章升到{level}级~mua~"
-    await send_danmaku(msg, user_id=DANMAKU_SENDER_UID)
+    await danmaku_sender.send(msg)
 
 
 async def worker(master_id: int):
@@ -75,40 +73,6 @@ async def worker(master_id: int):
 
         await notice(user_name, medal["medal_name"], current_level)
         await mgr.add_today_prompted(uid)
-
-
-async def send_danmaku(msg, user_id=12298306):
-    c = await LTUserCookie.get_by_uid(user_id=user_id)
-    if not c:
-        logging.error(f"Cannot get cookie for user: WANZI {user_id}.")
-        return
-
-    while True:
-        send_m = msg[:30]
-        for _ in range(3):
-            flag, data = await BiliApi.send_danmaku(message=send_m, room_id=MONITOR_ROOM_ID, cookie=c.cookie)
-            if flag:
-                if data == "fire":
-                    return
-
-                logging.info(f"DMK success: {send_m}, reason: {data}")
-                break
-            else:
-                if "账号未登录" in data:
-                    await async_zy.send_private_msg(user_id=QQ_NUMBER_DD, message=f"村长登录已过期.")
-                    return
-
-                logging.error(f"Dmk send failed, msg: {send_m}, reason: {data}")
-                await asyncio.sleep(1.1)
-        else:
-            logging.error(f"Cannot send danmaku {send_m}. now return.")
-            return
-
-        msg = msg[30:]
-        if not msg:
-            return
-
-        await asyncio.sleep(1.1)
 
 
 async def main():

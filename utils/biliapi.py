@@ -10,6 +10,7 @@ import aiohttp
 import hashlib
 import traceback
 from math import floor
+from typing import Union
 from random import random
 from config import cloud_login
 from utils.dao import redis_cache
@@ -1093,7 +1094,7 @@ class BiliApi:
 
 
 class DmkSender:
-    def __init__(self, room_id: int, user_id: int, try_times=3):
+    def __init__(self, room_id: int, user_id: Union[int, str], try_times=3):
         self.room_id = room_id
         self.user_id = user_id
         self.try_times = try_times
@@ -1117,8 +1118,8 @@ class DmkSender:
         return False, f"连续{self.try_times}次都没能成功发送[{dmk}].结束发送."
 
     async def send(self, msg: str) -> Tuple[bool, str]:
-        from utils.reconstruction_model import LTUserCookie
-        c = await LTUserCookie.get_by_uid(user_id=self.user_id)
+        from db.queries import queries
+        c = await queries.get_lt_user_by_uid(user_id=self.user_id)
         if not c:
             return False, f"未能获取Cookie user_id: {self.user_id}"
 

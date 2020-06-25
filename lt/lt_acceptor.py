@@ -6,7 +6,7 @@ import aiohttp
 import traceback
 from utils.cq import async_zy
 from config import cloud_acceptors, g
-from utils.reconstruction_model import LTUserCookie
+from db.queries import queries, LTUser, List
 from utils.dao import DelayAcceptGiftsQueue
 from config.log4 import acceptor_logger as logging
 from utils.dao import (
@@ -127,7 +127,7 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
 
 
 async def accept(index, act, room_id, gift_id, gift_type, gift_name):
-    cookie_objs = await LTUserCookie.get_objs(available=True, non_blocked=True)
+    lt_users = await queries.get_lt_user_by(available=True, is_blocked=False)
     # temporary_blocked = await LTTempBlack.get_blocked()
     # cookie_objs = [c for c in cookie_objs if c.uid not in temporary_blocked]
 
@@ -137,15 +137,15 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
         "join_pk": "pk_percent",
     }[act]
 
-    user_cookie_objs = await LTUserSettings.filter_cookie(cookie_objs, key=filter_k)
-    if not user_cookie_objs:
+    lt_users: List[LTUser] = await LTUserSettings.filter_cookie(lt_users, key=filter_k)
+    if not lt_users:
         return
 
     run_params = {
         "act": act,
         "room_id": room_id,
         "gift_id": gift_id,
-        "cookies": [c.cookie for c in user_cookie_objs],
+        "cookies": [c.cookie for c in lt_users],
         "gift_type": gift_type
     }
     flag, result, cloud_acceptor_url = await cloud_accept(**run_params)
@@ -159,20 +159,20 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
     success = []
     success_uid_list = []
     failed = []
-    for index, cookie_obj in enumerate(user_cookie_objs):
+    for index, lt_user in enumerate(lt_users):
         flag, message = result[index]
 
         if flag is not True:
             if "访问被拒绝" in message:
-                await LTUserCookie.set_blocked(cookie_obj)
+                await queries.set_lt_user_blocked(user_id=lt_user.user_id)
             elif "请先登录哦" in message:
-                await LTUserCookie.set_invalid(cookie_obj)
+                await queries.set_lt_user_available(user_id=lt_user.user_id, available=False)
             # elif "你已经领取过" in message or "您已参加抽奖" in message:
             #     await LTTempBlack.manual_accept_once(uid=cookie_obj.uid)
 
             if index != 0:
                 message = message[:100]
-            failed.append(f"{cookie_obj.name}({cookie_obj.uid}){message}")
+            failed.append(f"{lt_user.name}({lt_user.uid}){message}")
             continue
 
         try:
@@ -188,9 +188,9 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
             logging.error(f"Cannot fetch award_num from message. {e}", exc_info=True)
             award_num = 1
 
-        await UserRaffleRecord.create(cookie_obj.uid, gift_name, gift_id, intimacy=award_num)
-        success.append(f"{cookie_obj.name}({cookie_obj.uid})")
-        success_uid_list.append(cookie_obj.uid)
+        await UserRaffleRecord.create(lt_user.uid, gift_name, gift_id, intimacy=award_num)
+        success.append(f"{lt_user.name}({lt_user.uid})")
+        success_uid_list.append(lt_user.uid)
 
     await LTLastAcceptTime.update(*success_uid_list)
 

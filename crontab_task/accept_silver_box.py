@@ -4,15 +4,15 @@ from random import randint
 import asyncio
 from utils.biliapi import BiliApi
 from config.log4 import silver_box_logger as logging
-from utils.reconstruction_model import LTUserCookie
 from utils.dao import UserRaffleRecord, redis_cache
+from db.queries import queries, LTUser
 
 
 class UserSilverAcceptTimeCtrl:
     key = "LT_SILVER_TIME_CTL"
 
-    def __init__(self, user_obj):
-        self.user = user_obj
+    def __init__(self, lt_user: LTUser):
+        self.user = lt_user
         self.key_for_user = f"{self.key}_{datetime.datetime.today().date()}_{self.user.uid}"
 
     async def _get_accept_time(self):
@@ -39,7 +39,7 @@ class UserSilverAcceptTimeCtrl:
             return -1
 
         elif code == -500:
-            await LTUserCookie.set_invalid(self.user)
+            await queries.set_lt_user_available(user_id=self.user.uid, available=False)
             return -2
 
         elif code == 0:
@@ -60,8 +60,8 @@ class UserSilverAcceptTimeCtrl:
 
         error_message = data.get("message", "")
         if "请先登录" in error_message:
-            await LTUserCookie.set_invalid(user)
-            logging.info(f"LTUserCookie refresh token: {flag}, msg: {data}")
+            await queries.set_lt_user_available(user_id=self.user.uid, available=False)
+            logging.info(f"lt_user refresh token: {flag}, msg: {data}")
             return
 
         code = data['code']
@@ -111,24 +111,23 @@ async def main():
     today_key = F"LT_SILVER_BOX_ALL_DONE_{datetime.datetime.today().date()}"
     if await redis_cache.get(today_key):
         return
-
-    objs = await LTUserCookie.get_objs(available=True, non_blocked=True)
-    logging.info(f"Now start silver box task. users: {len(objs)}")
+    lt_users = await queries.get_lt_user_by(available=True, is_blocked=False)
+    logging.info(f"Now start silver box task. lt_users: {len(lt_users)}")
 
     result_list = []
-    for user in objs:
-        a = UserSilverAcceptTimeCtrl(user_obj=user)
+    for user in lt_users:
+        a = UserSilverAcceptTimeCtrl(lt_user=user)
         r = await a.accept()
         if r == -1:
             result_list.append(user)
 
-    if len(result_list) == len(objs):
+    if len(result_list) == len(lt_users):
         await redis_cache.set(today_key, value=int(time.time()), timeout=3600*24)
         logging.info(f"Silver box ALL_DONE!")
     else:
         logging.info(
             f"Silver box task done. "
-            f"finished {len(result_list)}/{len(objs)}, cost: {time.time() - start_time:.3f}"
+            f"finished {len(result_list)}/{len(lt_users)}, cost: {time.time() - start_time:.3f}"
         )
 
 

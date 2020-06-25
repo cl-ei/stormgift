@@ -1,9 +1,10 @@
 import time
 import asyncio
 from config import g
+from typing import List
 from utils.biliapi import BiliApi
-from utils.reconstruction_model import LTUserCookie
 from config.log4 import crontab_task_logger as logging
+from db.queries import queries, LTUser
 
 
 async def main():
@@ -16,40 +17,40 @@ async def main():
         f"\n{split_char}{start_prompt}{split_char}\n\n",
     ]
     start_time = time.time()
-    objs = await LTUserCookie.get_objs(available=True)
+    lt_users: List[LTUser] = await queries.get_lt_user_by(available=True)
 
-    for obj in objs:
-        _m = f"Now proc {obj.name}(uid: {obj.DedeUserID}): \n"
+    for lt_user in lt_users:
+        _m = f"Now proc {lt_user.name}(uid: {lt_user.DedeUserID}): \n"
         print(_m)
         logging_msg_list.append(_m)
 
-        cookie = obj.cookie
+        cookie = lt_user.cookie
         flag, result = await BiliApi.do_sign(cookie)
         if not flag and "请先登录" in result:
             logging_msg_list.append(
-                f"WARNING: Do sign failed, user: {obj.name} - {obj.DedeUserID}, "
+                f"WARNING: Do sign failed, user: {lt_user.name} - {lt_user.DedeUserID}, "
                 f"flag: {flag}, result: {result}\n"
             )
-            await LTUserCookie.set_invalid(obj)
+            await queries.set_lt_user_available(user_id=lt_user.user_id, available=False)
             continue
 
         flag, is_vip = await BiliApi.get_if_user_is_live_vip(cookie)
         if flag:
-            if is_vip != obj.is_vip:
-                await LTUserCookie.set_vip(obj, is_vip)
+            if is_vip != lt_user.is_vip:
+                await queries.set_lt_user_if_is_vip(user_id=lt_user.user_id, is_vip=is_vip)
         else:
             logging_msg_list.append(
-                f"WARNING: Get if it is vip failed, user: {obj.name} - {obj.DedeUserID}, "
+                f"WARNING: Get if it is vip failed, user: {lt_user.name} - {lt_user.DedeUserID}, "
                 f"flag: {flag}, is_vip: {is_vip}\n"
             )
 
         r, data = await BiliApi.do_sign_group(cookie)
         if not r:
-            logging_msg_list.append(f"ERROR: Sign group failed, {obj.name}-{obj.DedeUserID}: {data}\n")
+            logging_msg_list.append(f"ERROR: Sign group failed, {lt_user.name}-{lt_user.DedeUserID}: {data}\n")
 
         await BiliApi.do_sign_double_watch(cookie)
 
-        if obj.DedeUserID == g.BILI_UID_DD:
+        if lt_user.DedeUserID == g.BILI_UID_DD:
             # 触发领取今日辣条
             await BiliApi.silver_to_coin(cookie)
             await BiliApi.get_bag_list(cookie=cookie)
