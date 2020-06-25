@@ -70,6 +70,9 @@ class LTUserQueryMixin:
                 user_id=lt_user.bind_qq,
                 message=f"你挂的辣条机已经掉线，请重新登录。{lt_user}"
             )
+        if lt_user.notice_email:
+            from utils.email import send_cookie_invalid_notice
+            send_cookie_invalid_notice(lt_user)
         return lt_user
 
     async def set_lt_user_if_is_vip(self, user_id: int, is_vip: bool) -> Union[LTUser, None]:
