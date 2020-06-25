@@ -79,9 +79,13 @@ async def add_user_by_account(
         if u.account == account:
             if u.available:
                 u.password = password
+                update_fields = ["password"]
+
                 if notice_email is not None:
                     u.notice_email = notice_email
-                await queries._save_lt_user(u)
+                    update_fields.append("notice_email")
+
+                await queries.update_lt_user(u, fields=update_fields)
                 return True, u
             else:
                 lt_user = u

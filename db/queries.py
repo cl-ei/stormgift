@@ -1,5 +1,5 @@
 import datetime
-from typing import Union, List
+from typing import Union, List, Iterable
 from db.tables import LTUser
 from utils.dao import redis_cache
 
@@ -7,8 +7,18 @@ from utils.dao import redis_cache
 class LTUserQueryMixin:
     key = LTUser.__key__
 
-    async def _save_lt_user(self, lt_user: LTUser) -> None:
+    async def create_lt_user(self, lt_user: LTUser) -> None:
         await redis_cache.hash_map_set(self.key, {lt_user.DedeUserID: lt_user.dict()})
+
+    async def update_lt_user(self, lt_user: LTUser, fields: Iterable[str]) -> None:
+        old_rec = await redis_cache.hash_map_get(self.key, lt_user.user_id)
+        if not old_rec or not old_rec.get(lt_user.user_id):
+            raise ValueError(f"必须创建之后，才能使用更新！")
+
+        update_params = old_rec[lt_user.user_id]
+        for k in fields:
+            update_params[k] = getattr(self, k)
+        await redis_cache.hash_map_set(self.key, {lt_user.DedeUserID: update_params})
 
     async def upsert_lt_user(
             self,
@@ -25,7 +35,7 @@ class LTUserQueryMixin:
             available: bool = True,
     ) -> LTUser:
 
-        update_params = dict(
+        params = dict(
             DedeUserID=DedeUserID,
             SESSDATA=SESSDATA,
             bili_jct=bili_jct,
@@ -38,21 +48,31 @@ class LTUserQueryMixin:
 
         existed_lt_user = await self.get_lt_user_by_uid(user_id=DedeUserID)
         if not existed_lt_user:
-            lt_user = LTUser(**update_params)
-        else:
-            create_params = existed_lt_user.dict()
-            create_params.update(update_params)
-            lt_user = LTUser(**create_params)
+            lt_user = LTUser(
+                account=account,
+                password=password,
+                notice_email=notice_email,
+                **params
+            )
+            await self.create_lt_user(lt_user)
+            return lt_user
+
+        update_fields = list(params.keys())
+        for k, v in params.items():
+            setattr(existed_lt_user, k, v)
 
         if account is not None:
-            lt_user.account = account
+            existed_lt_user.account = account
+            update_fields.append("account")
         if password is not None:
-            lt_user.password = password
+            existed_lt_user.password = password
+            update_fields.append("password")
         if notice_email is not None:
-            lt_user.notice_email = notice_email
+            existed_lt_user.notice_email = notice_email
+            update_fields.append("notice_email")
 
-        await self._save_lt_user(lt_user)
-        return lt_user
+        await self.update_lt_user(existed_lt_user, fields=update_fields)
+        return existed_lt_user
 
     async def set_lt_user_invalid(self, user_id: int) -> Union[LTUser, None]:
         # TODO： re-login or notice
@@ -62,7 +82,7 @@ class LTUserQueryMixin:
             return lt_user
 
         lt_user.available = False
-        await self._save_lt_user(lt_user)
+        await self.update_lt_user(lt_user, fields=("available", ))
 
         if lt_user.bind_qq:
             from utils.cq import async_zy
@@ -80,7 +100,7 @@ class LTUserQueryMixin:
         if not lt_user:
             return
         lt_user.is_vip = is_vip
-        await self._save_lt_user(lt_user)
+        await self.update_lt_user(lt_user, fields=("is_vip", ))
         return lt_user
 
     async def set_lt_user_blocked(self, user_id: int) -> Union[LTUser, None]:
@@ -88,7 +108,7 @@ class LTUserQueryMixin:
         if not lt_user:
             return
         lt_user.blocked_time = datetime.datetime.now()
-        await self._save_lt_user(lt_user)
+        await self.update_lt_user(lt_user, fields=("blocked_time", ))
         return lt_user
 
     async def get_lt_user_by_uid(self, user_id: Union[str, int]) -> Union[LTUser, None]:
