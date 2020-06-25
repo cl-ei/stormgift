@@ -169,7 +169,7 @@ class BiliApi:
             return False, json_rsp.get("message") or json_rsp.get("msg") or "unknown error in login!"
 
         if json_rsp["data"]["status"] != 0:
-            return False, "需要升级APP版本"
+            return False, f"登录失败！（status: {json_rsp['data']['status']})"
 
         cookies = json_rsp["data"]["cookie_info"]["cookies"]
         result = {c['name']: c['value'] for c in cookies}

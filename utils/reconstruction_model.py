@@ -278,7 +278,7 @@ class LTUserCookie:
                 lt_user = await cls.create(**r)
                 return True, lt_user
             else:
-                return False, f"登录失败。{r}"
+                return False, f"登录失败!，请使用扫码登录！（哔哩服务器返回结果：{r}）"
 
         diff = {}
         if lt_user.account != account:
