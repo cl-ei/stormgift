@@ -19,7 +19,10 @@ async def get_lt_user_status(user_id: int) -> Tuple[bool, str]:
     start_time = time.time()
     rows = await UserRaffleRecord.get_by_user_id(user_id=user_id)
 
-    last_accept_interval = (datetime.datetime.now() - lt_user.last_accept_time).total_seconds()
+    if lt_user.last_accept_time:
+        last_accept_interval = (datetime.datetime.now() - lt_user.last_accept_time).total_seconds()
+    else:
+        last_accept_interval = 0xFFFFFFFF
     last_accept = gen_time_prompt(int(last_accept_interval))
     user_prompt = f"{user_prompt_title}\n最后一次抽奖时间：{last_accept}"
 
