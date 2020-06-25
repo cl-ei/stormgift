@@ -128,8 +128,6 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
 
 async def accept(index, act, room_id, gift_id, gift_type, gift_name):
     lt_users = await queries.get_lt_user_by(available=True, is_blocked=False)
-    # temporary_blocked = await LTTempBlack.get_blocked()
-    # cookie_objs = [c for c in cookie_objs if c.uid not in temporary_blocked]
 
     filter_k = {
         "join_tv_v5": "tv_percent",
@@ -167,8 +165,6 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
                 await queries.set_lt_user_blocked(user_id=lt_user.user_id)
             elif "请先登录哦" in message:
                 await queries.set_lt_user_invalid(user_id=lt_user.user_id)
-            # elif "你已经领取过" in message or "您已参加抽奖" in message:
-            #     await LTTempBlack.manual_accept_once(uid=cookie_obj.uid)
 
             if index != 0:
                 message = message[:100]

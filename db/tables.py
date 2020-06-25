@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from utils.schema import RWSchema
 
 
@@ -30,6 +30,14 @@ class LTUser(RWSchema):
     account: Optional[str]
     password: Optional[str]
     bind_qq: Optional[int]
+
+    # user settings
+    send_medals: List[str] = []
+    percent_tv: int = 0
+    percent_guard: int = 0
+    percent_pk: int = 0
+    percent_storm: int = 0
+    percent_anchor: int = 0
 
     def __repr__(self):
         return f"<{self.DedeUserID}: {self.name or 'None'}>"

@@ -23,9 +23,7 @@ from config.log4 import cqbot_logger as logging
 from website.operations import get_lt_user_status
 from utils.images import DynamicPicturesProcessor
 from utils.dao import (
-    RedisLock,
     redis_cache,
-    LTTempBlack,
     BiliToQQBindInfo,
     DelayAcceptGiftsQueue,
 )
@@ -499,24 +497,6 @@ class BotUtils:
         message += "；\n".join(prompt)
         return message
 
-    async def proc_unfreeze(self, msg):
-        try:
-            bili_uid = int(msg[2:].strip())
-        except (IndexError, ValueError, TypeError):
-            self.response("指令错误。请发送“解冻”+B站uid， 如:\n解冻731556")
-            return
-
-        bili_uids = await BiliToQQBindInfo.get_all_bili(qq=self.user_id)
-        if bili_uid not in bili_uids:
-            self.response("UID错误。")
-            return
-
-        if bili_uid not in await LTTempBlack.get_blocked():
-            return f"你（uid: {bili_uid}）没有被冻。此命令会加重辣🐔的工作负担，请不要频繁发送。\n\n爱护辣🐔，人人有责。"
-
-        await LTTempBlack.remove(uid=bili_uid)
-        return "操作成功。"
-
     async def proc_help(self):
         if self.group_id:
             message = (
@@ -679,9 +659,6 @@ class BotHandler:
 
         elif msg in ("鸡", "🐔"):
             return await p.proc_chicken()
-
-        elif msg.startswith("解冻"):
-            return await p.proc_unfreeze(msg)
 
     @classmethod
     async def handle_message(cls, context):
