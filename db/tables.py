@@ -4,7 +4,7 @@ from utils.schema import RWSchema
 
 
 class LTUser(RWSchema):
-    __key__ = "LT:USER"
+    __key__ = "LT:LT_USER"
     __block_seconds__ = 60 * 5
     __UID_STR_TO_INT_MAP__ = {
         "DD": 20932326,
@@ -27,6 +27,7 @@ class LTUser(RWSchema):
     available: bool = True
     name: Optional[str]
     blocked_time: Optional[datetime]
+    last_accept_time: Optional[datetime]
     account: Optional[str]
     password: Optional[str]
     bind_qq: Optional[int]

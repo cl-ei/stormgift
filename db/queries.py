@@ -5,20 +5,20 @@ from utils.dao import redis_cache
 
 
 class LTUserQueryMixin:
-    key = LTUser.__key__
+    key_prefix = LTUser.__key__
 
-    async def create_lt_user(self, lt_user: LTUser) -> None:
-        await redis_cache.hash_map_set(self.key, {lt_user.DedeUserID: lt_user.dict()})
+    async def delete_lt_user(self, user_id: int) -> None:
+        key = f"{self.key_prefix}:{user_id}"
+        await redis_cache.hash_map_del_all(key)
+        await redis_cache.set_remove(self.key_prefix, user_id)
 
     async def update_lt_user(self, lt_user: LTUser, fields: Iterable[str]) -> None:
-        old_rec = await redis_cache.hash_map_get(self.key, lt_user.user_id)
-        if not old_rec or not old_rec.get(lt_user.user_id):
-            raise ValueError(f"必须创建之后，才能使用更新！")
-
-        update_params = old_rec[lt_user.user_id]
-        for k in fields:
-            update_params[k] = getattr(self, k)
-        await redis_cache.hash_map_set(self.key, {lt_user.DedeUserID: update_params})
+        key = f"{self.key_prefix}:{lt_user.user_id}"
+        update_params = {}
+        for k, v in lt_user.dict().items():
+            if k in fields:
+                update_params[k] = v
+        await redis_cache.hash_map_set(key, update_params)
 
     async def upsert_lt_user(
             self,
@@ -45,38 +45,24 @@ class LTUserQueryMixin:
             refresh_token=refresh_token,
             available=available,
         )
-
-        existed_lt_user = await self.get_lt_user_by_uid(user_id=DedeUserID)
-        if not existed_lt_user:
-            lt_user = LTUser(
-                account=account,
-                password=password,
-                notice_email=notice_email,
-                **params
-            )
-            await self.create_lt_user(lt_user)
-            return lt_user
-
-        update_fields = list(params.keys())
-        for k, v in params.items():
-            setattr(existed_lt_user, k, v)
-
+        fields = list(params.keys())
         if account is not None:
-            existed_lt_user.account = account
-            update_fields.append("account")
+            params["account"] = account
+            fields.append("account")
         if password is not None:
-            existed_lt_user.password = password
-            update_fields.append("password")
+            params["password"] = password
+            fields.append("password")
         if notice_email is not None:
-            existed_lt_user.notice_email = notice_email
-            update_fields.append("notice_email")
+            params["notice_email"] = notice_email
+            fields.append("notice_email")
 
-        await self.update_lt_user(existed_lt_user, fields=update_fields)
-        return existed_lt_user
+        lt_user = LTUser(**params)
+        await self.update_lt_user(lt_user, fields=fields)
+
+        lt_user = await self.get_lt_user_by_uid(lt_user.user_id)
+        return lt_user
 
     async def set_lt_user_invalid(self, user_id: int) -> Union[LTUser, None]:
-        # TODO： re-login or notice
-
         lt_user = await self.get_lt_user_by_uid(user_id=user_id)
         if not lt_user or lt_user.available:
             return lt_user
@@ -116,17 +102,19 @@ class LTUserQueryMixin:
         if not isinstance(user_id, int):
             return None
 
-        result = await redis_cache.hash_map_get(self.key, user_id)
-        if not result or not result.get(user_id):
+        key = f"{self.key_prefix}:{user_id}"
+        result = await redis_cache.hash_map_get_all(key)
+        if not result:
             return
-        return LTUser(**result[user_id])
+        return LTUser(**result)
 
     async def get_all_lt_user(self) -> List[LTUser]:
-        cached = await redis_cache.hash_map_get_all(self.key)
-        result = []
-        for e in cached.values():
-            result.append(LTUser(**e))
-        return result
+        user_id_list = await redis_cache.set_get_all(self.key_prefix)
+        if not user_id_list:
+            return []
+        key_list = [f"{self.key_prefix}:{user_id}" for user_id in user_id_list]
+        user_dict_list = await redis_cache.hash_map_multi_get(*key_list)
+        return [LTUser(**d) for d in user_dict_list]
 
     async def get_lt_user_by(
             self,
@@ -153,6 +141,10 @@ class LTUserQueryMixin:
         for u in all_users:
             if u.available:
                 return u
+
+    async def set_lt_user_last_accept(self, user: LTUser) -> None:
+        user.last_accept_time = datetime.datetime.now()
+        await self.update_lt_user(user, fields=("last_accept_time", ))
 
 
 class Queries(LTUserQueryMixin):

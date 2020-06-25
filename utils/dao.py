@@ -125,6 +125,37 @@ class RedisCache(object):
                 key_temp = r[index]
         return result
 
+    async def hash_map_del(self, name: str, *keys) -> int:
+        r = await self.execute("HDEL", name, *[pickle.dumps(k) for k in keys])
+        return r
+
+    async def hash_map_del_all(self, name: str) -> int:
+        info = await self.hash_map_get_all(name)
+        if info:
+            return await redis_cache.hash_map_del(name, *info.keys())
+        return 0
+
+    async def hash_map_multi_get(self, *name) -> List[dict]:
+        user_dict_list = await self.execute(
+            "eval",
+            "local rst={}; for i,v in pairs(KEYS) do rst[i]=redis.call('hgetall', v) end;return rst",
+            len(name),
+            *name
+        )
+
+        result = []
+        for info in user_dict_list:
+            temp_k = None
+            user_dict = {}
+            for i, field in enumerate(info):
+                field = pickle.loads(field)
+                if i % 2 == 0:
+                    temp_k = field
+                else:
+                    user_dict[temp_k] = field
+            result.append(user_dict)
+        return result
+
     async def list_push(self, name, *items):
         r = await self.execute("LPUSH", name, *[pickle.dumps(e) for e in items])
         return r
