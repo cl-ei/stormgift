@@ -62,11 +62,7 @@ class LTUserQueryMixin:
         lt_user = await self.get_lt_user_by_uid(lt_user.user_id)
         return lt_user
 
-    async def set_lt_user_invalid(self, user_id: int) -> Union[LTUser, None]:
-        lt_user = await self.get_lt_user_by_uid(user_id=user_id)
-        if not lt_user or lt_user.available:
-            return lt_user
-
+    async def set_lt_user_invalid(self, lt_user: LTUser) -> LTUser:
         lt_user.available = False
         await self.update_lt_user(lt_user, fields=("available", ))
 
@@ -81,18 +77,12 @@ class LTUserQueryMixin:
             send_cookie_invalid_notice(lt_user)
         return lt_user
 
-    async def set_lt_user_if_is_vip(self, user_id: int, is_vip: bool) -> Union[LTUser, None]:
-        lt_user = await self.get_lt_user_by_uid(user_id=user_id)
-        if not lt_user:
-            return
+    async def set_lt_user_if_is_vip(self, lt_user: LTUser, is_vip: bool) -> LTUser:
         lt_user.is_vip = is_vip
         await self.update_lt_user(lt_user, fields=("is_vip", ))
         return lt_user
 
-    async def set_lt_user_blocked(self, user_id: int) -> Union[LTUser, None]:
-        lt_user = await self.get_lt_user_by_uid(user_id=user_id)
-        if not lt_user:
-            return
+    async def set_lt_user_blocked(self, lt_user: LTUser) -> LTUser:
         lt_user.blocked_time = datetime.datetime.now()
         await self.update_lt_user(lt_user, fields=("blocked_time", ))
         return lt_user

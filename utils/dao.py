@@ -5,7 +5,6 @@ import pickle
 import asyncio
 import aioredis
 import datetime
-import configparser
 from typing import List, Dict
 from config import REDIS_CONFIG
 
@@ -171,8 +170,6 @@ class RedisCache(object):
         return r
 
     async def list_get_all(self, name):
-        # count = await self.execute("LLEN", name)
-
         r = await self.execute("LRANGE", name, 0, 100000)
         if isinstance(r, list):
             return [pickle.loads(e) for e in r]
@@ -579,34 +576,6 @@ class DelayAcceptGiftsQueue:
             else:
                 result.append(d)
         return result
-
-
-class LTLastAcceptTime:
-    key = "LT_LAST_ACCEPT_TIME"
-
-    @classmethod
-    async def update(cls, *uid_list):
-        r = await redis_cache.get(key=cls.key)
-        if not isinstance(r, dict):
-            r = {}
-        now = int(time.time())
-        for uid in uid_list:
-            r[int(uid)] = now
-        await redis_cache.set(key=cls.key, value=r)
-
-    @classmethod
-    async def get_all(cls):
-        r = await redis_cache.get(cls.key)
-        if not isinstance(r, dict):
-            r = {}
-        return r
-
-    @classmethod
-    async def get_by_uid(cls, uid):
-        r = await redis_cache.get(cls.key)
-        if not isinstance(r, dict):
-            r = {}
-        return r.get(uid) or 0
 
 
 class MedalManager:

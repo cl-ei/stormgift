@@ -31,13 +31,13 @@ async def main():
                 f"WARNING: Do sign failed, user: {lt_user.name} - {lt_user.DedeUserID}, "
                 f"flag: {flag}, result: {result}\n"
             )
-            await queries.set_lt_user_invalid(user_id=lt_user.user_id)
+            await queries.set_lt_user_invalid(lt_user=lt_user)
             continue
 
         flag, is_vip = await BiliApi.get_if_user_is_live_vip(cookie)
         if flag:
             if is_vip != lt_user.is_vip:
-                await queries.set_lt_user_if_is_vip(user_id=lt_user.user_id, is_vip=is_vip)
+                await queries.set_lt_user_if_is_vip(lt_user=lt_user, is_vip=is_vip)
         else:
             logging_msg_list.append(
                 f"WARNING: Get if it is vip failed, user: {lt_user.name} - {lt_user.DedeUserID}, "

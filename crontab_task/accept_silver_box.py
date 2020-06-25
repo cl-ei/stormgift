@@ -39,7 +39,7 @@ class UserSilverAcceptTimeCtrl:
             return -1
 
         elif code == -500:
-            await queries.set_lt_user_invalid(user_id=self.user.uid)
+            await queries.set_lt_user_invalid(lt_user=self.user)
             return -2
 
         elif code == 0:
@@ -60,7 +60,7 @@ class UserSilverAcceptTimeCtrl:
 
         error_message = data.get("message", "")
         if "请先登录" in error_message:
-            await queries.set_lt_user_invalid(user_id=self.user.uid)
+            await queries.set_lt_user_invalid(lt_user=self.user)
             logging.info(f"lt_user refresh token: {flag}, msg: {data}")
             return
 

@@ -13,7 +13,6 @@ from utils.dao import (
     redis_cache,
     LTUserSettings,
     UserRaffleRecord,
-    LTLastAcceptTime,
 )
 
 NON_SKIP_USER_ID = [
@@ -155,16 +154,15 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
         return
 
     success = []
-    success_uid_list = []
     failed = []
     for index, lt_user in enumerate(lt_users):
         flag, message = result[index]
 
         if flag is not True:
             if "访问被拒绝" in message:
-                await queries.set_lt_user_blocked(user_id=lt_user.user_id)
+                await queries.set_lt_user_blocked(lt_user=lt_user)
             elif "请先登录哦" in message:
-                await queries.set_lt_user_invalid(user_id=lt_user.user_id)
+                await queries.set_lt_user_invalid(lt_user=lt_user)
 
             if index != 0:
                 message = message[:100]
@@ -185,10 +183,8 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
             award_num = 1
 
         await UserRaffleRecord.create(lt_user.uid, gift_name, gift_id, intimacy=award_num)
+        await queries.set_lt_user_last_accept(lt_user)
         success.append(f"{lt_user.name}({lt_user.uid})")
-        success_uid_list.append(lt_user.uid)
-
-    await LTLastAcceptTime.update(*success_uid_list)
 
     success_users = []
     for i, s in enumerate(success):

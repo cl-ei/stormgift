@@ -2,7 +2,7 @@ import time
 import datetime
 from typing import List, Union, Tuple
 from db.queries import queries, LTUser
-from utils.dao import UserRaffleRecord, LTLastAcceptTime
+from utils.dao import UserRaffleRecord
 from utils.covert import gen_time_prompt
 from utils.biliapi import BiliApi
 
@@ -18,9 +18,10 @@ async def get_lt_user_status(user_id: int) -> Tuple[bool, str]:
 
     start_time = time.time()
     rows = await UserRaffleRecord.get_by_user_id(user_id=user_id)
-    most_recently = await LTLastAcceptTime.get_by_uid(uid=user_id)
-    most_recently = gen_time_prompt(time.time() - most_recently)
-    user_prompt = f"{user_prompt_title}\n最后一次抽奖时间：{most_recently}"
+
+    last_accept_interval = (datetime.datetime.now() - lt_user.last_accept_time).total_seconds()
+    last_accept = gen_time_prompt(int(last_accept_interval))
+    user_prompt = f"{user_prompt_title}\n最后一次抽奖时间：{last_accept}"
 
     if lt_user.is_blocked:
         interval_seconds = (datetime.datetime.now() - lt_user.blocked_time).total_seconds()
@@ -99,7 +100,7 @@ async def add_user_by_account(
         refresh_token=getattr(lt_user, "refresh_token", None),
     )
     if not flag:
-        return False, f"登录失败!，请使用扫码登录！（哔哩服务器返回结果：{r}）"
+        return False, f"登录失败，请使用扫码登录！（哔哩服务器返回结果：{r}）"
 
     lt_user = await queries.upsert_lt_user(
         account=account,
