@@ -566,14 +566,18 @@ class LTUserSettings:
         return True
 
     @classmethod
-    async def filter_cookie(cls, cookies, key):
-        uid_list = [c.uid for c in cookies]
-        keys = [f"{cls.key}_{u}" for u in uid_list]
+    async def filter_cookie(cls, lt_users, key):
+        keys = [
+            f"{cls.key}_{u.uid}"
+            for u in lt_users
+        ]
+        if not keys:
+            return []
+
         settings_list = await redis_cache.mget(*keys)
 
         result = []
-        for index in range(len(cookies)):
-            cookie = cookies[index]
+        for index, user in enumerate(lt_users):
             setting = settings_list[index]
             if not isinstance(setting, dict):
                 setting = {}
@@ -583,8 +587,7 @@ class LTUserSettings:
             else:
                 percent = setting.get(key, 100)
             if random.randint(0, 99) < percent:  # 考虑到percent == 0时
-                result.append(cookie)
-
+                result.append(user)
         return result
 
     @classmethod

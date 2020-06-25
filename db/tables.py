@@ -47,8 +47,10 @@ class LTUser(RWSchema):
 
     @property
     def is_blocked(self) -> bool:
+        if not self.blocked_time:
+            return False
         blocked_seconds = (datetime.now() - self.blocked_time).total_seconds()
-        return bool(blocked_seconds > self.__block_seconds__)
+        return bool(blocked_seconds < self.__block_seconds__)
 
     @property
     def cookie(self):
