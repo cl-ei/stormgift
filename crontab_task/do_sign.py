@@ -31,7 +31,7 @@ async def main():
                 f"WARNING: Do sign failed, user: {lt_user.name} - {lt_user.DedeUserID}, "
                 f"flag: {flag}, result: {result}\n"
             )
-            await queries.set_lt_user_available(user_id=lt_user.user_id, available=False)
+            await queries.set_lt_user_invalid(user_id=lt_user.user_id)
             continue
 
         flag, is_vip = await BiliApi.get_if_user_is_live_vip(cookie)

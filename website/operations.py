@@ -81,7 +81,7 @@ async def add_user_by_account(
                 u.password = password
                 if notice_email is not None:
                     u.notice_email = notice_email
-                await queries._save(u)
+                await queries._save_lt_user(u)
                 return True, u
             else:
                 lt_user = u

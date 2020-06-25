@@ -166,7 +166,7 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
             if "访问被拒绝" in message:
                 await queries.set_lt_user_blocked(user_id=lt_user.user_id)
             elif "请先登录哦" in message:
-                await queries.set_lt_user_available(user_id=lt_user.user_id, available=False)
+                await queries.set_lt_user_invalid(user_id=lt_user.user_id)
             # elif "你已经领取过" in message or "您已参加抽奖" in message:
             #     await LTTempBlack.manual_accept_once(uid=cookie_obj.uid)
 

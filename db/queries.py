@@ -7,7 +7,7 @@ from utils.dao import redis_cache
 class LTUserQueryMixin:
     key = LTUser.__key__
 
-    async def _save(self, lt_user: LTUser) -> None:
+    async def _save_lt_user(self, lt_user: LTUser) -> None:
         await redis_cache.hash_map_set(self.key, {lt_user.DedeUserID: lt_user.dict()})
 
     async def upsert_lt_user(
@@ -51,17 +51,25 @@ class LTUserQueryMixin:
         if notice_email is not None:
             lt_user.notice_email = notice_email
 
-        await self._save(lt_user)
+        await self._save_lt_user(lt_user)
         return lt_user
 
-    async def set_lt_user_available(self, user_id: int, available: bool) -> Union[LTUser, None]:
+    async def set_lt_user_invalid(self, user_id: int) -> Union[LTUser, None]:
         # TODO： re-login or notice
+
         lt_user = await self.get_lt_user_by_uid(user_id=user_id)
-        if not lt_user or lt_user.available == available:
+        if not lt_user or lt_user.available:
             return lt_user
 
-        lt_user.available = available
-        await self._save(lt_user)
+        lt_user.available = False
+        await self._save_lt_user(lt_user)
+
+        if lt_user.bind_qq:
+            from utils.cq import async_zy
+            await async_zy.send_private_msg(
+                user_id=lt_user.bind_qq,
+                message=f"你挂的辣条机已经掉线，请重新登录。{lt_user}"
+            )
         return lt_user
 
     async def set_lt_user_if_is_vip(self, user_id: int, is_vip: bool) -> Union[LTUser, None]:
@@ -69,7 +77,7 @@ class LTUserQueryMixin:
         if not lt_user:
             return
         lt_user.is_vip = is_vip
-        await self._save(lt_user)
+        await self._save_lt_user(lt_user)
         return lt_user
 
     async def set_lt_user_blocked(self, user_id: int) -> Union[LTUser, None]:
@@ -77,7 +85,7 @@ class LTUserQueryMixin:
         if not lt_user:
             return
         lt_user.blocked_time = datetime.datetime.now()
-        await self._save(lt_user)
+        await self._save_lt_user(lt_user)
         return lt_user
 
     async def get_lt_user_by_uid(self, user_id: Union[str, int]) -> Union[LTUser, None]:
