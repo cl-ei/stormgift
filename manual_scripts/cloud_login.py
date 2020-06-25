@@ -35,10 +35,12 @@ class CookieFetcher:
         ),
     }
     app_headers = {
-        "User-Agent": "Mozilla/5.0 BilidDroid/5.51.1(bbcallen@gmail.com)",
+        "User-Agent": "Mozilla/5.0 BiliDroid/5.58.0 (bbcallen@gmail.com)",
         "Accept-encoding": "gzip",
-        "Buvid": "000ce0b9b9b4e342ad4f421bcae5e0ce",
+        "Buvid": "XZ11bfe2654a9a42d885520a680b3574582eb3",
         "Display-ID": "146771405-1521008435",
+        "Device-Guid": "2d0bbec5-df49-43c5-8a27-ceba3f74ffd7",
+        "Device-Id": "469a6aaf431b46f8b58a1d4a91d0d95b202004211125026456adffe85ddcb44818",
         "Accept-Language": "zh-CN",
         "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
         "Connection": "keep-alive",
@@ -125,7 +127,7 @@ class CookieFetcher:
         text_with_appsecret = f'{text}{cls.app_secret}'
         sign = hashlib.md5(text_with_appsecret.encode('utf-8')).hexdigest()
         payload = f'{text}&sign={sign}'
-        url = "https://passport.bilibili.com/api/v2/oauth2/login"
+        url = "https://passport.bilibili.com/api/v3/oauth2/login"
 
         for _ in range(10):
             status_code, content = cls._request('POST', url, params=payload, headers=cls.app_headers)
