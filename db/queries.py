@@ -94,9 +94,9 @@ class LTUserQueryMixin:
             return None
 
         result = await redis_cache.hash_map_get(self.key, user_id)
-        if not result:
+        if not result or not result.get(user_id):
             return
-        return LTUser(**result)
+        return LTUser(**result[user_id])
 
     async def get_all_lt_user(self) -> List[LTUser]:
         cached = await redis_cache.hash_map_get_all(self.key)
