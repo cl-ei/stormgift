@@ -2,6 +2,7 @@ import aiohttp
 from cqhttp import CQHttp
 from config import CQBOT, CQBOT_ZY, config
 
+
 class CQClient:
     def __init__(self, api_root, access_token=None, timeout=5):
         self.api_root = api_root.strip().rstrip("/") + "/"
