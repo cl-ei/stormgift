@@ -14,7 +14,7 @@ from db.queries import queries, LTUser
 from website.operations import add_user_by_account
 from config.log4 import lt_login_logger
 from config.log4 import website_logger as logging
-from utils.dao import redis_cache, LTUserSettings
+from utils.dao import redis_cache
 from utils.images import DynamicPicturesProcessor
 
 
@@ -250,10 +250,22 @@ async def settings(request):
         context["err_msg"] = "你无权访问此页面。请返回宝藏站点首页，正确填写你的信息，然后点击「我要挂辣条」按钮。"
         return render_to_response("website/templates/settings.html", context=context)
 
-    obj = await queries.get_lt_user_by_uid(user_id=bili_uid)
-    context["user_name"] = obj.name
-    context["user_id"] = obj.uid
-    context["settings"] = await LTUserSettings.get(uid=bili_uid)
+    lt_user = await queries.get_lt_user_by_uid(user_id=bili_uid)
+    context["user_name"] = lt_user.name
+    context["user_id"] = lt_user.uid
+    context["percent_anchor"] = lt_user.percent_anchor
+    context["percent_guard"] = lt_user.percent_guard
+    context["percent_pk"] = lt_user.percent_pk
+    context["percent_storm"] = lt_user.percent_storm
+    context["percent_tv"] = lt_user.percent_tv
+
+    medals = ["" for _ in range(7)]
+    for i, medal in enumerate(lt_user.send_medals):
+        if i >= 7:
+            break
+        medals[i] = medal
+    context["send_medals"] = medals
+
     return render_to_response("website/templates/settings.html", context=context)
 
 
@@ -264,37 +276,33 @@ async def post_settings(request):
 
     data = await request.post()
     try:
-        tv_percent = int(data["tv_percent"])
-        guard_percent = int(data["guard_percent"])
-        pk_percent = int(data["pk_percent"])
-        storm_percent = int(data["storm_percent"])
-        anchor_percent = int(data["anchor_percent"])
-        medals = [m.strip() for m in data["medals"].split("\r\n")]
-        medals = [m for m in medals if m]
+        percent_tv = int(data["percent_tv"])
+        percent_guard = int(data["percent_guard"])
+        percent_pk = int(data["percent_pk"])
+        medals = [m.strip() for m in data["send_medals"].split("\r\n")]
+        send_medals = [m for m in medals if m]
     except (KeyError, TypeError, ValueError) as e:
         return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}\n{traceback.format_exc()}"})
 
     if (
-        not 0 <= tv_percent <= 100
-        or not 0 <= guard_percent <= 100
-        or not 0 <= pk_percent <= 100
-        or not 0 <= storm_percent <= 100
-        or not 0 <= anchor_percent <= 100
+        not 0 <= percent_tv <= 100
+        or not 0 <= percent_guard <= 100
+        or not 0 <= percent_pk <= 100
     ):
         return json_response({"code": 403, "err_msg": "范围错误！请设置0~100 ！"})
 
-    for m in medals:
+    for m in send_medals:
         if not isinstance(m, str) or not 0 < len(m) <= 6:
             return json_response({"code": 403, "err_msg": f"错误的勋章：{m}"})
 
-    await LTUserSettings.set(
-        uid=bili_uid,
-        tv_percent=tv_percent,
-        guard_percent=guard_percent,
-        pk_percent=pk_percent,
-        storm_percent=storm_percent,
-        anchor_percent=anchor_percent,
-        medals=medals,
+    lt_user = await queries.get_lt_user_by_uid(bili_uid)
+    lt_user.percent_tv = percent_tv
+    lt_user.percent_guard = percent_guard
+    lt_user.percent_pk = percent_pk
+    lt_user.send_medals = send_medals
+    await queries.update_lt_user(
+        lt_user,
+        fields=("percent_tv", "percent_guard", "percent_pk", "send_medals",)
     )
     return json_response({"code": 0})
 

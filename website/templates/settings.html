@@ -89,16 +89,16 @@
     <label>③<input type="checkbox" name="silver-box" checked disabled>每日宝箱领取</label>
 
     <label>④ 小电视/高能领取参与率
-        <input class="input-number" type="number" name="tv-percent" value="{{ settings.tv_percent }}">%
+        <input class="input-number" type="number" name="percent-tv" value="{{ percent_tv }}">%
     </label>
     <label>⑤ 大航海亲密度领取参与率
-        <input class="input-number" type="number" name="guard-percent" value="{{ settings.guard_percent }}">%
+        <input class="input-number" type="number" name="percent-guard" value="{{ percent_guard }}">%
     </label>
     <label>⑥ 大乱斗PK获胜参与率
-        <input class="input-number" type="number" name="pk-percent" value="{{ settings.pk_percent }}">%
+        <input class="input-number" type="number" name="percent-pk" value="{{ percent_pk }}">%
     </label>
     <label class="auto-intimacy">* 自动送辣条（填勋章名）
-        {% for medal in settings.medals %}
+        {% for medal in send_medals %}
             <input class="input-number" type="text" value="{{ medal }}">
             {% if not loop.last %}，{% endif %}
         {% endfor %}
@@ -128,31 +128,26 @@ $(function () {
     $("#modal-confirm-btn").click(function () {$("#prompt-modal").modal("hide")});
 
     function submit(){
-        console.log("submit");
 
-        let tv_percent = parseInt($("input[name=tv-percent]").val()) || 0;
-        if (tv_percent < 0 || tv_percent > 100){
+        let percent_tv = parseInt($("input[name=percent-tv]").val()) || 0;
+        if (percent_tv < 0 || percent_tv > 100){
             warning("小电视参与率超过范围，请设置： 0~100 !");
             return;
         }
-        let guard_percent = parseInt($("input[name=guard-percent]").val()) || 0;
-        if (guard_percent < 0 || guard_percent > 100){
+        let percent_guard = parseInt($("input[name=percent-guard]").val()) || 0;
+        if (percent_guard < 0 || percent_guard > 100){
             warning("大航海参与率超过范围，请设置： 0~100 !");
             return;
         }
 
-        let pk_percent = parseInt($("input[name=pk-percent]").val()) || 0;
-        if (pk_percent < 0 || pk_percent > 100){
+        let percent_pk = parseInt($("input[name=percent-pk]").val()) || 0;
+        if (percent_pk < 0 || percent_pk > 100){
             warning("大乱斗PK获胜参与率超过范围，请设置： 0~100 !");
             return;
         }
 
-        let storm_percent = parseInt($("input[name=storm-percent]").val()) || 0;
-        if (pk_percent < 0 || pk_percent > 100){
-            warning("节奏风暴参与率超过范围，请设置： 0~100 !");
-            return;
-        }
-        let anchor_percent = 0;
+        let percent_storm = 0;
+        let percent_anchor = 0;
 
         let medals = [];
         let medalsDom = $(".auto-intimacy input");
@@ -165,12 +160,10 @@ $(function () {
             url: "/lt/post_settings",
             type: "post",
             data: {
-                tv_percent: tv_percent,
-                guard_percent: guard_percent,
-                pk_percent: pk_percent,
-                storm_percent: storm_percent,
-                anchor_percent: anchor_percent,
-                medals: medals.join('\r\n'),
+                percent_tv: percent_tv,
+                percent_guard: percent_guard,
+                percent_pk: percent_pk,
+                send_medals: medals.join('\r\n'),
             },
             success: function (r){
                 if (r.code !== 0){

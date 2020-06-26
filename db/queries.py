@@ -1,3 +1,4 @@
+import random
 import datetime
 from typing import Union, List, Iterable
 from db.tables import LTUser
@@ -112,6 +113,7 @@ class LTUserQueryMixin:
             available: bool = None,
             is_vip: bool = None,
             is_blocked: bool = None,
+            filter_k: str = None
     ) -> List[LTUser]:
 
         all_users = await self.get_all_lt_user()
@@ -123,6 +125,15 @@ class LTUserQueryMixin:
                 continue
             if is_blocked is not None and u.is_blocked != is_blocked:
                 continue
+
+            if filter_k is not None:
+                percent = getattr(u, filter_k, 0)
+
+                # randint 可以取值到1和100
+                # 如果 percent 设置为0，则任意随即值都比 percent 大，故100%跳过
+                if random.randint(1, 100) > percent:
+                    continue
+
             result.append(u)
 
         return result

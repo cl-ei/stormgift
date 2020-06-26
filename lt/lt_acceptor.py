@@ -11,7 +11,6 @@ from utils.dao import DelayAcceptGiftsQueue
 from config.log4 import acceptor_logger as logging
 from utils.dao import (
     redis_cache,
-    LTUserSettings,
     UserRaffleRecord,
 )
 
@@ -126,15 +125,13 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
 
 
 async def accept(index, act, room_id, gift_id, gift_type, gift_name):
-    lt_users = await queries.get_lt_user_by(available=True, is_blocked=False)
-
     filter_k = {
-        "join_tv_v5": "tv_percent",
-        "join_guard": "guard_percent",
-        "join_pk": "pk_percent",
+        "join_tv_v5": "percent_tv",
+        "join_guard": "percent_guard",
+        "join_pk": "percent_pk",
     }[act]
 
-    lt_users: List[LTUser] = await LTUserSettings.filter_cookie(lt_users, key=filter_k)
+    lt_users = await queries.get_lt_user_by(available=True, is_blocked=False, filter_k=filter_k)
     if not lt_users:
         return
 

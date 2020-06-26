@@ -1,6 +1,6 @@
 import asyncio
+from typing import List
 from config.log4 import config_logger
-from utils.dao import LTUserSettings
 from db.queries import queries, LTUser
 
 
@@ -97,14 +97,9 @@ async def send_gift(cookie, medal, user_name=""):
 
 
 async def main():
-    r = await LTUserSettings.get_all()
-    for user_id, setting in r.items():
-        lt_user: LTUser = await queries.get_lt_user_by_uid(user_id=user_id)
-        if not lt_user or not lt_user.available:
-            continue
-
-        medals = setting["medals"]
-        for medal in medals:
+    lt_users: List[LTUser] = await queries.get_lt_user_by(available=True)
+    for lt_user in lt_users:
+        for medal in lt_user.send_medals:
             await send_gift(cookie=lt_user.cookie, medal=medal, user_name=lt_user.name)
 
     lt_user: LTUser = await queries.get_lt_user_by_uid(user_id=312186483)
