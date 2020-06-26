@@ -101,12 +101,13 @@ async def gen_login_succeed_response(lt_user: LTUser):
 
     response = json_response({"code": 0, "location": "/lt/settings"})
     response.set_cookie(name="mad_token", value=mad_token)
-    response.set_cookie(name="DedeUserID", value=lt_user.DedeUserID)
+    response.set_cookie(name="DedeUserID", value=str(lt_user.DedeUserID))
     return response
 
 
 async def lt(request):
     token = request.match_info['token']
+    qr_code = request.query.get("qr_code")
     if not token:
         return web.HTTPForbidden()
 
@@ -118,14 +119,28 @@ async def lt(request):
     r = await redis_cache.get(key=key)
     if not r:
         return web.HTTPNotFound()
-
     r = await redis_cache.incr(key)
     if r < 4:
         return web.Response(text="<h3>请刷新此页面，直到能够正常显示。</h3>", content_type="text/html")
-
     await redis_cache.delete(key)
-    context = {"CDN_URL": CDN_URL}
-    return render_to_response("website/templates/website_homepage.html", context=context)
+
+    context = {
+        "CDN_URL": CDN_URL,
+        "token": token,
+    }
+    if not qr_code:
+        return render_to_response("website/templates/website_homepage.html", context=context)
+
+    url = "https://passport.bilibili.com/qrcode/getLoginUrl"
+    async with aiohttp.request("get", url=url, headers=BROWSER_HEADERS) as r:
+        bili_response = await r.json()
+
+    context.update({
+        "ts": bili_response["ts"],
+        "url": bili_response["data"]["url"],
+        "oauthKey": bili_response["data"]["oauthKey"],
+    })
+    return render_to_response("website/templates/qr_code_login.html", context=context)
 
 
 async def q(request):
@@ -146,16 +161,25 @@ async def q(request):
 
 async def login(request):
     data = await request.post()
+    token = data['token']
     account = data['account']
     password = data['password']
     email = data["email"]
     if not account or not password:
         return json_response({"code": 403, "err_msg": "输入错误！检查你的输入!"})
 
+    qq_number = await redis_cache.get(F"LT_TOKEN_TO_QQ:{token}")
+    if not qq_number:
+        return json_response({
+            "code": 403,
+            "err_msg": "未能追踪到此页面的来源，请你重新获取。此页面是专属链接，请不要分享给他人。"
+        })
+
     flag, message = await add_user_by_account(
         account=account,
         password=password,
         notice_email=email,
+        bind_qq=qq_number,
     )
 
     if flag:
@@ -169,41 +193,19 @@ async def login(request):
     return response
 
 
-async def qr_code_login(request):
-    token = request.match_info['token']
-    if not token:
-        return web.HTTPForbidden()
-
-    ua = request.headers.get("User-Agent", "NON_UA")
-    remote_ip = request.remote  # request.headers.get("X-Real-IP", "")
-    logging.info(f"LT_ACCESS_TOKEN_RECEIVED: {token}, ip: {remote_ip}. UA: {ua}")
-
-    key = F"LT_ACCESS_TOKEN_{token}"
-    r = await redis_cache.get(key=key)
-    if not r:
-        return web.HTTPNotFound()
-    r = await redis_cache.incr(key)
-    if r < 4:
-        return web.Response(text="<h3>请刷新此页面，直到能够正常显示。</h3>", content_type="text/html")
-    await redis_cache.delete(key)
-
-    url = "https://passport.bilibili.com/qrcode/getLoginUrl"
-    async with aiohttp.request("get", url=url, headers=BROWSER_HEADERS) as r:
-        bili_response = await r.json()
-
-    context = {
-        "CDN_URL": CDN_URL,
-        "ts": bili_response["ts"],
-        "url": bili_response["data"]["url"],
-        "oauthKey": bili_response["data"]["oauthKey"],
-    }
-    return render_to_response("website/templates/qr_code_login.html", context=context)
-
-
 async def qr_code_result(request):
+    oauth_key = request.query.get("oauthKey")
+    token = request.query.get("token")
+    qq_number = await redis_cache.get(F"LT_TOKEN_TO_QQ:{token}")
+    if not qq_number:
+        return json_response({
+            "code": 400,
+            "msg": f"未能追踪到此页面的来源，请重新获取。此页面是专属链接，请不要分享给他人。"
+        })
+
     url = "https://passport.bilibili.com/qrcode/getLoginInfo"
     data = {
-        'oauthKey': request.query.get("oauthKey"),
+        'oauthKey': oauth_key,
         'gourl': 'https://passport.bilibili.com/account/security'
     }
 
@@ -235,6 +237,7 @@ async def qr_code_result(request):
     lt_user = await queries.upsert_lt_user(
         access_token="",
         refresh_token="",
+        bind_qq=qq_number,
         **cookies_dict
     )
 

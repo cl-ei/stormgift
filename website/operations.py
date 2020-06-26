@@ -74,26 +74,24 @@ async def get_lt_user_status(user_id: int) -> Tuple[bool, str]:
 async def add_user_by_account(
         account: str,
         password: str,
-        notice_email: str = None
+        notice_email: str = None,
+        bind_qq: int = None,
 ) -> Tuple[bool, Union[str, LTUser]]:
 
-    lt_users = await queries.get_all_lt_user()
-    lt_user = None
-    for u in lt_users:
-        if u.account == account:
-            if u.available:
-                u.password = password
-                update_fields = ["password"]
+    lt_user = await queries.get_lt_user_by_account(account=account)
+    if lt_user and lt_user.available:
+        lt_user.password = password
+        update_fields = ["password"]
 
-                if notice_email is not None:
-                    u.notice_email = notice_email
-                    update_fields.append("notice_email")
+        if notice_email is not None:
+            lt_user.notice_email = notice_email
+            update_fields.append("notice_email")
+        if bind_qq is not None:
+            lt_user.bind_qq = bind_qq
+            update_fields.append("bind_qq")
 
-                await queries.update_lt_user(u, fields=update_fields)
-                return True, u
-            else:
-                lt_user = u
-                break
+        await queries.update_lt_user(lt_user, fields=update_fields)
+        return True, lt_user
 
     flag, r = await BiliApi.login(
         account,
@@ -109,6 +107,7 @@ async def add_user_by_account(
         account=account,
         password=password,
         notice_email=notice_email,
+        bind_qq=bind_qq,
         **r,
     )
     return True, lt_user

@@ -33,6 +33,7 @@ class LTUserQueryMixin:
             account: str = None,
             password: str = None,
             notice_email: str = None,
+            bind_qq: int = None,
             available: bool = True,
     ) -> LTUser:
 
@@ -56,6 +57,9 @@ class LTUserQueryMixin:
         if notice_email is not None:
             params["notice_email"] = notice_email
             fields.append("notice_email")
+        if bind_qq is not None:
+            params["bind_qq"] = bind_qq
+            fields.append("bind_qq")
 
         lt_user = LTUser(**params)
         await self.update_lt_user(lt_user, fields=fields)
@@ -100,6 +104,12 @@ class LTUserQueryMixin:
             return
         return LTUser(**result)
 
+    async def get_lt_user_by_account(self, account: str) -> Union[LTUser, None]:
+        all_users = await self.get_all_lt_user()
+        for user in all_users:
+            if user.account == account:
+                return user
+
     async def get_all_lt_user(self) -> List[LTUser]:
         user_id_list = await redis_cache.set_get_all(self.key_prefix)
         if not user_id_list:
@@ -113,7 +123,8 @@ class LTUserQueryMixin:
             available: bool = None,
             is_vip: bool = None,
             is_blocked: bool = None,
-            filter_k: str = None
+            filter_k: str = None,
+            bind_qq: int = None,
     ) -> List[LTUser]:
 
         all_users = await self.get_all_lt_user()
@@ -124,6 +135,9 @@ class LTUserQueryMixin:
             if is_vip is not None and u.is_vip != is_vip:
                 continue
             if is_blocked is not None and u.is_blocked != is_blocked:
+                continue
+
+            if bind_qq is not None and u.bind_qq != bind_qq:
                 continue
 
             if filter_k is not None:

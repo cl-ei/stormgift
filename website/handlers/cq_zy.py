@@ -11,7 +11,6 @@ import requests
 import traceback
 from config import g
 from aiohttp import web
-from random import randint
 from utils.cq import async_zy
 from utils.biliapi import BiliApi
 from utils.cq import bot_zy as bot
@@ -24,7 +23,6 @@ from website.operations import get_lt_user_status
 from utils.images import DynamicPicturesProcessor
 from utils.dao import (
     redis_cache,
-    BiliToQQBindInfo,
     DelayAcceptGiftsQueue,
 )
 
@@ -242,7 +240,9 @@ class BotUtils:
     async def proc_query_raffle(self, msg):
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
-            raw_uid_or_uname = await BiliToQQBindInfo.get_by_qq(qq=self.user_id)
+            lt_users = await queries.get_lt_user_by(bind_qq=self.user_id)
+            if lt_users:
+                raw_uid_or_uname = lt_users[0].user_id
 
         if not raw_uid_or_uname:
             return f"请绑定你的B站账号，或者在指令后加上正确的B站用户id。"
@@ -279,7 +279,8 @@ class BotUtils:
         return message
 
     async def proc_lt_status(self, msg):
-        bili_uid_list = await BiliToQQBindInfo.get_all_bili(qq=self.user_id)
+        lt_users = await queries.get_lt_user_by(bind_qq=self.user_id)
+        bili_uid_list = [u.uid for u in lt_users]
         if not bili_uid_list:
             return f"你尚未绑定B站账号。请私聊我然后发送\"#绑定\"以完成绑定。"
 
@@ -299,18 +300,25 @@ class BotUtils:
         return msg
 
     async def proc_query_bag(self, msg):
-        bili_uid = await BiliToQQBindInfo.get_by_qq(qq=self.user_id)
-        if not bili_uid:
-            return f"你尚未绑定B站账号。请私聊我然后发送\"#绑定\"以完成绑定。"
+        lt_users = await queries.get_lt_user_by(bind_qq=self.user_id)
+        if not lt_users:
+            return f"你尚未绑定B站账号。请发送LT并登录。"
 
         try:
             postfix = int(msg[3:])
             assert postfix > 0
             bili_uid = postfix
         except (ValueError, TypeError, AssertionError):
-            pass
+            bili_uid = None
 
-        user = await queries.get_lt_user_by_uid(user_id=bili_uid)
+        if bili_uid is None:
+            user = lt_users[0]
+        else:
+            user = None
+            for u in lt_users:
+                if u.user_id == bili_uid:
+                    user = u
+                    break
         if not user or not user.available:
             return f"未查询到用户「{bili_uid}」。可能用户已过期，请重新登录。"
 
@@ -415,38 +423,7 @@ class BotUtils:
         self.response(message)
 
     async def proc_query_guard(self, msg):
-        user_name_or_uid = msg[4:].strip()
-        if not user_name_or_uid:
-            bili_uid = await BiliToQQBindInfo.get_by_qq(qq=self.user_id)
-        else:
-            if user_name_or_uid.isdigit():
-                bili_uid = int(user_name_or_uid)
-            else:
-                bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_uid)
-
-        if not bili_uid:
-            return f"指令错误，不能查询到用户: {user_name_or_uid}"
-
-        return await ReqFreLimitApi.get_guard_record(uid=int(bili_uid))
-
-    async def proc_bind(self):
-        message = ""
-        bili_uid_list = await BiliToQQBindInfo.get_all_bili(qq=self.user_id)
-
-        if len(bili_uid_list) > 0:
-            message += f"你已经绑定到Bili用户:\n{'、'.join([str(_) for _ in bili_uid_list])}。绑定更多账号请按如下操作：\n"
-
-        code = f"{randint(0x1000, 0xffff):0x}"
-        key = f"BILI_BIND_CHECK_KEY_{code}"
-        if await redis_cache.set_if_not_exists(key=key, value=self.user_id, timeout=3600):
-            message += f"请你现在去1234567直播间发送以下指令:\nhttps://live.bilibili.com/1234567\n\n你好{code}"
-        else:
-            message += f"操作失败！系统繁忙，请5秒后再试。"
-
-        return message
-
-    async def proc_unbind(self):
-        return f"要想解绑，请你现在去1234567直播间发送:\n\n再见"
+        return f"功能维护中。"
 
     async def proc_chicken(self):
         user_id = self.user_id
@@ -573,23 +550,6 @@ class BotHandler:
                 await BiliApi.send_danmaku(message=message, room_id=13369254, cookie=dd_obj.cookie)
                 return
 
-            elif msg.startswith("++"):
-                qq, bili = [int(_) for _ in msg[2:].split("+")]
-                r = await BiliToQQBindInfo.bind(qq=qq, bili=bili)
-                all_bili = await BiliToQQBindInfo.get_all_bili(qq=qq)
-                message = f"绑定结果: {r}。{qq} -> {'、'.join([str(b) for b in all_bili])}"
-                return message
-
-            elif msg.startswith("--"):
-                bili = int(msg[2:])
-                qq = await BiliToQQBindInfo.unbind(bili=bili)
-                if qq:
-                    all_bili = await BiliToQQBindInfo.get_all_bili(qq=qq)
-                else:
-                    all_bili = []
-                message = f"解绑。{qq} -> {'、'.join([str(b) for b in all_bili])}"
-                return message
-
         for short, full in [
             ("1", "#背包"),
             ("2", "#动态"),
@@ -632,12 +592,16 @@ class BotHandler:
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help()
 
-        elif msg == "lt":
+        elif msg.lower() == "lt":
             token = f"{random.randint(0x100000000000, 0xFFFFFFFFFFFF):0x}"
             key = F"LT_ACCESS_TOKEN_{token}"
             await redis_cache.incr(key=key)
             await redis_cache.expire(key=key, timeout=180)
-
+            await redis_cache.set(
+                key=F"LT_TOKEN_TO_QQ:{token}",
+                value=user_id,
+                timeout=3600,
+            )
             logging.info(F"LT_ACCESS_TOKEN_GEND: {token}, user_id: {user_id}")
 
             key = f"LT_WEB_{user_id}"
@@ -648,7 +612,7 @@ class BotHandler:
 
             message = (
                 f"宝藏站点地址: \nhttp://www.madliar.com:2020/lt_{token}\n\n"
-                f"如果无法使用密码登录，请使用二维码扫码登录：\nhttp://www.madliar.com:2020/lt/qr_code_login/{token}\n\n"
+                f"如果无法使用密码登录，请使用二维码扫码登录：\nhttp://www.madliar.com:2020/lt_{token}?qr_code=true\n\n"
                 f"本URL只可一次性使用，如遇404则说明已失效，请重新获取；否则，请一直刷新页面，直到能够正常显示。\n\n"
                 "---------------\n"
                 "另外，为了防止异常情况导致QQ机器人不可用，你还可以通过web页面发送指令，来查询状态，你的专属地址"

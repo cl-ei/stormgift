@@ -215,6 +215,7 @@ $(function () {
             url: "/lt/login",
             type: "post",
             data: {
+                token: "{{ token }}",
                 account: account,
                 password: password,
                 email: email,

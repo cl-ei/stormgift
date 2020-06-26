@@ -109,7 +109,7 @@ $(function (){
 
     function getResult(){
         $.ajax({
-            url: "/lt/qr_code_result?oauthKey={{ oauthKey }}",
+            url: "/lt/qr_code_result?oauthKey={{ oauthKey }}&token={{ token }}",
             type: "get",
             success: function (data){
                 console.log("success: ", data);

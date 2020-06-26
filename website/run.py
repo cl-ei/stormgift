@@ -36,15 +36,9 @@ async def main():
         web.get('/bili/q/{user_id}/{web_token}', lt.q),
 
         web.post('/lt/login', lt.login),
-        web.get('/lt/qr_code_login/{token}', lt.qr_code_login),
         web.get('/lt/qr_code_result', lt.qr_code_result),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),
-
-        web.get('/lt/broadcast', lambda x: web.HTTPFound('https://www.madliar.com/bili/broadcast')),
-        web.get('/lt/query_gifts', lambda x: web.HTTPFound('https://www.madliar.com/bili/guards')),
-        web.get('/lt/query_raffles', lambda x: web.HTTPFound('https://www.madliar.com/bili/raffles')),
-        web.get('/lt/query_raffles_by_user', lambda x: web.HTTPFound('https://www.madliar.com/bili/raffles')),
 
         web.get('/lt/trends_qq_notice', lt.trends_qq_notice),
         web.route('*', "/lt/cq_handler", cq_zy.handler),

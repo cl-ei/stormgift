@@ -283,61 +283,6 @@ class RedisLock:
         await redis_cache.delete(self.key)
 
 
-class BiliToQQBindInfo(object):
-    key = "BINDINFO_BILI_TO_QQ"
-
-    @classmethod
-    async def bind(cls, qq, bili):
-        qq = int(qq)
-        bili = int(bili)
-
-        r = await redis_cache.get(cls.key)
-        if not isinstance(r, (list, tuple)):
-            r = []
-        new_pairs = [pair for pair in r if pair[1] != bili]
-        new_pairs.append((qq, bili))
-
-        return await redis_cache.set(key=cls.key, value=new_pairs)
-
-    @classmethod
-    async def unbind(cls, bili):
-        r = await redis_cache.get(cls.key)
-        if not isinstance(r, (list, tuple)):
-            r = []
-        qq = [p[0] for p in r if p[1] == bili]
-        if not qq:
-            return
-
-        new_r = [p for p in r if p[1] != bili]
-        await redis_cache.set(key=cls.key, value=new_r)
-        return qq[0]
-
-    @classmethod
-    async def get_by_qq(cls, qq):
-        r = await redis_cache.get(cls.key)
-        if not isinstance(r, (list, tuple)):
-            r = []
-        for qq_num, bili in r:
-            if qq_num == qq:
-                return int(bili)
-        return None
-
-    @classmethod
-    async def get_by_bili(cls, bili):
-        r = await redis_cache.get(cls.key)
-        if not isinstance(r, (list, tuple)):
-            r = []
-        for qq, b in r:
-            if b == bili:
-                return qq
-        return None
-
-    @classmethod
-    async def get_all_bili(cls, qq):
-        r = await redis_cache.get(cls.key)
-        return [p[1] for p in r if p[0] == qq]
-
-
 class HYMCookies:
     key = "HYM_COOKIES_"
 
