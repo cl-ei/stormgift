@@ -499,10 +499,7 @@ class BotUtils:
             if self.user_id == g.QQ_NUMBER_DD:
                 message += (
                     f"\n"
-                    f"ac、dc、auc: 辣条白名单\n"
-                    f"as、ds: 超级答谢鸡\n"
-                    f"++123+1212、--33234: 绑定解绑\n"
-                    f"approve、11、33、44、g、r"
+                    f"approve、33、g、r"
                 )
         return message
 
@@ -582,12 +579,6 @@ class BotHandler:
 
         elif msg.startswith("#挂机查询"):
             return await p.proc_lt_status(msg)
-
-        elif msg.startswith("#绑定"):
-            return await p.proc_bind()
-
-        elif msg.startswith("#解绑"):
-            return await p.proc_unbind()
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help()
