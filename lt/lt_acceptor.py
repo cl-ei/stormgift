@@ -255,6 +255,7 @@ async def listen_ws():
 
             async for msg in ws:
                 if msg.type == aiohttp.WSMsgType.ERROR:
+                    logging.warning(F"msg.type ERROR: {msg} -> {msg.data}")
                     break
                 try:
                     await on_message(msg.data)
