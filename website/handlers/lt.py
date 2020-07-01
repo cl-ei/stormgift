@@ -143,22 +143,6 @@ async def lt(request):
     return render_to_response("website/templates/qr_code_login.html", context=context)
 
 
-async def q(request):
-    user_id = int(request.match_info['user_id'])
-    token = request.match_info['web_token']
-    key = f"LT_WEB_{user_id}"
-    if await redis_cache.get(key=key) != token:
-        return web.Response(text=f"你访问了错误的链接！可能的原因你的私密链接已过期，请给机器人发送lt重新获取。")
-
-    msg = request.query.get("msg")
-    from website.handlers.cq_zy import BotHandler
-    try:
-        r = await BotHandler.handle_private_message(msg=msg, user_id=user_id)
-    except Exception as e:
-        r = f"处理「{msg}」时发生错误：{e}"
-    return web.Response(text=r)
-
-
 async def login(request):
     data = await request.post()
     token = data['token']

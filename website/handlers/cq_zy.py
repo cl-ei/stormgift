@@ -595,20 +595,10 @@ class BotHandler:
             )
             logging.info(F"LT_ACCESS_TOKEN_GEND: {token}, user_id: {user_id}")
 
-            key = f"LT_WEB_{user_id}"
-            web_token = await redis_cache.get(key=key)
-            if not web_token:
-                web_token = token
-                await redis_cache.set(key=key, value=web_token, timeout=3600*24*30)
-
             message = (
                 f"宝藏站点地址: \nhttp://www.madliar.com:2020/lt_{token}\n\n"
                 f"如果无法使用密码登录，请使用二维码扫码登录：\nhttp://www.madliar.com:2020/lt_{token}?qr_code=true\n\n"
-                f"本URL只可一次性使用，如遇404则说明已失效，请重新获取；否则，请一直刷新页面，直到能够正常显示。\n\n"
-                "---------------\n"
-                "另外，为了防止异常情况导致QQ机器人不可用，你还可以通过web页面发送指令，来查询状态，你的专属地址"
-                "（此链接有效期一个月，请保存浏览器标签，并且不要告知他人）：\n"
-                f"https://www.madliar.com/bili/q/{user_id}/{web_token}"
+                f"本URL只可一次性使用，如遇404则说明已失效，请重新获取；否则，请一直刷新页面，直到能够正常显示。\n"
             )
             return message
 

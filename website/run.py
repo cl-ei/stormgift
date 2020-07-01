@@ -33,7 +33,6 @@ async def main():
     app.add_routes([
         web.get('/', home_page),
         web.get('/lt_{token}', lt.lt),
-        web.get('/bili/q/{user_id}/{web_token}', lt.q),
 
         web.post('/lt/login', lt.login),
         web.get('/lt/qr_code_result', lt.qr_code_result),
