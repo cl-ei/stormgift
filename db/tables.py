@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from typing import Optional, List
 from utils.schema import RWSchema
@@ -70,3 +71,46 @@ class LTUser(RWSchema):
             f"sid={self.sid}; "
             f"SESSDATA={self.SESSDATA};"
         )
+
+
+class RaffleBroadCast(RWSchema):
+    __key__ = "LTS:RF_BR"
+
+    raffle_type: str       # "guard"
+    ts: int                # int(time.time())
+    real_room_id: int      # room_id
+    raffle_id: int         # raffle_id
+    gift_name: str         # gift_name
+    created_time: datetime
+    expire_time: datetime
+    gift_type: Optional[str]  # gift_type
+    time_wait: Optional[int]  # info["time_wait"]
+    max_time:  Optional[int]  # info["max_time"]
+
+    def __str__(self):
+        return f"<RfBrCst {self.raffle_type}-{self.real_room_id}.{self.raffle_id}>"
+
+    def __repr__(self):
+        return self.__str__()
+
+    async def save(self, redis):
+        await redis.zset_zadd(
+            key=self.__key__,
+            member_to_score={self: time.time()}
+        )
+
+    @classmethod
+    async def get(cls, redis, due_time: float = None):
+        if due_time is None:
+            due_time = time.time()
+
+        result = await redis.zset_zrange_by_score(
+            key=cls.__key__,
+            max_=due_time,
+        )
+        await redis.zset_zrem_by_score(
+            key=cls.__key__,
+            min_="-inf",
+            max_=due_time,
+        )
+        return result

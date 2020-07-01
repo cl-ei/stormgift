@@ -5,8 +5,10 @@ import pickle
 import asyncio
 import aioredis
 import datetime
-from typing import List, Dict
+from typing import List, Dict, Union, Any, Iterable, Tuple
 from config import REDIS_CONFIG
+
+PKL_PROTOCOL = pickle.DEFAULT_PROTOCOL
 
 
 class RedisCache(object):
@@ -260,6 +262,90 @@ class RedisCache(object):
         return await self.execute("ZREMRANGEBYSCORE", key, min_, max_)
 
     async def sorted_set_zscore(self, key, member):
+        return await self.execute("ZSCORE", key, member)
+
+    async def zset_zadd(self, key: str, member_pairs: Iterable[Tuple[Any, float]], _un_pickle=False):
+        """
+        向有序集合添加一个或多个成员，或者更新已存在成员的分数
+
+        ZADD key score1 member1 [score2 member2]
+
+        """
+        safe_args = []
+        for member, score in member_pairs:
+            if not _un_pickle:
+                member = pickle.dumps(member, protocol=PKL_PROTOCOL)
+            safe_args.extend([float(score), member])
+        return await self.execute("ZADD", key, *safe_args)
+
+    async def zset_zcard(self, key) -> int:
+        """ 获取有序集合的成员数 """
+        return await self.execute("ZCARD", key)
+
+    async def zset_zrange_by_score(
+            self,
+            key: str,
+            min_: Union[str, float] = "-inf",
+            max_: Union[str, float] = "+inf",
+            offset: int = 0,
+            limit: int = 10000,
+            _un_pickle: bool = False,
+    ) -> Iterable[Tuple[Any, float]]:
+        """
+        通过分数返回有序集合指定区间内的成员
+
+        ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT]
+        """
+        result = await self.execute(
+            "ZRANGEBYSCORE", key, min_, max_, "WITHSCORES",
+            "limit", offset, limit
+        )
+
+        return_data = []
+        temp_obj = None
+        for i, data in enumerate(result):
+            if i % 2 == 0:  # member
+                if not _un_pickle:
+                    data = pickle.loads(data)
+                temp_obj = data
+            else:
+                return_data.append((temp_obj, float(data)))
+        return return_data
+
+    async def zset_zrem(self, key, *members, _un_pickle=False):
+        """
+        移除有序集合中的一个或多个成员
+
+        ZREM key member [member ...]
+        """
+        if not _un_pickle:
+            members = [
+                pickle.dumps(m, protocol=PKL_PROTOCOL)
+                for m in members
+            ]
+        return await self.execute("ZREM", key, *members)
+
+    async def zset_zrem_by_score(
+            self,
+            key: str,
+            min_: Union[str, float],
+            max_: Union[str, float]
+    ) -> int:
+        """
+        移除有序集合中给定的分数区间的所有成员
+
+        ZREMRANGEBYSCORE key min max
+        """
+        return await self.execute("ZREMRANGEBYSCORE", key, min_, max_)
+
+    async def zset_zscore(self, key: str, member: Any, _un_pickle: bool = False):
+        """
+        返回有序集中，成员的分数值
+
+        ZSCORE key member
+        """
+        if not _un_pickle:
+            member = pickle.dumps(member, protocol=PKL_PROTOCOL)
         return await self.execute("ZSCORE", key, member)
 
 

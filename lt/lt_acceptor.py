@@ -4,15 +4,19 @@ import random
 import asyncio
 import aiohttp
 import traceback
-from utils.cq import async_zy
+from typing import Tuple, Any, Iterable
 from config import cloud_acceptors, g
-from db.queries import queries, LTUser, List
-from utils.dao import DelayAcceptGiftsQueue
 from config.log4 import acceptor_logger as logging
-from utils.dao import (
-    redis_cache,
-    UserRaffleRecord,
-)
+from db.tables import RaffleBroadCast
+from db.queries import queries
+from utils.cq import async_zy
+from utils.dao import DelayAcceptGiftsQueue
+from utils.dao import RedisCache, UserRaffleRecord
+
+from config import REDIS_CONFIG, config
+REDIS_CONFIG["db"] = int(config["redis"]["stormgift_db"])
+redis_cache = RedisCache(**REDIS_CONFIG)
+
 
 NON_SKIP_USER_ID = [
     20932326,  # DD
@@ -75,11 +79,22 @@ async def notice_qq():
         await asyncio.sleep(1)
 
 
-async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
+async def post_accept_request(
+        act,
+        room_id: int,
+        gift_id: int,
+        cookies: str,
+        gift_type: str
+) -> Tuple[bool, Any, str]:
     """
 
-    RETURN: (flag, result, cloud_url)
-        flag -> bool, result -> list
+    return
+    ------
+    flag: bool
+
+    result: list
+
+    cloud_url: str
     """
     cloud_urls = []
 
@@ -124,14 +139,25 @@ async def cloud_accept(act, room_id, gift_id, cookies, gift_type):
     return True, return_data, cloud_url
 
 
-async def accept(index, act, room_id, gift_id, gift_type, gift_name):
+async def accept(
+        index: int,
+        act: str,
+        room_id: int,
+        gift_id: int,
+        gift_type: str,
+        gift_name: str,
+):
     filter_k = {
         "join_tv_v5": "percent_tv",
         "join_guard": "percent_guard",
         "join_pk": "percent_pk",
     }[act]
 
-    lt_users = await queries.get_lt_user_by(available=True, is_blocked=False, filter_k=filter_k)
+    lt_users = await queries.get_lt_user_by(
+        available=True,
+        is_blocked=False,
+        filter_k=filter_k
+    )
     if not lt_users:
         return
 
@@ -142,9 +168,9 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
         "cookies": [c.cookie for c in lt_users],
         "gift_type": gift_type
     }
-    flag, result, cloud_acceptor_url = await cloud_accept(**run_params)
+    flag, result, cloud_acceptor_url = await post_accept_request(**run_params)
     if not flag and result == "412":
-        flag, result, cloud_acceptor_url = await cloud_accept(**run_params)
+        flag, result, cloud_acceptor_url = await post_accept_request(**run_params)
 
     if not flag:
         logging.error(f"Accept Failed! {cloud_acceptor_url[-20:]} -> e: {result}")
@@ -201,74 +227,6 @@ async def accept(index, act, room_id, gift_id, gift_type, gift_name):
     )
 
 
-async def listen_ws():
-    async def on_message(message):
-        try:
-            data = json.loads(message)
-        except json.JSONDecodeError:
-            return
-        now = int(time.time())
-
-        raffle_type = data["raffle_type"]
-        ts = data["ts"]
-        room_id = data["real_room_id"]
-        raffle_id = data["raffle_id"]
-        gift_type = data.get("gift_type", "")
-        gift_name = data.get("gift_name", "")
-
-        if raffle_type == "tv":
-            act = "join_tv_v5"
-            time_wait = data["time_wait"]
-            max_time = data["max_time"]
-            accept_start_time = ts + time_wait
-            accept_end_time = ts + max_time
-            wait_time = int((accept_end_time - accept_start_time - 8) * random.random())
-            recommended_implementation_time = accept_start_time + wait_time
-            BatchLotteryNotice.add(room_id=room_id, gift_name=gift_name)
-        elif raffle_type == "guard":
-            act = "join_guard"
-            recommended_implementation_time = ts + random.randint(60, 300)
-        elif raffle_type == "pk":
-            act = "join_pk"
-            recommended_implementation_time = now
-        else:
-            return
-
-        task_params = {
-            "act": act,
-            "room_id": room_id,
-            "gift_id": raffle_id,
-            "gift_type": gift_type,
-            "gift_name": gift_name,
-        }
-        await DelayAcceptGiftsQueue.put(task_params, recommended_implementation_time)
-        await redis_cache.set("LT_LAST_ACTIVE_TIME", value=int(time.time()))
-        logging.info(
-            f"RAFFLE received: {raffle_type} {room_id} $ {raffle_id}. "
-            f"delay: {recommended_implementation_time - ts:.0f} -> {data}."
-        )
-
-    while True:
-        session = aiohttp.ClientSession()
-        async with session.ws_connect(url="wss://www.madliar.com/raffle_wss") as ws:
-            logging.info(f"Ws Source Connected!")
-
-            async for msg in ws:
-                if msg.type == aiohttp.WSMsgType.ERROR:
-                    logging.warning(F"msg.type ERROR: {msg} -> {msg.data}")
-                    break
-                try:
-                    await on_message(msg.data)
-                except Exception as e:
-                    logging.error(
-                        f"Error in proc single: {e}\n"
-                        f"`{msg.data}`\n"
-                        f"{traceback.format_exc()}"
-                    )
-
-        logging.warning(f"Ws Connection broken!")
-
-
 async def interval_assign_task(task_q):
     while True:
         task_params = await DelayAcceptGiftsQueue.get()
@@ -278,16 +236,64 @@ async def interval_assign_task(task_q):
         await asyncio.sleep(4)
 
 
-async def main():
-    logging.info("-" * 80)
-    logging.info("LT ACCEPTOR started!")
-    logging.info("-" * 80)
+class AcceptorClient:
+    def __init__(self):
+        self._workers = []
+        self._param_q = asyncio.queues.Queue()
 
-    task_q = asyncio.Queue()
+    @staticmethod
+    async def receive():
 
-    async def worker(index):
+        async def parse_one(rf: RaffleBroadCast, now_ts: float):
+            if rf.raffle_type == "tv":
+                BatchLotteryNotice.add(
+                    room_id=rf.real_room_id,
+                    gift_name=rf.gift_name
+                )
+
+                act = "join_tv_v5"
+                accept_start_time = now_ts + rf.time_wait
+                accept_end_time = now_ts + rf.max_time - 20
+                wait_time = int(
+                    (accept_end_time - accept_start_time)
+                    * random.random()
+                )
+                implement_time = accept_start_time + wait_time
+
+            elif rf.raffle_type == "guard":
+                act = "join_guard"
+                implement_time = now_ts + random.randint(60, 300)
+
+            elif rf.raffle_type == "pk":
+                act = "join_pk"
+                implement_time = now_ts
+            else:
+                return
+
+            await DelayAcceptGiftsQueue.put(
+                data={
+                    "act": act,
+                    "room_id": rf.real_room_id,
+                    "gift_id": rf.raffle_id,
+                    "gift_type": rf.gift_type,
+                    "gift_name": rf.gift_name,
+                },
+                accept_time=implement_time
+            )
+            await redis_cache.set("LT_LAST_ACTIVE_TIME", value=int(time.time()))
+            logging.info(f"Assign: {rf} {time.time() - implement_time:.3f}秒后.")
+
         while True:
-            params = await task_q.get()
+            pl_type = Iterable[Tuple[RaffleBroadCast, float]]
+            prize_list: pl_type = await RaffleBroadCast.get(redis=redis_cache)
+            for raffle, st in prize_list:
+                logging.info(f"Raffle source received: {raffle}")
+                await parse_one(raffle, st)
+            await asyncio.sleep(10)
+
+    async def accept_one(self, index: int):
+        while True:
+            params = await self._param_q.get()
             start_time = time.time()
             try:
                 await accept(index, **params)
@@ -298,11 +304,31 @@ async def main():
             if cost_time > 5:
                 logging.warning(f"ACCEPTOR worker[{index}] exec long time: {cost_time:.3f}")
 
+    async def work(self):
+        async def assign(task_q):
+            while True:
+                task_params = await DelayAcceptGiftsQueue.get()
+                for p in task_params:
+                    task_q.put_nowait(p)
+                await asyncio.sleep(4)
+
+        self._workers.append(asyncio.create_task(assign(self._param_q)))
+        self._workers.extend([
+            asyncio.create_task(self.accept_one(i))
+            for i in range(128)
+        ])
+        for t in self._workers:
+            await t
+
+
+async def main():
+    logging.info(f"\n{'-' * 80}\nLT ACCEPTOR started!\n{'-' * 80}")
+
+    client = AcceptorClient()
     await asyncio.gather(
         notice_qq(),
-        listen_ws(),
-        interval_assign_task(task_q),
-        *[worker(index) for index in range(128)]
+        client.receive(),
+        client.work(),
     )
 
 
