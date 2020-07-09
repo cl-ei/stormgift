@@ -22,12 +22,6 @@ REDIS_CONFIG = {
 }
 
 
-CQBOT = {
-    "api_root": config["cqbot"]["api_root"],
-    "access_token": config["cqbot"]["access_token"],
-    "secret": config["cqbot"]["secret"],
-}
-
 CQBOT_ZY = {
     "api_root": config["cqbot_zy"]["api_root"],
     "access_token": config["cqbot_zy"]["access_token"],

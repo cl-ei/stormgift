@@ -1,6 +1,5 @@
 import aiohttp
-from cqhttp import CQHttp
-from config import CQBOT, CQBOT_ZY, config
+from config import CQBOT_ZY
 
 
 class CQClient:
@@ -37,12 +36,4 @@ class CQClient:
                 return status_code, resp_json
 
 
-bot = CQHttp(**CQBOT)
-bot_zy = CQHttp(**CQBOT_ZY)
-qq = CQClient(api_root=CQBOT["api_root"], access_token=CQBOT["access_token"])
-qq_zy = CQClient(api_root=CQBOT_ZY["api_root"], access_token=CQBOT_ZY["access_token"])
-
-async_qq = CQClient(api_root=CQBOT["api_root"], access_token=CQBOT["access_token"])
 async_zy = CQClient(api_root=CQBOT_ZY["api_root"], access_token=CQBOT_ZY["access_token"])
-
-ml_qq = CQClient(api_root=config["ml_bot"]["api_root"], access_token=config["ml_bot"]["access_token"])

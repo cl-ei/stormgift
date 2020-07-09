@@ -13,7 +13,7 @@ from config import g
 from aiohttp import web
 from utils.cq import async_zy
 from utils.biliapi import BiliApi
-from utils.cq import bot_zy as bot
+from utils.cq import async_zy as bot
 from config import cloud_function_url
 from utils.covert import gen_time_prompt
 from db.queries import LTUser, queries
@@ -33,30 +33,11 @@ class BotUtils:
         self.user_id = user_id
         self.group_id = group_id
 
-    def response(self, msg):
+    async def response(self, msg):
         if self.group_id is not None:
-            self.bot.send_group_msg(group_id=self.group_id, message=msg)
+            await self.bot.send_group_msg(group_id=self.group_id, message=msg)
         else:
-            self.bot.send_private_msg(user_id=self.user_id, message=msg)
-
-    def post_word_audio(self, word, group_id):
-        url = f"http://media.shanbay.com/audio/us/{word}.mp3"
-        try:
-            r = requests.get(url)
-            assert r.status_code == 200
-            file = f"{word}.mp3"
-            with open(file, "wb") as f:
-                f.write(r.content)
-
-        except Exception as e:
-            tb = traceback.format_exc()
-            error_msg = f"Error happened in post_word_audio: {e}.\n{tb}"
-
-            logging.exception(error_msg, exc_info=True)
-            self.bot.send_group_msg(group_id=group_id, message=error_msg)
-
-        else:
-            self.bot.send_group_msg(group_id=group_id, message=f"[CQ:record,file={word}.mp3,magic=false]")
+            await self.bot.send_private_msg(user_id=self.user_id, message=msg)
 
     def proc_translation(self, msg):
         word = msg[3:]
@@ -346,13 +327,13 @@ class BotUtils:
         try:
             user_name_or_dynamic_id = msg[3:].strip()
             if not user_name_or_dynamic_id:
-                self.response(f"请输入正确的用户名。")
+                await self.response(f"请输入正确的用户名。")
                 return
 
             if not user_name_or_dynamic_id.isdigit():
                 bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
                 if bili_uid is None:
-                    self.response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
+                    await self.response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
                     return
 
                 flag, dynamics = await BiliApi.get_user_dynamics(uid=bili_uid)
@@ -366,7 +347,7 @@ class BotUtils:
                     raise ValueError("Fetch dynamics Failed!")
 
                 if not dynamics:
-                    self.response(f"该用户未发布B站动态。")
+                    await self.response(f"该用户未发布B站动态。")
                     return
 
                 dynamic_id = dynamics[0]["desc"]["dynamic_id"]
@@ -375,12 +356,12 @@ class BotUtils:
                 dynamic_id = int(user_name_or_dynamic_id)
 
         except (TypeError, ValueError, IndexError):
-            self.response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
+            await self.response(f"错误的指令，示例：\"#动态 偷闲一天打个盹\"或 \"#动态 278441699009266266\" 或 \"#动态 20932326\".")
             return
 
         flag, dynamic = await BiliApi.get_dynamic_detail(dynamic_id=dynamic_id)
         if not flag:
-            self.response(f"未能获取到动态：{dynamic_id}.")
+            await self.response(f"未能获取到动态：{dynamic_id}.")
             return
 
         master_name = dynamic["desc"]["user_profile"]["info"]["uname"]
@@ -391,7 +372,7 @@ class BotUtils:
         content, pictures = await BiliApi.get_user_dynamic_content_and_pictures(dynamic)
         if not pictures:
             message = prefix + "\n".join(content)
-            self.response(message)
+            await self.response(message)
             return
 
         work_path = f"/tmp/bili_dynamic_{int(time.time())}"
@@ -420,7 +401,7 @@ class BotUtils:
             message = f"{message}\n [CQ:image,file={file_name}]"
         else:
             message = prefix + "\n".join(content) + "\n" + "\n".join(pictures)
-        self.response(message)
+        await self.response(message)
 
     async def proc_query_guard(self, msg):
         return f"功能维护中。"
@@ -431,7 +412,7 @@ class BotUtils:
         if user_id != g.QQ_NUMBER_DD:
             if not await redis_cache.set_if_not_exists(f"LT_PROC_CHICKEN_{user_id}", 1, timeout=180):
                 ttl = await redis_cache.ttl(f"LT_PROC_CHICKEN_{user_id}")
-                self.response(f"请{ttl}秒后再发送此命令。")
+                await self.response(f"请{ttl}秒后再发送此命令。")
                 return
 
         last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
