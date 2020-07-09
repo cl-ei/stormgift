@@ -1092,6 +1092,56 @@ class BiliApi:
         flag, msg = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
         return flag, msg
 
+    @classmethod
+    async def jury_start(cls, cookie: str, timeout: int = 10):
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.bilibili.com/x/credit/jury/caseObtain"
+        data = {"jsonp": "jsonp", "csrf": csrf_token}
+        headers = {"Cookie": cookie}
+        flag, msg = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+        return flag, msg
+
+    @classmethod
+    async def jury_vote(
+            cls,
+            cid: int,
+            vote: int,
+            attr: int,
+            cookie: str,
+            timeout: int = 10
+    ):
+        """
+
+        vote:
+            - 2 否
+
+        attr:
+            - 0
+        """
+        try:
+            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
+        except Exception as e:
+            return False, f"Bad cookie, cannot get csrf_token: {e}"
+
+        url = "https://api.bilibili.com/x/credit/jury/vote"
+        data = {
+            "jsonp": "jsonp",
+            "cid": cid,
+            "vote": vote,
+            "content": "",
+            "likes": "",
+            "hates": "",
+            "attr": attr,
+            "csrf": csrf_token,
+        }
+        headers = {"Cookie": cookie}
+        flag, msg = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
+        return flag, msg
+
 
 class DmkSender:
     def __init__(self, room_id: int, user_id: Union[int, str], try_times=3):
