@@ -11,7 +11,7 @@ import hashlib
 import traceback
 from math import floor
 from typing import Union
-from random import random
+from random import random, randint
 from config import cloud_login
 from utils.dao import redis_cache
 from config import cloud_function_url
@@ -1093,7 +1093,8 @@ class BiliApi:
         return flag, msg
 
     @classmethod
-    async def jury_start(cls, cookie: str, timeout: int = 10):
+    async def jury_fetch(cls, cookie: str, timeout: int = 10):
+        """ 获取case """
         try:
             csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
         except Exception as e:
@@ -1106,21 +1107,11 @@ class BiliApi:
         return flag, msg
 
     @classmethod
-    async def jury_vote(
-            cls,
-            cid: int,
-            vote: int,
-            attr: int,
-            cookie: str,
-            timeout: int = 10
-    ):
-        """
+    async def jury_vote(cls, cid: int, vote: int, cookie: str, timeout: int = 10):
+        """ 投票的接口
 
         vote:
             - 2 否
-
-        attr:
-            - 0
         """
         try:
             csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
@@ -1135,12 +1126,45 @@ class BiliApi:
             "content": "",
             "likes": "",
             "hates": "",
-            "attr": attr,
+            "attr": "1",
             "csrf": csrf_token,
         }
         headers = {"Cookie": cookie}
         flag, msg = await cls.post(url=url, data=data, headers=headers, timeout=timeout, check_error_code=True)
         return flag, msg
+
+    @classmethod
+    async def jury_check_case_status(cls, cid: int, cookie: str):
+        headers = {
+            'Referer': f'https://www.bilibili.com/judgement/vote/{cid}',
+            "Cookie": cookie,
+        }
+        curr_time = int(time.time())
+        random_int = ''.join(str(randint(0, 9)) for _ in range(17))
+        url = (
+            f'https://api.bilibili.com/x/credit/jury/juryCase'
+            f'?callback=jQuery1720{random_int}_{curr_time}'
+            f'&cid={cid}'
+            f'&_={curr_time}'
+        )
+        flag, data = await cls.get(url, headers=headers, check_error_code=True)
+        return flag, data
+
+    @classmethod
+    async def jury_fetch_judged_cases(cls, cookie: str):
+        headers = {
+            "Cookie": cookie,
+            'Referer': 'https://www.bilibili.com/judgement/index',
+        }
+        curr_time = int(time.time())
+        random_int = ''.join(str(randint(0, 9)) for _ in range(17))
+        url = (
+            f'https://api.bilibili.com/x/credit/jury/caseList'
+            f'?callback=jQuery1720{random_int}_{curr_time}'
+            f'&pn=1&ps=25&_={curr_time}'
+        )
+        flag, data = await cls.get(url, headers=headers)
+        return flag, data
 
 
 class DmkSender:
