@@ -538,7 +538,7 @@ class BotHandler:
             try:
                 return await p.proc_query_medal(msg)
             except Exception as e:
-                logging.error(f"Error in proc_query_medal: {e}")
+                logging.error(f"Error in proc_query_medal: {e}\n{traceback.format_exc()}")
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help()
