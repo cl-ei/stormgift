@@ -284,9 +284,9 @@ class BotUtils:
             return f"未能获取到用户信息：{raw_uid_or_uname}"
         medals = data[str(uid)]["medal"].values()
         img = MedalImage(uid=uid, user_name=user_name, sign=sign, medals=medals)
+        img.save()
 
         qq_response = f"[CQ:image,file={img.path}]"
-        await async_zy.send_private_msg(user_id=self.user_id, message=f"{img.path}")
         await async_zy.send_private_msg(user_id=self.user_id, message=qq_response)
 
     async def proc_lt_status(self, msg):
