@@ -285,9 +285,7 @@ class BotUtils:
         medals = data[str(uid)]["medal"].values()
         img = MedalImage(uid=uid, user_name=user_name, sign=sign, medals=medals)
         img.save()
-
-        qq_response = f"[CQ:image,file={os.path.split(img.path)[-1]}]"
-        await async_zy.send_private_msg(user_id=self.user_id, message=qq_response)
+        return f"[CQ:image,file={os.path.split(img.path)[-1]}]"
 
     async def proc_lt_status(self, msg):
         lt_users = await queries.get_lt_user_by(bind_qq=self.user_id)
@@ -492,7 +490,9 @@ class BotUtils:
                 "1.#一言\n"
                 "2.#点歌\n"
                 "3.#翻译\n"
-                "4.#动态\n\n"
+                "4.#动态\n"
+                "5.#勋章查询\n"
+                "\n"
                 "私聊指令请私聊我然后发送#h。"
             )
         else:
@@ -533,6 +533,9 @@ class BotHandler:
 
         elif msg.startswith("#动态"):
             return await p.proc_dynamic(msg)
+
+        elif msg.startswith("#勋章查询"):
+            return await p.proc_query_medal(msg)
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help()
