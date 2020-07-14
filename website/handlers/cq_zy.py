@@ -276,12 +276,12 @@ class BotUtils:
         flag, data = await BiliApi.get_user_info(uid)
         if not flag:
             return f"未能获取到用户信息：{raw_uid_or_uname}"
+        user_name = data["name"]
+        sign = data["sign"]
+
         flag, data = await BiliApi.get_user_medal_list(uid)
         if not flag:
             return f"未能获取到用户信息：{raw_uid_or_uname}"
-
-        user_name = data["name"]
-        sign = data["sign"]
         medals = data[str(uid)]["medal"].values()
         img = MedalImage(uid=uid, user_name=user_name, sign=sign, medals=medals)
 
