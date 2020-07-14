@@ -18,6 +18,7 @@ from config import cloud_function_url
 from utils.covert import gen_time_prompt
 from db.queries import LTUser, queries
 from utils.highlevel_api import ReqFreLimitApi
+from utils.medal_image import MedalImage
 from config.log4 import cqbot_logger as logging
 from website.operations import get_lt_user_status
 from utils.images import DynamicPicturesProcessor
@@ -258,6 +259,35 @@ class BotUtils:
             f"\n{'-' * 20}"
         )
         return message
+
+    async def proc_query_medal(self, msg):
+        raw_uid_or_uname = msg[5:].strip()
+        if not raw_uid_or_uname:
+            return f"指令错误。示例：\n\n#勋章查询 731556\n#勋章查询 老班长"
+
+        try:
+            uid = int(raw_uid_or_uname)
+        except (ValueError, TypeError):
+            uid = await ReqFreLimitApi.get_uid_by_name(user_name=raw_uid_or_uname)
+
+        if not isinstance(uid, int) or not uid > 0:
+            return f"没有找到用户：{raw_uid_or_uname}"
+
+        flag, data = await BiliApi.get_user_info(uid)
+        if not flag:
+            return f"未能获取到用户信息：{raw_uid_or_uname}"
+        flag, data = await BiliApi.get_user_medal_list(uid)
+        if not flag:
+            return f"未能获取到用户信息：{raw_uid_or_uname}"
+
+        user_name = data["name"]
+        sign = data["sign"]
+        medals = data[str(uid)]["medal"].values()
+        img = MedalImage(uid=uid, user_name=user_name, sign=sign, medals=medals)
+
+        qq_response = f"[CQ:image,file={img.path}]"
+        await async_zy.send_private_msg(user_id=self.user_id, message=f"{img.path}")
+        await async_zy.send_private_msg(user_id=self.user_id, message=qq_response)
 
     async def proc_lt_status(self, msg):
         lt_users = await queries.get_lt_user_by(bind_qq=self.user_id)
@@ -556,7 +586,7 @@ class BotHandler:
             return await p.proc_query_raffle(msg)
 
         elif msg.startswith("#勋章查询"):
-            return ""
+            return await p.proc_query_medal(msg)
 
         elif msg.startswith("#挂机查询"):
             return await p.proc_lt_status(msg)
