@@ -18,7 +18,7 @@ class MedalImage:
         self.user_name = user_name
         self.sign = sign
 
-        self.medals = [m for m in medals if m["receive_time"] != "0001-01-01"]
+        self.medals = [m for m in medals if not m["receive_time"].startswith("0001-01-01")]
         self.path = f"/home/ubuntu/coolq_zy/data/image/medal_{self.uid}.png"
 
         self.width = 600
