@@ -535,7 +535,10 @@ class BotHandler:
             return await p.proc_dynamic(msg)
 
         elif msg.startswith("#勋章查询"):
-            return await p.proc_query_medal(msg)
+            try:
+                return await p.proc_query_medal(msg)
+            except Exception as e:
+                logging.error(f"Error in proc_query_medal: {e}")
 
         elif msg.lower() in ("#h", "#help", "#帮助", "#指令"):
             return await p.proc_help()
