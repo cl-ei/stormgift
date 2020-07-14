@@ -23,7 +23,7 @@ class MedalImage:
 
         self.width = 600
         self.y_offset = 95
-        self.height = 30 * len(medals) + self.y_offset + 10
+        self.height = 30 * len(self.medals) + self.y_offset + 10
 
         self.img = Image.new('RGB', (self.width, self.height), 0xffffff)
         self.draw_obj = draw_obj = ImageDraw.Draw(self.img)
@@ -31,8 +31,8 @@ class MedalImage:
         draw_obj.text((1, 1, 400, 40), f"{user_name}({uid})", align="center", font=self.ft_38, fill=0)
         draw_obj.line((0, 40 + 3, self.width, 40 + 3), fill=0, width=1)
         draw_obj.text((0, 40 + 5), sign, align="left", font=self.ft_22, fill=0)
-        medals = sorted(medals, key=lambda x: x["score"], reverse=True)
-        for i, medal in enumerate(medals):
+        self.medals = sorted(self.medals, key=lambda x: x["score"], reverse=True)
+        for i, medal in enumerate(self.medals):
             print(medal)
             text = medal["medal_name"]
             level = medal["level"]
