@@ -286,7 +286,7 @@ class BotUtils:
         img = MedalImage(uid=uid, user_name=user_name, sign=sign, medals=medals)
         img.save()
 
-        qq_response = f"[CQ:image,file={img.path}]"
+        qq_response = f"[CQ:image,file={os.path.split(img.path)[-1]}]"
         await async_zy.send_private_msg(user_id=self.user_id, message=qq_response)
 
     async def proc_lt_status(self, msg):
