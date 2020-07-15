@@ -19,6 +19,8 @@ class LTUserQueryMixin:
         for k, v in lt_user.dict().items():
             if k in fields:
                 update_params[k] = v
+        from config.log4 import lt_login_logger as logging
+        logging.info(f".hash_map_set(key, update_params): {key} -> {update_params}")
         await redis_cache.hash_map_set(key, update_params)
 
     async def upsert_lt_user(
