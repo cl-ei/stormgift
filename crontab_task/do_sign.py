@@ -24,6 +24,9 @@ async def main():
         print(_m)
         logging_msg_list.append(_m)
 
+        lt_user.name = await BiliApi.get_user_name(lt_user.user_id)
+        await queries.update_lt_user(lt_user, fields=["name"])
+
         cookie = lt_user.cookie
         flag, result = await BiliApi.do_sign(cookie)
         if not flag and "请先登录" in result:
