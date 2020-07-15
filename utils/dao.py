@@ -130,7 +130,9 @@ class RedisCache(object):
 
         HGETALL KEY_NAME
         """
+        from config.log4 import lt_login_logger as logging
         r = await self.execute("hgetall", key)
+        logging.info(f"hgetall: {key}, r: {r}")
 
         result = {}
         key_temp = None
