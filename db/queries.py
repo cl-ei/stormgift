@@ -38,7 +38,7 @@ class LTUserQueryMixin:
     ) -> LTUser:
 
         params = dict(
-            DedeUserID=DedeUserID,
+            DedeUserID=int(DedeUserID),
             SESSDATA=SESSDATA,
             bili_jct=bili_jct,
             sid=sid,
@@ -62,8 +62,6 @@ class LTUserQueryMixin:
             fields.append("bind_qq")
 
         lt_user = LTUser(**params)
-        from config.log4 import lt_login_logger as logging
-        logging.info(f"upsert lt user: {lt_user.DedeUserID}, fields: {fields}, params: {params}")
         await self.update_lt_user(lt_user, fields=fields)
 
         lt_user = await self.get_lt_user_by_uid(lt_user.user_id)

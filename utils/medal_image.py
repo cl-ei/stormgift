@@ -33,7 +33,6 @@ class MedalImage:
         draw_obj.text((0, 40 + 5), sign, align="left", font=self.ft_22, fill=0)
         self.medals = sorted(self.medals, key=lambda x: x["score"], reverse=True)
         for i, medal in enumerate(self.medals):
-            print(medal)
             text = medal["medal_name"]
             level = medal["level"]
             receive_time = medal["receive_time"].split(" ")[0]

@@ -176,6 +176,8 @@ class BiliApi:
         result = {c['name']: c['value'] for c in cookies}
         result["access_token"] = json_rsp["data"]["token_info"]["access_token"]
         result["refresh_token"] = json_rsp["data"]["token_info"]["refresh_token"]
+
+        result["DedeUserID"] = int(result["DedeUserID"])
         return True, result
 
     @classmethod
