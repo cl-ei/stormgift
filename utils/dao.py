@@ -34,11 +34,11 @@ class RedisCache(object):
             self.redis_conn = None
 
     @staticmethod
-    async def __dumps_py_obj(obj: Any) -> Union[bytes, bytearray]:
+    def __dumps_py_obj(obj: Any) -> Union[bytes, bytearray]:
         return pickle.dumps(obj, protocol=PKL_PROTOCOL)
 
     @staticmethod
-    async def __loads_py_obj(content: Union[bytes, bytearray, str]) -> Any:
+    def __loads_py_obj(content: Union[bytes, bytearray, str]) -> Any:
         if content is None:
             return None
 
