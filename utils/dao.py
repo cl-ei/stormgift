@@ -101,11 +101,11 @@ class RedisCache(object):
         HMSET key field1 value1 [field2 value2 ]
         """
         args = []
-        for key, value in field_value.items():
+        for field, value in field_value.items():
             if not _un_pickle:
-                key = self.__dumps_py_obj(key)
+                field = self.__dumps_py_obj(field)
                 value = self.__dumps_py_obj(value)
-            args.extend([key, value])
+            args.extend([field, value])
         return await self.execute("hmset", key, *args)
 
     async def hmget(self, key: str, *fields: List[Any], _un_pickle: bool = False) -> dict:
@@ -130,10 +130,7 @@ class RedisCache(object):
 
         HGETALL KEY_NAME
         """
-        from config.log4 import lt_login_logger as logging
         r = await self.execute("hgetall", key)
-        logging.info(f"hgetall: {key}, r: {r}")
-
         result = {}
         key_temp = None
         for index in range(len(r)):

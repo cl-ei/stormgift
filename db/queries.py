@@ -62,14 +62,8 @@ class LTUserQueryMixin:
             fields.append("bind_qq")
 
         lt_user = LTUser(**params)
-        from config.log4 import lt_login_logger as logging
-        logging.info(f"lt user: {lt_user}, uid: {lt_user.user_id} "
-                     f"{type(lt_user.user_id)}\np: {params}")
-
         await self.update_lt_user(lt_user, fields=fields)
-
         lt_user = await self.get_lt_user_by_uid(lt_user.user_id)
-        logging.info(f"after get lt_user: {lt_user}")
         await redis_cache.set_add(self.key_prefix, lt_user.user_id)
         return lt_user
 

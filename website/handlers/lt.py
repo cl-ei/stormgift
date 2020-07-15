@@ -167,7 +167,8 @@ async def login(request):
             bind_qq=qq_number,
         )
     except Exception as e:
-        logging.error(f"Error in add_user_by_account: {e}\n{traceback.format_exc()}")
+        message = f"Error in add_user_by_account: {e}\n{traceback.format_exc()}"
+        return json_response({"code": 403, "err_msg": f"操作失败！原因：\n\n{message}"})
 
     if not flag:
         lt_login_logger.error(f"登录失败: {account}-{password}：{message}")
