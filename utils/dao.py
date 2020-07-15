@@ -95,6 +95,8 @@ class RedisCache(object):
         for key, value in key_values.items():
             args.append(pickle.dumps(key))
             args.append(pickle.dumps(value))
+            from config.log4 import lt_login_logger as logging
+            logging.info(f"key_values: {key} -> {value}")
         return await self.execute("hmset", name, *args)
 
     async def hash_map_get(self, name, *keys):
