@@ -117,13 +117,18 @@ class RedisCache(object):
         if not isinstance(r, list):
             raise Exception(f"Redis hash map read error! r: {r}")
 
+        from config.log4 import lt_login_logger as logging
         result = {}
         key_temp = None
         for index in range(len(r)):
-            if index & 1:
-                result[pickle.loads(key_temp)] = pickle.loads(r[index])
+            if index % 2 == 0:
+                key_temp = pickle.loads(r[index])
+                logging.info(f"key temp: {key_temp}")
             else:
-                key_temp = r[index]
+                value = pickle.loads(r[index])
+                logging.info(f"key temp: {key_temp} value: {value}")
+                result[key_temp] = value
+
         return result
 
     async def hash_map_del(self, name: str, *keys) -> int:
