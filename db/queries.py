@@ -63,7 +63,8 @@ class LTUserQueryMixin:
 
         lt_user = LTUser(**params)
         from config.log4 import lt_login_logger as logging
-        logging.info(f"lt user: {lt_user}, uid: {lt_user.user_id}\np: {params}")
+        logging.info(f"lt user: {lt_user}, uid: {lt_user.user_id} "
+                     f"{type(lt_user.user_id)}\np: {params}")
 
         await self.update_lt_user(lt_user, fields=fields)
 
