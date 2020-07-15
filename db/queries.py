@@ -69,6 +69,7 @@ class LTUserQueryMixin:
         await self.update_lt_user(lt_user, fields=fields)
 
         lt_user = await self.get_lt_user_by_uid(lt_user.user_id)
+        logging.info(f"after get lt_user: {lt_user}")
         await redis_cache.set_add(self.key_prefix, lt_user.user_id)
         return lt_user
 
