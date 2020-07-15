@@ -10,7 +10,7 @@ class LTUserQueryMixin:
 
     async def delete_lt_user(self, user_id: int) -> None:
         key = f"{self.key_prefix}:{user_id}"
-        await redis_cache.hash_map_del_all(key)
+        await redis_cache.delete(key)
         await redis_cache.set_remove(self.key_prefix, user_id)
 
     async def update_lt_user(self, lt_user: LTUser, fields: Iterable[str]) -> None:
@@ -19,13 +19,7 @@ class LTUserQueryMixin:
         for k, v in lt_user.dict().items():
             if k in fields:
                 update_params[k] = v
-
-        from config.log4 import lt_login_logger as logging
-        logging.info(f".hash_map_set(key, update_params): {key} -> {update_params}")
-
-        await redis_cache.hash_map_set(key, update_params)
-        r = await redis_cache.hash_map_get_all(key)
-        logging.info(f"hash_map_get_all r: {r}")
+        await redis_cache.hmset(key, update_params)
 
     async def upsert_lt_user(
             self,
@@ -105,7 +99,7 @@ class LTUserQueryMixin:
             return None
 
         key = f"{self.key_prefix}:{user_id}"
-        result = await redis_cache.hash_map_get_all(key)
+        result = await redis_cache.hgetall(key)
         if not result:
             return
         return LTUser(**result)

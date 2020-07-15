@@ -8,7 +8,7 @@ import datetime
 from typing import List, Dict, Union, Any, Iterable, Tuple
 from config import REDIS_CONFIG
 
-PKL_PROTOCOL = pickle.DEFAULT_PROTOCOL
+PKL_PROTOCOL = pickle.DEFAULT_PROTOCOL  # 4
 
 
 class RedisCache(object):
@@ -33,125 +33,121 @@ class RedisCache(object):
             await self.redis_conn.wait_closed()
             self.redis_conn = None
 
-    async def non_repeated_save(self, key, info, ex=3600*24*7):
-        return await self.execute("set", key, json.dumps(info), "ex", ex, "nx")
+    @staticmethod
+    async def __dumps_py_obj(obj: Any) -> Union[bytes, bytearray]:
+        return pickle.dumps(obj, protocol=PKL_PROTOCOL)
 
-    async def keys(self, pattern):
+    @staticmethod
+    async def __loads_py_obj(content: Union[bytes, bytearray, str]) -> Any:
+        if content is None:
+            return None
+
+        try:
+            return pickle.loads(content)
+        except pickle.UnpicklingError:
+            return None
+
+    async def keys(self, pattern) -> List[str]:
         keys = await self.execute("keys", pattern)
         return [k.decode("utf-8") for k in keys]
 
-    async def set(self, key, value, timeout=0, _un_pickle=False):
-        v = value if _un_pickle else pickle.dumps(value)
+    async def set(
+            self,
+            key: str,
+            value: Any,
+            timeout: int = 0,
+            _un_pickle: bool = False
+    ) -> bool:
+        v = value if _un_pickle else self.__dumps_py_obj(value)
         if timeout > 0:
             return await self.execute("setex", key, timeout, v)
         else:
             return await self.execute("set", key, v)
 
-    async def expire(self, key, timeout):
+    async def expire(self, key: str, timeout: int) -> int:
         if timeout > 0:
             return await self.execute("EXPIRE", key, timeout)
+        return 0
 
-    async def set_if_not_exists(self, key, value, timeout=3600*24*7):
-        v = pickle.dumps(value)
-        return await self.execute("set", key, v, "ex", timeout, "nx")
+    async def set_if_not_exists(
+            self,
+            key: str,
+            value: Any,
+            timeout: int = 3600*24*7,
+            _un_pickle: bool = False
+    ):
+        if not _un_pickle:
+            value = self.__dumps_py_obj(value)
+        return await self.execute("set", key, value, "ex", timeout, "nx")
 
-    async def delete(self, key):
+    async def delete(self, key: str) -> int:
         return await self.execute("DEL", key)
 
-    async def ttl(self, key):
+    async def ttl(self, key: str) -> int:
         return await self.execute("ttl", key)
 
-    async def get(self, key, _un_pickle=False):
+    async def get(self, key: str, _un_pickle: bool = False) -> Any:
         r = await self.execute("get", key)
-        if _un_pickle:
-            return r
+        return r if _un_pickle else self.__loads_py_obj(r)
 
-        try:
-            return pickle.loads(r)
-        except (TypeError, pickle.UnpicklingError):
-            return r
+    async def mget(self, *keys: List[str], _un_pickle: bool = False) -> List[Any]:
+        values = await self.execute("MGET", *keys)
+        return values if _un_pickle else [self.__loads_py_obj(v) for v in values]
 
-    async def mget(self, *keys, _un_pickle=False):
-        r = await self.execute("MGET", *keys)
+    async def hmset(self, key: str, field_value: dict, _un_pickle: bool = False) -> bool:
+        """
+        hash_map_set
 
-        if _un_pickle:
-            return r
-
-        result = []
-        for _ in r:
-            if _ is None:
-                result.append(None)
-                continue
-
-            try:
-                _ = pickle.loads(_)
-            except (TypeError, pickle.UnpicklingError):
-                _ = TypeError("UnpicklingError")
-            result.append(_)
-        return result
-
-    async def hash_map_set(self, name, key_values):
-        from config.log4 import lt_login_logger as logging
-        logging.info(f"{name}: hash map set!")
-
+        HMSET key field1 value1 [field2 value2 ]
+        """
         args = []
-        for key, value in key_values.items():
-            args.append(pickle.dumps(key))
-            args.append(pickle.dumps(value))
-            logging.info(f"set {key} -> {value}")
-        return await self.execute("hmset", name, *args)
+        for key, value in field_value.items():
+            if not _un_pickle:
+                key = self.__dumps_py_obj(key)
+                value = self.__dumps_py_obj(value)
+            args.extend([key, value])
+        return await self.execute("hmset", key, *args)
 
-    async def hash_map_get(self, name, *keys):
-        r = await self.execute("hmget", name, *[pickle.dumps(k) for k in keys])
-        if not isinstance(r, list) or len(r) != len(keys):
-            raise Exception(f"Redis hash map read error! r: {r}")
+    async def hmget(self, key: str, *fields: List[Any], _un_pickle: bool = False) -> dict:
+        """
+        hash map get
+
+        HMGET KEY_NAME FIELD1...FIELDN
+        """
+        if not _un_pickle:
+            fields = [self.__dumps_py_obj(f) for f in fields]
+        values = await self.execute("hmget", key, *fields)
 
         result = {}
-        for i, key in enumerate(keys):
-            value = r[i]
-            try:
-                value = pickle.loads(value)
-            except (TypeError, ValueError, IndexError, pickle.UnpicklingError):
-                value = None
-            result[key] = value
+        for i, field in enumerate(fields):
+            value = values[i] if _un_pickle else self.__loads_py_obj(values[i])
+            result[field] = value
         return result
 
-    async def hash_map_get_all(self, name: str) -> dict:
-        r = await self.execute("hgetall", name)
-        if not isinstance(r, list):
-            raise Exception(f"Redis hash map read error! r: {r}")
+    async def hgetall(self, key: str, _un_pickle: bool = False) -> dict:
+        """
+        hash map get all
 
-        from config.log4 import lt_login_logger as logging
-        logging.info(f"\nget all: {name}")
+        HGETALL KEY_NAME
+        """
+        r = await self.execute("hgetall", key)
+
         result = {}
         key_temp = None
         for index in range(len(r)):
             if index % 2 == 0:
-                key_temp = pickle.loads(r[index])
-                logging.info(f"key temp: {key_temp}")
+                key_temp = r[index] if _un_pickle else self.__loads_py_obj(r[index])
             else:
-                value = pickle.loads(r[index])
-                logging.info(f"key temp: {key_temp} value: {value}")
+                value = r[index] if _un_pickle else self.__loads_py_obj(r[index])
                 result[key_temp] = value
-
         return result
 
-    async def hash_map_del(self, name: str, *keys) -> int:
-        r = await self.execute("HDEL", name, *[pickle.dumps(k) for k in keys])
-        return r
-
-    async def hash_map_del_all(self, name: str) -> int:
-        info = await self.hash_map_get_all(name)
-        if info:
-            return await redis_cache.hash_map_del(name, *info.keys())
-        return 0
-
-    async def hash_map_multi_get(self, *name) -> List[dict]:
+    async def hash_map_multi_get(self, *keys) -> List[dict]:
         user_dict_list = await self.execute(
             "eval",
             "local rst={}; for i,v in pairs(KEYS) do rst[i]=redis.call('hgetall', v) end;return rst",
-            len(name),
-            *name
+            len(keys),
+            *keys
         )
 
         result = []
@@ -167,8 +163,10 @@ class RedisCache(object):
             result.append(user_dict)
         return result
 
-    async def list_push(self, name, *items):
-        r = await self.execute("LPUSH", name, *[pickle.dumps(e) for e in items])
+    async def list_push(self, name, *items, _un_pickle: bool = False):
+        if not _un_pickle:
+            items = [self.__dumps_py_obj(e) for e in items]
+        r = await self.execute("LPUSH", name, *items)
         return r
 
     async def list_rpop_to_another_lpush(self, source_list_name, dist_list_name):
@@ -177,8 +175,10 @@ class RedisCache(object):
             return None
         return pickle.loads(r)
 
-    async def list_del(self, name, item):
-        r = await self.execute("LREM", name, 0, pickle.dumps(item))
+    async def list_del(self, name, item, _un_pickle: bool = False):
+        if not _un_pickle:
+            item = self.__dumps_py_obj(item)
+        r = await self.execute("LREM", name, 0, item)
         return r
 
     async def list_get_all(self, name):
@@ -199,16 +199,22 @@ class RedisCache(object):
             return None
         return r[0], pickle.loads(r[1])
 
-    async def set_add(self, name, *items):
-        r = await self.execute("SADD", name, *[pickle.dumps(e) for e in items])
+    async def set_add(self, name, *items, _un_pickle: bool = False):
+        if not _un_pickle:
+            items = [self.__dumps_py_obj(e) for e in items]
+        r = await self.execute("SADD", name, *items)
         return r
 
-    async def set_remove(self, name, *items):
-        r = await self.execute("SREM", name, *[pickle.dumps(e) for e in items])
+    async def set_remove(self, name, *items, _un_pickle: bool = False):
+        if not _un_pickle:
+            items = [self.__dumps_py_obj(e) for e in items]
+        r = await self.execute("SREM", name, *items)
         return r
 
-    async def set_is_member(self, name, item):
-        return await self.execute("SISMEMBER", name, pickle.dumps(item))
+    async def set_is_member(self, name, item, _un_pickle: bool = False) -> bool:
+        """ 判断 item 是否为 name: set 中的成员 """
+        member = item if _un_pickle else self.__dumps_py_obj(item)
+        return await self.execute("SISMEMBER", name, member)
 
     async def set_get_all(self, name):
         r = await self.execute("SMEMBERS", name)
@@ -284,7 +290,7 @@ class RedisCache(object):
         safe_args = []
         for member, score in member_pairs:
             if not _un_pickle:
-                member = pickle.dumps(member, protocol=PKL_PROTOCOL)
+                member = self.__dumps_py_obj(member)
             safe_args.extend([float(score), member])
         return await self.execute("ZADD", key, *safe_args)
 
@@ -329,10 +335,7 @@ class RedisCache(object):
         ZREM key member [member ...]
         """
         if not _un_pickle:
-            members = [
-                pickle.dumps(m, protocol=PKL_PROTOCOL)
-                for m in members
-            ]
+            members = [self.__dumps_py_obj(m) for m in members]
         return await self.execute("ZREM", key, *members)
 
     async def zset_zrem_by_score(
@@ -355,7 +358,7 @@ class RedisCache(object):
         ZSCORE key member
         """
         if not _un_pickle:
-            member = pickle.dumps(member, protocol=PKL_PROTOCOL)
+            member = self.__dumps_py_obj(member)
         return await self.execute("ZSCORE", key, member)
 
 
@@ -507,10 +510,10 @@ class MedalManager:
         self.today_key = f"{self.today_key_prefix}:{room_id}"
 
     async def set_level_info(self, uid: int, level: int) -> int:
-        return await redis_cache.hash_map_set(self.key, {uid: level})
+        return await redis_cache.hmset(self.key, {uid: level})
 
     async def get_level_info(self, *uids: int) -> Dict[int, dict]:
-        return await redis_cache.hash_map_get(self.key, *uids)
+        return await redis_cache.hmget(self.key, *uids)
 
     async def get_today_prompted(self) -> List[int]:
         return await redis_cache.list_get_all(self.today_key)
