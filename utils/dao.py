@@ -91,10 +91,14 @@ class RedisCache(object):
         return result
 
     async def hash_map_set(self, name, key_values):
+        from config.log4 import lt_login_logger as logging
+        logging.info(f"{name}: hash map set!")
+
         args = []
         for key, value in key_values.items():
             args.append(pickle.dumps(key))
             args.append(pickle.dumps(value))
+            logging.info(f"set {key} -> {value}")
         return await self.execute("hmset", name, *args)
 
     async def hash_map_get(self, name, *keys):
@@ -118,6 +122,7 @@ class RedisCache(object):
             raise Exception(f"Redis hash map read error! r: {r}")
 
         from config.log4 import lt_login_logger as logging
+        logging.info(f"\nget all: {name}")
         result = {}
         key_temp = None
         for index in range(len(r)):
