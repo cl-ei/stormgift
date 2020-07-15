@@ -103,8 +103,6 @@ async def add_user_by_account(
     if not flag:
         return False, f"登录失败，请使用扫码登录！（哔哩服务器返回结果：{r}）"
 
-    from config.log4 import lt_login_logger as logging
-    logging.info(f"login r: {r}")
     lt_user = await queries.upsert_lt_user(
         account=account,
         password=password,
