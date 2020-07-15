@@ -166,14 +166,13 @@ async def login(request):
         bind_qq=qq_number,
     )
 
-    if flag:
-        lt_user = message
-    else:
+    if not flag:
         lt_login_logger.error(f"登录失败: {account}-{password}：{message}")
         return json_response({"code": 403, "err_msg": f"操作失败！原因：{message}"})
 
+    lt_user = message
     response = await gen_login_succeed_response(lt_user)
-    lt_login_logger.info(f"登录成功: {account}-{password}：lt")
+    lt_login_logger.info(f"登录成功: {account}-{password}：lt. available: {lt_user.available}")
     return response
 
 

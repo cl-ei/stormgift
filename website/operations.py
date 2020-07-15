@@ -72,10 +72,10 @@ async def get_lt_user_status(user_id: int) -> Tuple[bool, str]:
 
 
 async def add_user_by_account(
-        account: str,
-        password: str,
-        notice_email: str = None,
-        bind_qq: int = None,
+    account: str,
+    password: str,
+    notice_email: str = None,
+    bind_qq: int = None,
 ) -> Tuple[bool, Union[str, LTUser]]:
 
     lt_user = await queries.get_lt_user_by_account(account=account)
