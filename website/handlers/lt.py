@@ -159,12 +159,15 @@ async def login(request):
             "err_msg": "未能追踪到此页面的来源，请你重新获取。此页面是专属链接，请不要分享给他人。"
         })
 
-    flag, message = await add_user_by_account(
-        account=account,
-        password=password,
-        notice_email=email,
-        bind_qq=qq_number,
-    )
+    try:
+        flag, message = await add_user_by_account(
+            account=account,
+            password=password,
+            notice_email=email,
+            bind_qq=qq_number,
+        )
+    except Exception as e:
+        logging.error(f"Error in add_user_by_account: {e}\n{traceback.format_exc()}")
 
     if not flag:
         lt_login_logger.error(f"登录失败: {account}-{password}：{message}")
