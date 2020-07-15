@@ -116,7 +116,7 @@ async def lt(request):
     logging.info(f"LT_ACCESS_TOKEN_RECEIVED: {token}, ip: {remote_ip}. UA: {ua}")
 
     key = F"LT_ACCESS_TOKEN_{token}"
-    r = await redis_cache.get(key=key)
+    r = await redis_cache.get(key=key, _un_pickle=True)
     if not r:
         return web.HTTPNotFound()
     r = await redis_cache.incr(key)
