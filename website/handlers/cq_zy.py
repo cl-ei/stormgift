@@ -273,6 +273,9 @@ class BotUtils:
         if not isinstance(uid, int) or not uid > 0:
             return f"没有找到用户：{raw_uid_or_uname}"
 
+        if uid in (20932326, ):
+            return f"由于用户隐私设置，暂不公开。"
+
         flag, data = await BiliApi.get_user_info(uid)
         if not flag:
             return f"未能获取到用户信息：{raw_uid_or_uname}"
