@@ -40,6 +40,7 @@ class MedalImage:
             next_intimacy = medal["next_intimacy"]
             master = medal["target_name"]
             extra = f"{receive_time} {master}"
+            is_lighted = medal["is_lighted"] != 0
             self.draw_one_medal(
                 x=2,
                 y=30 * i + 2 + self.y_offset,
@@ -48,15 +49,17 @@ class MedalImage:
                 extra=extra,
                 intimacy=intimacy,
                 next_intimacy=next_intimacy,
+                is_lighted=is_lighted,
             )
 
-    def draw_one_medal(self, x, y, text, level, extra, intimacy, next_intimacy):
+    def draw_one_medal(self, x, y, text, level, extra, intimacy, next_intimacy, is_lighted: bool):
         draw_obj = self.draw_obj
         w = 120
         h = 26
         r = 5
-
-        if level >= 17:
+        if not is_lighted:
+            color = 0xaaaaaa
+        elif level >= 17:
             color = 0xf6be18
         elif level >= 13:
             color = 0xff86b2
@@ -95,7 +98,7 @@ class MedalImage:
 
         draw_obj.text((x_offset, y), progress_text, font=self.ft_18, fill=0)
 
-        draw_obj.rectangle((x_offset, y + 25, x_offset + width, y + 28), fill=0xcccccc)
+        draw_obj.rectangle((x_offset, y + 25, x_offset + width, y + 28), fill=0xdddddd)
         draw_obj.rectangle((x_offset, y + 25, x_offset + percent, y + 28), fill=color)
 
         # fetched time
