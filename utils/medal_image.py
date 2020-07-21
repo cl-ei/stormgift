@@ -96,10 +96,10 @@ class MedalImage:
         progress_text = f"{intimacy:>6}/{next_intimacy:<6}"
         percent = int(intimacy / next_intimacy * width)
 
-        draw_obj.text((x_offset, y), progress_text, font=self.ft_18, fill=0)
+        draw_obj.text((x_offset, y + 2), progress_text, font=self.ft_18, fill=0)
 
-        draw_obj.rectangle((x_offset, y + 25, x_offset + width, y + 28), fill=0xdddddd)
-        draw_obj.rectangle((x_offset, y + 25, x_offset + percent, y + 28), fill=color)
+        draw_obj.rectangle((x_offset, y + 22, x_offset + width, y + 25), fill=0xdddddd)
+        draw_obj.rectangle((x_offset, y + 22, x_offset + percent, y + 25), fill=color)
 
         # fetched time
         x_offset = x_offset + width + 10
