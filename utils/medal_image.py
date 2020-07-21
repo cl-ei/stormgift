@@ -60,7 +60,7 @@ class MedalImage:
         if not is_lighted:
             color = 0xaaaaaa
         elif level >= 17:
-            color = 0xf6be18
+            color = 0xff9f3d
         elif level >= 13:
             color = 0xff86b2
         elif level >= 9:
@@ -68,7 +68,7 @@ class MedalImage:
         elif level >= 5:
             color = 0x5896de
         elif level >= 1:
-            color = 0x61ddcb
+            color = 0x61c05a
         else:
             color = 0x333333
         color = ImageColor.getrgb(f"#{color:0x}")
