@@ -18,7 +18,8 @@ class MedalImage:
         self.user_name = user_name
         self.sign = sign
 
-        self.medals = [m for m in medals if not m["receive_time"].startswith("0001-01-01")]
+        medals = [m for m in medals if not m["receive_time"].startswith("0001-01-01")]
+        self.medals = sorted(medals, key=lambda x: (x["is_lighted"], x["score"]), reverse=True)
         self.path = f"/home/ubuntu/coolq_zy/data/image/medal_{self.uid}.png"
 
         self.width = 600
@@ -31,8 +32,8 @@ class MedalImage:
         draw_obj.text((1, 1, 400, 40), f"{user_name}({uid})", align="center", font=self.ft_38, fill=0)
         draw_obj.line((0, 40 + 3, self.width, 40 + 3), fill=0, width=1)
         draw_obj.text((0, 40 + 5), sign, align="left", font=self.ft_22, fill=0)
-        self.medals = sorted(self.medals, key=lambda x: x["score"], reverse=True)
         for i, medal in enumerate(self.medals):
+            medal_color = medal["medal_color"]
             text = medal["medal_name"]
             level = medal["level"]
             receive_time = medal["receive_time"].split(" ")[0]
@@ -44,6 +45,7 @@ class MedalImage:
             self.draw_one_medal(
                 x=2,
                 y=30 * i + 2 + self.y_offset,
+                color=medal_color,
                 text=text,
                 level=level,
                 extra=extra,
@@ -52,25 +54,11 @@ class MedalImage:
                 is_lighted=is_lighted,
             )
 
-    def draw_one_medal(self, x, y, text, level, extra, intimacy, next_intimacy, is_lighted: bool):
+    def draw_one_medal(self, x, y, color, text, level, extra, intimacy, next_intimacy, is_lighted: bool):
         draw_obj = self.draw_obj
         w = 120
         h = 26
         r = 5
-        if not is_lighted:
-            color = 0xaaaaaa
-        elif level >= 17:
-            color = 0xff9f3d
-        elif level >= 13:
-            color = 0xff86b2
-        elif level >= 9:
-            color = 0xa068f1
-        elif level >= 5:
-            color = 0x5896de
-        elif level >= 1:
-            color = 0x61c05a
-        else:
-            color = 0x333333
         color = ImageColor.getrgb(f"#{color:0x}")
 
         '''Rounds'''
