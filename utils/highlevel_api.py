@@ -35,7 +35,9 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def get_uid_by_name(cls, user_name, wait_time=2):
-        cookie = await cls.get_available_cookie()
+        from db.queries import queries
+        user = await queries.get_lt_user_by_uid(20932326)
+        cookie = user.cookie
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
                 async with session.post(cloud_get_uid, json={"cookie": cookie, "name": user_name}) as resp:

@@ -284,7 +284,8 @@ class BotUtils:
 
         flag, data = await BiliApi.get_user_medal_list(uid)
         if not flag:
-            return f"未能获取到用户信息：{raw_uid_or_uname}"
+            return f"{user_name}({uid})\n{'-' * 20}\n{sign}\n\n未领取粉丝勋章"
+
         medals = data[str(uid)]["medal"].values()
         img = MedalImage(uid=uid, user_name=user_name, sign=sign, medals=medals)
         img.save()
@@ -523,8 +524,6 @@ class BotHandler:
     @classmethod
     async def handle_group_message(cls, msg, user_id, group_id):
         msg = msg.replace("＃", "#")
-        if msg.startswith("?") or msg.startswith("？"):
-            msg = "#勋章查询" + msg[1:]
 
         p = BotUtils(user_id=user_id, group_id=group_id)
         if msg in ("一言", "#一言"):
