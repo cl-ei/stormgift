@@ -523,7 +523,7 @@ class BotHandler:
     @classmethod
     async def handle_group_message(cls, msg, user_id, group_id):
         msg = msg.replace("＃", "#")
-        if msg.startswith("&"):
+        if msg.startswith("?") or msg.startswith("？"):
             msg = "#勋章查询" + msg[1:]
 
         p = BotUtils(user_id=user_id, group_id=group_id)
