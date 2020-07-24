@@ -1,8 +1,8 @@
 import aiomysql
-from typing import Union
+from typing import Optional
 from config import MYSQL_URL
 
-mysql_pool: Union[None, aiomysql.pool.Pool] = None
+mysql_pool: Optional[aiomysql.pool.Pool] = None
 
 
 async def open_connection(url: str = MYSQL_URL) -> None:
