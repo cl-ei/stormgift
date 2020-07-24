@@ -73,7 +73,7 @@ class AcquireCursor:
             await open_connection()
 
         self.conn = await mysql_pool.acquire()
-        self.cursor = cursor = await self.conn.cursor()
+        self.cursor = cursor = await self.conn.cursor(aiomysql.DictCursor)
         return cursor
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
