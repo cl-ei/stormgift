@@ -66,13 +66,21 @@ class StormHeart:
                 return
             await asyncio.sleep(2)
 
+    async def post_heartbeat_e(self):
+        user = await queries.get_lt_user_by_uid(self.user_id)
+        if user is None:
+            return
+
+        api = BiliPrivateApi(req_user=user)
+        await api.storm_heart_e(room_id=self.room_id)
+
     async def post_heartbeat_once(self, next_interval: int) -> int:
         user = await queries.get_lt_user_by_uid(self.user_id)
         if user is None:
             return 0
 
         api = BiliPrivateApi(req_user=user)
-        next_interval = await api.post_web_hb(previous_interval=next_interval, room_id=self.room_id)
+        next_interval = await api.storm_heart_beat(previous_interval=next_interval, room_id=self.room_id)
         return next_interval
 
     async def run(self):
@@ -81,6 +89,7 @@ class StormHeart:
             is_living = await self.get_live_room_status()
             if not is_living:
                 await self.find_living_room()
+                await self.post_heartbeat_e()
 
             if not self.room_id:
                 await asyncio.sleep(60*5)

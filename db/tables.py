@@ -72,6 +72,10 @@ class LTUser(RWSchema):
             f"SESSDATA={self.SESSDATA};"
         )
 
+    @property
+    def csrf_token(self):
+        return self.bili_jct
+
 
 class RaffleBroadCast(RWSchema):
     __key__ = "LTS:RF_BR"

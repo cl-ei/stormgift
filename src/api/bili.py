@@ -21,16 +21,17 @@ class BiliApiError(Exception):
 
 
 class _BiliApi:
+    UA = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/70.0.3538.110 Safari/537.36"
+    )
     headers = {
         "Accept": (
             "text/html,application/xhtml+xml,application/xml;"
             "q=0.9,image/webp,image/apng,*/*;q=0.8"
         ),
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/70.0.3538.110 Safari/537.36"
-        ),
+        "User-Agent": UA,
     }
 
     appkey = "1d8b6e7d45233436"
@@ -133,6 +134,7 @@ class _BiliApi:
                 data=data,
                 timeout=timeout,
             )
+            print(f"raw req: {status} from {url}\n\t{content}")
             assert status == 200
             response = json.loads(content)
         except Exception as e:
@@ -178,10 +180,48 @@ class BiliPrivateApi(_BiliApi):
         self.req_user = req_user
         self.headers = {"Cookie": self.req_user.cookie}
 
-    async def post_web_hb(self, previous_interval: int, room_id: int) -> int:
+    async def storm_heart_e(self, room_id: int):
+        public_api = BiliPublicApi(raise_exc=self.raise_exc)
+        room_info = await public_api.get_live_room_detail(room_id)
+        parent_area_id = room_info.parent_area_id
+        area_id = room_info.area_id
+
+        req_params = {
+            "method": "post",
+            "url": "https://live-trace.bilibili.com/xlive/data-interface/v1/x25Kn/E",
+            "headers": self.headers,
+            "data": {
+                "id": [parent_area_id, area_id, 0, room_info.room_id],
+                "device": ["AUTO8115803053952846", "92c3e6d8-aa98-4793-b06b-f5da6cb5bd4e"],
+                "ts": int(time.time()*1000),
+                "is_patch": 0,
+                "heart_beat": [],
+                "ua": self.UA,
+                "csrf_token": self.req_user.csrf_token,
+                "csrf": self.req_user.csrf_token,
+            },
+        }
+        data = await self.safe_request(**req_params)
+        print(f"\tpost_web_hb storm_heart_e: {data}")
+
+    async def storm_heart_beat(self, previous_interval: int, room_id: int) -> int:
         req_params = {
             "method": "get",
             "url": "https://live-trace.bilibili.com/xlive/rdata-interface/v1/heartbeat/webHeartBeat",
+            "headers": self.headers,
+            "params": {
+                "hb": base64.b64encode(f"{previous_interval}|{room_id}|1|0".encode("utf-8")).decode("utf-8"),
+                "pf": "web",
+            },
+        }
+        data = await self.safe_request(**req_params)
+        print(f"\tpost_web_hb response data: {data}")
+        return data["next_interval"]
+
+    async def storm_heart_x(self, previous_interval: int, room_id: int) -> int:
+        req_params = {
+            "method": "get",
+            "url": "https://live-trace.bilibili.com/xlive/data-interface/v1/x25Kn/E",
             "headers": self.headers,
             "params": {
                 "hb": base64.b64encode(f"{previous_interval}|{room_id}|1|0".encode("utf-8")).decode("utf-8"),
@@ -200,3 +240,42 @@ class BiliPrivateApi(_BiliApi):
         data = await self.safe_request("get", url, headers=self.headers, params=params)
         gift_list = data["list"]
         return [BagItem(**i) for i in gift_list]
+
+
+"""
+id: [1,27,0,13369254]
+device: ["AUTO8115803053952846","77dc0a5a-d11a-4544-a693-ccc1e6b9f1fc"]
+ts: 1595944065926
+is_patch: 1
+heart_beat: [
+    {
+        "s":"e61da86c68d4a3ddb4420f050009eb9f24fdfbae86de08b2f78de9770c4ce22e4ca43e729472b0d53f5814233e7f67b572e2ac68d76729bb370a271932a5833e",
+        "id":"[1,27,3,13369254]",
+        "device": "[\"AUTO8115803053952846\",\"3b5ed910-6d73-460d-b6a0-50301a8ba075\"]",
+        "ets":1595943864,
+        "benchmark":"seacasdgyijfhofiuxoannn",
+        "time":196,
+        "ts":1595944058033,
+        "ua":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36"
+    }
+]
+ua: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36
+csrf_token: 374b397f5b635585ed036b81f8846f33
+csrf: 374b397f5b635585ed036b81f8846f33
+
+->
+
+{
+    "code":0,
+    "message":"0",
+    "ttl":1,
+    "data":{
+        "timestamp":1595944068,
+        "heartbeat_interval":60,
+        "secret_key":"seacasdgyijfhofiuxoannn",
+        "secret_rule":[2,5,1,4],
+        "patch_status":1,
+        "reason":["success"]
+    }
+}
+"""
