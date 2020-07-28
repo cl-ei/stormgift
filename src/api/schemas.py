@@ -62,3 +62,34 @@ class RoomDetailInfo(RWSchema):
     area_name: str
     pendants: str
     area_pendants: str
+
+
+class BagItem(RWSchema):
+
+    class CountItem(RWSchema):
+        num: int
+        text: str
+
+    bag_id: int
+    gift_id: int
+    gift_name: str
+    gift_num: int
+    gift_type: int
+    expire_at: float
+    corner_mark: str                # "1天"
+    corner_color: str               # ""
+    count_map: List[CountItem]
+    bind_roomid: int
+    bind_room_text: str             # ""
+    type: int
+    card_image: str                 # ""
+    card_gif: str                   # ""
+    card_id: int                    # 0
+    card_record_id: int             # 0
+    is_show_send: bool              # false
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return f"<BagItem_{self.bag_id}: {self.corner_mark}.{self.gift_name}*{self.gift_num}>"

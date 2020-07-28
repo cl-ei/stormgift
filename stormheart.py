@@ -62,7 +62,7 @@ class StormHeart:
             r = await api.get_live_room_detail(r.roomid)
             if r:
                 self.room_id = r.short_id or r.room_id
-                logging.info(f"Find live room for user: {self.user_id} -> {self.room_id} {r.room_id}")
+                logging.info(f"Find live room for user {self.user_id} -> {self.room_id}")
                 return
             await asyncio.sleep(2)
 
@@ -97,11 +97,21 @@ class StormHeart:
                 return
 
 
+async def check_package(room_id: int = None):
+    while True:
+        user = await queries.get_lt_user_by_uid("TZ")
+        api = BiliPrivateApi(user)
+        data = await api.get_bag_list(room_id)
+        print(data)
+        await asyncio.sleep(60)
+
+
 async def main():
     # users: List[LTUser] = await queries.get_all_lt_user()
     users = [await queries.get_lt_user_by_uid("TZ")]
     await asyncio.gather(
         auto_shutdown(),
+        check_package(13369254),
         *[StormHeart(user.uid).run() for user in users]
     )
     print(f"users {len(users)}: {users}")

@@ -8,18 +8,11 @@ import asyncio
 from typing import Tuple, Optional, Dict, List, Any
 
 import aiohttp
-import hashlib
-import traceback
-from math import floor
-from typing import Union
-from random import random, randint
-from config import cloud_login
-from utils.dao import redis_cache
 from config import cloud_function_url
 from src.api.schemas import *
 from db.tables import LTUser
-from utils.biliapi import BiliApi
 from config.log4 import bili_api_logger as logging
+from src.api.schemas import BagItem
 
 
 class BiliApiError(Exception):
@@ -140,7 +133,6 @@ class _BiliApi:
                 data=data,
                 timeout=timeout,
             )
-            print(f"raw response[{status}]:\n\turl: {url}\n\tcontent: {content}")
             assert status == 200
             response = json.loads(content)
         except Exception as e:
@@ -197,5 +189,14 @@ class BiliPrivateApi(_BiliApi):
             },
         }
         data = await self.safe_request(**req_params)
-        print(f"post_web_hb response data: {data}")
+        print(f"\tpost_web_hb response data: {data}")
         return data["next_interval"]
+
+    async def get_bag_list(self, room_id: int = None) -> List[BagItem]:
+        url = "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list"
+        params = {"t": int(time.time() * 1000)}
+        if room_id:
+            params["room_id"] = room_id
+        data = await self.safe_request("get", url, headers=self.headers, params=params)
+        gift_list = data["list"]
+        return [BagItem(**i) for i in gift_list]
