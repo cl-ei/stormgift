@@ -87,16 +87,6 @@
     <label>①<input type="checkbox" name="do-sign" checked disabled>每日签到、应援团签到、双端签到</label>
     <label>②<input type="checkbox" name="heart-beat" checked disabled>挂机升UL</label>
     <label>③<input type="checkbox" name="silver-box" checked disabled>每日宝箱领取</label>
-
-    <label>④ 小电视/高能领取参与率
-        <input class="input-number" type="number" name="percent-tv" value="{{ percent_tv }}">%
-    </label>
-    <label>⑤ 大航海亲密度领取参与率
-        <input class="input-number" type="number" name="percent-guard" value="{{ percent_guard }}">%
-    </label>
-    <label>⑥ 大乱斗PK获胜参与率
-        <input class="input-number" type="number" name="percent-pk" value="{{ percent_pk }}">%
-    </label>
     <label class="auto-intimacy">* 自动送辣条（填勋章名）
         {% for medal in send_medals %}
             <input class="input-number" type="text" value="{{ medal }}">
@@ -104,10 +94,7 @@
         {% endfor %}
     </label>
     <button class="button center" id="submit-settings">保存设置</button>
-
 </div>
-<p style="margin-top: 20px;">参与率：为避免频繁抽奖进小黑屋，所以你可以设置一个百分比决定参与抽奖的频率。比如设置为50%时，放弃一半抽奖；设置为0时，不参与抽奖。<br>
-</p>
 <p style="margin-top: 20px;">自动送辣条：系统每天在23:50和23:59两个时间点，自动进入你填写的勋章所在的直播间送辣条、升牌牌。只会赠送包裹里的非永久辣条，按照过期时间优先送即将过期的。除此之外不会赠送其他的物品。系统会自动识别剩余亲密度、不会超送，如果当日手动送满亲密度，那么系统不会继续赠送。想要关闭此功能，只需要保持输入框为空即可。<br>
 </p>
 <div id="prompt-modal" class="modal fade" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -128,27 +115,6 @@ $(function () {
     $("#modal-confirm-btn").click(function () {$("#prompt-modal").modal("hide")});
 
     function submit(){
-
-        let percent_tv = parseInt($("input[name=percent-tv]").val()) || 0;
-        if (percent_tv < 0 || percent_tv > 100){
-            warning("小电视参与率超过范围，请设置： 0~100 !");
-            return;
-        }
-        let percent_guard = parseInt($("input[name=percent-guard]").val()) || 0;
-        if (percent_guard < 0 || percent_guard > 100){
-            warning("大航海参与率超过范围，请设置： 0~100 !");
-            return;
-        }
-
-        let percent_pk = parseInt($("input[name=percent-pk]").val()) || 0;
-        if (percent_pk < 0 || percent_pk > 100){
-            warning("大乱斗PK获胜参与率超过范围，请设置： 0~100 !");
-            return;
-        }
-
-        let percent_storm = 0;
-        let percent_anchor = 0;
-
         let medals = [];
         let medalsDom = $(".auto-intimacy input");
         for (let i = 0; i < medalsDom.length; i++){
@@ -160,9 +126,6 @@ $(function () {
             url: "/lt/post_settings",
             type: "post",
             data: {
-                percent_tv: percent_tv,
-                percent_guard: percent_guard,
-                percent_pk: percent_pk,
                 send_medals: medals.join('\r\n'),
             },
             success: function (r){

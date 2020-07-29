@@ -129,7 +129,7 @@ async def lt(request):
         "token": token,
     }
     if not qr_code:
-        return render_to_response("website/templates/website_homepage.html", context=context)
+        return render_to_response("website/templates/home.html", context=context)
 
     url = "https://passport.bilibili.com/qrcode/getLoginUrl"
     async with aiohttp.request("get", url=url, headers=BROWSER_HEADERS) as r:
@@ -243,12 +243,6 @@ async def settings(request):
     lt_user = await queries.get_lt_user_by_uid(user_id=bili_uid)
     context["user_name"] = lt_user.name
     context["user_id"] = lt_user.uid
-    context["percent_anchor"] = lt_user.percent_anchor
-    context["percent_guard"] = lt_user.percent_guard
-    context["percent_pk"] = lt_user.percent_pk
-    context["percent_storm"] = lt_user.percent_storm
-    context["percent_tv"] = lt_user.percent_tv
-
     medals = ["" for _ in range(7)]
     for i, medal in enumerate(lt_user.send_medals):
         if i >= 7:
@@ -266,34 +260,18 @@ async def post_settings(request):
 
     data = await request.post()
     try:
-        percent_tv = int(data["percent_tv"])
-        percent_guard = int(data["percent_guard"])
-        percent_pk = int(data["percent_pk"])
         medals = [m.strip() for m in data["send_medals"].split("\r\n")]
         send_medals = [m for m in medals if m]
     except (KeyError, TypeError, ValueError) as e:
         return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}\n{traceback.format_exc()}"})
-
-    if (
-        not 0 <= percent_tv <= 100
-        or not 0 <= percent_guard <= 100
-        or not 0 <= percent_pk <= 100
-    ):
-        return json_response({"code": 403, "err_msg": "范围错误！请设置0~100 ！"})
 
     for m in send_medals:
         if not isinstance(m, str) or not 0 < len(m) <= 6:
             return json_response({"code": 403, "err_msg": f"错误的勋章：{m}"})
 
     lt_user = await queries.get_lt_user_by_uid(bili_uid)
-    lt_user.percent_tv = percent_tv
-    lt_user.percent_guard = percent_guard
-    lt_user.percent_pk = percent_pk
     lt_user.send_medals = send_medals
-    await queries.update_lt_user(
-        lt_user,
-        fields=("percent_tv", "percent_guard", "percent_pk", "send_medals",)
-    )
+    await queries.update_lt_user(lt_user, fields=("send_medals",))
     return json_response({"code": 0})
 
 
