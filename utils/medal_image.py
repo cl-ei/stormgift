@@ -59,7 +59,7 @@ class MedalImage:
         w = 120
         h = 26
         r = 5
-        color = ImageColor.getrgb(f"#{color:6x}")
+        color = ImageColor.getrgb(f"#{color:0>6x}")
 
         '''Rounds'''
         draw_obj.ellipse((x, y, x + r, y + r), fill=color)
