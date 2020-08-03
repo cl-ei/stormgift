@@ -559,23 +559,6 @@ class BiliApi:
         return True, failed_info
 
     @classmethod
-    async def do_sign_double_watch(cls, cookie, timeout=10):
-        try:
-            csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]
-        except Exception as e:
-            return False, f"Bad cookie, cannot get csrf_token: {e}"
-
-        req_url = "https://api.live.bilibili.com/activity/v1/task/receive_award"
-        headers = {"Cookie": cookie}
-        data = {
-            "task_id": "double_watch_task",
-            "csrf_token": csrf_token,
-            "csrf": csrf_token,
-        }
-        r, data = await cls.post(req_url, headers=headers, data=data, timeout=timeout, check_error_code=True)
-        return r, data
-
-    @classmethod
     async def silver_to_coin(cls, cookie, timeout=10):
         try:
             csrf_token = re.findall(r"bili_jct=(\w+)", cookie)[0]

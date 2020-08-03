@@ -51,8 +51,6 @@ async def main():
         if not r:
             logging_msg_list.append(f"ERROR: Sign group failed, {lt_user.name}-{lt_user.DedeUserID}: {data}\n")
 
-        await BiliApi.do_sign_double_watch(cookie)
-
         if lt_user.DedeUserID == g.BILI_UID_DD:
             # 触发领取今日辣条
             await BiliApi.silver_to_coin(cookie)
@@ -67,4 +65,3 @@ async def main():
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
-
