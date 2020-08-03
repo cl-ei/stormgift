@@ -5,20 +5,6 @@ from utils.biliapi import BiliApi
 from db.queries import LTUser, List, queries
 
 
-MEDAL_ID_小孩梓 = 13139
-
-
-async def sign_510(user):
-    # sign 510
-    flag, wear_medal = await BiliApi.get_wear_medal(cookie=user.cookie)
-    await BiliApi.wear_medal(cookie=user.cookie, medal_id=MEDAL_ID_小孩梓)
-    flag, msg = await BiliApi.send_danmaku(message="打卡", room_id=80397, cookie=user.cookie)
-    # print(f"Send danmaku: {flag}, msg: {msg}")
-    if wear_medal:
-        flag, msg = await BiliApi.wear_medal(cookie=user.cookie, medal_id=wear_medal["medal_id"])
-        # print(F"Final wear: {wear_medal['medal_name']}: {flag}, msg: {msg}")
-
-
 async def get_aids():
     url = "https://api.bilibili.com/x/web-interface/newlist?rid=96&type=0&pn=1&ps=50"
     flag, data = await BiliApi.get(url=url, check_error_code=True)
@@ -62,8 +48,6 @@ async def main():
     aids = await get_aids()
     for uid in ("TZ", "DD", g.BILI_UID_CZ):
         user = await queries.get_lt_user_by_uid(user_id=uid)
-        if uid == "DD":
-            await sign_510(user)
         await send_coin(user=user, aids=aids)
         await share(user=user, aids=aids)
 
