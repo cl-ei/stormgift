@@ -93,3 +93,9 @@ class BagItem(RWSchema):
 
     def __repr__(self):
         return f"<BagItem_{self.bag_id}: {self.corner_mark}.{self.gift_name}*{self.gift_num}>"
+
+
+class HeartBeatEResp(RWSchema):
+    timestamp: int
+    secret_key: str
+    heartbeat_interval: int

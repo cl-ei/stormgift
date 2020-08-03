@@ -5,6 +5,7 @@ import datetime
 from random import randint
 from typing import Optional
 from utils.biliapi import BiliApi
+from src.api.schemas import *
 from src.api.bili import BiliPublicApi, BiliPrivateApi
 from db.queries import queries, LTUser, List
 from utils.dao import redis_cache
@@ -22,22 +23,22 @@ async def auto_shutdown():
 
 
 class StormHeart:
+
+    LIVE_STATUS_CHECK_INTERVAL = 60 * 2  # 2分钟内不再检查直播间状态
+
     def __init__(self, user_id: int):
         self.user_id = user_id
-        self.room_id: int = 0
-
         self._last_check_time = 0
-        self.check_interval = 60 * 2
 
-    async def get_live_room_status(self) -> bool:
-        if not self.room_id:
+    async def get_live_room_status(self, room_id: int) -> bool:
+        if not room_id:
             return False
 
-        if time.time() - self._last_check_time < self.check_interval:
+        if time.time() - self._last_check_time < self.LIVE_STATUS_CHECK_INTERVAL:
             return True
 
-        flag, status = await BiliApi.get_live_status(self.room_id)
-        logging.info(f"Check live room status: {self.room_id} -> {status}")
+        flag, status = await BiliApi.get_live_status(room_id)
+        logging.info(f"Check live room status: room_id: {room_id} -> status: {status}")
         if not flag:
             raise RuntimeError(f"BiliApi Exception: {status}")
 
@@ -45,7 +46,7 @@ class StormHeart:
             self._last_check_time = time.time()
         return status
 
-    async def find_living_room(self) -> None:
+    async def find_living_room(self) -> Optional[int]:
         flag, data = await BiliApi.get_user_medal_list(self.user_id)
         if not flag:
             return
@@ -53,6 +54,7 @@ class StormHeart:
         medals = list(data[str(self.user_id)]["medal"].values())
         master_id_list = [m["master_id"] for m in medals]
         api = BiliPublicApi()
+
         for master_id in master_id_list:
             r = await api.get_live_room_info(user_id=master_id)
             if r.liveStatus != 1:
@@ -61,49 +63,51 @@ class StormHeart:
 
             r = await api.get_live_room_detail(r.roomid)
             if r:
-                self.room_id = r.short_id or r.room_id
-                logging.info(f"Find live room for user {self.user_id} -> {self.room_id}")
-                return
+                room_id = r.short_id or r.room_id
+                logging.info(f"Find live room for user {self.user_id} -> room_id: {room_id}")
+                return room_id
             await asyncio.sleep(2)
-
-    async def post_heartbeat_e(self):
-        user = await queries.get_lt_user_by_uid(self.user_id)
-        if user is None:
-            return
-
-        api = BiliPrivateApi(req_user=user)
-        await api.storm_heart_e(room_id=self.room_id)
-
-    async def post_heartbeat_once(self, next_interval: int) -> int:
-        user = await queries.get_lt_user_by_uid(self.user_id)
-        if user is None:
-            return 0
-
-        api = BiliPrivateApi(req_user=user)
-        next_interval = await api.storm_heart_beat(previous_interval=next_interval, room_id=self.room_id)
-        return next_interval
 
     async def run(self):
         next_interval = randint(6, 30)
+        hbe = None
+        hbx_index = 1
+        room_id = None
+        start_time = 0
+
         while True:
-            is_living = await self.get_live_room_status()
-            if not is_living:
-                await self.find_living_room()
-                await self.post_heartbeat_e()
-
-            if not self.room_id:
-                await asyncio.sleep(60*5)
-
-            try:
-                next_interval = await self.post_heartbeat_once(next_interval)
-            except Exception as e:
-                _ = e
-                next_interval = 1
-
-            if next_interval > 0:
-                await asyncio.sleep(next_interval)
-            else:
+            user: LTUser = await queries.get_lt_user_by_uid(self.user_id)
+            if not user:
+                logging.error(f"User {self.user_id} 认证过期，需要重新登录！")
                 return
+
+            api = BiliPrivateApi(req_user=user)
+
+            is_living = await self.get_live_room_status(room_id)
+            if is_living:
+                pass
+            else:
+                room_id = await self.find_living_room()
+                if room_id:
+                    hbe = await api.storm_heart_e(room_id)
+                    start_time = time.time()
+                else:
+                    await asyncio.sleep(60 * 5)
+                    continue
+
+            next_interval = await api.storm_heart_beat(previous_interval=next_interval, room_id=room_id)
+            await asyncio.sleep(next_interval)
+            if time.time() - start_time < hbe.heartbeat_interval:
+                continue
+
+            response = await api.storm_heart_x(hbx_index, hbe, room_id)
+            logging.info(f"storm_heart_x: {response}")
+            # if response:
+            #     logging.info(f"User: {user.name}({self.user_id}) 今日小心心已全部领取。")
+            #     return
+
+            start_time = time.time()
+            hbx_index += 1
 
 
 async def check_package(room_id: int = None):
