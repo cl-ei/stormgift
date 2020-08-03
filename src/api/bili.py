@@ -71,9 +71,10 @@ class _BiliApi:
             headers,
             params,
             data,
-            timeout
+            timeout: int,
     ) -> Tuple[int, str]:
 
+        timeout = aiohttp.ClientTimeout(total=timeout)
         inner_headers: dict = dict(**cls.headers)
         if headers:
             inner_headers.update(headers)
@@ -97,7 +98,7 @@ class _BiliApi:
                     content = await resp.text(encoding="utf-8", errors="ignore")
                     return status_code, content
 
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.request(method=method, url=url, params=params, data=data, headers=inner_headers) as resp:
                 status_code = resp.status
                 content = await resp.text(encoding="utf-8", errors="ignore")
@@ -179,6 +180,18 @@ class BiliPrivateApi(_BiliApi):
         super(BiliPrivateApi, self).__init__(raise_exc)
         self.req_user = req_user
         self.headers = {"Cookie": self.req_user.cookie}
+
+    @staticmethod
+    async def encrypt_heart_s(data: Dict[str, Any]) -> Dict[str, Any]:
+        url = "http://127.0.0.1:6000/enc"
+        try:
+            async with aiohttp.request("post", url=url, json=data) as resp:
+                s = (await resp.json(content_type=None))["s"]
+        except Exception as e:
+            _ = e
+            s = {}
+
+        return s
 
     async def storm_heart_e(self, room_id: int):
         public_api = BiliPublicApi(raise_exc=self.raise_exc)
