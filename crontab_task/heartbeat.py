@@ -1,6 +1,6 @@
 import asyncio
 from utils.biliapi import BiliApi
-from db.queries import queries, LTUser, List
+from src.db.queries.queries import queries, LTUser, List
 from config.log4 import crontab_task_logger as logging
 
 

@@ -1,7 +1,7 @@
 import random
 import datetime
 from typing import Union, List, Iterable
-from db.tables import LTUser
+from src.db.models.lt_user import LTUser
 from utils.dao import redis_cache
 
 

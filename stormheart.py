@@ -1,13 +1,11 @@
 import sys
 import time
 import asyncio
-import datetime
 from random import randint
-from typing import Optional
 from utils.biliapi import BiliApi
 from src.api.schemas import *
 from src.api.bili import BiliPublicApi, BiliPrivateApi
-from db.queries import queries, LTUser, List
+from src.db.queries.queries import queries, LTUser
 from utils.dao import redis_cache
 from config.log4 import crontab_task_logger as logging
 

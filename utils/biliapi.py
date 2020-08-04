@@ -1177,7 +1177,7 @@ class DmkSender:
         return False, f"连续{self.try_times}次都没能成功发送[{dmk}].结束发送."
 
     async def send(self, msg: str) -> Tuple[bool, str]:
-        from db.queries import queries
+        from src.db.queries.queries import queries
         c = await queries.get_lt_user_by_uid(user_id=self.user_id)
         if not c:
             return False, f"未能获取Cookie user_id: {self.user_id}"

@@ -1,7 +1,7 @@
 import time
 import datetime
-from typing import List, Union, Tuple
-from db.queries import queries, LTUser
+from typing import Union, Tuple
+from src.db.queries.queries import queries, LTUser
 from utils.dao import UserRaffleRecord
 from utils.covert import gen_time_prompt
 from utils.biliapi import BiliApi

@@ -5,7 +5,7 @@ import asyncio
 from utils.biliapi import BiliApi
 from config.log4 import silver_box_logger as logging
 from utils.dao import UserRaffleRecord, redis_cache
-from db.queries import queries, LTUser
+from src.db.queries.queries import queries, LTUser
 
 
 class UserSilverAcceptTimeCtrl:

@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
 from config.log4 import config_logger
-from db.queries import queries, LTUser
+from src.db.queries.queries import queries, LTUser
 
 
 logging = config_logger("auto_intimacy")

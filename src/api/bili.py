@@ -1,17 +1,12 @@
-import re
 import json
 import base64
 import time
-import zlib
-import struct
-import asyncio
-from typing import Tuple, Optional, Dict, List, Any
 from urllib.parse import urlencode
 
 import aiohttp
 from config import cloud_function_url
 from src.api.schemas import *
-from db.tables import LTUser
+from src.db.models.lt_user import LTUser
 from config.log4 import bili_api_logger as logging
 from src.api.schemas import BagItem
 

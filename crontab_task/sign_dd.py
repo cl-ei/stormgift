@@ -2,7 +2,7 @@ import asyncio
 from config import g
 from random import choice
 from utils.biliapi import BiliApi
-from db.queries import LTUser, List, queries
+from src.db.queries.queries import queries
 
 
 async def get_aids():

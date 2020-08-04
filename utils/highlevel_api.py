@@ -35,7 +35,7 @@ class ReqFreLimitApi(object):
 
     @classmethod
     async def get_uid_by_name(cls, user_name, wait_time=2):
-        from db.queries import queries
+        from src.db.queries.queries import queries
         user = await queries.get_lt_user_by_uid(20932326)
         cookie = user.cookie
         try:

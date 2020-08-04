@@ -4,7 +4,7 @@ from config import g
 from typing import List
 from utils.biliapi import BiliApi
 from config.log4 import crontab_task_logger as logging
-from db.queries import queries, LTUser
+from src.db.queries.queries import queries, LTUser
 
 
 async def main():

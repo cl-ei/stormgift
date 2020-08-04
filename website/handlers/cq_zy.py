@@ -3,7 +3,6 @@ import time
 import json
 import uuid
 import random
-import asyncio
 import hashlib
 import aiohttp
 import datetime
@@ -16,7 +15,7 @@ from utils.biliapi import BiliApi
 from utils.cq import async_zy as bot
 from config import cloud_function_url
 from utils.covert import gen_time_prompt
-from db.queries import LTUser, queries
+from src.db.queries.queries import queries
 from utils.highlevel_api import ReqFreLimitApi
 from utils.medal_image import MedalImage
 from config.log4 import cqbot_logger as logging

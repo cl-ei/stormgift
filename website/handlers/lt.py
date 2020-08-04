@@ -10,7 +10,7 @@ from jinja2 import Template
 from utils.cq import async_zy
 from config import CDN_URL, g
 from utils.biliapi import BiliApi
-from db.queries import queries, LTUser
+from src.db.queries.queries import queries, LTUser
 from website.operations import add_user_by_account
 from config.log4 import lt_login_logger
 from config.log4 import website_logger as logging
