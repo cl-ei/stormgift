@@ -28,6 +28,8 @@ class StormHeart:
         self.user_id = user_id
         self._last_check_time = 0
 
+        self.room_id = None
+
     async def get_live_room_status(self, room_id: int) -> bool:
         if not room_id:
             return False
@@ -66,46 +68,56 @@ class StormHeart:
                 return room_id
             await asyncio.sleep(2)
 
+    async def heartbeat_small(self, api: BiliPrivateApi):
+        next_interval = randint(5, 50)
+        while True:
+            await asyncio.sleep(next_interval)
+
+            next_interval = await api.storm_heart_beat(
+                previous_interval=next_interval,
+                room_id=self.room_id,
+            )
+
     async def run(self):
-        next_interval = randint(6, 30)
         hbe = None
+        small_hb_task = None
         hbx_index = 1
-        room_id = None
-        start_time = 0
 
         while True:
+            is_living = await self.get_live_room_status(self.room_id)
+            if not is_living:
+                hbe = None
+                self.room_id = await self.find_living_room()
+                if small_hb_task:
+                    small_hb_task.cancel()
+                    small_hb_task = None
+
+            if self.room_id is None:
+                await asyncio.sleep(60 * 5)
+                continue
+
             user: LTUser = await queries.get_lt_user_by_uid(self.user_id)
             if not user:
                 logging.error(f"User {self.user_id} 认证过期，需要重新登录！")
-                return
+                break
 
             api = BiliPrivateApi(req_user=user)
 
-            is_living = await self.get_live_room_status(room_id)
-            if is_living:
-                pass
-            else:
-                room_id = await self.find_living_room()
-                if room_id:
-                    hbe = await api.storm_heart_e(room_id)
-                    start_time = time.time()
-                else:
-                    await asyncio.sleep(60 * 5)
-                    continue
-
-            next_interval = await api.storm_heart_beat(previous_interval=next_interval, room_id=room_id)
-            await asyncio.sleep(next_interval)
-            if time.time() - start_time < hbe.heartbeat_interval:
+            if hbe is None:
+                hbe = await api.storm_heart_e(self.room_id)
+                small_hb_task = asyncio.create_task(self.heartbeat_small(api))
+                await asyncio.sleep(hbe.heartbeat_interval)
                 continue
 
-            response = await api.storm_heart_x(hbx_index, hbe, room_id)
+            response = await api.storm_heart_x(hbx_index, hbe, self.room_id)
             logging.info(f"storm_heart_x: {response}")
-            # if response:
-            #     logging.info(f"User: {user.name}({self.user_id}) 今日小心心已全部领取。")
-            #     return
-
-            start_time = time.time()
             hbx_index += 1
+            if hbx_index > 7:
+                break
+            await asyncio.sleep(hbe.heartbeat_interval)
+
+        if small_hb_task is not None:
+            small_hb_task.cancel()
 
 
 async def check_package(room_id: int = None):
@@ -122,7 +134,7 @@ async def main():
     users = [await queries.get_lt_user_by_uid("TZ")]
     await asyncio.gather(
         auto_shutdown(),
-        check_package(13369254),
+        check_package(room_id=13369254),
         *[StormHeart(user.uid).run() for user in users]
     )
     print(f"users {len(users)}: {users}")
