@@ -248,7 +248,12 @@ async def settings(request):
         if i >= 7:
             break
         medals[i] = medal
+
     context["send_medals"] = medals
+    context["shine_medals"] = lt_user.send_medals
+    context["medal_intimacy_policy"] = lt_user.medal_intimacy_policy,
+    context["shine_medal_policy"] = lt_user.shine_medal_policy,
+    context["shine_medal_count"] = lt_user.shine_medal_count,
 
     return render_to_response("website/templates/settings.html", context=context)
 
@@ -260,18 +265,38 @@ async def post_settings(request):
 
     data = await request.post()
     try:
-        medals = [m.strip() for m in data["send_medals"].split("\r\n")]
-        send_medals = [m for m in medals if m]
+        send_medals = [m.strip() for m in data["send_medals"].split("\r\n") if m.strip()]
+        shine_medals = [m.strip() for m in data["shine_medals"].split("\r\n") if m.strip()]
+
+        medal_intimacy_policy = int(data["medal_intimacy_policy"])
+        shine_medal_policy = int(data["shine_medal_policy"])
+        shine_medal_count = int(data["shine_medal_count"])
+
+        for m in send_medals + shine_medals:
+            if not isinstance(m, str) or not 0 < len(m) <= 6:
+                return json_response({"code": 403, "err_msg": f"错误的勋章：{m}"})
+
+        assert 0 <= medal_intimacy_policy <= 2
+        assert 0 <= shine_medal_policy <= 3
+        assert 0 < shine_medal_count < 100
+
     except (KeyError, TypeError, ValueError) as e:
         return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}\n{traceback.format_exc()}"})
 
-    for m in send_medals:
-        if not isinstance(m, str) or not 0 < len(m) <= 6:
-            return json_response({"code": 403, "err_msg": f"错误的勋章：{m}"})
-
     lt_user = await queries.get_lt_user_by_uid(bili_uid)
     lt_user.send_medals = send_medals
-    await queries.update_lt_user(lt_user, fields=("send_medals",))
+    lt_user.shine_medals = shine_medals
+    lt_user.medal_intimacy_policy = medal_intimacy_policy
+    lt_user.shine_medal_policy = shine_medal_policy
+    lt_user.shine_medal_count = shine_medal_count
+
+    await queries.update_lt_user(lt_user, fields=(
+        "send_medals",
+        "shine_medals",
+        "medal_intimacy_policy",
+        "shine_medal_policy",
+        "lt_user.shine_medal_count",
+    ))
     return json_response({"code": 0})
 
 

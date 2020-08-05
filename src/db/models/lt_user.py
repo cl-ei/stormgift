@@ -35,11 +35,10 @@ class LTUser(RWSchema):
 
     # user settings
     send_medals: List[str] = []
-    percent_tv: int = 0
-    percent_guard: int = 0
-    percent_pk: int = 0
-    percent_storm: int = 0
-    percent_anchor: int = 0
+    shine_medals: List[str] = []
+    medal_intimacy_policy: int = 0
+    shine_medal_policy: int = 0
+    shine_medal_count: int = 5
 
     def __repr__(self):
         return f"<{self.DedeUserID}: {self.name or 'None'}>"
