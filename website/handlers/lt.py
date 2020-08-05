@@ -251,9 +251,9 @@ async def settings(request):
 
     context["send_medals"] = medals
     context["shine_medals"] = lt_user.send_medals
-    context["medal_intimacy_policy"] = lt_user.medal_intimacy_policy,
-    context["shine_medal_policy"] = lt_user.shine_medal_policy,
-    context["shine_medal_count"] = lt_user.shine_medal_count,
+    context["medal_intimacy_policy"] = lt_user.medal_intimacy_policy
+    context["shine_medal_policy"] = lt_user.shine_medal_policy
+    context["shine_medal_count"] = lt_user.shine_medal_count
 
     return render_to_response("website/templates/settings.html", context=context)
 
