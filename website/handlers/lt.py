@@ -250,7 +250,7 @@ async def settings(request):
         medals[i] = medal
 
     context["send_medals"] = medals
-    context["shine_medals"] = lt_user.send_medals
+    context["shine_medals"] = lt_user.shine_medals
     context["medal_intimacy_policy"] = lt_user.medal_intimacy_policy
     context["shine_medal_policy"] = lt_user.shine_medal_policy
     context["shine_medal_count"] = lt_user.shine_medal_count
