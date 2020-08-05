@@ -99,12 +99,12 @@
     <label>④<input type="checkbox" name="silver-box" checked disabled>每日宝箱领取</label>
     <label>⑤<input type="checkbox" name="storm-heart" disabled>自动获取小心心（即将上线）</label>
 
-    <label class="auto-intimacy">⑥ 自动送辣条（填勋章名）</label>
+    <label class="auto-intimacy">⑥ 自动送辣条</label>
     <div class="margin-top-20">
         <label><input name="intimacy-policy" type="radio" value="0" checked>只使用辣条升亲密度</label>
         <label><input name="intimacy-policy" type="radio" value="1">使用辣条和小心心升亲密度</label>
         <label><input name="intimacy-policy" type="radio" value="2">使用任意的免费礼物、银瓜子升亲密度</label>
-        <label>勋章：
+        <label>勋章（填勋章名）：
             {% for medal in send_medals %}
                 <input name="send-medal-item" class="input-number" type="text" value="{{ medal }}">
                 {% if not loop.last %}，{% endif %}
@@ -112,7 +112,7 @@
         </label>
     </div>
 
-    <label class="shine-medal">⑦ 自动擦亮勋章（填勋章名）</label>
+    <label class="shine-medal">⑦ 自动擦亮勋章</label>
     <div class="margin-top-20">
         <label><input name="shine-policy" type="radio" value="0" checked>关闭</label>
         <label><input name="shine-policy" type="radio" value="1">擦亮全部勋章（优先擦亮高等级勋章）</label>
@@ -120,7 +120,7 @@
             <input name="shine-medal-count" class="input-number" type="number" value="{{ shine_medal_count }}">个勋章
         </label>
         <label><input name="shine-policy" type="radio" value="3">自行输入要擦亮的勋章</label>
-        <label class="shine-medal-items">勋章：
+        <label class="shine-medal-items">勋章（填勋章名）：
             {% for medal in shine_medals %}
                 <input name="shine-medal-item" class="input-number" type="text" value="{{ medal }}">
                 {% if not loop.last %}，{% endif %}
