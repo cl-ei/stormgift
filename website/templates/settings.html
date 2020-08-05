@@ -150,7 +150,10 @@ window.shineMedalPolicy = "{{ shine_medal_policy }}" || 0;
 window.medalIntimacyPolicy = "{{ medal_intimacy_policy }}" || 0;
 
 $(function () {
-    function warning(msg){$("#prompt-modal-body").html(msg);$("#prompt-modal").modal("show")};
+    function warning(msg){
+        $("#prompt-modal-body").html(msg.replace(/\n/g, "<br/>"));
+        $("#prompt-modal").modal("show");
+    }
     $("#add-shine-medal").click(function () {
         $(this).before($(
             '<span>，</span>' +
