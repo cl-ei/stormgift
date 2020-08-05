@@ -106,7 +106,7 @@
         <label><input name="intimacy-policy" type="radio" value="2">使用任意的免费礼物、银瓜子升亲密度</label>
         <label>勋章：
             {% for medal in send_medals %}
-                <input class="input-number" type="text" value="{{ medal }}">
+                <input name="send-medal-item" class="input-number" type="text" value="{{ medal }}">
                 {% if not loop.last %}，{% endif %}
             {% endfor %}
         </label>
@@ -167,7 +167,7 @@ $(function () {
     $("#modal-confirm-btn").click(function () {$("#prompt-modal").modal("hide")});
     function submit(){
         let medals = [];
-        let medalsDom = $(".auto-intimacy input");
+        let medalsDom = $("input[name=send-medal-item]");
         for (let i = 0; i < medalsDom.length; i++){
             let medal_name = medalsDom.eq(i).val() || "";
             if (medal_name !== ""){medals.push(medal_name)}
