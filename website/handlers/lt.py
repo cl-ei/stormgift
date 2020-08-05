@@ -278,7 +278,10 @@ async def post_settings(request):
 
         assert 0 <= medal_intimacy_policy <= 2, "自动赠送亲密度的策略错误！"
         assert 0 <= shine_medal_policy <= 3, "自动擦亮勋章的策略错误！"
-        assert 0 < shine_medal_count < 100, "自动擦亮勋章的数量超出范围！最少为1，最多为99个勋章。"
+        if shine_medal_policy == 2:  #
+            assert 0 < shine_medal_count < 100, "自动擦亮勋章的数量超出范围！最少为1，最多为99个勋章。"
+        else:
+            shine_medal_count = 5
         assert 0 <= len(shine_medals) < 100, "自定义擦亮勋章的数量太多！最多可设置99个勋章。"
 
     except AssertionError as e:
