@@ -276,9 +276,13 @@ async def post_settings(request):
             if not isinstance(m, str) or not 0 < len(m) <= 6:
                 return json_response({"code": 403, "err_msg": f"错误的勋章：{m}"})
 
-        assert 0 <= medal_intimacy_policy <= 2
-        assert 0 <= shine_medal_policy <= 3
-        assert 0 < shine_medal_count < 100
+        assert 0 <= medal_intimacy_policy <= 2, "自动赠送亲密度的策略错误！"
+        assert 0 <= shine_medal_policy <= 3, "自动擦亮勋章的策略错误！"
+        assert 0 < shine_medal_count < 100, "自动擦亮勋章的数量超出范围！最少为1，最多为99个勋章。"
+        assert 0 <= len(shine_medals) < 100, "自定义擦亮勋章的数量太多！最多可设置99个勋章。"
+
+    except AssertionError as e:
+        return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！\n{e}"})
 
     except (KeyError, TypeError, ValueError) as e:
         return json_response({"code": 403, "err_msg": f"你提交了不正确的参数 ！{e}\n{traceback.format_exc()}"})
