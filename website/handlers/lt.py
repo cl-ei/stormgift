@@ -302,7 +302,7 @@ async def post_settings(request):
         "shine_medals",
         "medal_intimacy_policy",
         "shine_medal_policy",
-        "lt_user.shine_medal_count",
+        "shine_medal_count",
     ))
     return json_response({"code": 0})
 
