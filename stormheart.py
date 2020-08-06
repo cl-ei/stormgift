@@ -3,6 +3,7 @@ import time
 import asyncio
 from random import randint
 from utils.biliapi import BiliApi
+from config.g import LIVE_ROOM_ID_DD
 from src.api.schemas import *
 from src.api.bili import BiliPublicApi, BiliPrivateApi
 from src.db.queries.queries import queries, LTUser
@@ -27,8 +28,6 @@ class StormHeart:
     def __init__(self, user_id: int):
         self.user_id = user_id
         self._last_check_time = 0
-
-        self.room_id = None
 
     async def get_live_room_status(self, room_id: int) -> bool:
         if not room_id:
@@ -68,56 +67,37 @@ class StormHeart:
                 return room_id
             await asyncio.sleep(2)
 
-    async def heartbeat_small(self, api: BiliPrivateApi):
+    @staticmethod
+    async def small_heartbeat(room_id: int, api: BiliPrivateApi):
         next_interval = randint(5, 50)
         while True:
             await asyncio.sleep(next_interval)
-
             next_interval = await api.storm_heart_beat(
-                previous_interval=next_interval,
-                room_id=self.room_id,
-            )
+                previous_interval=next_interval, room_id=room_id)
 
     async def run(self):
-        hbe = None
-        small_hb_task = None
-        hbx_index = 1
+        room_id = LIVE_ROOM_ID_DD
+        user = await queries.get_lt_user_by_uid(self.user_id)
+        if not user:
+            logging.error(F"User need login: {self.user_id}")
+            return
 
-        while True:
-            is_living = await self.get_live_room_status(self.room_id)
-            if not is_living:
-                hbe = None
-                self.room_id = await self.find_living_room()
-                if small_hb_task:
-                    small_hb_task.cancel()
-                    small_hb_task = None
+        api = BiliPrivateApi(req_user=user)
 
-            if self.room_id is None:
-                await asyncio.sleep(60 * 5)
-                continue
+        bags = await api.get_bag_list(room_id)
+        logging.info(f"Init bags: {bags}")
 
-            user: LTUser = await queries.get_lt_user_by_uid(self.user_id)
-            if not user:
-                logging.error(f"User {self.user_id} 认证过期，需要重新登录！")
-                break
-
-            api = BiliPrivateApi(req_user=user)
-
-            if hbe is None:
-                hbe = await api.storm_heart_e(self.room_id)
-                small_hb_task = asyncio.create_task(self.heartbeat_small(api))
-                await asyncio.sleep(hbe.heartbeat_interval)
-                continue
-
-            response = await api.storm_heart_x(hbx_index, hbe, self.room_id)
-            logging.info(f"storm_heart_x: {response}")
-            hbx_index += 1
-            if hbx_index > 7:
-                break
+        hbe = await api.storm_heart_e(room_id)
+        _s = self.small_heartbeat(room_id=room_id, api=api)
+        small_hb_task = asyncio.create_task(_s)
+        for hbx_index in range(1, 8):
             await asyncio.sleep(hbe.heartbeat_interval)
+            hbe = await api.storm_heart_x(hbx_index, hbe, room_id)
+            await api.receive_heart_gift(room_id)
+            bags = await api.get_bag_list(room_id)
+            logging.info(f"storm_heart_x: {hbe}\n\tbags: {bags}")
 
-        if small_hb_task is not None:
-            small_hb_task.cancel()
+        small_hb_task.cancel()
 
 
 async def check_package(room_id: int = None):
@@ -134,7 +114,6 @@ async def main():
     users = [await queries.get_lt_user_by_uid("TZ")]
     await asyncio.gather(
         auto_shutdown(),
-        check_package(room_id=13369254),
         *[StormHeart(user.uid).run() for user in users]
     )
     print(f"users {len(users)}: {users}")

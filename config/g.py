@@ -8,6 +8,8 @@ BILI_UID_DD = 20932326
 BILI_UID_TZ = 312186483
 BILI_UID_CZ = 87301592
 
+LIVE_ROOM_ID_DD = 13369254
+
 lottery_danmaku = (
     "哔哩哔哩 (゜-゜)つロ 干杯~",
     "宝藏和爱都给你 (ノω<)ノ)☆",

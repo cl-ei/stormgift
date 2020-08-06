@@ -39,6 +39,7 @@ class RoomDetailInfo(RWSchema):
     uid: int
     room_id: int
     short_id: int
+
     attention: int
     online: int
     is_portrait: bool
@@ -62,6 +63,42 @@ class RoomDetailInfo(RWSchema):
     area_name: str
     pendants: str
     area_pendants: str
+
+
+class XLiveRoomInfo(RWSchema):
+    class RoomInfo(RWSchema):
+        uid: int
+        room_id: int
+        short_id: int
+        title: str
+        cover: str
+        tags: str
+        background: str
+        description: str
+        live_status: int            # 0
+        live_start_time: float      # 0
+        live_screen_type: int       # 0
+        lock_status: int            # 0
+        lock_time: int              # 0
+        hidden_status: int          # 0
+        hidden_time: int            # 0
+        area_id: int
+        area_name: str
+        parent_area_id: int
+        parent_area_name: str
+        keyframe: str
+        special_type: int
+        up_session: str             # ""
+        pk_status: int
+        is_studio: bool
+        on_voice_join: int          # 0
+        online: int
+
+    class AnchorInfo(RWSchema):
+        ...
+
+    room_info: RoomInfo
+    anchor_info: AnchorInfo
 
 
 class BagItem(RWSchema):
@@ -99,6 +136,8 @@ class HeartBeatEResp(RWSchema):
     timestamp: int
     secret_key: str
     heartbeat_interval: int
+    secret_rule: List[int]
+    device: str
 
 
 class UserMedalInfo(RWSchema):

@@ -1,6 +1,8 @@
+import time
+import uuid
 import json
 import base64
-import time
+import hashlib
 from urllib.parse import urlencode
 
 import aiohttp
@@ -8,7 +10,7 @@ from config import cloud_function_url
 from src.api.schemas import *
 from src.db.models.lt_user import LTUser
 from config.log4 import bili_api_logger as logging
-from src.api.schemas import BagItem
+from src.api.schemas import BagItem, XLiveRoomInfo
 
 
 class BiliApiError(Exception):
@@ -170,6 +172,15 @@ class BiliPublicApi(_BiliApi):
         }
         return await self.safe_request(**req_params)
 
+    async def get_xlive_room_info(self, room_id: int) -> Optional[XLiveRoomInfo]:
+        req_params = {
+            "method": "get",
+            "url": "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom",
+            "params": {"room_id": int(room_id)},
+            "response_class": XLiveRoomInfo,
+        }
+        return await self.safe_request(**req_params)
+
 
 class BiliPrivateApi(_BiliApi):
 
@@ -191,6 +202,13 @@ class BiliPrivateApi(_BiliApi):
             s = {}
         return s
 
+    def calc_sign(self, string: str, app_secret: str = None) -> str:
+        string += app_secret or self.app_secret
+        hash_obj = hashlib.md5()
+        hash_obj.update(string.encode('utf-8'))
+        sign = hash_obj.hexdigest()
+        return sign
+
     async def storm_heart_e(self, room_id: int) -> HeartBeatEResp:
 
         public_api = BiliPublicApi(raise_exc=self.raise_exc)
@@ -204,20 +222,22 @@ class BiliPrivateApi(_BiliApi):
         }
         headers.update(self.headers)
 
+        payload = {
+            "id": [parent_area_id, area_id, 0, room_info.room_id],
+            "device": f'["{self.calc_sign(str(uuid.uuid4()))}","{uuid.uuid4()}"]',
+            "ts": int(time.time()*1000),
+            "is_patch": 0,
+            "heart_beat": [],
+            "ua": self.UA,
+            "csrf_token": self.req_user.csrf_token,
+            "csrf": self.req_user.csrf_token,
+        }
+
         req_params = {
             "method": "post",
             "url": "https://live-trace.bilibili.com/xlive/data-interface/v1/x25Kn/E",
             "headers": headers,
-            "data": urlencode({
-                "id": [parent_area_id, area_id, 0, room_info.room_id],
-                "device": self.HEART_BEAT_DEVICE,
-                "ts": int(time.time()*1000),
-                "is_patch": 0,
-                "heart_beat": [],
-                "ua": self.UA,
-                "csrf_token": self.req_user.csrf_token,
-                "csrf": self.req_user.csrf_token,
-            }),
+            "data": urlencode(payload),
         }
         data = await self.safe_request(**req_params)
         print(f"\tpost_web_hb storm_heart_e: {data}")
@@ -225,6 +245,68 @@ class BiliPrivateApi(_BiliApi):
             timestamp=data['timestamp'],
             secret_key=data['secret_key'],
             heartbeat_interval=data['heartbeat_interval'],
+            secret_rule=data['secret_rule'],
+            device=payload["device"],
+        )
+
+    async def storm_heart_x(
+            self,
+            index: int,
+            hbe: HeartBeatEResp,
+            room_id: int,
+            parent_area_id: int = None,
+            area_id: int = None,
+    ) -> Optional[HeartBeatEResp]:
+
+        if parent_area_id is None or area_id is None:
+            x_info = await BiliPublicApi().get_xlive_room_info(room_id)
+            parent_area_id = x_info.room_info.parent_area_id
+            area_id = x_info.room_info.area_id
+
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Origin': 'https://live.bilibili.com',
+            'Referer': f'https://live.bilibili.com/{room_id}',
+        }
+        headers.update(self.headers)
+
+        payload = {
+            'id': [parent_area_id, area_id, index, room_id],
+            "device": hbe.device,  # LIVE_BUVID
+            "ets": hbe.timestamp,
+            "benchmark": hbe.secret_key,
+            "time": hbe.heartbeat_interval,
+            "ts": int(time.time()) * 1000,
+            "ua": self.UA,
+        }
+        s = await self.encrypt_heart_s({"t": payload, "r": hbe.secret_rule})
+        print(f"payload: {payload}, r: {hbe.secret_rule}, s: {s}")
+
+        # payload
+        payload.update({
+            's': s,
+            'csrf_token': self.req_user.csrf_token,
+            'csrf': self.req_user.csrf_token,
+            'visit_id': '',
+        })
+
+        req_params = {
+            "method": "post",
+            "url": "https://live-trace.bilibili.com/xlive/data-interface/v1/x25Kn/X",
+            "headers": headers,
+            "data": urlencode(payload),
+        }
+        data = await self.safe_request(**req_params)
+        print(f"\tpost_web_hb X response data: {data}")
+        if not data:
+            return None
+
+        return HeartBeatEResp(
+            timestamp=data['timestamp'],
+            secret_key=data['secret_key'],
+            heartbeat_interval=data['heartbeat_interval'],
+            secret_rule=data['secret_rule'],
+            device=hbe.device,
         )
 
     async def storm_heart_beat(self, previous_interval: int, room_id: int) -> int:
@@ -245,50 +327,6 @@ class BiliPrivateApi(_BiliApi):
             logging.error(f"Error in storm_heart_beat: {e}")
         return 3
 
-    async def storm_heart_x(self, index: int, hbe: HeartBeatEResp, room_id: int):
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': 'https://live.bilibili.com',
-            'Referer': f'https://live.bilibili.com/{room_id}',
-        }
-        headers.update(self.headers)
-
-        s_data = {
-            "t": {
-                'id': [1, 34, index, 23058],
-                "device": self.HEART_BEAT_DEVICE,  # LIVE_BUVID
-                "ets": hbe.timestamp,
-                "benchmark": hbe.secret_key,
-                "time": hbe.heartbeat_interval,
-                "ts": int(time.time()) * 1000,
-                "ua": self.UA
-            },
-            "r": [2, 5, 1, 4]
-        }
-        t = s_data['t']
-
-        req_params = {
-            "method": "post",
-            "url": "https://live-trace.bilibili.com/xlive/data-interface/v1/x25Kn/X",
-            "headers": headers,
-            "data": urlencode({
-                's': await self.encrypt_heart_s(s_data),
-                'id': t['id'],
-                'device': t['device'],
-                'ets': t['ets'],
-                'benchmark': t['benchmark'],
-                'time': t['time'],
-                'ts': t['ts'],
-                "ua": t['ua'],
-                'csrf_token': self.req_user.csrf_token,
-                'csrf': self.req_user.csrf_token,
-                'visit_id': '',
-            }),
-        }
-        data = await self.safe_request(**req_params)
-        print(f"\tpost_web_hb X response data: {data}")
-        return data
-
     async def get_bag_list(self, room_id: int = None) -> List[BagItem]:
         url = "https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list"
         params = {"t": int(time.time() * 1000)}
@@ -305,3 +343,13 @@ class BiliPrivateApi(_BiliApi):
         fans_list = data.get("fansMedalList") or []
         result = [UserMedalInfo(**doc) for doc in fans_list]
         return result
+
+    async def receive_heart_gift(self, room_id: int, area_id: int = None):
+        if area_id is None:
+            public_api = BiliPublicApi(raise_exc=self.raise_exc)
+            room_info = await public_api.get_live_room_detail(room_id)
+            area_id = room_info.area_id
+        url = "https://api.live.bilibili.com/gift/v2/live/heart_gift_receive"
+        params = {"room_id": room_id, "area_v2_id": area_id}
+        data = await self.safe_request("get", url, headers=self.headers, params=params)
+        print(f"receive_heart_gift data: {data}")
