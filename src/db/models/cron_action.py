@@ -10,6 +10,8 @@ class SilverBoxRec(RWSchema):
 
 
 class UserActRec(RWModel):
+    __collection__ = "user_act"
+
     user_id: int
     date: datetime.date
 
