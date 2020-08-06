@@ -13,7 +13,7 @@ class UserActRec(RWModel):
     __collection__ = "user_act"
 
     user_id: int
-    date: datetime.date
+    date: str
 
     sign_time: Optional[datetime.datetime]              # 每日签到
     sign_group_time: Optional[datetime.datetime]        # 应援团签到

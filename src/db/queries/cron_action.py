@@ -7,7 +7,7 @@ from src.db.models.cron_action import (
 
 
 async def get_or_create_today_rec(user_id: int) -> UserActRec:
-    today = datetime.date.today()
+    today = f"{datetime.date.today()}"
     query = {"user_id": user_id, "date": today}
     rec: UserActRec = await UserActRec.find_one(db, query)
     if rec is None:
