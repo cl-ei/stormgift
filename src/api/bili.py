@@ -298,41 +298,10 @@ class BiliPrivateApi(_BiliApi):
         gift_list = data["list"]
         return [BagItem(**i) for i in gift_list]
 
-
-"""
-id: [1,27,0,13369254]
-device: ["AUTO8115803053952846","77dc0a5a-d11a-4544-a693-ccc1e6b9f1fc"]
-ts: 1595944065926
-is_patch: 1
-heart_beat: [
-    {
-        "s":"e61da86c68d4a3ddb4420f050009eb9f24fdfbae86de08b2f78de9770c4ce22e4ca43e729472b0d53f5814233e7f67b572e2ac68d76729bb370a271932a5833e",
-        "id":"[1,27,3,13369254]",
-        "device": "[\"AUTO8115803053952846\",\"3b5ed910-6d73-460d-b6a0-50301a8ba075\"]",
-        "ets":1595943864,
-        "benchmark":"seacasdgyijfhofiuxoannn",
-        "time":196,
-        "ts":1595944058033,
-        "ua":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36"
-    }
-]
-ua: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36
-csrf_token: 374b397f5b635585ed036b81f8846f33
-csrf: 374b397f5b635585ed036b81f8846f33
-
-->
-
-{
-    "code":0,
-    "message":"0",
-    "ttl":1,
-    "data":{
-        "timestamp":1595944068,
-        "heartbeat_interval":60,
-        "secret_key":"seacasdgyijfhofiuxoannn",
-        "secret_rule":[2,5,1,4],
-        "patch_status":1,
-        "reason":["success"]
-    }
-}
-"""
+    async def get_user_owned_medals(self) -> List[UserMedalInfo]:
+        url = f"https://api.live.bilibili.com/i/api/medal"
+        params = {"page": 1, "pageSize": 30}
+        data = await self.safe_request("get", url, headers=self.headers, params=params)
+        fans_list = data.get("fansMedalList") or []
+        result = [UserMedalInfo(**doc) for doc in fans_list]
+        return result

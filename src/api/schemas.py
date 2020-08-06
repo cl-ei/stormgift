@@ -99,3 +99,45 @@ class HeartBeatEResp(RWSchema):
     timestamp: int
     secret_key: str
     heartbeat_interval: int
+
+
+class UserMedalInfo(RWSchema):
+    roomid: Optional[int]           # 550 short
+
+    target_id: int                  # 勋章主播的uid
+    target_name: str                # 主播的name
+    master_available: int           # 1
+    master_status: int              # 1
+
+    medal_id: int
+    medal_name: str                 # 勋章名
+    score: int
+    level: int
+    last_wear_time: int             # 时间戳 到秒
+    intimacy: int                   # 亲密度
+    next_intimacy: int
+    day_limit: int
+    today_feed: int
+    today_intimacy: int             # 今日投喂
+    is_lighted: int                 # 0 or 1
+
+    status: int                     # 0
+    source: int                     # 1
+    receive_channel: int            # 1
+    is_receive: int                 # 1
+    receive_time: datetime.datetime
+
+    guard_type: int                 # 0
+    guard_level: int                # 0
+    guard_medal_title: str          # "未开启加成"
+    can_delete: bool
+
+    medal_color: int
+    medal_color_start: int
+    medal_color_end: int
+    medal_color_border: int
+
+    @property
+    def left_intimacy(self) -> int:
+        left = self.today_feed - self.day_limit
+        return max(0, left)
