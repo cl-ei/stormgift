@@ -1,6 +1,7 @@
 import asyncio
 from utils.biliapi import BiliApi
 from src.db.queries.queries import queries, LTUser, List
+from src.db.queries.cron_action import record_heart_beat
 from config.log4 import crontab_task_logger as logging
 
 
@@ -20,6 +21,8 @@ async def post_heartbeat(index, total, lt_user_obj):
         r, data = await BiliApi.post_heartbeat_app(cookie=cookie, access_token=lt_user_obj.access_token)
         if not r:
             logging.error(f"post_heartbeat_app failed! msg: {data}")
+
+    await record_heart_beat(user_id=lt_user_obj.user_id)
     logging.info(f"({index + 1}/{total}) Post heartbeat for {lt_user_obj} done.")
 
 

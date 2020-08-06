@@ -1,10 +1,12 @@
 import time
+import json
 import asyncio
 from config import g
 from typing import List
 from utils.biliapi import BiliApi
 from config.log4 import crontab_task_logger as logging
 from src.db.queries.queries import queries, LTUser
+from src.db.queries.cron_action import record_sign, record_sign_group
 
 
 async def main():
@@ -37,6 +39,8 @@ async def main():
             await queries.set_lt_user_invalid(lt_user=lt_user)
             continue
 
+        await record_sign(user_id=lt_user.user_id)
+
         flag, is_vip = await BiliApi.get_if_user_is_live_vip(cookie)
         if flag:
             if is_vip != lt_user.is_vip:
@@ -48,7 +52,9 @@ async def main():
             )
 
         r, data = await BiliApi.do_sign_group(cookie)
-        if not r:
+        if r:
+            await record_sign_group(user_id=lt_user.uid, text=f"{json.dumps(data)}")
+        else:
             logging_msg_list.append(f"ERROR: Sign group failed, {lt_user.name}-{lt_user.DedeUserID}: {data}\n")
 
         if lt_user.DedeUserID == g.BILI_UID_DD:

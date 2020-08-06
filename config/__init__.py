@@ -14,6 +14,7 @@ PROJECT_ROOT = config["stormgift"]["PROJECT_ROOT"]
 LOG_PATH = config["stormgift"]["LOG_PATH"]
 
 MYSQL_URL = config["mysql"]["url"]
+MONGODB_URL = config["mongodb"]["url"]
 
 REDIS_CONFIG = {
     "host": config["redis"]["host"],

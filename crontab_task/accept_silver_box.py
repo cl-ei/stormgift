@@ -1,3 +1,4 @@
+import json
 import time
 import datetime
 from random import randint
@@ -6,6 +7,7 @@ from utils.biliapi import BiliApi
 from config.log4 import silver_box_logger as logging
 from utils.dao import UserRaffleRecord, redis_cache
 from src.db.queries.queries import queries, LTUser
+from src.db.queries.cron_action import record_silver_box
 
 
 class UserSilverAcceptTimeCtrl:
@@ -70,6 +72,7 @@ class UserSilverAcceptTimeCtrl:
             raffle_id = int(f"313{randint(100000, 999999)}")
             await UserRaffleRecord.create(user.uid, "宝箱", raffle_id=raffle_id, intimacy=award_silver)
             logging.info(f"{user.name}(uid: {user.uid}) 打开了宝箱. award_silver: {award_silver}")
+            await record_silver_box(user_id=user.uid, text=f"{json.dumps(data)}")
 
         elif code == -500:
             sleep_time = data['data']['surplus'] * 60 + 5
