@@ -5,39 +5,35 @@ import uuid
 import random
 import hashlib
 import aiohttp
-import datetime
 import requests
 import traceback
-from config import g
 from aiohttp import web
+
+from config import g, cloud_function_url
+from config.log4 import cqbot_logger as logging
+
 from utils.cq import async_zy
 from utils.biliapi import BiliApi
-from utils.cq import async_zy as bot
-from config import cloud_function_url
 from utils.covert import gen_time_prompt
-from src.db.queries.queries import queries
-from utils.highlevel_api import ReqFreLimitApi
 from utils.medal_image import MedalImage
-from config.log4 import cqbot_logger as logging
-from website.operations import get_lt_user_status
 from utils.images import DynamicPicturesProcessor
-from utils.dao import (
-    redis_cache,
-    DelayAcceptGiftsQueue,
-)
+from utils.dao import redis_cache, DelayAcceptGiftsQueue
+
+from src.db.queries.queries import queries
+from src.api.bili import BiliPublicApi
+from website.operations import get_lt_user_status
 
 
 class BotUtils:
     def __init__(self, user_id=None, group_id=None):
-        self.bot = bot
         self.user_id = user_id
         self.group_id = group_id
 
     async def response(self, msg):
         if self.group_id is not None:
-            await self.bot.send_group_msg(group_id=self.group_id, message=msg)
+            await async_zy.send_group_msg(group_id=self.group_id, message=msg)
         else:
-            await self.bot.send_private_msg(user_id=self.user_id, message=msg)
+            await async_zy.send_private_msg(user_id=self.user_id, message=msg)
 
     def proc_translation(self, msg):
         word = msg[3:]
@@ -218,47 +214,6 @@ class BotUtils:
 
         return f"[CQ:music,type=163,id={song_id}]" if song_id else f"未找到歌曲「{song_name}」"
 
-    async def proc_query_raffle(self, msg):
-        raw_uid_or_uname = msg[5:].strip()
-        if not raw_uid_or_uname:
-            lt_users = await queries.get_lt_user_by(bind_qq=self.user_id)
-            if lt_users:
-                raw_uid_or_uname = lt_users[0].user_id
-
-        if not raw_uid_or_uname:
-            return f"请绑定你的B站账号，或者在指令后加上正确的B站用户id。"
-
-        try:
-            uid = int(raw_uid_or_uname)
-        except (ValueError, TypeError):
-            uid = await ReqFreLimitApi.get_uid_by_name(user_name=raw_uid_or_uname)
-
-        raffle_list = await ReqFreLimitApi.get_raffle_record(uid)
-        if not raffle_list:
-            return f"{raw_uid_or_uname}: 七天内没有中奖。"
-
-        count = len(raffle_list)
-        latest = raffle_list[0]
-        query_user_name = latest[0]
-        msg_list = []
-        for r in raffle_list:
-            name, room_id, gift_name, created_time = r
-            interval = (datetime.datetime.now() - created_time).total_seconds()
-            if interval < 3600:
-                date_time_str = "刚刚"
-            elif interval < 3600 * 24:
-                date_time_str = f"{int(interval / 3600)}小时前"
-            else:
-                date_time_str = f"{int(interval / (3600 * 24))}天前"
-            msg_list.append(f"{date_time_str}在{room_id}直播间获得{gift_name}")
-        message = (
-            f"{query_user_name}(uid: {uid})在7天内中奖{count}次，详细如下：\n\n" +
-            f"{'-'*20}\n" +
-            f"\n{'-'*20}\n".join(msg_list) +
-            f"\n{'-' * 20}"
-        )
-        return message
-
     async def proc_query_medal(self, msg):
         raw_uid_or_uname = msg[5:].strip()
         if not raw_uid_or_uname:
@@ -267,7 +222,7 @@ class BotUtils:
         try:
             uid = int(raw_uid_or_uname)
         except (ValueError, TypeError):
-            uid = await ReqFreLimitApi.get_uid_by_name(user_name=raw_uid_or_uname)
+            uid = await BiliPublicApi().get_uid_by_name(raw_uid_or_uname)
 
         if not isinstance(uid, int) or not uid > 0:
             return f"没有找到用户：{raw_uid_or_uname}"
@@ -362,7 +317,7 @@ class BotUtils:
                 return
 
             if not user_name_or_dynamic_id.isdigit():
-                bili_uid = await ReqFreLimitApi.get_uid_by_name(user_name_or_dynamic_id)
+                bili_uid = await BiliPublicApi().get_uid_by_name(user_name_or_dynamic_id)
                 if bili_uid is None:
                     await self.response(f"未能搜索到该用户：{user_name_or_dynamic_id}。")
                     return
@@ -592,7 +547,7 @@ class BotHandler:
             return await p.proc_query_guard(msg)
 
         elif msg.startswith("#中奖查询"):
-            return await p.proc_query_raffle(msg)
+            return "功能维护中。"
 
         elif msg.startswith("#勋章查询"):
             return await p.proc_query_medal(msg)

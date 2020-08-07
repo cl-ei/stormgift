@@ -3,14 +3,13 @@ import uuid
 import json
 import base64
 import hashlib
+import aiohttp
 from urllib.parse import urlencode
 
-import aiohttp
-from config import cloud_function_url
+from config.log4 import bili_api_logger as logging
+from config import cloud_function_url, cloud_get_uid
 from src.api.schemas import *
 from src.db.models.lt_user import LTUser
-from config.log4 import bili_api_logger as logging
-from src.api.schemas import BagItem, XLiveRoomInfo
 
 
 class BiliApiError(Exception):
@@ -180,6 +179,38 @@ class BiliPublicApi(_BiliApi):
             "response_class": XLiveRoomInfo,
         }
         return await self.safe_request(**req_params)
+
+    @staticmethod
+    async def get_uid_by_name(user_name: str) -> Optional[int]:
+        from src.db.queries.queries import queries
+
+        user = await queries.get_lt_user_by_uid("DD")
+        cookie = user.cookie
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
+                async with session.post(cloud_get_uid, json={"cookie": cookie, "name": user_name}) as resp:
+                    status_code = resp.status
+                    content = await resp.text()
+        except Exception as e:
+            status_code = 5000
+            content = f"Error: {e}"
+
+        if status_code != 200:
+            logging.error(f"Error happened when get_uid_by_name({user_name}), content: {content}.")
+            return None
+
+        try:
+            r = json.loads(content)
+            assert len(r) == 2
+        except (json.JSONDecodeError, AssertionError) as e:
+            logging.error(f"Error happened when get_uid_by_name({user_name}), e: {e}, content: {content}")
+            return None
+
+        flag, result = r
+        if not flag:
+            logging.error(f"Cannot get_uid_by_name by cloud_func, name: {user_name}, reason: {result}")
+            return None
+        return result
 
 
 class BiliPrivateApi(_BiliApi):
