@@ -215,8 +215,6 @@ class BiliPublicApi(_BiliApi):
 
 class BiliPrivateApi(_BiliApi):
 
-    HEART_BEAT_DEVICE = '["AUTO8115803053952846","10255d5f-2729-417e-a548-165beda008b1"]'
-
     def __init__(self, req_user: LTUser, raise_exc: bool = False):
         super(BiliPrivateApi, self).__init__(raise_exc)
         self.req_user = req_user
