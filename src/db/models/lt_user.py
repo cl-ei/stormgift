@@ -1,7 +1,6 @@
-import time
 from datetime import datetime
 from typing import Optional, List
-from utils.schema import RWSchema
+from src.db.schemas import RWSchema
 
 
 class LTUser(RWSchema):

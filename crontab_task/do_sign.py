@@ -55,7 +55,7 @@ async def main():
         if r:
             await record_sign_group(user_id=lt_user.uid, text=f"{json.dumps(data)}")
         else:
-            logging_msg_list.append(f"ERROR: Sign group failed, {lt_user.name}-{lt_user.DedeUserID}: {data}\n")
+            logging_msg_list.append(f"ERROR: sign group failed, {lt_user.name}-{lt_user.DedeUserID}: {data}\n")
 
         if lt_user.DedeUserID == g.BILI_UID_DD:
             # 触发领取今日辣条
