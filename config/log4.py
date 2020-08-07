@@ -4,6 +4,21 @@ import logging
 
 from config import LOG_PATH
 
+__all__ = (
+    "log_format",
+    "console_logger",
+    "lt_server_logger",
+    "crontab_task_logger",
+    "cqbot_logger",
+    "website_logger",
+    "dxj_dd_logger",
+    "bili_api_logger",
+    "silver_box_logger",
+    "web_access_logger",
+    "lt_login_logger",
+    "get_logger",
+)
+
 
 log_format = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console = logging.StreamHandler(sys.stdout)
@@ -23,15 +38,6 @@ lt_server_logger = logging.getLogger("lt_server")
 lt_server_logger.setLevel(logging.DEBUG)
 lt_server_logger.addHandler(console)
 lt_server_logger.addHandler(_lt_server_fh)
-
-
-acceptor_file_handler = logging.FileHandler(os.path.join(LOG_PATH, "acceptor_stormgift.log"))
-acceptor_file_handler.setFormatter(log_format)
-acceptor_logger = logging.getLogger("acceptor_stormgift")
-acceptor_logger.setLevel(logging.DEBUG)
-acceptor_logger.addHandler(console)
-acceptor_logger.addHandler(acceptor_file_handler)
-acceptor_logger.addHandler(stormgift_file_handler)
 
 
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "crontab_task.log"))
@@ -55,28 +61,6 @@ website_logger.setLevel(logging.DEBUG)
 website_logger.addHandler(console)
 website_logger.addHandler(file_handler)
 
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "lt_db_sync.log"))
-file_handler.setFormatter(log_format)
-lt_db_sync_logger = logging.getLogger("lt_db_sync")
-lt_db_sync_logger.setLevel(logging.DEBUG)
-lt_db_sync_logger.addHandler(console)
-lt_db_sync_logger.addHandler(file_handler)
-lt_db_sync_logger.addHandler(stormgift_file_handler)
-
-
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_hansy.log"))
-file_handler.setFormatter(log_format)
-dxj_hansy_logger = logging.getLogger("dxj_hansy")
-dxj_hansy_logger.setLevel(logging.DEBUG)
-dxj_hansy_logger.addHandler(console)
-dxj_hansy_logger.addHandler(file_handler)
-
-file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_xiaoke.log"))
-file_handler.setFormatter(log_format)
-dxj_xiaoke_logger = logging.getLogger("dxj_xiaoke")
-dxj_xiaoke_logger.setLevel(logging.DEBUG)
-dxj_xiaoke_logger.addHandler(console)
-dxj_xiaoke_logger.addHandler(file_handler)
 
 file_handler = logging.FileHandler(os.path.join(LOG_PATH, "dxj_dd.log"))
 file_handler.setFormatter(log_format)
@@ -118,33 +102,11 @@ lt_login_logger.addHandler(console)
 lt_login_logger.addHandler(fh)
 
 
-def config_logger(file_name):
-    file_name = file_name.lower()
+def get_logger(file_name: str) -> logging.Logger:
     if not file_name.endswith(".log"):
         file_name += ".log"
 
-    fh = logging.FileHandler(os.path.join(LOG_PATH, file_name))
-    fh.setFormatter(log_format)
-    console_logger.addHandler(fh)
+    _fh = logging.FileHandler(os.path.join(LOG_PATH, file_name))
+    _fh.setFormatter(log_format)
+    console_logger.addHandler(_fh)
     return console_logger
-
-
-__all__ = (
-    "log_format",
-    "console_logger",
-    "lt_server_logger",
-
-    "acceptor_logger",
-    "crontab_task_logger",
-    "cqbot_logger",
-    "website_logger",
-    "lt_db_sync_logger",
-    "dxj_hansy_logger",
-    "dxj_xiaoke_logger",
-    "dxj_dd_logger",
-    "bili_api_logger",
-    "silver_box_logger",
-    "web_access_logger",
-    "config_logger",
-    "lt_login_logger",
-)

@@ -1,13 +1,13 @@
 import asyncio
 from typing import List, Tuple
-from config.log4 import config_logger
+from config.log4 import get_logger
 from utils.biliapi import BiliApi
 from src.api.bili import BiliPrivateApi
 from src.api.schemas import UserMedalInfo, BagItem
 from src.db.queries.queries import queries, LTUser
 from src.db.queries.cron_action import record_send_gift
 
-logging = config_logger("auto_intimacy")
+logging = get_logger("auto_intimacy")
 
 
 NON_LIMIT_UID_LIST = (
