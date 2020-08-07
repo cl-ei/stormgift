@@ -1,4 +1,6 @@
+import uuid
 import pickle
+import asyncio
 import aioredis
 from typing import *
 
@@ -357,3 +359,103 @@ class RedisClient:
         if not _un_pickle:
             member = self._dumps(member)
         return await self.execute("ZSCORE", key, member)
+
+
+class GlobalLock:
+    """
+    基于 Redis 构建的一个全局锁
+
+    使用 Redis setnx 命令来加锁，在结束的时候会再判断
+    一次锁是否是自己加的，若是，则释放。
+
+    Parameters
+    ----------
+    redis: RedisClient
+
+    name: str
+        锁的名. 区分不能同时进行的操作的最小粒度的 key
+
+    lock_time: int
+        锁定的时间. 一般适用于很短就能完成的场景，长时间
+        的任务不推荐使用这种办法，因为中途若发生譬如 worker
+        重启等异常，则持有的锁在超时时间内不能开锁。
+
+    try_times: int = 3
+        尝试加锁的次数。若置为 0，则会反复加锁，直到获取到锁。
+        0 值应当慎用，会产生大量 Redis 请求.
+
+    _retry_interval: float, seconds
+        在每次加锁失败后，休眠的时间，最小 0.1 秒
+
+    Examples
+    --------
+    >>> name = f"task:137:clone"
+    ... async with GlobalLock(redis=RedisClient(), name=name) as lock:
+    ...     if not lock.locked:
+    ...         raise RuntimeError(f"另一个人正在操作...")
+    ...
+    ...     # 在这里进行
+    ...     # ...
+
+    """
+    key_prefix = "LOCK:"
+
+    def __init__(
+        self,
+        redis: RedisClient,
+        name: str,
+        lock_time: int = 5,
+        try_times: int = 3,
+        _retry_interval: float = 0.1
+    ):
+        self.redis = redis
+        self.key = f"{self.key_prefix}:{name}"
+        self.lock_time = lock_time
+        self.try_times = try_times
+        self._retry_interval = max(0.1, _retry_interval)
+
+        self.__locked: bool = False
+        self.__identification: str = f"{uuid.uuid4()}"
+
+    async def __aenter__(self):
+        acquire_times = 0
+        while True:
+            lock_success = await self.redis.set_if_not_exists(
+                key=self.key,
+                value=self.__identification,
+                timeout=self.lock_time,
+                _un_pickle=True,
+            )
+            if lock_success:
+                self.__locked = True
+                return self
+
+            if self.try_times > 0:
+                acquire_times += 1
+                if acquire_times >= self.try_times:
+                    return self
+
+            await asyncio.sleep(self._retry_interval)
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if not self.__locked:
+            return
+
+        await self.redis.execute(
+            "EVAL",
+            (
+                "if redis.call('get',KEYS[1]) == ARGV[1] then \n"
+                "return redis.call('del',KEYS[1]) \n"
+                "else \n"
+                "return 0 \n"
+                "end"
+            ),
+            1,  # 后续的参数中，key的个数，其余的为ARGS。LUA脚本中从下标从1开始
+            self.key,
+            self.__identification
+        )
+        self.__locked = False
+
+    @property
+    def locked(self) -> bool:
+        return self.__locked
