@@ -132,7 +132,6 @@ class _BiliApi:
                 data=data,
                 timeout=timeout,
             )
-            print(f"raw req: {status} from {url}\n\t{content}")
             assert status == 200
             response = json.loads(content)
         except Exception as e:
@@ -269,7 +268,6 @@ class BiliPrivateApi(_BiliApi):
             "data": urlencode(payload),
         }
         data = await self.safe_request(**req_params)
-        print(f"\tpost_web_hb storm_heart_e: {data}")
         return HeartBeatEResp(
             timestamp=data['timestamp'],
             secret_key=data['secret_key'],
@@ -326,7 +324,6 @@ class BiliPrivateApi(_BiliApi):
             "data": urlencode(payload),
         }
         data = await self.safe_request(**req_params)
-        print(f"\tpost_web_hb X response data: {data}")
         if not data:
             return None
 
@@ -349,7 +346,6 @@ class BiliPrivateApi(_BiliApi):
             },
         }
         data = await self.safe_request(**req_params)
-        print(f"\tpost_web_hb response data: {data}")
         try:
             return int(data["next_interval"])
         except Exception as e:

@@ -139,6 +139,12 @@ class HeartBeatEResp(RWSchema):
     secret_rule: List[int]
     device: str
 
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return f"<HBE {self.device}: {self.secret_key}>"
+
 
 class UserMedalInfo(RWSchema):
     roomid: Optional[int]           # 550 short

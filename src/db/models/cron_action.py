@@ -35,3 +35,6 @@ class UserActRec(RWModel):
     last_heart_beat: Optional[datetime.datetime]        # 心跳时间
     silver_box: List[SilverBoxRec] = []                 # 宝箱领取记录
     send_gift: List[SendGiftRec] = []                   # 赠送礼物记录
+
+    storm_heart_logs: List[str] = []
+    storm_heart_gift_record: List[int] = []
