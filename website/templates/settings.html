@@ -97,7 +97,8 @@
 
     <label>③<input type="checkbox" name="heart-beat" checked disabled>挂机升UL</label>
     <label>④<input type="checkbox" name="silver-box" checked disabled>每日宝箱领取</label>
-    <label>⑤<input type="checkbox" name="storm-heart" disabled>自动获取小心心（即将上线）</label>
+    <label>⑤<input type="checkbox" name="storm-heart" {% if storm_heart %}checked{% endif %} >自动获取小心心</label>
+    <label>⑤<input type="checkbox" name="judgement" disabled>自动风纪委任务（即将上线）</label>
 
     <label class="auto-intimacy">⑥ 自动送辣条</label>
     <div class="margin-top-20">
@@ -186,6 +187,7 @@ $(function () {
         let medalIntimacyPolicy = $("input[name=intimacy-policy]:checked").val();
         let shineMedalPolicy = $("input[name=shine-policy]:checked").val();
         let shineMedalCount = $("input[name=shine-medal-count]").val();
+        let stormHeart = $("input[name=storm-heart]").prop("checked");
         $("#submit-settings").off("click");
 
         $.ajax({
@@ -197,6 +199,7 @@ $(function () {
                 medal_intimacy_policy: medalIntimacyPolicy,
                 shine_medal_policy: shineMedalPolicy,
                 shine_medal_count: shineMedalCount,
+                storm_heart: stormHeart,
             },
             success: function (r){
                 if (r.code !== 0){

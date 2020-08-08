@@ -254,6 +254,7 @@ async def settings(request):
     context["medal_intimacy_policy"] = lt_user.medal_intimacy_policy
     context["shine_medal_policy"] = lt_user.shine_medal_policy
     context["shine_medal_count"] = lt_user.shine_medal_count
+    context["storm_heart"] = lt_user.storm_heart
 
     return render_to_response("website/templates/settings.html", context=context)
 
@@ -271,7 +272,7 @@ async def post_settings(request):
         medal_intimacy_policy = int(data["medal_intimacy_policy"])
         shine_medal_policy = int(data["shine_medal_policy"])
         shine_medal_count = int(data["shine_medal_count"])
-
+        storm_heart = data["storm_heart"] == "true"
         for m in send_medals + shine_medals:
             if not isinstance(m, str) or not 0 < len(m) <= 6:
                 return json_response({"code": 403, "err_msg": f"错误的勋章：{m}"})
@@ -296,6 +297,7 @@ async def post_settings(request):
     lt_user.medal_intimacy_policy = medal_intimacy_policy
     lt_user.shine_medal_policy = shine_medal_policy
     lt_user.shine_medal_count = shine_medal_count
+    lt_user.storm_heart = storm_heart
 
     await queries.update_lt_user(lt_user, fields=(
         "send_medals",
@@ -303,6 +305,7 @@ async def post_settings(request):
         "medal_intimacy_policy",
         "shine_medal_policy",
         "shine_medal_count",
+        "storm_heart",
     ))
     return json_response({"code": 0})
 

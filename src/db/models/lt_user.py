@@ -38,6 +38,7 @@ class LTUser(RWSchema):
     medal_intimacy_policy: int = 0
     shine_medal_policy: int = 0
     shine_medal_count: int = 5
+    storm_heart: bool = False
 
     def __repr__(self):
         return f"<{self.DedeUserID}: {self.name or 'None'}>"
