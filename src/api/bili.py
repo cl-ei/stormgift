@@ -307,8 +307,6 @@ class BiliPrivateApi(_BiliApi):
             "ua": self.UA,
         }
         s = await self.encrypt_heart_s({"t": payload, "r": hbe.secret_rule})
-        print(f"payload: {payload}, r: {hbe.secret_rule}, s: {s}")
-
         # payload
         payload.update({
             's': s,

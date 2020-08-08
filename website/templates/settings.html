@@ -104,7 +104,7 @@
     <div class="margin-top-20">
         <label><input name="intimacy-policy" type="radio" value="0" checked>只使用辣条升亲密度</label>
         <label><input name="intimacy-policy" type="radio" value="1">使用辣条和小心心升亲密度</label>
-        <label><input name="intimacy-policy" type="radio" value="2">使用任意的免费礼物、银瓜子升亲密度</label>
+        <label><input name="intimacy-policy" type="radio" value="2" disabled>使用任意的免费礼物、银瓜子升亲密度</label>
         <label>勋章（填勋章名）：
             {% for medal in send_medals %}
                 <input name="send-medal-item" class="input-number" type="text" value="{{ medal }}">
