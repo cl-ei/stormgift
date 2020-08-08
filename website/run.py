@@ -38,6 +38,7 @@ async def main():
         web.get('/lt/qr_code_result', lt.qr_code_result),
         web.get('/lt/settings', lt.settings),
         web.post('/lt/post_settings', lt.post_settings),
+        web.get('/lt/act_record/{key}', lt.act_record),
 
         web.get('/lt/trends_qq_notice', lt.trends_qq_notice),
         web.route('*', "/lt/cq_handler", cq_zy.handler),

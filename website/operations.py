@@ -1,8 +1,9 @@
 import time
+import random
 import datetime
 from typing import Union, Tuple
 from src.db.queries.queries import queries, LTUser
-from utils.dao import UserRaffleRecord
+from utils.dao import UserRaffleRecord, redis_cache
 from utils.covert import gen_time_prompt
 from utils.biliapi import BiliApi
 
@@ -15,6 +16,9 @@ async def get_lt_user_status(user_id: int) -> Tuple[bool, str]:
     user_prompt_title = f"{lt_user.name}（uid: {user_id}）"
     if not lt_user.available:
         return False, f"{user_prompt_title}登录已过期，请重新登录。"
+
+    key = f"{random.randint(0x1000_0000_0000_0000, 0xFFFF_FFFF_FFFF_FFFF):0x}"
+    await redis_cache.set(key=f"STAT_Q:{key}", value=lt_user.uid, timeout=60*5)
 
     start_time = time.time()
     rows = await UserRaffleRecord.get_by_user_id(user_id=user_id)
@@ -66,7 +70,8 @@ async def get_lt_user_status(user_id: int) -> Tuple[bool, str]:
         f"{user_prompt}，现在正常领取辣条中。\n",
         f"24小时内累计抽奖{raffle_count}次，共获得{total_intimacy}辣条。\n",
         postfix,
-        f"\n处理时间：{process_time:.3f}"
+        f"\n处理时间：{process_time:.3f}。你还可以访问这个网址进行详细查询：\n"
+        f"http://www.madliar.com:2020/lt/act_record/{key}"
     ]
     return True, "".join(prompt)
 

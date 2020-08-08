@@ -7,15 +7,19 @@ import traceback
 from aiohttp import web
 from random import randint
 from jinja2 import Template
+from typing import List
+
 from utils.cq import async_zy
 from config import CDN_URL, g
-from utils.biliapi import BiliApi
-from src.db.queries.queries import queries, LTUser
-from website.operations import add_user_by_account
 from config.log4 import lt_login_logger
 from config.log4 import website_logger as logging
 from utils.dao import redis_cache
+from utils.biliapi import BiliApi
 from utils.images import DynamicPicturesProcessor
+from src.db.models.cron_action import UserActRec
+from src.db.queries.cron_action import get_user_3d_records
+from src.db.queries.queries import queries, LTUser
+from website.operations import add_user_by_account
 
 
 BROWSER_HEADERS = {
@@ -308,6 +312,23 @@ async def post_settings(request):
         "storm_heart",
     ))
     return json_response({"code": 0})
+
+
+async def act_record(request):
+    key = request.match_info['key']
+    uid = await redis_cache.get(F"STAT_Q:{key}")
+    if not uid:
+        return web.Response(status=404)
+
+    user = await queries.get_lt_user_by_uid(uid)
+    act_list: List[UserActRec] = await get_user_3d_records(user.user_id)
+    print("act_list[1].send_gift: ", act_list[1].send_gift)
+    context = {
+        "CDN_URL": CDN_URL,
+        "user": user,
+        "act_list": act_list,
+    }
+    return render_to_response("website/templates/act_record.html", context=context)
 
 
 async def trends_qq_notice(request):

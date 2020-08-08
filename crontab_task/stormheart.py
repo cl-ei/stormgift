@@ -1,23 +1,20 @@
 import sys
-import time
 import asyncio
 import traceback
 from random import randint
 from utils.dao import redis_cache
-from utils.biliapi import BiliApi
 from config.g import LIVE_ROOM_ID_DD
 from config.log4 import crontab_task_logger as logging
 from src.api.schemas import *
-from src.api.bili import BiliPublicApi, BiliPrivateApi
+from src.api.bili import BiliPrivateApi
 from src.db.clients.mongo import db
-from src.db.models.cron_action import UserActRec
 from src.db.queries.cron_action import get_or_create_today_rec
 from src.db.queries.queries import queries, LTUser
 
 
 MEDAL_ID_TO_ROOM_ID = {
-    123: 3,             # 3号直播间
-    142679: 13369254,   # DD
+    123: 3,
+    142679: LIVE_ROOM_ID_DD,
 }
 
 
@@ -132,15 +129,11 @@ class StormHeart:
 
 
 async def main():
-    # users: List[LTUser] = await queries.get_all_lt_user()
-    users = [await queries.get_lt_user_by_uid("DD")]
+    users: List[LTUser] = await queries.get_all_lt_user()
+    users = [u for u in users if u.storm_heart is True]
+    print(f"users {len(users)}: {users}")
     await asyncio.gather(
         auto_shutdown(),
         *[StormHeart(user.uid).run() for user in users]
     )
-    print(f"users {len(users)}: {users}")
     await redis_cache.close()
-
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())

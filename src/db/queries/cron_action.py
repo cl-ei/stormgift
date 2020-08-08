@@ -1,4 +1,5 @@
 import datetime
+from typing import List
 from src.db.clients.mongo import db
 from src.db.models.cron_action import (
     SendGiftRec,
@@ -78,3 +79,14 @@ async def record_send_gift(
     rec = await get_or_create_today_rec(user_id)
     rec.send_gift.append(g)
     return await rec.save(db, fields=("send_gift",))
+
+
+async def get_user_3d_records(user_id: int) -> List[UserActRec]:
+    result = await UserActRec.find(
+        db,
+        query={"user_id": user_id},
+        sort_field="date",
+        asc=False,
+        limit=3,
+    )
+    return result
