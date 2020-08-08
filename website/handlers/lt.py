@@ -322,7 +322,7 @@ async def act_record(request):
 
     user = await queries.get_lt_user_by_uid(uid)
     act_list: List[UserActRec] = await get_user_3d_records(user.user_id)
-    print("act_list[1].send_gift: ", act_list[1].send_gift)
+    print("act_list: ", act_list)
     context = {
         "CDN_URL": CDN_URL,
         "user": user,

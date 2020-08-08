@@ -84,11 +84,11 @@
         </tr>
         {% for act in act_list %}
         <tr>
-            <td>{{ act.sign_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            <td>{{ act.sign_group_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ act.sign_time }}</td>
+            <td>{{ act.sign_group_time }}</td>
             <td>{{ act.sign_group_text }}</td>
             <td>{{ act.heart_beat_count }}</td>
-            <td>{{ act.last_heart_beat.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ act.last_heart_beat }}</td>
         </tr>
         {% endfor %}
     </table>
@@ -150,7 +150,7 @@
         {% for box in act.silver_box %}
         <tr>
             <td>{{ loop.index }}</td>
-            <td>{{ box.accept_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ box.accept_time }}</td>
             <td>{{ box.response_text }}</td>
         </tr>
         {% endfor %}
