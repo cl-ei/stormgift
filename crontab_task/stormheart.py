@@ -13,7 +13,7 @@ from src.db.queries.queries import queries, LTUser
 
 
 MEDAL_ID_TO_ROOM_ID = {
-    123: 3,
+    # 123: 3,
     142679: LIVE_ROOM_ID_DD,
 }
 
@@ -98,13 +98,13 @@ class StormHeart:
         self.__st = asyncio.create_task(_s)
 
         cnt = await self.check_bags_and_stop_task()
-        await self.record_heart_logs(f"发送初始心跳成功！小心心数：{cnt}, hbe: {hbe}")
+        await self.record_heart_logs(f"{self.api.req_user} 发送初始心跳成功！小心心数：{cnt}, hbe: {hbe}")
 
         for hbx_index in range(1, 300):
             await asyncio.sleep(hbe.heartbeat_interval)
             hbe = await api.storm_heart_x(hbx_index, hbe, room_id)
             cnt = await self.check_bags_and_stop_task()
-            await self.record_heart_logs(f"发生X心跳成功！小心心数：{cnt}, hbe: {hbe}")
+            await self.record_heart_logs(f"{self.api.req_user} 发生X心跳成功！小心心数：{cnt}, hbe: {hbe}")
 
     async def run(self):
         self.user = user = await queries.get_lt_user_by_uid(self.user_id)
