@@ -85,16 +85,19 @@ class StormHeart:
 
     async def _run_in_catcher(self):
         await self.get_live_room()
+        room_id = self.room_id
+
+        if not room_id:
+            logging.error(f"{self.user} 没有获取到可以挂载的直播间，现在退出。")
+            return
+
         message = f"{self.user} 寻找到挂载的直播间：{self.room_id}"
         logging.info(message)
         await self.record_heart_logs(message)
 
-        api = self.api
-        room_id = self.room_id
+        hbe = await self.api.storm_heart_e(room_id)
 
-        hbe = await api.storm_heart_e(room_id)
-
-        _s = self.small_heartbeat(room_id=room_id, api=api)
+        _s = self.small_heartbeat(room_id=room_id, api=self.api)
         self.__st = asyncio.create_task(_s)
 
         cnt = await self.check_bags_and_stop_task()
@@ -102,7 +105,7 @@ class StormHeart:
 
         for hbx_index in range(1, 300):
             await asyncio.sleep(hbe.heartbeat_interval)
-            hbe = await api.storm_heart_x(hbx_index, hbe, room_id)
+            hbe = await self.api.storm_heart_x(hbx_index, hbe, room_id)
             cnt = await self.check_bags_and_stop_task()
             await self.record_heart_logs(f"{self.api.req_user} 发生X心跳成功！小心心数：{cnt}, hbe: {hbe}")
 
