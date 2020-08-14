@@ -363,6 +363,8 @@ class BiliPrivateApi(_BiliApi):
         url = f"https://api.live.bilibili.com/i/api/medal"
         params = {"page": 1, "pageSize": 30}
         data = await self.safe_request("get", url, headers=self.headers, params=params)
+        if not data:
+            return []
         fans_list = data.get("fansMedalList") or []
         result = [UserMedalInfo(**doc) for doc in fans_list]
         return result
