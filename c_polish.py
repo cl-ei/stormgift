@@ -36,7 +36,8 @@ async def polish(user: LTUser, medals: List[UserMedalInfo]):
     hearts.sort(key=lambda x: x.expire_at)
     gift_args = get_gift_args(hearts, len(medals))
 
-    for i, medal in enumerate(medals):
+    available_medals = medals[:len(gift_args)]
+    for i, medal in enumerate(available_medals):
         args = gift_args[i]
         args.update({
             "ruid": medal.target_id,
