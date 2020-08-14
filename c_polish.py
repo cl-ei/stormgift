@@ -59,7 +59,7 @@ async def main():
 
         api = BiliPrivateApi(req_user=user)
         medals = await api.get_user_owned_medals()
-        dark_medals = [m for m in medals if m.is_lighted == 0]
+        dark_medals = [m for m in medals if m.is_lighted == 0 and m.target_id != user.user_id]
         if not dark_medals:
             continue
 
