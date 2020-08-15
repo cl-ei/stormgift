@@ -12,7 +12,7 @@ from src.db.queries.cron_action import get_or_create_today_rec
 from src.db.queries.queries import queries, LTUser
 
 
-logging = get_logger("storm_heart")
+logging = get_logger("c_storm_heart")
 
 
 MEDAL_ID_TO_ROOM_ID = {
