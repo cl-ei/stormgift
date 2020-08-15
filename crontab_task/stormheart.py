@@ -4,12 +4,15 @@ import traceback
 from random import randint
 from utils.dao import redis_cache
 from config.g import LIVE_ROOM_ID_DD
-from config.log4 import crontab_task_logger as logging
+from config.log4 import get_logger
 from src.api.schemas import *
 from src.api.bili import BiliPrivateApi
 from src.db.clients.mongo import db
 from src.db.queries.cron_action import get_or_create_today_rec
 from src.db.queries.queries import queries, LTUser
+
+
+logging = get_logger("storm_heart")
 
 
 MEDAL_ID_TO_ROOM_ID = {
@@ -19,13 +22,9 @@ MEDAL_ID_TO_ROOM_ID = {
 
 
 async def auto_shutdown():
-    while True:
-        today_key = f"STORM:HT:{datetime.datetime.now().date()}"
-        r = await redis_cache.set_if_not_exists(key=today_key, value=1)
-        if r:
-            logging.info(f"今日未重启，现在重启.")
-            sys.exit(0)
-        await asyncio.sleep(60)
+    await asyncio.sleep(3600 * 8)
+    logging.info(f"已运行8小时，现在重启.")
+    sys.exit(0)
 
 
 class StormHeart:
@@ -134,7 +133,7 @@ class StormHeart:
 async def main():
     users: List[LTUser] = await queries.get_all_lt_user()
     users = [u for u in users if u.storm_heart is True]
-    print(f"users {len(users)}: {users}")
+    logging.info(f"Storm heart started. users {len(users)}: \n\t{users}")
     await asyncio.gather(
         auto_shutdown(),
         *[StormHeart(user.uid).run() for user in users]
