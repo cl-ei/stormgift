@@ -22,8 +22,8 @@ MEDAL_ID_TO_ROOM_ID = {
 
 
 async def auto_shutdown():
-    await asyncio.sleep(3600 * 8)
-    logging.info(f"已运行8小时，现在重启.")
+    await asyncio.sleep(3600 * 14)
+    logging.info(f"已运行14小时，现在重启.")
     sys.exit(0)
 
 
