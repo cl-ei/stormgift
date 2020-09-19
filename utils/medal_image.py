@@ -20,7 +20,7 @@ class MedalImage:
 
         medals = [m for m in medals if not m["receive_time"].startswith("0001-01-01")]
         self.medals = sorted(medals, key=lambda x: (x["is_lighted"], x["score"]), reverse=True)
-        self.path = f"/home/ubuntu/coolq_zy/data/image/medal_{self.uid}.png"
+        self.path = f"/home/wwwroot/qq/images/medal_{self.uid}.png"
 
         self.width = 600
         self.y_offset = 95

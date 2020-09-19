@@ -243,7 +243,7 @@ class BotUtils:
         medals = data[str(uid)]["medal"].values()
         img = MedalImage(uid=uid, user_name=user_name, sign=sign, medals=medals)
         img.save()
-        return f"[CQ:image,file={os.path.split(img.path)[-1]}]"
+        return f"[CQ:image,file=/app/{os.path.split(img.path)[-1]}]"
 
     async def proc_lt_status(self, msg):
         lt_users = await queries.get_lt_user_by(bind_qq=self.user_id)
