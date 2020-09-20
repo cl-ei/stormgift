@@ -1,6 +1,7 @@
 import os
 import time
 from PIL import Image
+from typing import *
 
 
 class DynamicPicturesProcessor:
@@ -9,7 +10,7 @@ class DynamicPicturesProcessor:
         self.path = path
 
         if target_path is None:
-            target_path = "/home/ubuntu/coolq_zy/data/image"
+            target_path = "/home/wwwroot/qq/images"
         self.target_path = target_path
 
         self.target = None
@@ -142,7 +143,14 @@ class DynamicPicturesProcessor:
         self.target_file_name = file_name
         # self.target.show()
 
-    def join(self):
+    def join(self) -> Tuple[bool, str]:
+        """
+
+        Returns
+        -------
+        flag:
+        path: str, 目标文件的绝对路径
+        """
         files = sorted(os.listdir(self.path))
         target = []
         for f in files:
@@ -164,4 +172,4 @@ class DynamicPicturesProcessor:
         except Exception as e:
             return False, f"Error happened: {e}"
 
-        return True, self.target_file_name
+        return True, os.path.join(self.target_path, self.target_file_name)

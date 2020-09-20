@@ -410,7 +410,8 @@ async def trends_qq_notice(request):
             else:
                 flag = True
                 file_name = f"b_{int(time.time() * 1000):0x}." + last_pic_name.split(".")[-1]
-                os.system(f"mv {work_path}/{last_pic_name} /home/ubuntu/coolq_zy/data/image/{file_name}")
+                file_name = os.path.join("/home/wwwroot/qq/images", file_name)
+                os.system(f"mv {work_path}/{last_pic_name} {file_name}")
 
             if flag:
                 message = prefix + "\n".join(content)

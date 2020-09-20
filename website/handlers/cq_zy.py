@@ -243,7 +243,7 @@ class BotUtils:
         medals = data[str(uid)]["medal"].values()
         img = MedalImage(uid=uid, user_name=user_name, sign=sign, medals=medals)
         img.save()
-        return f"[CQ:image,file=/app/{os.path.split(img.path)[-1]}]"
+        return f"[CQ:image,file={img.path}]"
 
     async def proc_lt_status(self, msg):
         lt_users = await queries.get_lt_user_by(bind_qq=self.user_id)
@@ -380,8 +380,8 @@ class BotUtils:
         else:
             flag = True
             file_name = f"b_{int(time.time()*1000):0x}." + last_pic_name.split(".")[-1]
-            os.system(f"mv {work_path}/{last_pic_name} /home/ubuntu/coolq_zy/data/image/{file_name}")
-
+            file_name = os.path.join("/home/wwwroot/qq/images", file_name)
+            os.system(f"mv {work_path}/{last_pic_name} {file_name}")
         if flag:
             message = prefix + "\n".join(content)
             message = f"{message}\n [CQ:image,file={file_name}]"
