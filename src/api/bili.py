@@ -31,13 +31,13 @@ class _BiliApi:
         "User-Agent": UA,
     }
 
-    appkey = "1d8b6e7d45233436"
+    appkey = "bca7e84c2d947ac6"
     actionKey = "appkey"
-    build = "520001"
+    build = "6070600"
     device = "android"
     mobi_app = "android"
     platform = "android"
-    app_secret = "560c52ccd288fed045859ed18bffd973"
+    app_secret = "60698ba2f68e01ce44738920a0ffe768"
 
     app_headers = {
         "User-Agent": "Mozilla/5.0 BilidDroid/5.51.1(bbcallen@gmail.com)",
