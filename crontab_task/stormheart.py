@@ -16,8 +16,8 @@ logging = get_logger("c_storm_heart")
 
 
 MEDAL_ID_TO_ROOM_ID = {
-    # 123: 3,
-    142679: LIVE_ROOM_ID_DD,
+    123: 23058,  # 3号直播间
+    # 142679: LIVE_ROOM_ID_DD,
 }
 
 
