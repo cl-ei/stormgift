@@ -1,5 +1,5 @@
 import aiohttp
-from config import CQBOT_ZY
+from config import CQBOT_ZY, CQBOT_YK
 
 
 class CQClient:
@@ -37,3 +37,4 @@ class CQClient:
 
 
 async_zy = CQClient(api_root=CQBOT_ZY["api_root"], access_token=CQBOT_ZY["access_token"])
+qq_yk = CQClient(api_root=CQBOT_YK["api_root"], access_token=CQBOT_YK["access_token"])

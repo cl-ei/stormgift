@@ -29,6 +29,11 @@ CQBOT_ZY = {
     "access_token": config["cqbot_zy"]["access_token"],
     "secret": config["cqbot_zy"]["secret"],
 }
+CQBOT_YK = {
+    "api_root": config["cqbot_yk"]["api_root"],
+    "access_token": config["cqbot_yk"]["access_token"],
+    "secret": config["cqbot_yk"]["secret"],
+}
 
 mail_auth_pass = config["mail"]["mail_auth_pass"]
 

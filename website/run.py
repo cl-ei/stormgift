@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 from aiohttp import web
-from website.handlers import lt, cq_zy
+from website.handlers import lt, cq_zy, cq_yk
 
 
 async def main():
@@ -42,6 +42,7 @@ async def main():
 
         web.get('/lt/trends_qq_notice', lt.trends_qq_notice),
         web.route('*', "/lt/cq_handler", cq_zy.handler),
+        web.route('*', "/lt/cq_yk", cq_yk.handler),
     ])
     runner = web.AppRunner(app)
     await runner.setup()
