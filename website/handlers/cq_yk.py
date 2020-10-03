@@ -57,19 +57,14 @@ async def _proc_one_image(group_id):
 
 async def handler(request):
     context = await request.json()
+    logging.info(f"[YK]context: {context}")
     if not context.get("post_type") != "message":
         return web.Response(text="", status=204)
     if not context.get("message_type") != "group":
         return web.Response(text="", status=204)
 
-    sender = context["sender"]
-    user_id = sender["user_id"]
-    user_nickname = sender["nickname"]
-    title = sender.get("title", "--")
-    card = sender.get("card", "--")
     group_id = context["group_id"]
     msg = context["message"]
-    logging.info(f"群消息: ({group_id}) [{title}][{card}]{user_nickname}({user_id}) -> {msg}")
 
     if msg == "一言":
         await _proc_one_sentence(group_id)
