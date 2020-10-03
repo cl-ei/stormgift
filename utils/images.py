@@ -1,7 +1,26 @@
 import os
 import time
+import random
+import aiohttp
 from PIL import Image
 from typing import *
+
+
+async def get_random_image() -> Optional[bytes]:
+    try:
+        url = random.choice((
+            "https://acg.xydwz.cn/api/api.php",
+            "https://acg.xydwz.cn/zhdm/综合动漫.php",
+            "https://acg.xydwz.cn/P站/P站随机图片.php",
+            "https://acg.xydwz.cn/gqapi/gqapi.php",
+            "https://pic.alimg.xydwz.cn/mjx.php",
+        ))
+        timeout = aiohttp.ClientTimeout(total=5)
+        async with aiohttp.request("get", url, timeout=timeout) as resp:
+            assert resp.status == 200
+            return await resp.read()
+    except Exception as e:
+        _ = e
 
 
 class DynamicPicturesProcessor:

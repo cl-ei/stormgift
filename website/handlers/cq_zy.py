@@ -6,6 +6,7 @@ import random
 import hashlib
 import aiohttp
 import requests
+import datetime
 import traceback
 from aiohttp import web
 
@@ -14,7 +15,7 @@ from config.log4 import cqbot_logger as logging
 
 from utils.cq import async_zy
 from utils.biliapi import BiliApi
-from utils.covert import gen_time_prompt
+from utils.images import get_random_image
 from utils.medal_image import MedalImage
 from utils.images import DynamicPicturesProcessor
 from utils.dao import redis_cache, DelayAcceptGiftsQueue
@@ -195,6 +196,28 @@ class BotUtils:
             return
 
         return await get_one_sentence()
+
+    async def proc_one_image(self):
+        key = f"LT_ONE_IMG_{self.group_id}"
+        is_second = False
+        if await redis_cache.set_if_not_exists(key=key, value="1", timeout=300):
+            pass
+        else:
+            if await redis_cache.set_if_not_exists(key=f"{key}_FLUSH", value="1", timeout=300):
+                is_second = True
+            else:
+                return
+
+        content = await get_random_image()
+        if not content:
+            return
+        file_name = f"/home/wwwroot/qq/images/RAND_IMG_{datetime.datetime.now()}.jpg"
+        with open(file_name, "wb") as f:
+            f.write(content)
+        msg = f"[CQ:image,file={file_name}]"
+        if is_second:
+            msg += "\n为防止刷屏，5分钟内不再响应."
+        return msg
 
     async def proc_song(self, msg):
         song_name = msg.split("点歌")[-1].strip()
@@ -392,55 +415,6 @@ class BotUtils:
     async def proc_query_guard(self, msg):
         return f"功能维护中。"
 
-    async def proc_chicken(self):
-        user_id = self.user_id
-
-        if user_id != g.QQ_NUMBER_DD:
-            if not await redis_cache.set_if_not_exists(f"LT_PROC_CHICKEN_{user_id}", 1, timeout=180):
-                ttl = await redis_cache.ttl(f"LT_PROC_CHICKEN_{user_id}")
-                await self.response(f"请{ttl}秒后再发送此命令。")
-                return
-
-        last_active_time = await redis_cache.get("LT_LAST_ACTIVE_TIME")
-        if not isinstance(last_active_time, int):
-            last_active_time = 0
-        last_active_time = int(time.time()) - last_active_time
-
-        all_gifts = await DelayAcceptGiftsQueue.get_all()
-        gifts = []
-        score = []
-        for i, gift in enumerate(all_gifts):
-            if i % 2 == 0:
-                gifts.append(gift)
-            else:
-                score.append(gift)
-
-        message = f"辣🐔最后活跃时间: {gen_time_prompt(last_active_time)}，队列中有{len(gifts)}个未收大宝贝：\n\n{'-'*20}\n"
-
-        prompt_gift_list = []
-        for i, gift in enumerate(gifts):
-            room_id = gift["room_id"]
-            gift_name = gift["gift_name"]
-
-            room_id = int(room_id)
-            accept_time = -1 * int(time.time() - score[i])
-            if accept_time < 0:
-                accept_time = 0
-            prompt_gift_list.append((gift_name, room_id, accept_time))
-
-        prompt_gift_list.sort(key=lambda x: (x[0], x[2], x[1]))
-        prompt = []
-        for p in prompt_gift_list:
-            minutes = p[2] // 60
-            seconds = p[2] % 60
-            time_prompt = f"{seconds}秒"
-            if minutes > 0:
-                time_prompt = f"{minutes}分" + time_prompt
-
-            prompt.append(f"{p[0]}: {p[1]}, {time_prompt}后领取")
-        message += "；\n".join(prompt)
-        return message
-
     async def proc_help(self):
         if self.group_id:
             message = (
@@ -482,6 +456,9 @@ class BotHandler:
         p = BotUtils(user_id=user_id, group_id=group_id)
         if msg in ("一言", "#一言"):
             return await p.proc_one_sentence()
+
+        if msg in ("一图", "#一图"):
+            return await p.proc_one_image()
 
         elif msg.startswith("#点歌"):
             return await p.proc_song(msg)
@@ -576,9 +553,6 @@ class BotHandler:
                 f"本URL只可一次性使用，如遇404则说明已失效，请重新获取；否则，请一直刷新页面，直到能够正常显示。\n"
             )
             return message
-
-        elif msg in ("鸡", "🐔"):
-            return await p.proc_chicken()
 
     @classmethod
     async def handle_message(cls, context):

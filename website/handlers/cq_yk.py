@@ -1,8 +1,10 @@
 import aiohttp
+import datetime
 from aiohttp import web
 from config.log4 import cqbot_logger as logging
 from utils.dao import redis_cache
 from utils.cq import qq_yk
+from utils.images import get_random_image
 
 
 async def _proc_one_sentence(group_id: int):
@@ -40,7 +42,17 @@ async def _proc_one_image(group_id):
             is_second = True
         else:
             return
-    pass
+
+    content = await get_random_image()
+    if not content:
+        return
+    file_name = f"/home/wwwroot/qq_yk/images/RAND_IMG_{datetime.datetime.now()}.jpg"
+    with open(file_name, "wb") as f:
+        f.write(content)
+    msg = f"[CQ:image,file={file_name}]"
+    if is_second:
+        msg += "\n为防止刷屏，5分钟内不再响应."
+    await qq_yk.send_group_msg(group_id=group_id, message=msg)
 
 
 async def handler(request):
