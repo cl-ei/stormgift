@@ -58,9 +58,9 @@ async def _proc_one_image(group_id):
 async def handler(request):
     context = await request.json()
     logging.info(f"[YK]context: {context}")
-    if not context.get("post_type") != "message":
+    if context.get("post_type") != "message":
         return web.Response(text="", status=204)
-    if not context.get("message_type") != "group":
+    if context.get("message_type") != "group":
         return web.Response(text="", status=204)
 
     group_id = context["group_id"]
