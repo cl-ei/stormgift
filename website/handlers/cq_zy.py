@@ -198,15 +198,15 @@ class BotUtils:
         return await get_one_sentence()
 
     async def proc_one_image(self):
-        key = f"LT_ONE_IMG_{self.group_id}"
-        is_second = False
-        if await redis_cache.set_if_not_exists(key=key, value="1", timeout=300):
-            pass
-        else:
-            if await redis_cache.set_if_not_exists(key=f"{key}_FLUSH", value="1", timeout=300):
-                is_second = True
-            else:
-                return
+        # key = f"LT_ONE_IMG_{self.group_id}"
+        # is_second = False
+        # if await redis_cache.set_if_not_exists(key=key, value="1", timeout=300):
+        #     pass
+        # else:
+        #     if await redis_cache.set_if_not_exists(key=f"{key}_FLUSH", value="1", timeout=300):
+        #         is_second = True
+        #     else:
+        #         return
 
         content = await get_random_image()
         if not content:
@@ -215,8 +215,8 @@ class BotUtils:
         with open(file_name, "wb") as f:
             f.write(content)
         msg = f"[CQ:image,file={file_name}]"
-        if is_second:
-            msg += "\n为防止刷屏，5分钟内不再响应."
+        # if is_second:
+        #     msg += "\n为防止刷屏，5分钟内不再响应."
         return msg
 
     async def proc_song(self, msg):
@@ -457,7 +457,7 @@ class BotHandler:
         if msg in ("一言", "#一言"):
             return await p.proc_one_sentence()
 
-        if msg in ("一图", "#一图"):
+        elif msg in ("一图", "#一图"):
             return await p.proc_one_image()
 
         elif msg.startswith("#点歌"):
