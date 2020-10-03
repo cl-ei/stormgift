@@ -216,7 +216,7 @@ class BotUtils:
             f.write(content)
         msg = f"[CQ:image,file={file_name}]"
         if is_second:
-            msg += "\n为防止刷屏，5分钟内不再响应."
+            msg = f"为防止刷屏，5分钟内不再响应.\n {msg}"
         return msg
 
     async def proc_song(self, msg):
