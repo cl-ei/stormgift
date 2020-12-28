@@ -221,7 +221,12 @@ class BotUtils:
 
     async def proc_one_record(self):
         _ = self
-        return f"[CQ:record,file=/home/wwwroot/qq/records/1.mp3]"
+        source = "/home/wwwroot/qq/records/1.mp3"
+        target = "/home/wwwroot/qq/records/2.mp3"
+        with open(source, "rb") as s:
+            with open(target, "wb") as t:
+                t.write(s.read())
+        return f"[CQ:record,file={target}]"
 
     async def proc_song(self, msg):
         song_name = msg.split("点歌")[-1].strip()
