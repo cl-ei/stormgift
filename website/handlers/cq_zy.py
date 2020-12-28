@@ -221,7 +221,7 @@ class BotUtils:
 
     async def proc_one_record(self):
         _ = self
-        return f"[CQ:record,file=/home/wwwroot/qq/plugins/record/rest.wav]"
+        return f"[CQ:record,file=/home/wwwroot/qq/records/1.mp3]"
 
     async def proc_song(self, msg):
         song_name = msg.split("点歌")[-1].strip()
