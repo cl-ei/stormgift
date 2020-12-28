@@ -1,6 +1,7 @@
 import os
 import asyncio
 from typing import *
+from random import choice
 from src.db.clients.mongo import db
 from src.db.models.images import ImageDoc
 
@@ -21,9 +22,11 @@ def get_file_name_list(path: str) -> List[str]:
 async def main():
     search_path = "/data/IMAGE"
     files = get_file_name_list(search_path)
-    for file in files:
-        doc = ImageDoc(path=file)
+    while files:
+        path = choice(files)
+        doc = ImageDoc(path=path)
         await doc.save(db)
+        files.remove(path)
     print(f"Done!")
 
 
