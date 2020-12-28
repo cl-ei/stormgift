@@ -219,6 +219,10 @@ class BotUtils:
             msg = f"为防止刷屏，5分钟内不再响应.\n {msg}"
         return msg
 
+    async def proc_one_record(self):
+        _ = self
+        return f"[CQ:record,file=/home/wwwroot/qq/records/rest.wav]"
+
     async def proc_song(self, msg):
         song_name = msg.split("点歌")[-1].strip()
         if not song_name:
@@ -516,6 +520,9 @@ class BotHandler:
         p = BotUtils(user_id=user_id, group_id=None)
         if msg.startswith("#背包"):
             return await p.proc_query_bag(msg)
+
+        elif msg in ("#一语", "一语"):
+            return await p.proc_one_record()
 
         elif msg.startswith("#动态"):
             return await p.proc_dynamic(msg)
