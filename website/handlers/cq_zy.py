@@ -208,7 +208,7 @@ class BotUtils:
             else:
                 return
 
-        content = await get_random_image()
+        content = await get_random_image(name="zy")
         if not content:
             return
         file_name = f"/home/wwwroot/qq/images/RAND_IMG_{datetime.datetime.now()}.jpg"

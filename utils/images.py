@@ -5,65 +5,17 @@ import hashlib
 import aiohttp
 from PIL import Image
 from typing import *
-
-path_dereplication = "./_dereplication"
-os.makedirs(path_dereplication, exist_ok=True)
-
-headers = {
-    "Accept": (
-        "text/html,application/xhtml+xml,application/xml;"
-        "q=0.9,image/webp,image/apng,*/*;q=0.8"
-    ),
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/70.0.3538.110 Safari/537.36"
-    ),
-}
+from src.db.models.images import get_image
 
 
-async def get_random_image() -> Optional[bytes]:
-    for try_times in range(6):
-        try:
-            url = random.choice((
-                "https://acg.xydwz.cn/api/api.php",
-                "https://acg.xydwz.cn/zhdm/综合动漫.php",
-                "https://acg.xydwz.cn/P站/P站随机图片.php",
-                "https://acg.xydwz.cn/gqapi/gqapi.php",
-                "https://api.r10086.com/CG系列1.php",
-                "https://api.r10086.com/CG系列2.php",
-                "https://api.r10086.com/CG系列3.php",
-                "https://api.r10086.com/CG系列4.php",
-                "https://api.r10086.com/CG系列5.php",
-                "https://api.r10086.com/P站系列1.php",
-                "https://api.r10086.com/P站系列1.php",
-                "https://api.r10086.com/P站系列1.php",
-                "https://api.r10086.com/P站系列1.php",
-                # "https://api.r10086.com/猫娘1.php",
-            ))
-            timeout = aiohttp.ClientTimeout(total=10)
-            async with aiohttp.request("get", url, headers=headers, timeout=timeout) as resp:
-                assert resp.status == 200
-                content = await resp.read()
-
-            assert content
-
-            md5 = hashlib.md5(content).hexdigest()  # 计算md5，去重复
-            check_path = os.path.join(
-                path_dereplication,
-                md5[:4],
-                md5[4:8],
-                md5[8:12],
-                md5[12:]
-            )
-            if os.path.exists(check_path):
-                raise ValueError("已经存在了！跳过")
-            else:
-                os.makedirs(check_path, exist_ok=True)
-                return content
-
-        except Exception as e:
-            _ = e
+async def get_random_image(name: str) -> Optional[bytes]:
+    path = await get_image(name=name)
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except Exception as e:
+        _ = e
+    return None
 
 
 class DynamicPicturesProcessor:

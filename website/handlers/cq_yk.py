@@ -50,7 +50,7 @@ async def _proc_one_sentence(group_id: int, is_last: bool):
 
 
 async def _proc_one_image(group_id, is_last: bool):
-    content = await get_random_image()
+    content = await get_random_image(name="yk")
     if not content:
         return
     file_name = f"/home/wwwroot/qq_yk/images/RAND_IMG_{datetime.datetime.now()}.jpg"

@@ -35,5 +35,5 @@ async def get_image(name: str) -> str:
         {'$set': {"seq": 0}},
         upsert=True
     )
-    image = await image.get_by_id(db, 0)
+    image = await ImageDoc.get_by_id(db, 0)
     return image.path if image else ""
