@@ -8,6 +8,8 @@ class ImageDoc(RWModel):
 
 
 class UsedRecDoc(RWModel):
+    __collection__ = "img_used_rec"
+
     name: str
     seq: int = 0
 
