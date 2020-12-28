@@ -39,7 +39,7 @@ async def get_random_image() -> Optional[bytes]:
                 "https://api.r10086.com/P站系列1.php",
                 "https://api.r10086.com/P站系列1.php",
                 "https://api.r10086.com/P站系列1.php",
-                "https://api.r10086.com/猫娘1.php",
+                # "https://api.r10086.com/猫娘1.php",
             ))
             timeout = aiohttp.ClientTimeout(total=10)
             async with aiohttp.request("get", url, headers=headers, timeout=timeout) as resp:
