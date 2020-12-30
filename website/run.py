@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 from aiohttp import web
-from website.handlers import lt, cq_zy, cq_yk
+from website.handlers import lt, cq_zy, cq_yk, mirai
 
 
 async def main():
@@ -41,6 +41,7 @@ async def main():
         web.get('/lt/act_record/{key}', lt.act_record),
 
         web.get('/lt/trends_qq_notice', lt.trends_qq_notice),
+        web.route("*", '/mirai', mirai.handler),
         web.route('*', "/lt/cq_handler", cq_zy.handler),
         web.route('*', "/lt/cq_yk", cq_yk.handler),
     ])
