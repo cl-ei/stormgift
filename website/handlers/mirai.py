@@ -8,5 +8,6 @@ from config.log4 import cqbot_logger as logging
 
 
 async def handler(request: Request):
-    print(f"request: {request.method}")
+    data = await request.json()
+    print(f"request: {request.method}\ndata: {data}")
     return web.Response(text="", status=204)
